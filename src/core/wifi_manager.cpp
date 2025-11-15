@@ -14,6 +14,11 @@ namespace WiFiManager {
     unsigned long lastReconnectAttempt = 0;
     const unsigned long RECONNECT_INTERVAL = 30000; // 30 seconds
     
+    // WiFi connection state (non-blocking)
+    static bool connectionInProgress = false;
+    static unsigned long connectionStartTime = 0;
+    static const unsigned long CONNECTION_TIMEOUT = 10000; // 10 seconds
+    
     void init() {
         Logger::infof("WiFi: Iniciando conexión a %s", WIFI_SSID);
         
@@ -21,49 +26,59 @@ namespace WiFiManager {
         WiFi.mode(WIFI_STA);
         WiFi.setHostname(OTA_HOSTNAME);
         
-        // Start connection
+        // Start connection (non-blocking)
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         
-        // Wait up to 10 seconds for connection
-        int attempts = 0;
-        while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-            delay(500);
-            Serial.print(".");
-            attempts++;
-        }
+        // Set connection state for non-blocking check in update()
+        connectionInProgress = true;
+        connectionStartTime = millis();
         
-        if (WiFi.status() == WL_CONNECTED) {
-            connected = true;
-            Logger::infof("WiFi: Conectado! IP: %s", WiFi.localIP().toString().c_str());
-            Logger::infof("WiFi: RSSI: %d dBm", WiFi.RSSI());
-            
-            // Start mDNS
-            if (MDNS.begin(OTA_HOSTNAME)) {
-                Logger::infof("WiFi: mDNS iniciado: %s.local", OTA_HOSTNAME);
-                MDNS.addService("http", "tcp", 80);
-            }
-            
-            // Configure OTA
-            ArduinoOTA.setHostname(OTA_HOSTNAME);
-            ArduinoOTA.setPassword(OTA_PASSWORD);
-            
-            ArduinoOTA.onStart(onOTAStart);
-            ArduinoOTA.onEnd(onOTAEnd);
-            ArduinoOTA.onProgress(onOTAProgress);
-            ArduinoOTA.onError(onOTAError);
-            
-            ArduinoOTA.begin();
-            Logger::info("WiFi: OTA habilitado");
-            
-            // Play connection sound
-            Alerts::play(Audio::AUDIO_MODULO_OK);
-        } else {
-            connected = false;
-            Logger::error("WiFi: Fallo al conectar");
-        }
+        Logger::info("WiFi: Conexión iniciada (modo no bloqueante)");
     }
     
     void update() {
+        // Handle initial connection attempt (non-blocking)
+        if (connectionInProgress) {
+            unsigned long now = millis();
+            
+            if (WiFi.status() == WL_CONNECTED) {
+                // Connection successful
+                connectionInProgress = false;
+                connected = true;
+                
+                Logger::infof("WiFi: Conectado! IP: %s", WiFi.localIP().toString().c_str());
+                Logger::infof("WiFi: RSSI: %d dBm", WiFi.RSSI());
+                
+                // Start mDNS
+                if (MDNS.begin(OTA_HOSTNAME)) {
+                    Logger::infof("WiFi: mDNS iniciado: %s.local", OTA_HOSTNAME);
+                    MDNS.addService("http", "tcp", 80);
+                }
+                
+                // Configure OTA
+                ArduinoOTA.setHostname(OTA_HOSTNAME);
+                ArduinoOTA.setPassword(OTA_PASSWORD);
+                
+                ArduinoOTA.onStart(onOTAStart);
+                ArduinoOTA.onEnd(onOTAEnd);
+                ArduinoOTA.onProgress(onOTAProgress);
+                ArduinoOTA.onError(onOTAError);
+                
+                ArduinoOTA.begin();
+                Logger::info("WiFi: OTA habilitado");
+                
+                // Play connection sound
+                Alerts::play(Audio::AUDIO_MODULO_OK);
+            } else if (now - connectionStartTime > CONNECTION_TIMEOUT) {
+                // Connection timeout
+                connectionInProgress = false;
+                connected = false;
+                Logger::error("WiFi: Fallo al conectar (timeout)");
+            }
+            // else: still connecting, check again in next update
+            return; // Don't handle other WiFi logic during initial connection
+        }
+        
         // Handle OTA updates
         if (connected) {
             ArduinoOTA.handle();

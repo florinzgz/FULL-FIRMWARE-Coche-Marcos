@@ -11,7 +11,8 @@ void select_tca9548a_channel(uint8_t channel) {
     Wire.beginTransmission(I2C_MUX_ADDR);
     Wire.write(static_cast<uint8_t>(1u << channel));
     Wire.endTransmission();
-    delay(1); // pequeño retardo para estabilizar el bus tras el cambio de canal
+    // Non-blocking: removed 1ms delay - I2C hardware handles timing
+    // If instability occurs, caller should add delayMicroseconds(10) if needed
 }
 
 // Lectura simplificada de un registro de 16 bits desde un INA226 en el canal dado.

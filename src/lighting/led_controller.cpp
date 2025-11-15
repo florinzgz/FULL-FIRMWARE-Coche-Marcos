@@ -27,6 +27,13 @@ static bool blinkState = false;
 static uint32_t lastBlinkMs = 0;
 static bool enabled = true;
 
+// Emergency flash state (non-blocking)
+static bool emergencyFlashActive = false;
+static uint8_t emergencyFlashCount = 0;
+static uint8_t emergencyFlashCurrent = 0;
+static uint32_t emergencyFlashLastToggle = 0;
+static bool emergencyFlashOn = false;
+
 // KITT scanner state
 static int8_t scannerPos = 0;
 static int8_t scannerDirection = 1;
@@ -262,7 +269,33 @@ void update() {
     
     uint32_t now = millis();
     
-    // Update animation step
+    // Handle emergency flash (highest priority, non-blocking)
+    if (emergencyFlashActive) {
+        // Toggle every 100ms
+        if (now - emergencyFlashLastToggle >= 100) {
+            emergencyFlashLastToggle = now;
+            emergencyFlashOn = !emergencyFlashOn;
+            
+            if (emergencyFlashOn) {
+                fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Red);
+                fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Red);
+            } else {
+                fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Black);
+                fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Black);
+                emergencyFlashCurrent++;
+                
+                // Check if we've completed all flashes
+                if (emergencyFlashCurrent >= emergencyFlashCount) {
+                    emergencyFlashActive = false;
+                    emergencyFlashCurrent = 0;
+                }
+            }
+            FastLED.show();
+        }
+        return; // Skip normal update during emergency flash
+    }
+    
+    // Normal animation update
     if (now - lastUpdateMs >= config.updateRateMs) {
         animationStep++;
         lastUpdateMs = now;
@@ -332,18 +365,18 @@ Config& getConfig() {
     return config;
 }
 
-void emergencyFlash(uint8_t count) {
-    for (uint8_t i = 0; i < count; i++) {
-        fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Red);
-        fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Red);
-        FastLED.show();
-        delay(100);
-        
-        fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Black);
-        fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Black);
-        FastLED.show();
-        delay(100);
-    }
+void startEmergencyFlash(uint8_t count) {
+    // Start non-blocking emergency flash
+    emergencyFlashActive = true;
+    emergencyFlashCount = count;
+    emergencyFlashCurrent = 0;
+    emergencyFlashOn = false;
+    emergencyFlashLastToggle = millis();
+    Logger::infof("Emergency flash started: %d cycles", count);
+}
+
+bool isEmergencyFlashActive() {
+    return emergencyFlashActive;
 }
 
 }  // namespace LEDController

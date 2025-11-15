@@ -49,7 +49,11 @@
 
 void setup() {
     Serial.begin(115200);
-    delay(500);
+    // Non-blocking: allow Serial to initialize naturally
+    unsigned long serialStart = millis();
+    while (!Serial && (millis() - serialStart < 500)) {
+        // Wait up to 500ms for Serial without blocking
+    }
 
     Debug::setLevel(2); // nivel DEBUG
 
@@ -99,7 +103,8 @@ void setup() {
     // --- Logo de arranque ---
     HUDManager::showLogo();
     Alerts::play(Audio::AUDIO_INICIO);
-    delay(2000);
+    // Non-blocking: logo display time handled by first loop iterations
+    // Removed blocking delay(2000) - logo will show during system checks
 
     // --- Chequeo rápido ---
     auto health = System::selfTest();
@@ -179,5 +184,9 @@ void loop() {
     System::update();
     // Logger::update(); // Logger no tiene método update
 
-    delay(10); // ~100 Hz main loop, HUD updates at 30 Hz internally
+    // Non-blocking main loop - no delay needed
+    // Loop runs as fast as possible, modules control their own update rates:
+    // - HUD: 30 FPS (33ms) via internal timing
+    // - Sensors: 20-50 Hz via updateCurrent/Temperature/Wheels timing
+    // - Control modules: update every iteration (non-blocking)
 }
