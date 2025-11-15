@@ -97,30 +97,40 @@ GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RST, 3V3, 
 | DFPLAYER_RX | 44 | UART RX | RX ESP ← TX DFPlayer |
 | **Temperatura DS18B20 (OneWire)** |
 | ONEWIRE | 15 | Bus OneWire | Pull-up 4.7kΩ |
-| **Drivers BTS7960 (Motores)** |
-| FL_PWM | 23 | PWM Motor FL | ⚠️ GPIO no disponible físicamente |
-| FL_IN1 | 24 | Dirección FL IN1 | ⚠️ GPIO no disponible físicamente |
-| FL_IN2 | 25 | Dirección FL IN2 | ⚠️ GPIO no disponible físicamente |
-| FR_PWM | 26 | PWM Motor FR | ⚠️ GPIO no disponible físicamente |
-| FR_IN1 | 27 | Dirección FR IN1 | ⚠️ GPIO no disponible físicamente |
-| FR_IN2 | 28 | Dirección FR IN2 | ⚠️ GPIO no disponible físicamente |
-| RL_PWM | 29 | PWM Motor RL | ⚠️ GPIO no disponible físicamente |
-| RL_IN1 | 30 | Dirección RL IN1 | ⚠️ GPIO no disponible físicamente |
-| RL_IN2 | 31 | Dirección RL IN2 | ⚠️ GPIO no disponible físicamente |
-| RR_PWM | 32 | PWM Motor RR | ⚠️ GPIO no disponible físicamente |
-| RR_IN1 | 33 | Dirección RR IN1 | ⚠️ GPIO no disponible físicamente |
-| RR_IN2 | 34 | Dirección RR IN2 | ⚠️ GPIO no disponible físicamente |
+| **LEDs Inteligentes WS2812B** |
+| LED_FRONT | 0 | LEDs frontales | 28 unidades |
+| LED_REAR | 1 | LEDs traseros | 16 unidades |
+| **Drivers BTS7960 (Motores) - Controlados vía I²C** |
+| FL_PWM | PCA_CH0 | PWM Motor FL | ✅ PCA9685 @ 0x40 Canal 0 |
+| FL_PWM_R | PCA_CH1 | PWM Motor FL Reverse | ✅ PCA9685 @ 0x40 Canal 1 |
+| FL_IN1 | MCP_A0 | Dirección FL IN1 | ✅ MCP23017 @ 0x20 GPIOA0 |
+| FL_IN2 | MCP_A1 | Dirección FL IN2 | ✅ MCP23017 @ 0x20 GPIOA1 |
+| FR_PWM | PCA_CH2 | PWM Motor FR | ✅ PCA9685 @ 0x40 Canal 2 |
+| FR_PWM_R | PCA_CH3 | PWM Motor FR Reverse | ✅ PCA9685 @ 0x40 Canal 3 |
+| FR_IN1 | MCP_A2 | Dirección FR IN1 | ✅ MCP23017 @ 0x20 GPIOA2 |
+| FR_IN2 | MCP_A3 | Dirección FR IN2 | ✅ MCP23017 @ 0x20 GPIOA3 |
+| RL_PWM | PCA_CH4 | PWM Motor RL | ✅ PCA9685 @ 0x40 Canal 4 |
+| RL_PWM_R | PCA_CH5 | PWM Motor RL Reverse | ✅ PCA9685 @ 0x40 Canal 5 |
+| RL_IN1 | MCP_A4 | Dirección RL IN1 | ✅ MCP23017 @ 0x20 GPIOA4 |
+| RL_IN2 | MCP_A5 | Dirección RL IN2 | ✅ MCP23017 @ 0x20 GPIOA5 |
+| RR_PWM | PCA_CH6 | PWM Motor RR | ✅ PCA9685 @ 0x40 Canal 6 |
+| RR_PWM_R | PCA_CH7 | PWM Motor RR Reverse | ✅ PCA9685 @ 0x40 Canal 7 |
+| RR_IN1 | MCP_A6 | Dirección RR IN1 | ✅ MCP23017 @ 0x20 GPIOA6 |
+| RR_IN2 | MCP_A7 | Dirección RR IN2 | ✅ MCP23017 @ 0x20 GPIOA7 |
 
 ### 2.3 Pines Libres Restantes
 
 **GPIOs disponibles sin asignar:**
-- GPIO 0
-- GPIO 1
+- Ninguno - Todos asignados
 
-**⚠️ ADVERTENCIA CRÍTICA:**
-Los GPIOs 23-34 asignados a los drivers BTS7960 **NO están físicamente disponibles** en los headers de la placa ESP32-S3-DevKitC-1. 
+**✅ PROBLEMA RESUELTO:**
+Los GPIOs 23-34 asignados originalmente a los drivers BTS7960 **NO están físicamente disponibles** en los headers de la placa ESP32-S3-DevKitC-1. 
 
-**ACCIÓN REQUERIDA:** Estos pines deben ser remapeados a GPIOs disponibles o controlados vía el expansor GPIO MCP23017 (I²C).
+**✅ SOLUCIÓN IMPLEMENTADA:** 
+- **PCA9685 @ 0x40**: Control PWM de 4 motores (8 canales)
+- **MCP23017 @ 0x20**: Control IN1/IN2 de 4 motores (8 GPIOs)
+- **GPIO 0**: LEDs frontales WS2812B (28 unidades)
+- **GPIO 1**: LEDs traseros WS2812B (16 unidades)
 
 ---
 

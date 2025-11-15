@@ -41,7 +41,7 @@ Los siguientes pines han sido remapeados para compatibilidad con ESP32-S3-DevKit
 
 ### Pines Sin Cambios (Compatibles):
 
-- ✅ Relés: GPIO 2, 4, 5, 32, 33
+- ✅ Relés: GPIO 2, 4, 5, 6 (GPIO 32, 33 remapeados - no disponibles físicamente)
 - ✅ Pedal: GPIO 34
 - ✅ ENCODER_Z: GPIO 25
 - ✅ DFPlayer: GPIO 16, 17
@@ -98,8 +98,8 @@ Los siguientes pines han sido remapeados para compatibilidad con ESP32-S3-DevKit
 | IO36 | 36 | **WHEEL1** (FR) | Sensor Rueda |
 | IO35 | 35 | **WHEEL0** (FL) | Sensor Rueda |
 | IO34 | 34 | **PEDAL** (ADC) | Pedal |
-| IO33 | 33 | **RELAY_MEDIA** | Relé Audio |
-| IO32 | 32 | **RELAY_LIGHTS** | Relé Luces |
+| IO33 | 33 | ⚠️ No disponible | GPIO 23-34 no en headers |
+| IO32 | 32 | ⚠️ No disponible | GPIO 23-34 no en headers |
 | IO31 | 31 | **WHEEL3** (RR) | Sensor Rueda |
 | IO30 | 30 | **WHEEL2** (RL) | Sensor Rueda |
 | IO29 | 29 | **RR_IN2** | Motor RR |
