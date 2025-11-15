@@ -1,4 +1,5 @@
 #include "power_mgmt.h"
+#include "pins.h"  // Include for relay pin definitions
 #include "dfplayer.h"
 #include "alerts.h"
 #include "logger.h"
@@ -6,12 +7,14 @@
 namespace PowerMgmt {
 
 // -----------------------
-// Asignación de GPIOs para relés (verificados como libres en ESP32-S3-DevKitC-1)
+// Usar definiciones de pines desde pins.h para evitar duplicación
+// NOTA: Los relés se definen en pins.h líneas 36-39:
+// PIN_RELAY_MAIN (GPIO2), PIN_RELAY_TRAC (GPIO4), PIN_RELAY_DIR (GPIO5), PIN_RELAY_SPARE (GPIO6)
 // -----------------------
-constexpr uint8_t PIN_RELAY_POWER_HOLD  = 22;  // Relé 1: Power Hold Buck 5V
-constexpr uint8_t PIN_RELAY_AUX_12V     = 23;  // Relé 2: 12V Auxiliares (sensores/encoder)
-constexpr uint8_t PIN_RELAY_MOTOR_24V   = 0;   // Relé 3: 24V Potencia (motores)
-constexpr uint8_t PIN_RELAY_OPTIONAL    = 39;  // Relé 4: Opcional/Seguridad
+constexpr uint8_t PIN_RELAY_POWER_HOLD  = PIN_RELAY_MAIN;   // Relé 1: Power Hold Buck 5V
+constexpr uint8_t PIN_RELAY_AUX_12V     = PIN_RELAY_TRAC;   // Relé 2: 12V Auxiliares (sensores/encoder)
+constexpr uint8_t PIN_RELAY_MOTOR_24V   = PIN_RELAY_DIR;    // Relé 3: 24V Potencia (motores)
+constexpr uint8_t PIN_RELAY_OPTIONAL    = PIN_RELAY_SPARE;  // Relé 4: Opcional/Seguridad
 
 constexpr uint8_t PIN_KEY_DETECT        = 45;  // Detección llave (INPUT_PULLUP, conecta a GND cuando ON)
 
