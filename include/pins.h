@@ -98,12 +98,20 @@
 #define PIN_SHIFTER_R     19  // Posición R (Reverse)
 
 // -----------------------
+// Llave/Switch del sistema
+// GPIO 0 (Boot button) - Usado para llave general del sistema
+// -----------------------
+#define PIN_KEY_SYSTEM    0   // GPIO 0: Llave/switch general del sistema
+
+// -----------------------
 // Sensores de rueda (entradas digitales/inductivas LJ12A3-4-Z/BX)
 // Conectados vía HY-M158 optoacopladores (5V)
 // Remapeados para ESP32-S3-DevKitC-1
+// NOTA: GPIO21 liberado (no se usa botón batería)
+// WHEEL1 (FR) movido a MCP23017 GPIOB0 para liberar GPIO
 // -----------------------
 #define PIN_WHEEL0        20  // FL (Frontal Izquierda) vía HY-M158
-#define PIN_WHEEL1        21  // FR (Frontal Derecha) vía HY-M158
+// PIN_WHEEL1 ahora en MCP23017 GPIOB0 (ver MCP_PIN_WHEEL1)
 #define PIN_WHEEL2        36  // RL (Trasera Izquierda) vía HY-M158
 #define PIN_WHEEL3        17  // RR (Trasera Derecha) vía HY-M158
 
@@ -164,7 +172,8 @@
 
 // Control IN1/IN2 vía MCP23017 (I²C 0x20)
 // - 16 GPIOs digitales (GPIOA0-7, GPIOB0-7)
-// - 8 pines usados para IN1/IN2 de 4 motores
+// - 8 pines usados para IN1/IN2 de 4 motores (GPIOA bank)
+// - 1 pin usado para sensor rueda FR (GPIOB0)
 #define MCP23017_ADDR_MOTORS 0x20  // Dirección I²C MCP23017 para motores
 
 // Asignación pines MCP23017 para IN1/IN2 de BTS7960
@@ -177,11 +186,15 @@
 #define MCP_PIN_RR_IN1    6   // GPIOA6: Trasera Derecha IN1
 #define MCP_PIN_RR_IN2    7   // GPIOA7: Trasera Derecha IN2
 
+// Asignación pines MCP23017 para sensores (GPIOB bank)
+#define MCP_PIN_WHEEL1    8   // GPIOB0: Sensor rueda FR (Frontal Derecha)
+
 // -----------------------
 // LEDs WS2812B (Iluminación Inteligente)
 // Asignados a GPIOs libres disponibles
+// GPIO 0 reservado para llave/switch del sistema
 // -----------------------
-#define PIN_LED_FRONT     0   // GPIO 0: LEDs frontales (28 LEDs)
+#define PIN_LED_FRONT     21  // GPIO 21: LEDs frontales (28 LEDs)
 #define PIN_LED_REAR      1   // GPIO 1: LEDs traseros (16 LEDs)
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros
@@ -191,6 +204,7 @@
 // -----------------------
 static inline bool pin_is_assigned(uint8_t gpio) {
   switch (gpio) {
+    case PIN_KEY_SYSTEM:
     case PIN_RELAY_MAIN:
     case PIN_RELAY_TRAC:
     case PIN_RELAY_DIR:
@@ -219,7 +233,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
     case PIN_BTN_MEDIA:
     case PIN_BTN_4X4:
     case PIN_WHEEL0:
-    case PIN_WHEEL1:
+    // PIN_WHEEL1 en MCP23017, no en ESP32 GPIO
     case PIN_WHEEL2:
     case PIN_WHEEL3:
     case PIN_ONEWIRE:
