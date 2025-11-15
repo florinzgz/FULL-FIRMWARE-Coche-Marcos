@@ -120,43 +120,71 @@
 #define PIN_I2C_SCL       9   // GPIO 9
 
 // Direcciones I²C del sistema:
-// 0x40 - INA226 (6 unidades multiplexadas vía TCA9548A)
-// 0x41 - PCA9685 (PWM motor dirección, cambiado de 0x40 para evitar conflicto)
-// 0x20 - MCP23017 (expansor GPIO 16 pines para control relés)
-// 0x70 - TCA9548A multiplexor I²C #1 (canales 0-7)
+// 0x40 - PCA9685 (PWM motores tracción BTS7960, 8 canales usados)
+// 0x41 - PCA9685 (PWM motor dirección RS390, cambiado para evitar conflicto con INA226)
+// 0x20 - MCP23017 (control IN1/IN2 motores tracción BTS7960, 8 GPIOs usados)
+// 0x70 - TCA9548A multiplexor I²C #1 (canales 0-7 para INA226)
 // 0x71 - TCA9548A multiplexor I²C #2 (si se usa)
 // 0x72 - TCA9548A multiplexor I²C #3 (si se usa)
 // 0x73 - TCA9548A multiplexor I²C #4 (si se usa)
 // 0x74 - TCA9548A multiplexor I²C #5 (si se usa)
 //
 // Asignación INA226 en TCA9548A (0x70):
-// Canal 0: INA226 Motor FL (Frontal Izquierda) - Shunt 50A 75mV
-// Canal 1: INA226 Motor FR (Frontal Derecha) - Shunt 50A 75mV
-// Canal 2: INA226 Motor RL (Trasera Izquierda) - Shunt 50A 75mV
-// Canal 3: INA226 Motor RR (Trasera Derecha) - Shunt 50A 75mV
-// Canal 4: INA226 Batería 24V - Shunt 100A 75mV (CG FL-2C)
-// Canal 5: INA226 Motor Dirección RS390 12V - Shunt 50A 75mV
+// Canal 0: INA226 Motor FL (Frontal Izquierda) - Dirección 0x40 - Shunt 50A 75mV
+// Canal 1: INA226 Motor FR (Frontal Derecha) - Dirección 0x40 - Shunt 50A 75mV
+// Canal 2: INA226 Motor RL (Trasera Izquierda) - Dirección 0x40 - Shunt 50A 75mV
+// Canal 3: INA226 Motor RR (Trasera Derecha) - Dirección 0x40 - Shunt 50A 75mV
+// Canal 4: INA226 Batería 24V - Dirección 0x40 - Shunt 100A 75mV (CG FL-2C)
+// Canal 5: INA226 Motor Dirección RS390 12V - Dirección 0x40 - Shunt 50A 75mV
+//
+// NOTA: Los INA226 todos usan dirección 0x40, pero están multiplexados vía TCA9548A
+// para evitar conflicto. El PCA9685 de motores tracción también usa 0x40 pero NO
+// está en el multiplexor, está directo en el bus I²C principal.
 
 // -----------------------
-// BTS7960 – Motores de rueda (PWM + IN1/IN2)
-// Remapeado para ESP32-S3-DevKitC-1 44 pines (GPIOs 0-21, 35-48)
-// Asignados a GPIOs completamente libres sin conflictos
+// BTS7960 – Motores de rueda (controlados vía I²C)
+// GPIOs 23-34 NO disponibles en ESP32-S3-DevKitC-1 44 pines
+// SOLUCIÓN: Usar módulos I²C para control
 // -----------------------
-#define PIN_FL_PWM        23  // Frontal Izquierda PWM
-#define PIN_FL_IN1        24  // Frontal Izquierda IN1
-#define PIN_FL_IN2        25  // Frontal Izquierda IN2
+// Control PWM vía PCA9685 (I²C 0x40)
+// - 16 canales PWM de 12 bits
+// - Frecuencia configurable 24Hz - 1526Hz
+// - Canales 0-7 usados para 4 motores (2 canales por motor para control bidireccional)
+#define PCA9685_ADDR_MOTORS  0x40  // Dirección I²C PCA9685 para motores
 
-#define PIN_FR_PWM        26  // Frontal Derecha PWM
-#define PIN_FR_IN1        27  // Frontal Derecha IN1  
-#define PIN_FR_IN2        28  // Frontal Derecha IN2
+// Asignación canales PCA9685 para PWM de motores
+#define PCA_CH_FL_PWM     0   // Frontal Izquierda PWM (canal 0)
+#define PCA_CH_FL_PWM_R   1   // Frontal Izquierda PWM Reverse (canal 1)
+#define PCA_CH_FR_PWM     2   // Frontal Derecha PWM (canal 2)
+#define PCA_CH_FR_PWM_R   3   // Frontal Derecha PWM Reverse (canal 3)
+#define PCA_CH_RL_PWM     4   // Trasera Izquierda PWM (canal 4)
+#define PCA_CH_RL_PWM_R   5   // Trasera Izquierda PWM Reverse (canal 5)
+#define PCA_CH_RR_PWM     6   // Trasera Derecha PWM (canal 6)
+#define PCA_CH_RR_PWM_R   7   // Trasera Derecha PWM Reverse (canal 7)
 
-#define PIN_RL_PWM        29  // Trasera Izquierda PWM
-#define PIN_RL_IN1        30  // Trasera Izquierda IN1
-#define PIN_RL_IN2        31  // Trasera Izquierda IN2
+// Control IN1/IN2 vía MCP23017 (I²C 0x20)
+// - 16 GPIOs digitales (GPIOA0-7, GPIOB0-7)
+// - 8 pines usados para IN1/IN2 de 4 motores
+#define MCP23017_ADDR_MOTORS 0x20  // Dirección I²C MCP23017 para motores
 
-#define PIN_RR_PWM        32  // Trasera Derecha PWM
-#define PIN_RR_IN1        33  // Trasera Derecha IN1
-#define PIN_RR_IN2        34  // Trasera Derecha IN2
+// Asignación pines MCP23017 para IN1/IN2 de BTS7960
+#define MCP_PIN_FL_IN1    0   // GPIOA0: Frontal Izquierda IN1
+#define MCP_PIN_FL_IN2    1   // GPIOA1: Frontal Izquierda IN2
+#define MCP_PIN_FR_IN1    2   // GPIOA2: Frontal Derecha IN1
+#define MCP_PIN_FR_IN2    3   // GPIOA3: Frontal Derecha IN2
+#define MCP_PIN_RL_IN1    4   // GPIOA4: Trasera Izquierda IN1
+#define MCP_PIN_RL_IN2    5   // GPIOA5: Trasera Izquierda IN2
+#define MCP_PIN_RR_IN1    6   // GPIOA6: Trasera Derecha IN1
+#define MCP_PIN_RR_IN2    7   // GPIOA7: Trasera Derecha IN2
+
+// -----------------------
+// LEDs WS2812B (Iluminación Inteligente)
+// Asignados a GPIOs libres disponibles
+// -----------------------
+#define PIN_LED_FRONT     0   // GPIO 0: LEDs frontales (28 LEDs)
+#define PIN_LED_REAR      1   // GPIO 1: LEDs traseros (16 LEDs)
+#define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales
+#define NUM_LEDS_REAR     16  // Cantidad LEDs traseros
 
 // -----------------------
 // Helpers
@@ -197,10 +225,8 @@ static inline bool pin_is_assigned(uint8_t gpio) {
     case PIN_ONEWIRE:
     case PIN_I2C_SDA:
     case PIN_I2C_SCL:
-    case PIN_FL_PWM: case PIN_FL_IN1: case PIN_FL_IN2:
-    case PIN_FR_PWM: case PIN_FR_IN1: case PIN_FR_IN2:
-    case PIN_RL_PWM: case PIN_RL_IN1: case PIN_RL_IN2:
-    case PIN_RR_PWM: case PIN_RR_IN1: case PIN_RR_IN2:
+    case PIN_LED_FRONT:
+    case PIN_LED_REAR:
       return true;
     default:
       return false;
