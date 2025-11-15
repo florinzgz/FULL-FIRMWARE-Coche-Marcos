@@ -74,7 +74,7 @@
 // -----------------------
 // Táctil (XPT2046 SPI)
 // -----------------------
-#define PIN_TOUCH_CS      22  // Chip Select táctil (corregido: antes 9, ahora 22)
+#define PIN_TOUCH_CS      3   // Chip Select táctil (remapeado a GPIO3 - GPIO22 no disponible en placa)
 #define PIN_TOUCH_IRQ     46  // Interrupción táctil
 
 // -----------------------
