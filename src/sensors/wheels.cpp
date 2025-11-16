@@ -36,7 +36,7 @@ void Sensors::initWheels() {
     }
 
     attachInterrupt(digitalPinToInterrupt(PIN_WHEEL0), wheelISR0, RISING);
-    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL1), wheelISR1, RISING);
+    // PIN_WHEEL1 ahora en MCP23017 GPIOB0 - se lee por polling en update()
     attachInterrupt(digitalPinToInterrupt(PIN_WHEEL2), wheelISR2, RISING);
     attachInterrupt(digitalPinToInterrupt(PIN_WHEEL3), wheelISR3, RISING);
 
