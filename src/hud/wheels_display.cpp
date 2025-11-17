@@ -73,21 +73,38 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC, float
     // Temperatura encima
     tft->fillRect(cx - 30, cy - 30, 60, 15, TFT_BLACK);
     tft->setTextDatum(MC_DATUM);
-    tft->setTextColor(colorByTemp(tempC), TFT_BLACK);
     char buf[16];
-    snprintf(buf, sizeof(buf), "%d °C", (int)tempC);
+    
+    // Si temperatura es -999, mostrar "--" (sensor deshabilitado)
+    if (tempC < -998.0f) {
+        tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+        snprintf(buf, sizeof(buf), "-- °C");
+    } else {
+        tft->setTextColor(colorByTemp(tempC), TFT_BLACK);
+        snprintf(buf, sizeof(buf), "%d °C", (int)tempC);
+    }
     tft->drawString(buf, cx, cy - 20, 2);
 
     // Esfuerzo debajo
     tft->fillRect(cx - 30, cy + 10, 60, 15, TFT_BLACK);
-    tft->setTextColor(colorByEffort(effortPct), TFT_BLACK);
-    snprintf(buf, sizeof(buf), "%d %%", (int)effortPct);
+    
+    // Si esfuerzo es -1, mostrar "--" (sensor deshabilitado)
+    if (effortPct < 0.0f) {
+        tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+        snprintf(buf, sizeof(buf), "-- %%");
+    } else {
+        tft->setTextColor(colorByEffort(effortPct), TFT_BLACK);
+        snprintf(buf, sizeof(buf), "%d %%", (int)effortPct);
+    }
     tft->drawString(buf, cx, cy + 20, 2);
 
-    // Barra de esfuerzo
+    // Barra de esfuerzo (solo si hay valor válido)
     int barW = 50, barH = 6;
-    int filled = (int)((effortPct / 100.0f) * barW);
     tft->fillRect(cx - barW/2, cy + 28, barW, barH, TFT_BLACK); // limpiar
     tft->drawRect(cx - barW/2, cy + 28, barW, barH, TFT_WHITE);
-    tft->fillRect(cx - barW/2, cy + 28, filled, barH, colorByEffort(effortPct));
+    
+    if (effortPct >= 0.0f) {
+        int filled = (int)((effortPct / 100.0f) * barW);
+        tft->fillRect(cx - barW/2, cy + 28, filled, barH, colorByEffort(effortPct));
+    }
 }

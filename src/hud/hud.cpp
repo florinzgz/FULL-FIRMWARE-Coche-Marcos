@@ -135,25 +135,26 @@ void HUD::update() {
     Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM);
 
     // Ruedas (optimizado: solo redibuja si cambian ángulo/temp/esfuerzo)
+    // Usar -999.0f para temp y -1.0f para effort cuando sensores deshabilitados
     WheelsDisplay::drawWheel(X_FL, Y_FL,
         cfg.steeringEnabled ? steer.angleFL : 0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::FL].tempC : 0.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::FL].effortPct : 0.0f
+        cfg.tempSensorsEnabled ? tr.w[Traction::FL].tempC : -999.0f,
+        cfg.currentSensorsEnabled ? tr.w[Traction::FL].effortPct : -1.0f
     );
     WheelsDisplay::drawWheel(X_FR, Y_FR,
         cfg.steeringEnabled ? steer.angleFR : 0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::FR].tempC : 0.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::FR].effortPct : 0.0f
+        cfg.tempSensorsEnabled ? tr.w[Traction::FR].tempC : -999.0f,
+        cfg.currentSensorsEnabled ? tr.w[Traction::FR].effortPct : -1.0f
     );
     WheelsDisplay::drawWheel(X_RL, Y_RL,
         0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::RL].tempC : 0.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : 0.0f
+        cfg.tempSensorsEnabled ? tr.w[Traction::RL].tempC : -999.0f,
+        cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : -1.0f
     );
     WheelsDisplay::drawWheel(X_RR, Y_RR,
         0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::RR].tempC : 0.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : 0.0f
+        cfg.tempSensorsEnabled ? tr.w[Traction::RR].tempC : -999.0f,
+        cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : -1.0f
     );
 
     // Iconos y estados
