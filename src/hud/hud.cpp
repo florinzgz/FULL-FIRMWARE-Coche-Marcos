@@ -46,6 +46,16 @@ static const int Y_RR = 260;
 extern Storage::Config cfg;   // acceso a flags
 
 void HUD::init() {
+    // CRITICAL: Enable backlight and reset display BEFORE tft.init()
+    pinMode(PIN_TFT_BL, OUTPUT);
+    digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
+    
+    pinMode(PIN_TFT_RST, OUTPUT);
+    digitalWrite(PIN_TFT_RST, LOW);
+    delay(10);
+    digitalWrite(PIN_TFT_RST, HIGH);
+    delay(10);
+    
     tft.init();
     tft.setRotation(1);
     tft.fillScreen(TFT_BLACK);
@@ -63,7 +73,7 @@ void HUD::init() {
         System::logError(760); // código reservado: fallo táctil
     }
 
-    Logger::info("HUD init");
+    Logger::info("HUD init OK - Display ILI9488 ready");
 }
 
 void HUD::showLogo() {
