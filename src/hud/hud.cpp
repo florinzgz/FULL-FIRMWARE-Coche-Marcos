@@ -58,6 +58,21 @@ void HUD::init() {
     
     tft.init();
     tft.setRotation(1);
+    
+    // Test visual: verify SPI communication works
+    tft.fillScreen(TFT_RED);
+    delay(500);
+    tft.fillScreen(TFT_GREEN);
+    delay(500);
+    tft.fillScreen(TFT_BLUE);
+    delay(500);
+    tft.fillScreen(TFT_BLACK);
+    
+    // Draw test text to confirm rendering
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString("ILI9488 OK", 240, 160, 4);
+    delay(1000);
     tft.fillScreen(TFT_BLACK);
 
     Gauges::init(&tft);
