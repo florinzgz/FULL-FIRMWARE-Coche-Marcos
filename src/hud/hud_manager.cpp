@@ -17,17 +17,27 @@ uint8_t HUDManager::longPressButtonId = 0;
 static TFT_eSPI tft = TFT_eSPI();
 
 void HUDManager::init() {
-    // Inicializar TFT
+    // CRITICAL: Enable backlight and reset display BEFORE tft.init()
+    pinMode(PIN_TFT_BL, OUTPUT);
+    digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
+    
+    pinMode(PIN_TFT_RST, OUTPUT);
+    digitalWrite(PIN_TFT_RST, LOW);
+    delay(10);
+    digitalWrite(PIN_TFT_RST, HIGH);
+    delay(10);
+    
+    // Inicializar TFT (only once here)
     tft.init();
     tft.setRotation(1);  // Landscape
     tft.fillScreen(TFT_BLACK);
     
-    // Configurar backlight PWM (GPIO 42)
+    // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
     ledcAttachPin(PIN_TFT_BL, 0);
     ledcWrite(0, brightness);
     
-    // Inicializar HUD básico
+    // Inicializar HUD básico (will show color test and initialize components)
     HUD::init();
     
     // Inicializar datos

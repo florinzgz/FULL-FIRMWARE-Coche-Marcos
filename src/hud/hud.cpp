@@ -46,18 +46,8 @@ static const int Y_RR = 260;
 extern Storage::Config cfg;   // acceso a flags
 
 void HUD::init() {
-    // CRITICAL: Enable backlight and reset display BEFORE tft.init()
-    pinMode(PIN_TFT_BL, OUTPUT);
-    digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
-    
-    pinMode(PIN_TFT_RST, OUTPUT);
-    digitalWrite(PIN_TFT_RST, LOW);
-    delay(10);
-    digitalWrite(PIN_TFT_RST, HIGH);
-    delay(10);
-    
-    tft.init();
-    tft.setRotation(1);
+    // NOTE: tft.init() is already called by HUDManager::init()
+    // Do NOT call tft.init() again - it causes display issues
     
     // Test visual: verify SPI communication works
     tft.fillScreen(TFT_RED);
@@ -73,6 +63,8 @@ void HUD::init() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("ILI9488 OK", 240, 160, 4);
     delay(1000);
+    
+    // Clear screen and prepare for dashboard
     tft.fillScreen(TFT_BLACK);
 
     Gauges::init(&tft);
@@ -89,6 +81,13 @@ void HUD::init() {
     }
 
     Logger::info("HUD init OK - Display ILI9488 ready");
+    
+    // Force first dashboard render
+    // Draw static elements that should always appear
+    tft.setTextDatum(TL_DATUM);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString("Mercedes AMG GT", 10, 10, 2);
+    tft.drawString("Initializing sensors...", 10, 30, 2);
 }
 
 void HUD::showLogo() {
