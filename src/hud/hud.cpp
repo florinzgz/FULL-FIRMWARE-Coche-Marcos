@@ -46,10 +46,11 @@ static const int Y_RR = 260;
 extern Storage::Config cfg;   // acceso a flags
 
 void HUD::init() {
-    // NOTE: tft.init() is already called by HUDManager::init()
+    // NOTE: tft.init() and tft.setRotation(1) are already called by HUDManager::init()
     // Do NOT call tft.init() again - it causes display issues
     
     // Test visual: verify SPI communication works
+    // Display is 480x320 in landscape mode (rotation 1)
     tft.fillScreen(TFT_RED);
     delay(500);
     tft.fillScreen(TFT_GREEN);
@@ -58,15 +59,16 @@ void HUD::init() {
     delay(500);
     tft.fillScreen(TFT_BLACK);
     
-    // Draw test text to confirm rendering
+    // Draw test text to confirm rendering (centered for 480x320)
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString("ILI9488 OK", 240, 160, 4);
+    tft.drawString("ILI9488 OK", 240, 160, 4);  // Center of 480x320
     delay(1000);
     
     // Clear screen and prepare for dashboard
     tft.fillScreen(TFT_BLACK);
 
+    // Initialize dashboard components
     Gauges::init(&tft);
     WheelsDisplay::init(&tft);
     Icons::init(&tft);
@@ -82,12 +84,23 @@ void HUD::init() {
 
     Logger::info("HUD init OK - Display ILI9488 ready");
     
-    // Force first dashboard render
-    // Draw static elements that should always appear
-    tft.setTextDatum(TL_DATUM);
+    // Draw initial dashboard elements
+    // Show title and status - car visualization will appear when update() is called
+    tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString("Mercedes AMG GT", 10, 10, 2);
-    tft.drawString("Initializing sensors...", 10, 30, 2);
+    tft.setTextSize(1);
+    tft.drawString("Mercedes AMG GT", 240, 50, 4);
+    
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString("Esperando sensores...", 240, 90, 2);
+    
+    // Draw placeholder car outline to show display is working
+    tft.drawRect(180, 120, 120, 140, TFT_DARKGREY);  // Simple car box
+    tft.drawCircle(210, 130, 10, TFT_DARKGREY);  // FL wheel placeholder
+    tft.drawCircle(270, 130, 10, TFT_DARKGREY);  // FR wheel placeholder  
+    tft.drawCircle(210, 250, 10, TFT_DARKGREY);  // RL wheel placeholder
+    tft.drawCircle(270, 250, 10, TFT_DARKGREY);  // RR wheel placeholder
 }
 
 void HUD::showLogo() {

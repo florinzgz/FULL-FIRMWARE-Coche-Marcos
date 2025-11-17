@@ -29,8 +29,12 @@ void HUDManager::init() {
     
     // Inicializar TFT (only once here)
     tft.init();
-    tft.setRotation(1);  // Landscape
+    tft.setRotation(1);  // Landscape mode: 480x320
     tft.fillScreen(TFT_BLACK);
+    
+    // CRITICAL: Verify rotation is properly set before any drawing
+    // ILI9488 dimensions: 320x480 physical, but rotation 1 gives us 480x320 landscape
+    delay(50);  // Allow display to stabilize after rotation change
     
     // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
@@ -38,6 +42,7 @@ void HUDManager::init() {
     ledcWrite(0, brightness);
     
     // Inicializar HUD básico (will show color test and initialize components)
+    // Display is now ready with rotation=1 (480x320 landscape)
     HUD::init();
     
     // Inicializar datos
