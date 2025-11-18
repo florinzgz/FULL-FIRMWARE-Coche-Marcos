@@ -90,6 +90,8 @@ void setup() {
     initialData.ambientTemp = 25.0f;
     initialData.controllerTemp = 38.0f;
     initialData.throttlePercent = 0;
+    initialData.pedalPosition = 50.0f;  // Simulated pedal at 50% for standalone mode
+    initialData.pedalPercent = 50.0f;   // Simulated pedal percentage for HUD pedal bar
     initialData.steeringAngle = 0.0f;
     initialData.gear = GearPosition::PARK;
     initialData.motorCurrent[0] = 2.0f;

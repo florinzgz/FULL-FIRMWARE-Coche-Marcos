@@ -77,6 +77,7 @@ struct CarData {
     // Pedal y dirección
     float pedalPosition;      // Posición pedal acelerador (0-100%) - alias de throttlePercent
     float throttlePercent;    // Posición pedal acelerador (0-100%)
+    float pedalPercent;       // Porcentaje pedal calculado (0-100%) - uso en HUD, -1 si inválido
     float encoderValue;       // Valor crudo del encoder del pedal
     float steeringAngle;      // Ángulo volante (grados, desde encoder)
 };

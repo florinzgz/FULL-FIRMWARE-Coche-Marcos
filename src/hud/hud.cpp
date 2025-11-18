@@ -129,6 +129,50 @@ void HUD::showError() {
     tft.drawString("ERROR", 240, 40, 4);
 }
 
+void HUD::drawPedalBar(float pedalPercent) {
+    const int y = 300;       // Posición vertical
+    const int height = 18;   // Altura de la barra
+    const int width = 480;   // Ancho total de pantalla
+
+    if (pedalPercent < 0.0f) {
+        // Pedal inválido → barra vacía con "--"
+        tft->fillRect(0, y, width, height, TFT_BLACK);
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft->drawString("-- PEDAL --", 240, y + height/2, 2);
+        return;
+    }
+
+    // Mapear porcentaje a ancho de barra (0-100% → 0-480px)
+    int barWidth = map((int)pedalPercent, 0, 100, 0, width);
+    if (barWidth > width) barWidth = width;
+
+    // Color: verde normal, amarillo >80%, rojo >95%
+    uint16_t color;
+    if (pedalPercent > 95.0f) {
+        color = TFT_RED;
+    } else if (pedalPercent > 80.0f) {
+        color = TFT_YELLOW;
+    } else {
+        color = TFT_GREEN;
+    }
+
+    // Dibujar barra de progreso
+    tft->fillRect(0, y, barWidth, height, color);
+
+    // Limpiar resto de la barra
+    if (barWidth < width) {
+        tft->fillRect(barWidth, y, width - barWidth, height, TFT_DARKGREY);
+    }
+
+    // Texto con porcentaje en el centro
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_WHITE, color);
+    char txt[16];
+    snprintf(txt, sizeof(txt), "%d%%", (int)pedalPercent);
+    tft->drawString(txt, 240, y + height/2, 2);
+}
+
 void HUD::update() {
     auto pedal = Pedal::get();
     auto steer = Steering::get();
@@ -189,6 +233,9 @@ void HUD::update() {
 
     // Icono de advertencia si hay errores almacenados
     Icons::drawErrorWarning();
+
+    // Barra de pedal en la parte inferior
+    drawPedalBar(pedal.valid ? pedal.percent : -1.0f);
 
     // --- Lectura táctil usando touch_map ---
     bool batteryTouch = false;
