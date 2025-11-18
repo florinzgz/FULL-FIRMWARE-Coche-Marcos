@@ -62,6 +62,21 @@ void setup() {
     Storage::init();
     Logger::init();
     
+#ifdef STANDALONE_DISPLAY
+    Logger::info("🧪 STANDALONE_DISPLAY MODE: Skipping sensor initialization");
+    
+    // Initialize only display components
+    HUDManager::init();
+    
+    // Show logo briefly
+    HUDManager::showLogo();
+    delay(1500);
+    
+    // Go directly to dashboard
+    HUDManager::showMenu(MenuType::DASHBOARD);
+    Logger::info("🧪 STANDALONE MODE: Dashboard active with simulated values");
+    
+#else
     // CRITICAL: Initialize Watchdog and I²C Recovery FIRST
     Watchdog::init();
     I2CRecovery::init();
@@ -127,6 +142,7 @@ void setup() {
     
     // Show advanced dashboard
     HUDManager::showMenu(MenuType::DASHBOARD);
+#endif
 }
 
 void loop() {
@@ -135,6 +151,51 @@ void loop() {
     
     uint32_t now = millis();
     
+#ifdef STANDALONE_DISPLAY
+    // 🧪 STANDALONE MODE: Update HUD with simulated values
+    if (now - lastHudUpdate >= HUD_UPDATE_INTERVAL) {
+        lastHudUpdate = now;
+        
+        // Create simulated car data
+        CarData data;
+        data.speed = 12.0f;                    // 12 km/h
+        data.rpm = 850;                        // Idle RPM
+        data.batteryVoltage = 24.5f;           // 24.5V
+        data.batteryCurrent = 2.3f;            // 2.3A
+        data.batteryPercent = 87;              // 87%
+        data.motorTemp = 42.0f;                // 42°C
+        data.batteryTemp = 38.0f;              // 38°C
+        data.roll = 0.5f;                      // 0.5° roll
+        data.pitch = -1.2f;                    // -1.2° pitch
+        data.pedalPercent = 0;                 // No pedal input
+        data.steeringAngle = 0.0f;             // Centered
+        data.gear = 1;                         // Gear 1
+        data.wheelFL_rpm = 15.0f;              // Front-left wheel RPM
+        data.wheelFR_rpm = 15.0f;              // Front-right wheel RPM
+        data.wheelRL_rpm = 15.0f;              // Rear-left wheel RPM
+        data.wheelRR_rpm = 15.0f;              // Rear-right wheel RPM
+        data.wheelFL_temp = 0.0f;              // Temperature disabled (will show "--")
+        data.wheelFR_temp = 0.0f;
+        data.wheelRL_temp = 0.0f;
+        data.wheelRR_temp = 0.0f;
+        data.wheelFL_effort = 0.0f;            // Effort disabled (will show "--")
+        data.wheelFR_effort = 0.0f;
+        data.wheelRL_effort = 0.0f;
+        data.wheelRR_effort = 0.0f;
+        data.absActive = false;
+        data.tcsActive = false;
+        data.fourWDActive = true;              // 4x4 active
+        data.lightsOn = false;
+        data.musicPlaying = false;
+        
+        HUDManager::updateCarData(data);
+        HUDManager::update();
+    }
+    
+    // Minimal loop - no sensors, no control systems
+    delay(1);  // Prevent watchdog issues in standalone mode
+    
+#else
     // CRITICAL: Feed watchdog at start of every loop iteration
     Watchdog::feed();
     
@@ -189,4 +250,5 @@ void loop() {
     // - HUD: 30 FPS (33ms) via internal timing
     // - Sensors: 20-50 Hz via updateCurrent/Temperature/Wheels timing
     // - Control modules: update every iteration (non-blocking)
+#endif
 }
