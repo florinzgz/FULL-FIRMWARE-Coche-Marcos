@@ -188,66 +188,9 @@ void HUDManager::handleLongPress(uint8_t buttonId, uint32_t duration) {
 // ===== Funciones de renderizado =====
 
 void HUDManager::renderDashboard() {
-    // Dashboard principal con datos en tiempo real
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    
-    // Velocímetro (izquierda)
-    tft.setTextSize(3);
-    tft.setCursor(20, 50);
-    tft.printf("%3.0f", carData.speed);
-    tft.setTextSize(1);
-    tft.setCursor(20, 90);
-    tft.print("km/h");
-    
-    // RPM (derecha)
-    tft.setTextSize(3);
-    tft.setCursor(370, 50);
-    tft.printf("%4.0f", carData.rpm);
-    tft.setTextSize(1);
-    tft.setCursor(370, 90);
-    tft.print("RPM");
-    
-    // Batería (centro superior)
-    tft.setTextSize(2);
-    tft.setCursor(180, 20);
-    tft.printf("%4.1fV", carData.batteryVoltage);
-    tft.setCursor(180, 45);
-    tft.printf("%3.0f%%", carData.batteryPercent);
-    
-    // Marcha actual (centro)
-    tft.setTextSize(4);
-    tft.setCursor(220, 120);
-    switch (carData.gear) {
-        case GearPosition::PARK:    tft.print("P"); break;
-        case GearPosition::REVERSE: tft.print("R"); break;
-        case GearPosition::NEUTRAL: tft.print("N"); break;
-        case GearPosition::DRIVE1:  tft.print("D1"); break;
-        case GearPosition::DRIVE2:  tft.print("D2"); break;
-    }
-    
-    // Temperaturas (inferior)
-    tft.setTextSize(1);
-    tft.setCursor(20, 200);
-    tft.printf("M1:%2.0f M2:%2.0f M3:%2.0f M4:%2.0f Amb:%2.0f", 
-               carData.motorTemp[0], carData.motorTemp[1], 
-               carData.motorTemp[2], carData.motorTemp[3],
-               carData.ambientTemp);
-    
-    // Corrientes (inferior)
-    tft.setCursor(20, 220);
-    tft.printf("I1:%4.1fA I2:%4.1fA I3:%4.1fA I4:%4.1fA",
-               carData.motorCurrent[0], carData.motorCurrent[1],
-               carData.motorCurrent[2], carData.motorCurrent[3]);
-    
-    // Potencia total
-    tft.setCursor(20, 240);
-    tft.printf("Potencia: %5.0fW | Corriente total: %5.1fA",
-               carData.batteryPower, carData.batteryCurrent);
-    
-    // Odómetros
-    tft.setCursor(20, 280);
-    tft.printf("Total: %7.1fkm | Parcial: %5.1fkm",
-               carData.odoTotal, carData.odoTrip);
+    // Use the rich graphics dashboard from HUD::update()
+    // This includes car visualization, wheels, gauges, icons, etc.
+    HUD::update();
 }
 
 void HUDManager::renderSettings() {
