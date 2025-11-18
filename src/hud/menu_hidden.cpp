@@ -124,7 +124,7 @@ static void updateCodeDisplay() {
 // API pública
 // -----------------------
 void MenuHidden::init(TFT_eSPI *display) {
-    tft = display;
+    tft = display;  // Store pointer - must be valid (non-null) display instance
     Storage::load(cfg);
     Logger::info("MenuHidden init OK");
 }

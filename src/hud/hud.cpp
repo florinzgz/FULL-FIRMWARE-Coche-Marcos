@@ -47,11 +47,11 @@ static const int Y_RR = 260;
 extern Storage::Config cfg;   // acceso a flags
 
 void HUD::init() {
-    // NOTE: tft.init() and tft.setRotation(1) are already called by HUDManager::init()
+    // NOTE: tft.init() and tft.setRotation(3) are already called by HUDManager::init()
     // Do NOT call tft.init() again - it causes display issues
     
     // Test visual: verify SPI communication works
-    // Display is 480x320 in landscape mode (rotation 1)
+    // Display is 480x320 in landscape mode (rotation 3 for ILI9488 stability)
     tft.fillScreen(TFT_RED);
     delay(500);
     tft.fillScreen(TFT_GREEN);
@@ -70,13 +70,16 @@ void HUD::init() {
     tft.fillScreen(TFT_BLACK);
 
     // Initialize dashboard components
+    // CRITICAL: These must be called after tft is initialized and rotation is set
     Gauges::init(&tft);
     WheelsDisplay::init(&tft);
     Icons::init(&tft);
-    MenuHidden::init(&tft);
+    MenuHidden::init(&tft);  // MenuHidden stores tft pointer, must be non-null
 
     if (touch.begin()) {
         touch.setRotation(3);  // Match TFT rotation for proper touch mapping
+        // TODO: Implement dynamic touch calibration if default values don't align properly
+        // Current hardcoded mapping may need adjustment for different ILI9488 units
         Logger::info("Touchscreen XPT2046 inicializado OK");
     } else {
         Logger::error("Touchscreen XPT2046 no detectado");
@@ -140,7 +143,9 @@ void HUD::update() {
     float speedKmh = (vFL + vFR) * 0.5f;
     if(speedKmh > MAX_SPEED_KMH) speedKmh = MAX_SPEED_KMH;
 
-    // Tacómetro proporcional a velocidad (placeholder)
+    // Tacómetro proporcional a velocidad (PLACEHOLDER)
+    // TODO: Replace with actual RPM from motor encoder/controller when sensors connected
+    // Current implementation: RPM = (speed/maxSpeed) * maxRPM for visualization only
     float rpm = (speedKmh / MAX_SPEED_KMH) * MAX_RPM;
     if(rpm > MAX_RPM) rpm = MAX_RPM;
 

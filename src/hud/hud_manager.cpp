@@ -51,7 +51,7 @@ void HUDManager::init() {
     ledcWrite(0, brightness);
     
     // Inicializar HUD básico (will show color test and initialize components)
-    // Display is now ready with rotation=1 (480x320 landscape)
+    // Display is now ready with rotation=3 (480x320 landscape, stable for ILI9488)
     HUD::init();
     
     // Inicializar datos

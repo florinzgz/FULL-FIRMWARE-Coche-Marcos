@@ -75,10 +75,11 @@ void setup() {
     // Go directly to dashboard
     HUDManager::showMenu(MenuType::DASHBOARD);
     
-    // Initialize with simulated data and render first frame immediately
+    // CRITICAL: Initialize CarData with simulated values BEFORE calling update()
+    // Otherwise, HUD::update() may use uninitialized data causing garbage values or crashes
     CarData initialData;
     initialData.speed = 12.0f;
-    initialData.rpm = 850;
+    initialData.rpm = 850;  // Note: RPM is placeholder, proportional to speed
     initialData.batteryVoltage = 24.5f;
     initialData.batteryCurrent = 2.3f;
     initialData.batteryPercent = 87;
