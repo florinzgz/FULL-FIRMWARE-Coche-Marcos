@@ -136,10 +136,10 @@ void HUD::drawPedalBar(float pedalPercent) {
 
     if (pedalPercent < 0.0f) {
         // Pedal inválido → barra vacía con "--"
-        tft->fillRect(0, y, width, height, TFT_BLACK);
-        tft->setTextDatum(MC_DATUM);
-        tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
-        tft->drawString("-- PEDAL --", 240, y + height/2, 2);
+        tft.fillRect(0, y, width, height, TFT_BLACK);
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.drawString("-- PEDAL --", 240, y + height/2, 2);
         return;
     }
 
@@ -158,19 +158,19 @@ void HUD::drawPedalBar(float pedalPercent) {
     }
 
     // Dibujar barra de progreso
-    tft->fillRect(0, y, barWidth, height, color);
+    tft.fillRect(0, y, barWidth, height, color);
 
     // Limpiar resto de la barra
     if (barWidth < width) {
-        tft->fillRect(barWidth, y, width - barWidth, height, TFT_DARKGREY);
+        tft.fillRect(barWidth, y, width - barWidth, height, TFT_DARKGREY);
     }
 
     // Texto con porcentaje en el centro
-    tft->setTextDatum(MC_DATUM);
-    tft->setTextColor(TFT_WHITE, color);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(TFT_WHITE, color);
     char txt[16];
     snprintf(txt, sizeof(txt), "%d%%", (int)pedalPercent);
-    tft->drawString(txt, 240, y + height/2, 2);
+    tft.drawString(txt, 240, y + height/2, 2);
 }
 
 void HUD::update() {
