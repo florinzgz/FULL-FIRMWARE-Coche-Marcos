@@ -202,30 +202,32 @@ void loop() {
         data.batteryVoltage = 24.5f;           // 24.5V
         data.batteryCurrent = 2.3f;            // 2.3A
         data.batteryPercent = 87;              // 87%
-        data.motorTemp = 42.0f;                // 42°C
-        data.batteryTemp = 38.0f;              // 38°C
-        data.roll = 0.5f;                      // 0.5° roll
-        data.pitch = -1.2f;                    // -1.2° pitch
-        data.pedalPercent = 0;                 // No pedal input
+        data.motorTemp[0] = 42.0f;             // Motor FL temp
+        data.motorTemp[1] = 42.0f;             // Motor FR temp
+        data.motorTemp[2] = 42.0f;             // Motor RL temp
+        data.motorTemp[3] = 42.0f;             // Motor RR temp
+        data.ambientTemp = 25.0f;              // 25°C ambient
+        data.controllerTemp = 38.0f;           // 38°C controller
+        data.motorCurrent[0] = 2.0f;           // Motor FL current
+        data.motorCurrent[1] = 2.0f;           // Motor FR current
+        data.motorCurrent[2] = 2.0f;           // Motor RL current
+        data.motorCurrent[3] = 2.0f;           // Motor RR current
+        data.steeringCurrent = 0.5f;           // Steering motor current
+        data.pedalPercent = 50.0f;             // 50% pedal (simulated)
         data.steeringAngle = 0.0f;             // Centered
-        data.gear = 1;                         // Gear 1
-        data.wheelFL_rpm = 15.0f;              // Front-left wheel RPM
-        data.wheelFR_rpm = 15.0f;              // Front-right wheel RPM
-        data.wheelRL_rpm = 15.0f;              // Rear-left wheel RPM
-        data.wheelRR_rpm = 15.0f;              // Rear-right wheel RPM
-        data.wheelFL_temp = 0.0f;              // Temperature disabled (will show "--")
-        data.wheelFR_temp = 0.0f;
-        data.wheelRL_temp = 0.0f;
-        data.wheelRR_temp = 0.0f;
-        data.wheelFL_effort = 0.0f;            // Effort disabled (will show "--")
-        data.wheelFR_effort = 0.0f;
-        data.wheelRL_effort = 0.0f;
-        data.wheelRR_effort = 0.0f;
-        data.absActive = false;
-        data.tcsActive = false;
-        data.fourWDActive = true;              // 4x4 active
-        data.lightsOn = false;
-        data.musicPlaying = false;
+        data.gear = GearPosition::PARK;        // Park
+        data.batteryPower = data.batteryVoltage * data.batteryCurrent;  // Power (W)
+        data.odoTotal = 1234.5f;               // Total odometer
+        data.odoTrip = 56.7f;                  // Trip odometer
+        data.encoderValue = 2048.0f;           // Encoder mid-value
+        
+        // SystemStatus initialization
+        data.status.fourWheelDrive = true;     // 4x4 active
+        data.status.lights = false;            // Lights off
+        data.status.parkingBrake = true;       // Parking brake on (in PARK)
+        data.status.wifi = false;              // WiFi off
+        data.status.bluetooth = false;         // Bluetooth off
+        data.status.warnings = 0;              // No warnings
         
         HUDManager::updateCarData(data);
         HUDManager::update();
