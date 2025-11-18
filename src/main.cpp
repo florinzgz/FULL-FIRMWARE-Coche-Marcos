@@ -74,6 +74,42 @@ void setup() {
     
     // Go directly to dashboard
     HUDManager::showMenu(MenuType::DASHBOARD);
+    
+    // Initialize with simulated data and render first frame immediately
+    CarData initialData;
+    initialData.speed = 12.0f;
+    initialData.rpm = 850;
+    initialData.batteryVoltage = 24.5f;
+    initialData.batteryCurrent = 2.3f;
+    initialData.batteryPercent = 87;
+    initialData.motorTemp = 42.0f;
+    initialData.batteryTemp = 38.0f;
+    initialData.roll = 0.5f;
+    initialData.pitch = -1.2f;
+    initialData.pedalPercent = 0;
+    initialData.steeringAngle = 0.0f;
+    initialData.gear = 1;
+    initialData.wheelFL_rpm = 15.0f;
+    initialData.wheelFR_rpm = 15.0f;
+    initialData.wheelRL_rpm = 15.0f;
+    initialData.wheelRR_rpm = 15.0f;
+    initialData.wheelFL_temp = 0.0f;
+    initialData.wheelFR_temp = 0.0f;
+    initialData.wheelRL_temp = 0.0f;
+    initialData.wheelRR_temp = 0.0f;
+    initialData.wheelFL_effort = 0.0f;
+    initialData.wheelFR_effort = 0.0f;
+    initialData.wheelRL_effort = 0.0f;
+    initialData.wheelRR_effort = 0.0f;
+    initialData.absActive = false;
+    initialData.tcsActive = false;
+    initialData.fourWDActive = true;
+    initialData.lightsOn = false;
+    initialData.musicPlaying = false;
+    
+    HUDManager::updateCarData(initialData);
+    HUDManager::update();  // Render first frame immediately
+    
     Logger::info("🧪 STANDALONE MODE: Dashboard active with simulated values");
     
 #else
