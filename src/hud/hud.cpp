@@ -27,7 +27,8 @@
 static TFT_eSPI tft;
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
-// Layout 480x320 (rotación 1 → 480x320)
+// Layout 480x320 (rotación 3 → 480x320 landscape)
+// Note: Rotation 3 used instead of rotation 1 for better ILI9488 compatibility
 static const int X_SPEED = 120;
 static const int Y_SPEED = 180;
 static const int X_RPM   = 360;
@@ -75,7 +76,7 @@ void HUD::init() {
     MenuHidden::init(&tft);
 
     if (touch.begin()) {
-        touch.setRotation(1);
+        touch.setRotation(3);  // Match TFT rotation for proper touch mapping
         Logger::info("Touchscreen XPT2046 inicializado OK");
     } else {
         Logger::error("Touchscreen XPT2046 no detectado");

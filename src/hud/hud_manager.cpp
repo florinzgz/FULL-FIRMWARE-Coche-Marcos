@@ -29,12 +29,21 @@ void HUDManager::init() {
     
     // Inicializar TFT (only once here)
     tft.init();
-    tft.setRotation(1);  // Landscape mode: 480x320
-    tft.fillScreen(TFT_BLACK);
     
-    // CRITICAL: Verify rotation is properly set before any drawing
-    // ILI9488 dimensions: 320x480 physical, but rotation 1 gives us 480x320 landscape
-    delay(50);  // Allow display to stabilize after rotation change
+    // CRITICAL: ILI9488 rotation fix for full screen rendering
+    // Rotation 3 provides stable landscape mode (480x320) for ILI9488
+    // Some ILI9488 controllers have issues with rotation 1
+    tft.setRotation(3);  // Landscape mode: 480x320 (alternative orientation)
+    delay(100);  // Extended delay for ILI9488 to process rotation command
+    
+    // Force complete screen clear to initialize all pixels
+    tft.fillScreen(TFT_BLACK);
+    delay(50);  // Allow display buffer to stabilize
+    
+    // Verify display dimensions are correct
+    int w = tft.width();
+    int h = tft.height();
+    // Expected: w=480, h=320 in landscape
     
     // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
