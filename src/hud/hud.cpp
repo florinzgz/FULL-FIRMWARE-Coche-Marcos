@@ -28,7 +28,7 @@ static TFT_eSPI tft;
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
 // Layout 480x320 (rotación 3 → 480x320 landscape)
-// Note: Rotation 3 used instead of rotation 1 for better ILI9488 compatibility
+// Note: Rotation 3 used for ST7796S 4-inch display in horizontal orientation
 static const int X_SPEED = 120;
 static const int Y_SPEED = 180;
 static const int X_RPM   = 360;
@@ -51,7 +51,7 @@ void HUD::init() {
     // Do NOT call tft.init() again - it causes display issues
     
     // Test visual: verify SPI communication works
-    // Display is 480x320 in landscape mode (rotation 3 for ILI9488 stability)
+    // Display is 480x320 in landscape mode (rotation 3 for ST7796S)
     tft.fillScreen(TFT_RED);
     delay(500);
     tft.fillScreen(TFT_GREEN);
@@ -63,7 +63,7 @@ void HUD::init() {
     // Draw test text to confirm rendering (centered for 480x320)
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString("ILI9488 OK", 240, 160, 4);  // Center of 480x320
+    tft.drawString("ST7796S OK", 240, 160, 4);  // Center of 480x320
     delay(1000);
     
     // Clear screen and prepare for dashboard

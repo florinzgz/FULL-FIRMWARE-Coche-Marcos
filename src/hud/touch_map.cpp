@@ -5,7 +5,7 @@
 // Touch calibration notes:
 // - Current mapping uses hardcoded icon coordinates
 // - If touch doesn't align with visible icons, calibration may be needed
-// - XPT2046 touch controller may have different offsets on different ILI9488 units
+// - XPT2046 touch controller may have different offsets on different ST7796S units
 // TODO: Implement dynamic calibration routine and save to Storage::Config
 
 TouchAction getTouchedZone(int x, int y) {

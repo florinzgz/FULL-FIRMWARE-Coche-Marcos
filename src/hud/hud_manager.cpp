@@ -30,11 +30,11 @@ void HUDManager::init() {
     // Inicializar TFT (only once here)
     tft.init();
     
-    // CRITICAL: ILI9488 rotation fix for full screen rendering
-    // Rotation 3 provides stable landscape mode (480x320) for ILI9488
-    // Some ILI9488 controllers have issues with rotation 1
-    tft.setRotation(3);  // Landscape mode: 480x320 (alternative orientation)
-    delay(100);  // Extended delay for ILI9488 to process rotation command
+    // CRITICAL: ST7796S rotation configuration for full screen rendering
+    // Rotation 3 provides landscape mode (480x320)
+    // This rotation works best for 4-inch ST7796S displays
+    tft.setRotation(3);  // Landscape mode: 480x320
+    delay(50);  // Allow display to process rotation command
     
     // Force complete screen clear to initialize all pixels
     tft.fillScreen(TFT_BLACK);
@@ -43,7 +43,7 @@ void HUDManager::init() {
     // Verify display dimensions are correct
     int w = tft.width();
     int h = tft.height();
-    // Expected: w=480, h=320 in landscape
+    // Expected: w=480, h=320 in landscape (ST7796S)
     
     // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
@@ -51,7 +51,7 @@ void HUDManager::init() {
     ledcWrite(0, brightness);
     
     // Inicializar HUD básico (will show color test and initialize components)
-    // Display is now ready with rotation=3 (480x320 landscape, stable for ILI9488)
+    // Display is now ready with rotation=3 (480x320 landscape, ST7796S)
     HUD::init();
     
     // Inicializar datos
