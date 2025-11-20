@@ -7,6 +7,7 @@
 #include "icons.h"
 #include "menu_hidden.h"
 #include "touch_map.h"         // 👈 añadido
+#include "display_types.h"     // For GearPosition enum
 
 #include "pedal.h"
 #include "steering.h"
@@ -191,13 +192,19 @@ void HUD::update() {
     float wheelEffortRL = 30.0f;
     float wheelEffortRR = 30.0f;
     
-    // Simulated system state
-    System::State sys;
-    sys.voltage = 24.5f;
-    sys.tempMax = 42.0f;
-    sys.errors = 0;
+    // Simulated system state (System::State is an enum, so use READY)
+    System::State sys = System::State::READY;
     
-    GearPosition gear = GearPosition::PARK;
+    // Simulated shifter gear (use Shifter::Gear for icons)
+    Shifter::Gear gear = Shifter::Gear::P;
+    
+    // Simulated button state (needed for MenuHidden)
+    Buttons::State btns;
+    btns.batteryIcon = false;
+    btns.lightsIcon = false;
+    btns.multimediaIcon = false;
+    btns.mode4x4Icon = false;
+    
     bool lights = false;
     bool multimedia = false;
     bool mode4x4 = true;
