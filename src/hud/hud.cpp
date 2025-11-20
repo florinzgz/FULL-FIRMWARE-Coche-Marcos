@@ -201,9 +201,9 @@ void HUD::update() {
     // Simulated button state (needed for MenuHidden)
     Buttons::State btns;
     btns.batteryIcon = false;
-    btns.lightsIcon = false;
-    btns.multimediaIcon = false;
-    btns.mode4x4Icon = false;
+    btns.lights = false;
+    btns.multimedia = false;
+    btns.mode4x4 = false;
     
     bool lights = false;
     bool multimedia = false;
