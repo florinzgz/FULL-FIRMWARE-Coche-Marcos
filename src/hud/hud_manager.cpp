@@ -133,6 +133,8 @@ void HUDManager::forceRedraw() {
 void HUDManager::showLogo() {
     currentMenu = MenuType::NONE;
     HUD::showLogo();
+    // After logo, switch to dashboard
+    currentMenu = MenuType::DASHBOARD;
 }
 
 void HUDManager::showReady() {
