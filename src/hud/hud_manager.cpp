@@ -140,8 +140,9 @@ void HUDManager::forceRedraw() {
 void HUDManager::showLogo() {
     currentMenu = MenuType::NONE;
     HUD::showLogo();
-    // After logo, switch to dashboard
+    // After logo, switch to dashboard and force redraw
     currentMenu = MenuType::DASHBOARD;
+    needsRedraw = true;  // Force screen clear before drawing dashboard
 }
 
 void HUDManager::showReady() {
