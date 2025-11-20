@@ -68,9 +68,13 @@ void setup() {
     // Initialize only display components
     HUDManager::init();
     
-    // Show logo briefly
+    // Show logo briefly with non-blocking timing
     HUDManager::showLogo();
-    delay(1500);
+    unsigned long logoStart = millis();
+    while (millis() - logoStart < 1500) { 
+        // Keep main loop responsive during logo display
+        yield(); // Allow background tasks to run
+    }
     
     // Go directly to dashboard
     HUDManager::showMenu(MenuType::DASHBOARD);

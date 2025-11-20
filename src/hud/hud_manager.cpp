@@ -23,9 +23,12 @@ void HUDManager::init() {
     
     pinMode(PIN_TFT_RST, OUTPUT);
     digitalWrite(PIN_TFT_RST, LOW);
-    delay(10);
+    // Non-blocking: Use millis() instead of delay(10)
+    unsigned long rstStart = millis();
+    while (millis() - rstStart < 10) { /* Wait 10ms */ }
     digitalWrite(PIN_TFT_RST, HIGH);
-    delay(10);
+    rstStart = millis();
+    while (millis() - rstStart < 10) { /* Wait 10ms */ }
     
     // Inicializar TFT (only once here)
     tft.init();
@@ -34,11 +37,15 @@ void HUDManager::init() {
     // Rotation 3 provides landscape mode (480x320)
     // This rotation works best for 4-inch ST7796S displays
     tft.setRotation(3);  // Landscape mode: 480x320
-    delay(50);  // Allow display to process rotation command
+    // Non-blocking: Use millis() instead of delay(50)
+    unsigned long rotStart = millis();
+    while (millis() - rotStart < 50) { /* Allow display to process rotation */ }
     
     // Force complete screen clear to initialize all pixels
     tft.fillScreen(TFT_BLACK);
-    delay(50);  // Allow display buffer to stabilize
+    // Non-blocking: Use millis() instead of delay(50)
+    unsigned long fillStart = millis();
+    while (millis() - fillStart < 50) { /* Allow display buffer to stabilize */ }
     
     // Verify display dimensions are correct
     int w = tft.width();
