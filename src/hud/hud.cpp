@@ -174,6 +174,36 @@ void HUD::drawPedalBar(float pedalPercent) {
 }
 
 void HUD::update() {
+#ifdef STANDALONE_DISPLAY
+    // STANDALONE MODE: Use simulated sensor values for display testing
+    // This allows the dashboard to be fully visible without hardware
+    float speedKmh = 12.0f;  // 12 km/h simulated speed
+    float rpm = 850.0f;      // 850 RPM simulated idle
+    float pedalPercent = 50.0f;  // 50% pedal
+    float steerAngleFL = 0.0f;
+    float steerAngleFR = 0.0f;
+    float wheelTempFL = 42.0f;  // Simulated temps
+    float wheelTempFR = 42.0f;
+    float wheelTempRL = 42.0f;
+    float wheelTempRR = 42.0f;
+    float wheelEffortFL = 30.0f;  // Simulated effort %
+    float wheelEffortFR = 30.0f;
+    float wheelEffortRL = 30.0f;
+    float wheelEffortRR = 30.0f;
+    
+    // Simulated system state
+    System::State sys;
+    sys.voltage = 24.5f;
+    sys.tempMax = 42.0f;
+    sys.errors = 0;
+    
+    GearPosition gear = GearPosition::PARK;
+    bool lights = false;
+    bool multimedia = false;
+    bool mode4x4 = true;
+    bool eco = false;
+    
+#else
     auto pedal = Pedal::get();
     auto steer = Steering::get();
     auto sh    = Shifter::get();
@@ -192,50 +222,51 @@ void HUD::update() {
     // Current implementation: RPM = (speed/maxSpeed) * maxRPM for visualization only
     float rpm = (speedKmh / MAX_SPEED_KMH) * MAX_RPM;
     if(rpm > MAX_RPM) rpm = MAX_RPM;
+    
+    float pedalPercent = pedal.valid ? pedal.percent : -1.0f;
+    float steerAngleFL = cfg.steeringEnabled ? steer.angleFL : 0.0f;
+    float steerAngleFR = cfg.steeringEnabled ? steer.angleFR : 0.0f;
+    float wheelTempFL = cfg.tempSensorsEnabled ? tr.w[Traction::FL].tempC : -999.0f;
+    float wheelTempFR = cfg.tempSensorsEnabled ? tr.w[Traction::FR].tempC : -999.0f;
+    float wheelTempRL = cfg.tempSensorsEnabled ? tr.w[Traction::RL].tempC : -999.0f;
+    float wheelTempRR = cfg.tempSensorsEnabled ? tr.w[Traction::RR].tempC : -999.0f;
+    float wheelEffortFL = cfg.currentSensorsEnabled ? tr.w[Traction::FL].effortPct : -1.0f;
+    float wheelEffortFR = cfg.currentSensorsEnabled ? tr.w[Traction::FR].effortPct : -1.0f;
+    float wheelEffortRL = cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : -1.0f;
+    float wheelEffortRR = cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : -1.0f;
+    GearPosition gear = sh.gear;
+    bool lights = cfg.lightsEnabled && btns.lights;
+    bool multimedia = cfg.multimediaEnabled && btns.multimedia;
+    bool mode4x4 = tr.enabled4x4;
+    bool eco = pedal.percent > 0 && !btns.mode4x4;
+#endif
 
     // Render gauges (ya optimizados internamente)
-    Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedal.percent);
+    Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent);
     Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM);
 
     // Ruedas (optimizado: solo redibuja si cambian ángulo/temp/esfuerzo)
     // Usar -999.0f para temp y -1.0f para effort cuando sensores deshabilitados
-    WheelsDisplay::drawWheel(X_FL, Y_FL,
-        cfg.steeringEnabled ? steer.angleFL : 0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::FL].tempC : -999.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::FL].effortPct : -1.0f
-    );
-    WheelsDisplay::drawWheel(X_FR, Y_FR,
-        cfg.steeringEnabled ? steer.angleFR : 0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::FR].tempC : -999.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::FR].effortPct : -1.0f
-    );
-    WheelsDisplay::drawWheel(X_RL, Y_RL,
-        0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::RL].tempC : -999.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : -1.0f
-    );
-    WheelsDisplay::drawWheel(X_RR, Y_RR,
-        0.0f,
-        cfg.tempSensorsEnabled ? tr.w[Traction::RR].tempC : -999.0f,
-        cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : -1.0f
-    );
+    WheelsDisplay::drawWheel(X_FL, Y_FL, steerAngleFL, wheelTempFL, wheelEffortFL);
+    WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR, wheelEffortFR);
+    WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL);
+    WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR);
 
     // Iconos y estados
     Icons::drawSystemState(sys);
-    Icons::drawGear(sh.gear);
-    Icons::drawFeatures(
-        cfg.lightsEnabled && btns.lights,
-        cfg.multimediaEnabled && btns.multimedia,
-        tr.enabled4x4,
-        pedal.percent > 0 && !btns.mode4x4
-    );
+    Icons::drawGear(gear);
+    Icons::drawFeatures(lights, multimedia, mode4x4, eco);
+#ifdef STANDALONE_DISPLAY
+    Icons::drawBattery(24.5f);  // Simulated battery voltage
+#else
     Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f);
+#endif
 
     // Icono de advertencia si hay errores almacenados
     Icons::drawErrorWarning();
 
     // Barra de pedal en la parte inferior
-    drawPedalBar(pedal.valid ? pedal.percent : -1.0f);
+    drawPedalBar(pedalPercent);
 
     // --- Lectura táctil usando touch_map ---
     bool batteryTouch = false;
