@@ -82,7 +82,7 @@ static void updateKITTScanner(CRGB* leds, int count, CRGB color) {
     
     // Fade all LEDs
     for (int i = 0; i < count; i++) {
-        leds[i].fadeToBlackBy(60);
+        leds[i].fadeToBlackBy(FADE_RATE_KITT);  // 🔒 Using constant instead of magic number
     }
     
     // Draw bright center LED
@@ -118,7 +118,7 @@ static void updateChase(CRGB* leds, int count, CRGB color, uint8_t speed) {
     
     // Fade all LEDs
     for (int i = 0; i < count; i++) {
-        leds[i].fadeToBlackBy(30);
+        leds[i].fadeToBlackBy(FADE_RATE_CHASE);  // 🔒 Using constant instead of magic number
     }
     
     // Light up current position and tail
@@ -200,22 +200,22 @@ static void updateRearCenter() {
             
         case REAR_POSITION:
             color = CRGB::Red;
-            brightness = 51;  // 20% brightness
+            brightness = BRIGHTNESS_POSITION_LIGHTS;  // 🔒 Using constant: 20% brightness
             break;
             
         case REAR_BRAKE:
             color = CRGB::Red;
-            brightness = 255;  // 100% brightness
+            brightness = BRIGHTNESS_FULL;  // 🔒 Using constant: 100% brightness
             break;
             
         case REAR_BRAKE_EMERGENCY:
             color = blinkState ? CRGB::Red : CRGB::Black;
-            brightness = 255;
+            brightness = BRIGHTNESS_FULL;  // 🔒 Using constant
             break;
             
         case REAR_REVERSE:
             color = CRGB::White;
-            brightness = 255;
+            brightness = BRIGHTNESS_FULL;  // 🔒 Using constant
             break;
             
         case REAR_REGEN_ACTIVE:
@@ -358,7 +358,7 @@ void update() {
         }
         
         // Toggle every 100ms
-        if (now - emergencyFlashLastToggle >= 100) {
+        if (now - emergencyFlashLastToggle >= EMERGENCY_FLASH_INTERVAL_MS) {  // 🔒 Using constant
             emergencyFlashLastToggle = now;
             emergencyFlashOn = !emergencyFlashOn;
             
@@ -389,7 +389,7 @@ void update() {
         lastUpdateMs = now;
         
         // Update blink state (500ms on/off for turn signals)
-        if (now - lastBlinkMs >= 500) {
+        if (now - lastBlinkMs >= TURN_SIGNAL_BLINK_MS) {  // 🔒 Using constant
             blinkState = !blinkState;
             lastBlinkMs = now;
         }
