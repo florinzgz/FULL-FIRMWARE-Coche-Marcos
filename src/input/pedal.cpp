@@ -35,6 +35,16 @@ static float applyCurve(float x) {
 void Pedal::init() {
     pinMode(PIN_PEDAL, INPUT);
     s = {0, 0.0f, true};
+    
+    // 🔒 CORRECCIÓN MEDIA: Cargar calibración de configuración
+    if (cfg.pedalAdcMin > 0 && cfg.pedalAdcMax > cfg.pedalAdcMin) {
+        adcMin = cfg.pedalAdcMin;
+        adcMax = cfg.pedalAdcMax;
+        Logger::infof("Pedal: Calibración cargada %d-%d", adcMin, adcMax);
+    } else {
+        Logger::infof("Pedal: Usando calibración por defecto %d-%d", adcMin, adcMax);
+    }
+    
     Logger::info("Pedal init");
     initialized = true;
 }

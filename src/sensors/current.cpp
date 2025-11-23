@@ -34,13 +34,19 @@ static constexpr float MAX_CURRENT_BATTERY = 100.0f;  // 100A
 static constexpr float MAX_CURRENT_MOTOR = 50.0f;     // 50A
 
 static uint32_t lastUpdateMs = 0;
+// 🔒 CORRECCIÓN MEDIA: Constante para frecuencia de actualización
+static constexpr uint32_t CURRENT_UPDATE_INTERVAL_MS = 50;  // 20 Hz
 
 // Flag de inicialización global
 static bool initialized = false;
 
+// 🔒 CORRECCIÓN MEDIA: tcaSelect mejorado con validación y retry
 // Selecciona canal del TCA9548A con recuperación automática y mutex
-static void tcaSelect(uint8_t channel) {
-    if(channel > 7) return;
+static bool tcaSelect(uint8_t channel) {
+    if(channel > 7) {
+        Logger::errorf("Current: canal TCA inválido %d", channel);
+        return false;
+    }
     
     // 🔒 CORRECCIÓN CRÍTICA: Proteger acceso I2C con mutex
     if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
@@ -48,10 +54,19 @@ static void tcaSelect(uint8_t channel) {
         if (!I2CRecovery::tcaSelectSafe(channel, TCA_ADDR)) {
             Logger::errorf("TCA select fail ch %d - recovery attempt", channel);
             I2CRecovery::recoverBus();  // Intentar recuperar bus
+            
+            // 🔒 CORRECCIÓN: Retry después de recovery
+            if (!I2CRecovery::tcaSelectSafe(channel, TCA_ADDR)) {
+                Logger::errorf("TCA select fail ch %d después de recovery", channel);
+                xSemaphoreGive(i2cMutex);
+                return false;
+            }
         }
         xSemaphoreGive(i2cMutex);
+        return true;
     } else {
         Logger::error("Current: mutex I2C timeout en tcaSelect");
+        return false;
     }
 }
 
@@ -119,7 +134,8 @@ void Sensors::initCurrent() {
 
 void Sensors::updateCurrent() {
     uint32_t now = millis();
-    if(now - lastUpdateMs < 50) return; // ~20 Hz
+    // 🔒 CORRECCIÓN MEDIA: Usar constante en lugar de hardcode
+    if(now - lastUpdateMs < CURRENT_UPDATE_INTERVAL_MS) return; // 20 Hz
     lastUpdateMs = now;
 
     if(!cfg.currentSensorsEnabled) {
@@ -159,7 +175,13 @@ void Sensors::updateCurrent() {
             continue; // Saltar si aún no está ok
         }
 
-        tcaSelect(i);
+        // 🔒 CORRECCIÓN MEDIA: Validar éxito de tcaSelect antes de continuar
+        if (!tcaSelect(i)) {
+            Logger::errorf("Cannot select TCA channel %d, skipping", i);
+            sensorOk[i] = false;
+            I2CRecovery::markDeviceOffline(i);
+            continue;
+        }
 
         float c = ina[i]->getCurrent();
         float v = ina[i]->getBusVoltage();

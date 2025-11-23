@@ -56,6 +56,12 @@ void HUDManager::init() {
     tft.fillScreen(TFT_BLACK);
     delay(50);  // Allow display buffer to stabilize
     
+    // 🔒 CORRECCIÓN MEDIA: Cargar brightness de configuración
+    if (cfg.displayBrightness > 0 && cfg.displayBrightness <= 255) {
+        brightness = cfg.displayBrightness;
+        Logger::infof("HUD: Brightness cargado de config: %d", brightness);
+    }
+    
     // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
     ledcAttachPin(PIN_TFT_BL, 0);
