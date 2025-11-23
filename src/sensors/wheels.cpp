@@ -2,13 +2,10 @@
 #include <Arduino.h>
 #include "pins.h"
 #include "settings.h"
+#include "constants.h"  // 🔒 Usar constantes centralizadas
 #include "logger.h"
 #include "storage.h"
-#include "system.h"   // 🔎 para logError()
-
-#define PULSES_PER_REV 6              // 6 tornillos por rueda
-#define WHEEL_CIRCUM_MM 1100          // Circunferencia real en mm (110 cm)
-#define SENSOR_TIMEOUT_MS 1000        // 🔎 si no hay pulsos en 1s → fallo
+#include "system.h"
 
 extern Storage::Config cfg;
 
@@ -35,13 +32,16 @@ void Sensors::initWheels() {
         wheelOk[i] = true;
     }
 
-    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL0), wheelISR0, RISING);
-    // PIN_WHEEL1 ahora en MCP23017 GPIOB0 - se lee por polling en update()
-    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL2), wheelISR2, RISING);
-    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL3), wheelISR3, RISING);
+    // 🔒 Configurar interrupciones para sensores en GPIOs directos
+    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL_FL), wheelISR0, RISING);
+    // 🔒 NOTA: PIN_WHEEL_FR (GPIO 36) ahora se lee directamente, no vía MCP23017
+    // El comentario anterior sobre MCP23017 GPIOB0 era incorrecto según pins.h actualizado
+    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL_FR), wheelISR1, RISING);
+    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL_RL), wheelISR2, RISING);
+    attachInterrupt(digitalPinToInterrupt(PIN_WHEEL_RR), wheelISR3, RISING);
 
-    Logger::info("Wheel sensors init OK");
-    initialized = true;   // marcar como inicializado
+    Logger::info("Wheel sensors init OK - 4 interrupts configured");
+    initialized = true;
 }
 
 void Sensors::updateWheels() {
@@ -75,8 +75,8 @@ void Sensors::updateWheels() {
             if(pulses[i] > 0) {
                 float mm_per_s = (revs * WHEEL_CIRCUM_MM) / (dt / 1000.0f);
                 float kmh = (mm_per_s / 1000.0f) * 3.6f;
-                // Clamp a velocidad máxima definida
-                if(kmh > MAX_SPEED_KMH) kmh = MAX_SPEED_KMH;
+                // 🔒 Clamp a velocidad máxima definida en constants.h
+                if(kmh > WHEEL_MAX_SPEED_KMH) kmh = WHEEL_MAX_SPEED_KMH;
                 speed[i] = kmh;
                 wheelOk[i] = true;
             } else {

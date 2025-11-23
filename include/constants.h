@@ -36,6 +36,7 @@ constexpr float WHEEL_CIRCUM_MM      = 1100.0f; // Circunferencia real de rueda 
 constexpr float WHEEL_MAX_SPEED_MS   = (WHEEL_OUTPUT_RPM / 60.0f) * (WHEEL_CIRCUM_MM / 1000.0f); // m/s
 constexpr float WHEEL_MAX_SPEED_KMH  = WHEEL_MAX_SPEED_MS * 3.6f; // km/h
 constexpr int   PULSES_PER_REV       = 6;       // Pulsos por vuelta del sensor de rueda (inductivo)
+constexpr uint32_t SENSOR_TIMEOUT_MS = 1000;    // 🔒 Timeout para sensor sin pulsos (1s)
 
 // =======================
 // Conversión y factores
