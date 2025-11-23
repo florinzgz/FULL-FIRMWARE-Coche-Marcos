@@ -97,7 +97,7 @@ void Sensors::updateTemperature() {
     // 🔒 CORRECCIÓN 4.2: Conversión asíncrona con timeout
     if (!requestPending) {
         // Verificar si es momento de iniciar nueva lectura (~1 Hz)
-        if (now - lastUpdateMs < 1000) return;
+        if (now - lastUpdateMs < UPDATE_INTERVAL_MS) return;  // 🔒 Using constant
         
         // Iniciar request asíncrono (no bloqueante)
         sensors.requestTemperatures();
@@ -139,11 +139,10 @@ void Sensors::updateTemperature() {
         }
 
         // Clamps
-        t = constrain(t, -40.0f, 150.0f);
+        t = constrain(t, TEMP_MIN_CELSIUS, TEMP_MAX_CELSIUS);  // 🔒 Using constants
 
-        // 🔒 CORRECCIÓN 4.3: Constante EMA configurable
-        const float TEMP_EMA_ALPHA = 0.2f; // 0.0 = sin filtro, 1.0 = sin suavizado
-        lastTemp[i] = lastTemp[i] + TEMP_EMA_ALPHA * (t - lastTemp[i]);
+        // 🔒 CORRECCIÓN 4.3: Filtro EMA con constante configurable
+        lastTemp[i] = lastTemp[i] + EMA_FILTER_ALPHA * (t - lastTemp[i]);  // 🔒 Using constant
     }
 }
 
@@ -159,4 +158,32 @@ bool Sensors::isTemperatureSensorOk(int channel) {
 
 bool Sensors::temperatureInitOK() {
     return initialized;
+}
+
+// 🔒 MEJORA OPCIONAL: Función de diagnóstico avanzado
+Sensors::TemperatureStatus Sensors::getTemperatureStatus() {
+    TemperatureStatus status;
+    status.sensorsDetected = sensors.getDeviceCount();
+    status.sensorsWorking = 0;
+    status.criticalTempDetected = false;
+    status.maxTemp = -999.0f;
+    status.lastUpdateMs = lastUpdateMs;
+    
+    for(int i = 0; i < NUM_TEMPS; i++) {
+        if(sensorOk[i]) {
+            status.sensorsWorking++;
+            
+            // Actualizar temperatura máxima
+            if(lastTemp[i] > status.maxTemp) {
+                status.maxTemp = lastTemp[i];
+            }
+            
+            // Detectar temperatura crítica (>85°C para motores)
+            if(lastTemp[i] > TEMP_CRITICAL_CELSIUS) {
+                status.criticalTempDetected = true;
+            }
+        }
+    }
+    
+    return status;
 }
