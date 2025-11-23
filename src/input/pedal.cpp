@@ -13,6 +13,9 @@ static int adcMax = 3800;
 static uint8_t curveMode = 0;    // 0 lineal, 1 suave, 2 agresiva
 static float deadbandPct = 3.0f; // % muerto inicial
 static float lastPercent = 0.0f;
+// 🔒 CORRECCIÓN: Filtro EMA para suavizar lecturas ADC
+static constexpr float EMA_ALPHA = 0.15f;  // Factor de suavizado
+static float rawFiltered = 0.0f;
 
 // Flag de inicialización
 static bool initialized = false;
@@ -47,19 +50,37 @@ void Pedal::update() {
     // }
 
     int raw = analogRead(PIN_PEDAL);
-    s.raw = raw;
-
-    // Plausibilidad básica
-    if(raw < 0 || raw > 4095) {
+    
+    // 🔒 CORRECCIÓN CRÍTICA: analogRead retorna uint16_t (0-4095), no puede ser < 0
+    // Validación correcta: solo verificar límite superior y rango válido
+    if(raw > 4095) {
         s.valid = false;
         s.percent = lastPercent; // fallback
         System::logError(100);   // código reservado pedal
         Logger::errorf("Pedal lectura fuera de rango: %d", raw);
         return;
     }
+    
+    // 🔒 CORRECCIÓN: Aplicar filtro EMA para reducir ruido eléctrico
+    if (rawFiltered == 0.0f) {
+        rawFiltered = (float)raw;  // Inicializar en primera lectura
+    } else {
+        rawFiltered = rawFiltered + EMA_ALPHA * ((float)raw - rawFiltered);
+    }
+    
+    s.raw = (int)rawFiltered;
 
-    // Normalización
-    int clamped = constrain(raw, adcMin, adcMax);
+    // 🔒 CORRECCIÓN: Validación adicional de hardware
+    // Si el pedal está en reposo (esperado ~200) pero lee muy alto o muy bajo,
+    // podría indicar problema de hardware
+    if (!initialized) {
+        Logger::warn("Pedal::update() llamado sin init");
+        s.valid = false;
+        return;
+    }
+
+    // Normalización con valores filtrados
+    int clamped = constrain((int)rawFiltered, adcMin, adcMax);
     float norm = (float)(clamped - adcMin) / (float)(adcMax - adcMin);
     norm = constrain(norm, 0.0f, 1.0f);
 

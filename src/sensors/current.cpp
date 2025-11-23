@@ -6,6 +6,10 @@
 #include "settings.h"
 #include "system.h"   // para logError()
 #include "i2c_recovery.h"  // Sistema de recuperación I²C
+#include "pins.h"     // 🔒 Para PIN_I2C_SDA y PIN_I2C_SCL
+
+// 🔒 CORRECCIÓN CRÍTICA: Mutex para proteger acceso I2C concurrente
+static SemaphoreHandle_t i2cMutex = nullptr;
 
 #define TCA_ADDR 0x70   // Dirección I2C del TCA9548A
 
@@ -34,19 +38,36 @@ static uint32_t lastUpdateMs = 0;
 // Flag de inicialización global
 static bool initialized = false;
 
-// Selecciona canal del TCA9548A con recuperación automática
+// Selecciona canal del TCA9548A con recuperación automática y mutex
 static void tcaSelect(uint8_t channel) {
     if(channel > 7) return;
     
-    // Usar tcaSelectSafe en lugar de Wire directo
-    if (!I2CRecovery::tcaSelectSafe(channel, TCA_ADDR)) {
-        Logger::errorf("TCA select fail ch %d - recovery attempt", channel);
-        I2CRecovery::recoverBus();  // Intentar recuperar bus
+    // 🔒 CORRECCIÓN CRÍTICA: Proteger acceso I2C con mutex
+    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        // Usar tcaSelectSafe en lugar de Wire directo
+        if (!I2CRecovery::tcaSelectSafe(channel, TCA_ADDR)) {
+            Logger::errorf("TCA select fail ch %d - recovery attempt", channel);
+            I2CRecovery::recoverBus();  // Intentar recuperar bus
+        }
+        xSemaphoreGive(i2cMutex);
+    } else {
+        Logger::error("Current: mutex I2C timeout en tcaSelect");
     }
 }
 
 void Sensors::initCurrent() {
-    Wire.begin();
+    // 🔒 CORRECCIÓN CRÍTICA: Crear mutex I2C si no existe
+    if (i2cMutex == nullptr) {
+        i2cMutex = xSemaphoreCreateMutex();
+        if (i2cMutex == nullptr) {
+            Logger::error("Current: No se pudo crear mutex I2C");
+            System::logError(399);
+            return;
+        }
+    }
+    
+    // 🔒 CORRECCIÓN CRÍTICA: Configurar pines I2C antes de begin()
+    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
 
     bool allOk = true;
 
@@ -74,10 +95,11 @@ void Sensors::initCurrent() {
             float shuntOhm = (i == 4) ? SHUNT_BATTERY_OHM : SHUNT_MOTOR_OHM;
             float maxCurrent = (i == 4) ? MAX_CURRENT_BATTERY : MAX_CURRENT_MOTOR;
             
-            // Calibrar INA226 para shunt CG FL-2C
-            // Típicamente: configure(shuntResistor, maxExpectedCurrent)
-            // ina[i]->configure(shuntOhm, maxCurrent);
-            // Si tu librería usa otro método, ajusta aquí
+            // 🔒 CORRECCIÓN CRÍTICA: Descomentar calibración INA226
+            // Calibrar para shunt CG FL-2C según canal
+            ina[i]->configure(INA226_AVERAGES_1, INA226_BUS_CONV_TIME_1100US, 
+                             INA226_SHUNT_CONV_TIME_1100US, INA226_MODE_SHUNT_BUS_CONT);
+            ina[i]->calibrate(shuntOhm, maxCurrent);
             
             sensorOk[i] = true;
             Logger::infof("INA226 OK ch%d (%.4fΩ, %.0fA)", i, shuntOhm, maxCurrent);

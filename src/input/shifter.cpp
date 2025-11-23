@@ -6,6 +6,12 @@
 
 static Shifter::State s = {Shifter::P, false};
 
+// 🔒 CORRECCIÓN CRÍTICA: Debounce para prevenir lecturas erróneas por rebotes
+static constexpr uint32_t DEBOUNCE_MS = 50;
+static uint32_t lastChangeMs = 0;
+static uint8_t stableReadings = 0;
+static Shifter::Gear pendingGear = Shifter::P;
+
 // Shifter conectado vía HY-M158 optoacopladores (señales 12V aisladas)
 // Lee entrada digital con pull-up (LOW = activo)
 static bool readPin(uint8_t pin) { return digitalRead(pin) == 0; }
@@ -29,21 +35,40 @@ void Shifter::init() {
 }
 
 void Shifter::update() {
-    Shifter::Gear newGear = s.gear;
+    Shifter::Gear detectedGear = s.gear;
 
+    // 🔒 CORRECCIÓN CRÍTICA: Lee cada posición con debounce
     // Lee cada posición del shifter (prioridad P > D2 > D1 > N > R)
-    if(readPin(PIN_SHIFTER_P))       newGear = Shifter::P;
-    else if(readPin(PIN_SHIFTER_D2)) newGear = Shifter::D2;
-    else if(readPin(PIN_SHIFTER_D1)) newGear = Shifter::D1;
-    else if(readPin(PIN_SHIFTER_N))  newGear = Shifter::N;
-    else if(readPin(PIN_SHIFTER_R))  newGear = Shifter::R;
+    if(readPin(PIN_SHIFTER_P))       detectedGear = Shifter::P;
+    else if(readPin(PIN_SHIFTER_D2)) detectedGear = Shifter::D2;
+    else if(readPin(PIN_SHIFTER_D1)) detectedGear = Shifter::D1;
+    else if(readPin(PIN_SHIFTER_N))  detectedGear = Shifter::N;
+    else if(readPin(PIN_SHIFTER_R))  detectedGear = Shifter::R;
 
-    if(newGear != s.gear) {
-        s.gear = newGear;
-        s.changed = true;
-        announce(newGear);
-        Logger::info("Gear changed");
+    uint32_t now = millis();
+    
+    // Implementar debounce: requiere lecturas estables durante DEBOUNCE_MS
+    if (detectedGear != pendingGear) {
+        // Nueva lectura detectada
+        pendingGear = detectedGear;
+        lastChangeMs = now;
+        stableReadings = 1;
+        s.changed = false;
+    } else if (detectedGear != s.gear) {
+        // La lectura coincide con pending pero aún no es el gear actual
+        if (now - lastChangeMs >= DEBOUNCE_MS) {
+            // Debounce completado, aceptar cambio
+            s.gear = detectedGear;
+            s.changed = true;
+            announce(detectedGear);
+            Logger::infof("Shifter: Cambio de marcha a %d", (int)detectedGear);
+            stableReadings = 0;
+        } else {
+            stableReadings++;
+            s.changed = false;
+        }
     } else {
+        // Lectura estable igual al gear actual
         s.changed = false;
     }
 }
