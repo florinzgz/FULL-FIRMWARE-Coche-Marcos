@@ -82,5 +82,9 @@ namespace LEDController {
     Config& getConfig();
     
     // Emergency flash all LEDs (for critical alerts)
-    void emergencyFlash(uint8_t count);
+    // Non-blocking: call startEmergencyFlash() to begin, update() handles the animation
+    void startEmergencyFlash(uint8_t count);
+    
+    // Check if emergency flash is active
+    bool isEmergencyFlashActive();
 }

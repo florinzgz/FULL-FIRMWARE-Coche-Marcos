@@ -32,12 +32,13 @@ bool recoverBus() {
     
     // 1. Terminar transacción I²C actual
     Wire.end();
-    delay(10);
+    // Non-blocking: use delayMicroseconds for hardware settling (< 1ms total)
+    delayMicroseconds(100);
     
     // 2. Configurar pines como GPIO para generar pulsos manualmente
     pinMode(pinSDA, INPUT_PULLUP);
     pinMode(pinSCL, INPUT_PULLUP);
-    delay(10);
+    delayMicroseconds(100);
     
     // 3. Verificar estado inicial
     bool sdaStuck = (digitalRead(pinSDA) == LOW);
@@ -79,7 +80,7 @@ bool recoverBus() {
     // 6. Verificar recovery exitoso
     pinMode(pinSDA, INPUT_PULLUP);
     pinMode(pinSCL, INPUT_PULLUP);
-    delay(10);
+    delayMicroseconds(100);
     
     bool recovered = (digitalRead(pinSDA) == HIGH) && (digitalRead(pinSCL) == HIGH);
     
@@ -174,7 +175,8 @@ bool readBytesWithRetry(uint8_t deviceAddr, uint8_t regAddr,
         if (retry > 0) {
             Logger::infof("I2C retry %d/%d (dev 0x%02X)", 
                            retry, MAX_RETRIES, deviceAddr);
-            delay(50);  // Pequeña pausa entre retries
+            // Non-blocking: use delayMicroseconds for minimal settling time
+            delayMicroseconds(500);  // 0.5ms instead of 50ms
         }
         
         uint32_t startMs = millis();
@@ -261,7 +263,8 @@ bool writeBytesWithRetry(uint8_t deviceAddr, uint8_t regAddr,
     // Intentar escritura con retry
     for (uint8_t retry = 0; retry <= MAX_RETRIES; retry++) {
         if (retry > 0) {
-            delay(50);
+            // Non-blocking: use delayMicroseconds for minimal settling time
+            delayMicroseconds(500);  // 0.5ms instead of 50ms
         }
         
         Wire.beginTransmission(deviceAddr);

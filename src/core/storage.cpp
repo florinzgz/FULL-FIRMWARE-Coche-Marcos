@@ -47,10 +47,12 @@ void Storage::defaults(Config &cfg) {
     cfg.multimediaEnabled = true;
 
     // Nuevos flags de tolerancia a fallos
-    cfg.wheelSensorsEnabled    = true;
-    cfg.tempSensorsEnabled     = true;
-    cfg.currentSensorsEnabled  = true;
-    cfg.steeringEnabled        = true;
+    // ⚙️ Inicialmente deshabilitados para modo standalone (solo pantalla)
+    // Habilitar cuando se conecten los sensores reales
+    cfg.wheelSensorsEnabled    = false;
+    cfg.tempSensorsEnabled     = false;
+    cfg.currentSensorsEnabled  = false;
+    cfg.steeringEnabled        = false;
 
     // Errores persistentes
     cfg.errorCount = 0;

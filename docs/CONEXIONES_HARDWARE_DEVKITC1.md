@@ -68,8 +68,10 @@ Lado Izquierdo:                  Lado Derecho:
 | RELAY_MAIN | 2 | Izq | HY-M158 #2 (Sistema 12V) |
 | RELAY_TRAC | 4 | Izq | HY-M158 #1 (Tracción 24V) |
 | RELAY_DIR | 5 | Izq | Módulo 8ch - Encoder |
-| RELAY_LIGHTS | 32 | Der | Módulo 8ch - Luces |
-| RELAY_MEDIA | 33 | Der | Módulo 8ch - Audio |
+| RELAY_SPARE | 6 | Izq | Módulo 8ch - Reserva (consolidado) |
+| **LEDs Inteligentes** |
+| LED_FRONT | 0 | Izq | WS2812B Frontales (28 LEDs) |
+| LED_REAR | 1 | Izq | WS2812B Traseros (16 LEDs) |
 | **Pantalla TFT** |
 | TFT_MOSI | 11 | Izq | ILI9488 SDI |
 | TFT_CS | 15 | Izq | ILI9488 CS |
@@ -195,28 +197,31 @@ ESP32-S3 GND ◄──────────┴──────────�
 
 ---
 
-## 3. ⚡ RELÉS SECUNDARIOS (MÓDULO 8 CANALES 5V)
+## 3. ⚡ RELÉS SECUNDARIOS (MÓDULO 4 CANALES 5V SRD-05VDC)
 
 | Canal | GPIO | Lado | Dispositivo | Función |
 |-------|------|------|-------------|---------|
 | VCC | - | - | 5V | Alimentación módulo |
 | GND | - | - | GND | Tierra común |
-| IN1 | - | - | No usado | - |
-| IN2 | **5** | Izq | Encoder | Alimentación encoder dirección |
-| IN3 | **32** | Der | Luces | LED strip / faros |
-| IN4 | **33** | Der | Audio | DFPlayer Mini |
-| IN5-8 | - | - | Reserva | Expansión futura |
+| IN1 | **2** | Izq | Power Hold | Mantiene buck 5V activo |
+| IN2 | **4** | Izq | 12V Aux | Alimenta sensores/encoder |
+| IN3 | **5** | Izq | 24V Motores | Alimenta motores tracción |
+| IN4 | **6** | Izq | Reserva | Función configurable |
 
 **Conexión módulo:**
 
 ```
-ESP32-S3                    Módulo 8 Relés             Carga
+ESP32-S3                    Módulo 4 Relés             Carga
 ────────                    ──────────────             ─────
 5V      ────────────────► VCC
 GND     ────────────────► GND
-GPIO 5  ────────────────► IN2  ──► COM/NO ──► Encoder 5V
-GPIO 32 ────────────────► IN3  ──► COM/NO ──► Luces
-GPIO 33 ────────────────► IN4  ──► COM/NO ──► DFPlayer VCC
+GPIO 2  ────────────────► IN1  ──► COM/NO ──► Power Hold
+GPIO 4  ────────────────► IN2  ──► COM/NO ──► 12V Auxiliares
+GPIO 5  ────────────────► IN3  ──► COM/NO ──► 24V Motores
+GPIO 6  ────────────────► IN4  ──► COM/NO ──► Reserva
+```
+
+**NOTA:** GPIO 32 y 33 NO disponibles físicamente - funciones consolidadas en GPIO 6 (RELAY_SPARE)
 ```
 
 ---
@@ -298,10 +303,10 @@ ESP32 GND (común) ◄────┴─► Todos los BTS7960 GND
 
 | DFPlayer Pin | Cable | ESP32-S3 GPIO | Lado | Función |
 |--------------|-------|---------------|------|---------|
-| VCC | Rojo | Relé GPIO 33 | - | 5V desde relé |
+| VCC | Rojo | 5V (directo) | - | 5V desde buck |
 | GND | Negro | GND | Ambos | Tierra común |
-| TX | Azul | **GPIO 16** | Izq | DFPlayer → ESP32 (RX) |
-| RX | Verde | **GPIO 17** | Izq | ESP32 → DFPlayer (TX) |
+| TX | Azul | **GPIO 43** | Izq | DFPlayer → ESP32 (RX) |
+| RX | Verde | **GPIO 44** | Izq | ESP32 → DFPlayer (TX) |
 | SPK1 | - | Altavoz+ | - | Salida audio + |
 | SPK2 | - | Altavoz- | - | Salida audio - |
 | BUSY | - | - | - | No conectar |
@@ -627,9 +632,9 @@ GND ─────────────────────────�
         │                               ├──► BTS7960 FR (24V)
         ├──► DFPlayer Mini              ├──► BTS7960 RL (24V)
         │                               └──► BTS7960 RR (24V)
-        ├──► LEDs WS2812B
+        ├──► LEDs WS2812B (GPIO 0, 1)
         │
-        └──► Relé GPIO 5/32/33
+        └──► Relés (GPIO 2,4,5,6)
         
 ┌──────────────┐
 │ Buck 5V 10A  │◄── Batería 12V
@@ -650,7 +655,7 @@ GND ─────────────────────────�
 |------------|---------|-----------|--------|
 | ESP32-S3 | 5V → 3.3V | 500mA | Buck converter 12V→5V |
 | Pantalla ILI9488 | 3.3V | 200mA | ESP32 3.3V pin |
-| DFPlayer Mini | 5V | 200mA | Relé GPIO 33 → 12V→5V |
+| DFPlayer Mini | 5V | 200mA | 5V directo desde buck |
 | LEDs WS2812B | 5V | 60mA/LED | Fuente externa 5V 10A |
 | Sensores LJ12A3 (x4) | 5V | 300mA c/u | Buck 12V→5V |
 | Encoder E6B2 | 5V | 100mA | Relé GPIO 5 → 12V→5V |
@@ -696,10 +701,10 @@ GND ─────────────────────────�
 ### 2️⃣ Verificación de Conexiones
 
 - [ ] Pantalla ILI9488 conectada (GPIO 11,14,15,18,19,27)
-- [ ] Táctil XPT2046 conectado (GPIO 12,13,18,19)
+- [ ] Táctil XPT2046 conectado (GPIO 3,46 - SPI compartido con TFT)
 - [ ] Relés HY-M158 conectados (GPIO 2,4)
-- [ ] Relés secundarios conectados (GPIO 5,32,33)
-- [ ] DFPlayer con tarjeta SD formateada (FAT32)
+- [ ] Relés SRD-05VDC conectados (GPIO 2,4,5,6)
+- [ ] DFPlayer con tarjeta SD formateada (FAT32, GPIO 43,44)
 - [ ] 4x Sensores LJ12A3 conectados (GPIO 30,31,35,36)
 - [ ] Encoder E6B2 conectado (GPIO 25,37,38)
 - [ ] 4x BTS7960 conectados (ver tabla motores)
@@ -857,7 +862,7 @@ pio device monitor -b 115200
 - Archivos deben llamarse 0001.mp3, 0002.mp3, etc.
 - Verificar conexión RX/TX (están cruzadas: ESP-RX → DF-TX)
 - Añadir resistencia 1kΩ en serie con RX de DFPlayer
-- Verificar relé GPIO 33 activa alimentación DFPlayer
+- Alimentación directa desde buck 5V
 
 ### Motores no giran
 

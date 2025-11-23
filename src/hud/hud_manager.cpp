@@ -17,17 +17,48 @@ uint8_t HUDManager::longPressButtonId = 0;
 static TFT_eSPI tft = TFT_eSPI();
 
 void HUDManager::init() {
-    // Inicializar TFT
-    tft.init();
-    tft.setRotation(1);  // Landscape
-    tft.fillScreen(TFT_BLACK);
+    // CRITICAL: Enable backlight and reset display BEFORE tft.init()
+    pinMode(PIN_TFT_BL, OUTPUT);
+    digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
     
-    // Configurar backlight PWM (GPIO 42)
+    pinMode(PIN_TFT_RST, OUTPUT);
+    digitalWrite(PIN_TFT_RST, LOW);
+    // Non-blocking: Use millis() instead of delay(10)
+    unsigned long rstStart = millis();
+    while (millis() - rstStart < 10) { /* Wait 10ms */ }
+    digitalWrite(PIN_TFT_RST, HIGH);
+    rstStart = millis();
+    while (millis() - rstStart < 10) { /* Wait 10ms */ }
+    
+    // Inicializar TFT (only once here)
+    tft.init();
+    
+    // CRITICAL: ST7796S rotation configuration for full screen rendering
+    // Rotation 3 provides landscape mode (480x320)
+    // This rotation works best for 4-inch ST7796S displays
+    tft.setRotation(3);  // Landscape mode: 480x320
+    // Non-blocking: Use millis() instead of delay(50)
+    unsigned long rotStart = millis();
+    while (millis() - rotStart < 50) { /* Allow display to process rotation */ }
+    
+    // Force complete screen clear to initialize all pixels
+    tft.fillScreen(TFT_BLACK);
+    // Non-blocking: Use millis() instead of delay(50)
+    unsigned long fillStart = millis();
+    while (millis() - fillStart < 50) { /* Allow display buffer to stabilize */ }
+    
+    // Verify display dimensions are correct
+    int w = tft.width();
+    int h = tft.height();
+    // Expected: w=480, h=320 in landscape (ST7796S)
+    
+    // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
     ledcAttachPin(PIN_TFT_BL, 0);
     ledcWrite(0, brightness);
     
-    // Inicializar HUD básico
+    // Inicializar HUD básico (will show color test and initialize components)
+    // Display is now ready with rotation=3 (480x320 landscape, ST7796S)
     HUD::init();
     
     // Inicializar datos
@@ -109,6 +140,9 @@ void HUDManager::forceRedraw() {
 void HUDManager::showLogo() {
     currentMenu = MenuType::NONE;
     HUD::showLogo();
+    // After logo, switch to dashboard and force redraw
+    currentMenu = MenuType::DASHBOARD;
+    needsRedraw = true;  // Force screen clear before drawing dashboard
 }
 
 void HUDManager::showReady() {
@@ -164,66 +198,9 @@ void HUDManager::handleLongPress(uint8_t buttonId, uint32_t duration) {
 // ===== Funciones de renderizado =====
 
 void HUDManager::renderDashboard() {
-    // Dashboard principal con datos en tiempo real
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    
-    // Velocímetro (izquierda)
-    tft.setTextSize(3);
-    tft.setCursor(20, 50);
-    tft.printf("%3.0f", carData.speed);
-    tft.setTextSize(1);
-    tft.setCursor(20, 90);
-    tft.print("km/h");
-    
-    // RPM (derecha)
-    tft.setTextSize(3);
-    tft.setCursor(370, 50);
-    tft.printf("%4.0f", carData.rpm);
-    tft.setTextSize(1);
-    tft.setCursor(370, 90);
-    tft.print("RPM");
-    
-    // Batería (centro superior)
-    tft.setTextSize(2);
-    tft.setCursor(180, 20);
-    tft.printf("%4.1fV", carData.batteryVoltage);
-    tft.setCursor(180, 45);
-    tft.printf("%3.0f%%", carData.batteryPercent);
-    
-    // Marcha actual (centro)
-    tft.setTextSize(4);
-    tft.setCursor(220, 120);
-    switch (carData.gear) {
-        case GearPosition::PARK:    tft.print("P"); break;
-        case GearPosition::REVERSE: tft.print("R"); break;
-        case GearPosition::NEUTRAL: tft.print("N"); break;
-        case GearPosition::DRIVE1:  tft.print("D1"); break;
-        case GearPosition::DRIVE2:  tft.print("D2"); break;
-    }
-    
-    // Temperaturas (inferior)
-    tft.setTextSize(1);
-    tft.setCursor(20, 200);
-    tft.printf("M1:%2.0f M2:%2.0f M3:%2.0f M4:%2.0f Amb:%2.0f", 
-               carData.motorTemp[0], carData.motorTemp[1], 
-               carData.motorTemp[2], carData.motorTemp[3],
-               carData.ambientTemp);
-    
-    // Corrientes (inferior)
-    tft.setCursor(20, 220);
-    tft.printf("I1:%4.1fA I2:%4.1fA I3:%4.1fA I4:%4.1fA",
-               carData.motorCurrent[0], carData.motorCurrent[1],
-               carData.motorCurrent[2], carData.motorCurrent[3]);
-    
-    // Potencia total
-    tft.setCursor(20, 240);
-    tft.printf("Potencia: %5.0fW | Corriente total: %5.1fA",
-               carData.batteryPower, carData.batteryCurrent);
-    
-    // Odómetros
-    tft.setCursor(20, 280);
-    tft.printf("Total: %7.1fkm | Parcial: %5.1fkm",
-               carData.odoTotal, carData.odoTrip);
+    // Use the rich graphics dashboard from HUD::update()
+    // This includes car visualization, wheels, gauges, icons, etc.
+    HUD::update();
 }
 
 void HUDManager::renderSettings() {

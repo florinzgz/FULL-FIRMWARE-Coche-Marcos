@@ -83,7 +83,9 @@ void __attribute__((weak)) esp_task_wdt_isr_user_handler(void) {
     digitalWrite(PIN_RELAY_DIR, LOW);   // Direction relay
     digitalWrite(PIN_RELAY_SPARE, LOW); // Spare relay
     
-    // Delay para que el reset se complete
+    // Note: delay() in ISR is acceptable here as this is a critical emergency shutdown
+    // before system reset. The watchdog will reset the system regardless.
+    // This ensures relays have time to physically disengage before power loss.
     delay(1000);
     
     // El WDT reset ocurrirá ahora

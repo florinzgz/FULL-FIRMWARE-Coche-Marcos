@@ -64,7 +64,8 @@ void MenuINA226Monitor::handleTouch(uint16_t x, uint16_t y) {
     if (x >= 10 && x <= 160 && y >= BTN_Y && y <= BTN_Y + 30) {
         resetStatistics();
         _tft->fillRect(10, BTN_Y, 150, 30, TFT_ORANGE);
-        delay(100);
+        // Non-blocking: visual feedback will persist until next draw cycle
+        // Removed blocking delay(100)
         drawButtons();
         drawStatistics();
     }
