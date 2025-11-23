@@ -20,12 +20,23 @@ static Config config = {
     .smoothTransitions = true
 };
 
+// 🔒 CORRECCIÓN 3.3: Parámetros configurables para efectos
+struct EffectsConfig {
+    uint8_t kittTailLength = 4;
+    uint8_t chaseSpeedLow = 8;
+    uint8_t chaseSpeedMed = 5;
+    uint8_t chaseSpeedHigh = 3;
+    uint8_t rainbowSpeed = 3;
+};
+static EffectsConfig effectsConfig;
+
 // Animation state
 static uint32_t lastUpdateMs = 0;
-static uint16_t animationStep = 0;
+static uint16_t animationStep = 0;  // 🔒 Se controla overflow en update()
 static bool blinkState = false;
 static uint32_t lastBlinkMs = 0;
 static bool enabled = true;
+static bool hardwareOK = false;  // 🔒 CORRECCIÓN 3.1: Flag de hardware válido
 
 // Emergency flash state (non-blocking)
 static bool emergencyFlashActive = false;
@@ -65,14 +76,19 @@ static CRGB getThrottleColor(float percent) {
 }
 
 // KITT scanner effect
-static void updateKITTScanner(CRGB* leds, int count, CRGB color, int tailLength = 4) {
+static void updateKITTScanner(CRGB* leds, int count, CRGB color) {
+    // 🔒 Usar configuración para tailLength
+    int tailLength = effectsConfig.kittTailLength;
+    
     // Fade all LEDs
     for (int i = 0; i < count; i++) {
         leds[i].fadeToBlackBy(60);
     }
     
     // Draw bright center LED
-    leds[scannerPos] = color;
+    if (scannerPos >= 0 && scannerPos < count) {
+        leds[scannerPos] = color;
+    }
     
     // Draw tail
     for (int i = 1; i <= tailLength; i++) {
@@ -89,11 +105,15 @@ static void updateKITTScanner(CRGB* leds, int count, CRGB color, int tailLength 
     if (scannerPos >= count || scannerPos < 0) {
         scannerDirection = -scannerDirection;
         scannerPos += scannerDirection * 2;
+        // 🔒 Asegurar que scannerPos está dentro de límites
+        scannerPos = constrain(scannerPos, 0, count - 1);
     }
 }
 
 // Chase effect (LEDs light up in sequence)
-static void updateChase(CRGB* leds, int count, CRGB color, int speed) {
+static void updateChase(CRGB* leds, int count, CRGB color, uint8_t speed) {
+    if (count <= 0 || speed == 0) return;  // 🔒 Protección división por cero
+    
     int pos = (animationStep / speed) % count;
     
     // Fade all LEDs
@@ -110,8 +130,15 @@ static void updateChase(CRGB* leds, int count, CRGB color, int speed) {
 
 // Rainbow effect
 static void updateRainbow(CRGB* leds, int count, uint8_t speed) {
+    // 🔒 CORRECCIÓN 3.4: Protección división por cero
+    if (count <= 0) {
+        Logger::errorf("updateRainbow: count inválido %d", count);
+        return;
+    }
+    
     uint8_t hue = (animationStep * speed) & 0xFF;
-    fill_rainbow(leds, count, hue, 256 / count);
+    uint8_t deltaHue = (count > 0) ? (256 / count) : 1;
+    fill_rainbow(leds, count, hue, deltaHue);
 }
 
 // Flash effect
@@ -128,27 +155,27 @@ static void updateFrontLEDs() {
             break;
             
         case FRONT_KITT_IDLE:
-            updateKITTScanner(frontLeds, LED_FRONT_COUNT, CRGB::Red, 4);
+            updateKITTScanner(frontLeds, LED_FRONT_COUNT, CRGB::Red);
             break;
             
         case FRONT_ACCEL_LOW:
-            updateChase(frontLeds, LED_FRONT_COUNT, getThrottleColor(12.5f), 8);
+            updateChase(frontLeds, LED_FRONT_COUNT, getThrottleColor(12.5f), effectsConfig.chaseSpeedLow);
             break;
             
         case FRONT_ACCEL_MED:
-            updateChase(frontLeds, LED_FRONT_COUNT, getThrottleColor(37.5f), 5);
+            updateChase(frontLeds, LED_FRONT_COUNT, getThrottleColor(37.5f), effectsConfig.chaseSpeedMed);
             break;
             
         case FRONT_ACCEL_HIGH:
-            updateChase(frontLeds, LED_FRONT_COUNT, getThrottleColor(62.5f), 3);
+            updateChase(frontLeds, LED_FRONT_COUNT, getThrottleColor(62.5f), effectsConfig.chaseSpeedHigh);
             break;
             
         case FRONT_ACCEL_MAX:
-            updateRainbow(frontLeds, LED_FRONT_COUNT, 3);
+            updateRainbow(frontLeds, LED_FRONT_COUNT, effectsConfig.rainbowSpeed);
             break;
             
         case FRONT_REVERSE:
-            updateKITTScanner(frontLeds, LED_FRONT_COUNT, CRGB::White, 3);
+            updateKITTScanner(frontLeds, LED_FRONT_COUNT, CRGB::White);
             break;
             
         case FRONT_ABS_ALERT:
@@ -245,32 +272,91 @@ static void updateTurnSignals() {
 }
 
 void init() {
+    // 🔒 CORRECCIÓN 3.1: Validación de pines antes de inicializar FastLED
+    if (LED_FRONT_PIN < 0 || LED_REAR_PIN < 0) {
+        Logger::errorf("LED pins inválidos: front=%d, rear=%d", LED_FRONT_PIN, LED_REAR_PIN);
+        enabled = false;
+        hardwareOK = false;
+        return;
+    }
+    
+    // Verificar que pines estén asignados en pins.h
+    if (!pin_is_assigned(LED_FRONT_PIN) || !pin_is_assigned(LED_REAR_PIN)) {
+        Logger::errorf("LED pins no asignados en pins.h");
+        enabled = false;
+        hardwareOK = false;
+        return;
+    }
+    
+    // Verificar que pines no sean strapping pins críticos (0, 45, 46 en ESP32-S3)
+    if (LED_FRONT_PIN == 0 || LED_REAR_PIN == 0 || 
+        LED_FRONT_PIN == 45 || LED_REAR_PIN == 45 ||
+        LED_FRONT_PIN == 46 || LED_REAR_PIN == 46) {
+        Logger::errorf("LED pins en strapping pin - riesgo de boot");
+        enabled = false;
+        hardwareOK = false;
+        return;
+    }
+    
     // Initialize FastLED
     FastLED.addLeds<WS2812B, LED_FRONT_PIN, GRB>(frontLeds, LED_FRONT_COUNT);
     FastLED.addLeds<WS2812B, LED_REAR_PIN, GRB>(rearLeds, LED_REAR_COUNT);
     
+    // 🔒 CORRECCIÓN 3.2: Limitar brillo máximo para seguridad
+    const uint8_t MAX_SAFE_BRIGHTNESS = 200;
+    if (config.brightness > MAX_SAFE_BRIGHTNESS) {
+        Logger::warnf("LED brightness reducido de %d a %d por seguridad", 
+                      config.brightness, MAX_SAFE_BRIGHTNESS);
+        config.brightness = MAX_SAFE_BRIGHTNESS;
+    }
+    
     // Set initial brightness
     FastLED.setBrightness(config.brightness);
     
-    // Clear all LEDs
+    // 🔒 Test de comunicación básico con hardware
+    fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Blue);
+    fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Blue);
+    FastLED.show();
+    delay(100);
+    
+    // Apagar LEDs después del test
     fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Black);
     fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Black);
     FastLED.show();
     
     lastUpdateMs = millis();
+    hardwareOK = true;
     
-    Logger::info("LED Controller initialized");
+    Logger::info("LED Controller initialized OK");
     Logger::infof("Front: %d LEDs on GPIO %d", LED_FRONT_COUNT, LED_FRONT_PIN);
     Logger::infof("Rear: %d LEDs on GPIO %d", LED_REAR_COUNT, LED_REAR_PIN);
+    Logger::infof("Brightness: %d, Update rate: %dms", config.brightness, config.updateRateMs);
 }
 
 void update() {
-    if (!enabled) return;
+    if (!enabled || !hardwareOK) return;  // 🔒 Verificar hardware OK
     
     uint32_t now = millis();
     
     // Handle emergency flash (highest priority, non-blocking)
     if (emergencyFlashActive) {
+        // 🔒 CORRECCIÓN 3.3: Timeout de seguridad para emergency flash
+        static unsigned long emergencyFlashStartTime = 0;
+        const unsigned long EMERGENCY_FLASH_MAX_DURATION_MS = 10000; // 10 segundos máximo
+        
+        if (emergencyFlashStartTime == 0) {
+            emergencyFlashStartTime = now;
+        }
+        
+        // Timeout de seguridad
+        if (now - emergencyFlashStartTime > EMERGENCY_FLASH_MAX_DURATION_MS) {
+            Logger::errorf("Emergency flash timeout - finalizando");
+            emergencyFlashActive = false;
+            emergencyFlashCurrent = 0;
+            emergencyFlashStartTime = 0;
+            return;
+        }
+        
         // Toggle every 100ms
         if (now - emergencyFlashLastToggle >= 100) {
             emergencyFlashLastToggle = now;
@@ -288,6 +374,7 @@ void update() {
                 if (emergencyFlashCurrent >= emergencyFlashCount) {
                     emergencyFlashActive = false;
                     emergencyFlashCurrent = 0;
+                    emergencyFlashStartTime = 0; // reset timeout
                 }
             }
             FastLED.show();
@@ -297,7 +384,8 @@ void update() {
     
     // Normal animation update
     if (now - lastUpdateMs >= config.updateRateMs) {
-        animationStep++;
+        // 🔒 CORRECCIÓN 3.2: Prevenir overflow de animationStep
+        animationStep = (animationStep + 1) % 65536;
         lastUpdateMs = now;
         
         // Update blink state (500ms on/off for turn signals)
@@ -348,8 +436,17 @@ void setTurnSignal(TurnSignal signal) {
 }
 
 void setBrightness(uint8_t brightness) {
+    // 🔒 CORRECCIÓN 3.2: Limitar brillo máximo para seguridad (prevenir sobrecalentamiento)
+    const uint8_t MAX_SAFE_BRIGHTNESS = 200; // 78% del máximo
+    
+    if (brightness > MAX_SAFE_BRIGHTNESS) {
+        Logger::warnf("LED brightness limitado de %d a %d", brightness, MAX_SAFE_BRIGHTNESS);
+        brightness = MAX_SAFE_BRIGHTNESS;
+    }
+    
     config.brightness = brightness;
     FastLED.setBrightness(brightness);
+    Logger::infof("LED brightness set: %d", brightness);
 }
 
 void setEnabled(bool en) {

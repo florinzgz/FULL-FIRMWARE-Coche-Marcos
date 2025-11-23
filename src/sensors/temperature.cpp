@@ -15,7 +15,16 @@ static DallasTemperature sensors(&oneWire);
 static float lastTemp[Sensors::NUM_TEMPS];
 static bool sensorOk[Sensors::NUM_TEMPS];
 
+// 🔒 CORRECCIÓN 4.1: Almacenar direcciones ROM específicas de cada sensor
+static DeviceAddress tempSensorAddrs[Sensors::NUM_TEMPS];
+static bool addressesStored[Sensors::NUM_TEMPS] = {false};
+
 static uint32_t lastUpdateMs = 0;
+
+// 🔒 CORRECCIÓN 4.2: Variables para conversión asíncrona
+static bool requestPending = false;
+static unsigned long requestTime = 0;
+static const unsigned long CONVERSION_TIMEOUT_MS = 1000; // 1 segundo timeout
 
 // Flag de inicialización global
 static bool initialized = false;
@@ -24,49 +33,107 @@ void Sensors::initTemperature() {
     sensors.begin();
 
     int count = sensors.getDeviceCount();
-    if(count < NUM_TEMPS) {
-        Logger::warnf("DS18B20: detectados %d de %d esperados", count, NUM_TEMPS);
+    
+    if (count != NUM_TEMPS) {
+        Logger::warnf("DS18B20: detectados %d, esperados %d", count, NUM_TEMPS);
     }
 
-    for(int i=0; i<NUM_TEMPS; i++) {
-        if(i < count) {
+    // 🔒 CORRECCIÓN 4.1: Almacenar direcciones ROM específicas
+    // Usar el mínimo para evitar buffer overflow
+    int sensorsToInit = (count < NUM_TEMPS) ? count : NUM_TEMPS;
+
+    for(int i = 0; i < sensorsToInit; i++) {
+        // Obtener dirección ROM del sensor
+        if (sensors.getAddress(tempSensorAddrs[i], i)) {
+            // Configurar resolución máxima (12-bit = 0.0625°C, 750ms conversión)
+            sensors.setResolution(tempSensorAddrs[i], 12);
+            
+            addressesStored[i] = true;
             sensorOk[i] = true;
-            Logger::infof("DS18B20 init OK idx %d", i);
+            
+            // Log dirección ROM para identificación
+            Logger::infof("DS18B20 %d: ROM=0x%02X%02X%02X%02X%02X%02X%02X%02X", i,
+                         tempSensorAddrs[i][0], tempSensorAddrs[i][1], 
+                         tempSensorAddrs[i][2], tempSensorAddrs[i][3],
+                         tempSensorAddrs[i][4], tempSensorAddrs[i][5],
+                         tempSensorAddrs[i][6], tempSensorAddrs[i][7]);
         } else {
+            addressesStored[i] = false;
             sensorOk[i] = false;
-            System::logError(400+i); // registrar fallo persistente
-            Logger::errorf("DS18B20 init FAIL idx %d", i);
+            System::logError(400 + i); // registrar fallo persistente
+            Logger::errorf("DS18B20 init FAIL idx %d - no se pudo obtener ROM", i);
         }
         lastTemp[i] = 0.0f;
     }
 
+    // Marcar el resto como fallo si count < NUM_TEMPS
+    for(int i = sensorsToInit; i < NUM_TEMPS; i++) {
+        addressesStored[i] = false;
+        sensorOk[i] = false;
+        System::logError(400 + i);
+        Logger::errorf("DS18B20 init FAIL idx %d - sensor no detectado", i);
+        lastTemp[i] = 0.0f;
+    }
+
+    // 🔒 Configurar modo asíncrono (no bloqueante)
+    sensors.setWaitForConversion(false);
+
     initialized = (count > 0);
+    Logger::infof("Temperature sensors init: %d/%d OK", sensorsToInit, NUM_TEMPS);
 }
 
 void Sensors::updateTemperature() {
     uint32_t now = millis();
-    if(now - lastUpdateMs < 1000) return; // ~1 Hz
-    lastUpdateMs = now;
 
     if(!cfg.tempSensorsEnabled) {
         for(int i=0; i<NUM_TEMPS; i++) {
             lastTemp[i] = 0.0f;
             sensorOk[i] = false;
         }
+        requestPending = false;
         return;
     }
 
-    sensors.requestTemperatures();
+    // 🔒 CORRECCIÓN 4.2: Conversión asíncrona con timeout
+    if (!requestPending) {
+        // Verificar si es momento de iniciar nueva lectura (~1 Hz)
+        if (now - lastUpdateMs < 1000) return;
+        
+        // Iniciar request asíncrono (no bloqueante)
+        sensors.requestTemperatures();
+        requestPending = true;
+        requestTime = now;
+        return;
+    }
+    
+    // Esperar al menos 750ms para conversión 12-bit
+    if (now - requestTime < 750) {
+        return;
+    }
+    
+    // Timeout de seguridad
+    if (now - requestTime > CONVERSION_TIMEOUT_MS) {
+        Logger::warn("DS18B20: timeout en conversión");
+        System::logError(450); // código: timeout conversión
+        requestPending = false;
+        lastUpdateMs = now;
+        return;
+    }
 
-    for(int i=0; i<NUM_TEMPS; i++) {
-        if(!sensorOk[i]) continue;
+    // Conversión completa, leer resultados
+    requestPending = false;
+    lastUpdateMs = now;
 
-        float t = sensors.getTempCByIndex(i);
+    for(int i = 0; i < NUM_TEMPS; i++) {
+        if(!sensorOk[i] || !addressesStored[i]) continue;
+
+        // 🔒 Leer temperatura usando dirección ROM específica
+        float t = sensors.getTempC(tempSensorAddrs[i]);
 
         // Validación y fallback
         if(t == DEVICE_DISCONNECTED_C || !isfinite(t)) {
-            System::logError(400+i);
-            Logger::errorf("DS18B20 idx %d: lectura inválida", i);
+            System::logError(400 + i);
+            Logger::errorf("DS18B20 idx %d: lectura inválida (%.2f)", i, t);
             // mantener último valor válido
             continue;
         }
@@ -74,8 +141,9 @@ void Sensors::updateTemperature() {
         // Clamps
         t = constrain(t, -40.0f, 150.0f);
 
-        // Filtro EMA para suavizar
-        lastTemp[i] = lastTemp[i] + 0.2f * (t - lastTemp[i]);
+        // 🔒 CORRECCIÓN 4.3: Constante EMA configurable
+        const float TEMP_EMA_ALPHA = 0.2f; // 0.0 = sin filtro, 1.0 = sin suavizado
+        lastTemp[i] = lastTemp[i] + TEMP_EMA_ALPHA * (t - lastTemp[i]);
     }
 }
 
