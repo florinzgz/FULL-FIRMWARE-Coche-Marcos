@@ -14,6 +14,7 @@ static bool initialized = false;
 static const uint16_t kFreqHz = 1000;  // PWM estable para BTS7960
 static const uint8_t  kChannelFwd = PCA_STEER_CH_PWM_FWD; // canal PCA para dirección forward
 static const uint8_t  kChannelRev = PCA_STEER_CH_PWM_REV; // canal PCA para dirección reverse
+static const float kDeadbandDeg = 0.5f;  // Zona muerta para evitar oscilación del motor
 
 static uint16_t pctToTicks(float pct) {
     pct = constrain(pct, 0.0f, 100.0f);
@@ -50,25 +51,27 @@ void SteeringMotor::update() {
     float target = s.demandDeg;
     float actual = Steering::get().angleDeg;
     float error = target - actual;
+    float absError = fabs(error);
 
     // PID muy básico (proporcional)
     float kp = 1.2f;
-    float cmdPct = constrain(fabs(error) * kp, 0.0f, 100.0f);
+    float cmdPct = constrain(absError * kp, 0.0f, 100.0f);
 
     // Control bidireccional usando canales FWD/REV según signo del error
+    // 🔒 CORRECCIÓN: Zona muerta para evitar oscilación del motor con errores pequeños
     uint16_t ticks = pctToTicks(cmdPct);
-    if (error > 0) {
+    if (absError < kDeadbandDeg) {
+        // Error dentro de zona muerta: parar motor para evitar oscilación
+        pca.setPWM(kChannelFwd, 0, 0);
+        pca.setPWM(kChannelRev, 0, 0);
+    } else if (error > 0) {
         // Girar hacia la derecha: activar canal FWD, desactivar REV
         pca.setPWM(kChannelFwd, 0, ticks);
         pca.setPWM(kChannelRev, 0, 0);
-    } else if (error < 0) {
+    } else {
         // Girar hacia la izquierda: activar canal REV, desactivar FWD
         pca.setPWM(kChannelFwd, 0, 0);
         pca.setPWM(kChannelRev, 0, ticks);
-    } else {
-        // Sin error: parar motor
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
     }
     s.pwmOut = cmdPct;
 
