@@ -1,12 +1,14 @@
 #pragma once
 
 #include <FastLED.h>
+#include "pins.h"  // 🔒 Usar pines centralizados
 
 // LED Strip Configuration
-#define LED_FRONT_PIN 48          // GPIO pin for front LEDs
-#define LED_REAR_PIN 47           // GPIO pin for rear LEDs
-#define LED_FRONT_COUNT 28        // Number of front LEDs
-#define LED_REAR_COUNT 16         // Number of rear LEDs (3 left + 10 center + 3 right)
+// 🔒 CORRECCIÓN: Usar pines definidos en pins.h para consistencia
+#define LED_FRONT_PIN PIN_LED_FRONT   // GPIO 1  - LEDs frontales
+#define LED_REAR_PIN  PIN_LED_REAR    // GPIO 19 - LEDs traseros
+#define LED_FRONT_COUNT NUM_LEDS_FRONT // 28 LEDs frontales
+#define LED_REAR_COUNT  NUM_LEDS_REAR  // 16 LEDs traseros (3L + 10C + 3R)
 
 // LED indices for rear strip
 #define LED_REAR_LEFT_START 0     // Indices 0-2: Left turn signal

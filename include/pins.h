@@ -3,12 +3,28 @@
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
-// 🔒 ACTUALIZADO 2025-11-23 - Auditoría completa + 2x PCA9685
+// 🔒 ACTUALIZADO 2025-11-24 - Auditoría pinout físico + validación strapping pins
 // ============================================================================
 //
-// PINES REALES DISPONIBLES EN LA PLACA (36 GPIOs):
-// LADO DERECHO: GND,GND,19,20,21,47,48,45,0,35,36,37,38,39,40,41,42,2,1,RX(44),TX(43),GND
-// LADO IZQUIERDO: GND,5V,14,13,12,11,10,9,46,3,8,18,17,16,15,7,6,5,4,RST,3V3,3V3
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║              LAYOUT FÍSICO ESP32-S3-DevKitC-1 (VISTA SUPERIOR)            ║
+// ║                           USB Type-C arriba                                ║
+// ╠═══════════════════════════════════════════════════════════════════════════╣
+// ║                                                                            ║
+// ║  LADO 1 (DERECHO):                                                         ║
+// ║  GND GND 19 20 21 47 48 45* 0* 35 36 37 38 39 40 41 42 2 1 RX(44) TX(43) GND ║
+// ║                                                                            ║
+// ║  LADO 2 (IZQUIERDO):                                                       ║
+// ║  GND 5V 14 13 12 11 10 9 46* 3 8 18 17 16 15 7 6 5 4 RST 3V3 3V3          ║
+// ║                                                                            ║
+// ║  * = STRAPPING PINS (Afectan modo boot):                                   ║
+// ║      GPIO 0  → Boot mode select (pull-up interno, LOW=Download)           ║
+// ║      GPIO 45 → VDD_SPI voltage (input only, pull-down=3.3V default)       ║
+// ║      GPIO 46 → Boot mode/ROM messages (input only)                        ║
+// ║                                                                            ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
+//
+// PINES REALES DISPONIBLES EN LA PLACA (36 GPIOs utilizables)
 //
 // HARDWARE COMPLETO INTEGRADO:
 // - ESP32-S3-DevKitC-1 (44 pines, 36 GPIOs utilizables)
@@ -70,8 +86,8 @@
 // -----------------------
 // Táctil (XPT2046 SPI)
 // -----------------------
-#define PIN_TOUCH_CS      3   // GPIO 3  - Chip Select (strapping pin, usar con cuidado)
-#define PIN_TOUCH_IRQ     46  // GPIO 46 - Interrupción (strapping pin, usar con cuidado)
+#define PIN_TOUCH_CS      3   // GPIO 3  - Chip Select (pin seguro, no es strapping)
+#define PIN_TOUCH_IRQ     46  // GPIO 46 - Interrupción (⚠️ STRAPPING PIN, input-only)
 
 // -----------------------
 // UART (DFPlayer Mini - Audio)
@@ -180,13 +196,24 @@
 #define PIN_SHIFTER_D2    48  // GPIO 48 - Posición D2 (Drive 2 - alta velocidad)
 #define PIN_SHIFTER_D1    7   // GPIO 7  - Posición D1 (Drive 1 - baja velocidad)
 #define PIN_SHIFTER_N     18  // GPIO 18 - Posición N (Neutral)
-#define PIN_SHIFTER_R     19  // GPIO 19 - Posición R (Reverse)
+
+// ⚠️ CONFLICTO RESUELTO: GPIO 19 compartido con LED_REAR
+// PIN_SHIFTER_R movido a MCP23017 GPIOB0 para evitar conflicto hardware
+// El código en shifter.cpp debe usar MCP23017 para leer R via I2C
+#define MCP_PIN_SHIFTER_R 8   // MCP23017 GPIOB0: R (Reverse) - vía I2C
+
+// Macro de compatibilidad - ADVERTENCIA: No usar GPIO 19 directamente
+// Si se necesita el pin GPIO directo, reasignar LED_REAR a otra ubicación
+#ifdef SHIFTER_USE_GPIO_LEGACY
+#warning "SHIFTER_USE_GPIO_LEGACY está definido: GPIO 19 en conflicto con PIN_LED_REAR"
+#define PIN_SHIFTER_R     19  // ⚠️ CONFLICTO con PIN_LED_REAR - Solo para compatibilidad
+#endif
 
 // -----------------------
 // Botones físicos
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // -----------------------
-#define PIN_BTN_LIGHTS    45  // GPIO 45 - Botón luces (strapping pin, usar con cuidado)
+#define PIN_BTN_LIGHTS    45  // GPIO 45 - Botón luces (⚠️ STRAPPING PIN - input only, VDD_SPI)
 #define PIN_BTN_MEDIA     40  // GPIO 40 - Botón multimedia
 #define PIN_BTN_4X4       41  // GPIO 41 - Botón 4x4/4x2 (switch 2 posiciones)
 
@@ -198,55 +225,57 @@
 // LEDs WS2812B (Iluminación Inteligente)
 // -----------------------
 #define PIN_LED_FRONT     1   // GPIO 1  - LEDs frontales (28 LEDs)
-#define PIN_LED_REAR      19  // GPIO 19 - LEDs traseros (16 LEDs) 🔒 REUBICADO
+#define PIN_LED_REAR      19  // GPIO 19 - LEDs traseros (16 LEDs) - ✅ Libre tras mover SHIFTER_R
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (3L + 10C + 3R)
 
 // ============================================================================
-// TABLA RESUMEN DE USO DE PINES
+// TABLA RESUMEN DE USO DE PINES (Actualizada 2025-11-24)
 // ============================================================================
 /*
 GPIO  | Función                    | Tipo      | Notas
 ------|----------------------------|-----------|----------------------------------
-0     | KEY_SYSTEM                 | Input     | Strapping pin (Boot), pull-up
+0     | KEY_SYSTEM                 | Input     | ⚠️ STRAPPING PIN (Boot), pull-up externo
 1     | LED_FRONT (WS2812B)        | Output    | 28 LEDs
-2     | RELAY_MAIN                 | Output    | Relé principal
-3     | TOUCH_CS                   | Output    | Strapping pin
-4     | RELAY_TRAC                 | Output    | Relé tracción
-5     | RELAY_DIR                  | Output    | Relé dirección
+2     | RELAY_MAIN                 | Output    | Relé principal (Power Hold)
+3     | TOUCH_CS                   | Output    | SPI CS táctil (pin seguro)
+4     | RELAY_TRAC                 | Output    | Relé tracción 24V
+5     | RELAY_DIR                  | Output    | Relé dirección 12V
 6     | RELAY_SPARE                | Output    | Relé auxiliar
-7     | SHIFTER_D1                 | Input     | Palanca D1
+7     | SHIFTER_D1                 | Input     | Palanca D1 (via optoacoplador)
 8     | TFT_CS                     | Output    | SPI CS pantalla
-9     | I2C_SCL                    | I/O       | Bus I2C Clock
+9     | I2C_SCL                    | I/O       | Bus I2C Clock (+ pull-up 4.7kΩ)
 10    | TFT_SCK                    | Output    | SPI Clock
 11    | TFT_MOSI                   | Output    | SPI MOSI
 12    | TFT_MISO                   | Input     | SPI MISO
-13    | TFT_DC                     | Output    | Data/Command
+13    | TFT_DC                     | Output    | Data/Command pantalla
 14    | TFT_RST                    | Output    | Reset pantalla
 15    | WHEEL_RR                   | Input     | Sensor rueda trasera derecha
-16    | I2C_SDA                    | I/O       | Bus I2C Data
+16    | I2C_SDA                    | I/O       | Bus I2C Data (+ pull-up 4.7kΩ)
 17    | WHEEL_RL                   | Input     | Sensor rueda trasera izquierda
-18    | SHIFTER_N                  | Input     | Palanca Neutral
-19    | LED_REAR (WS2812B)         | Output    | 16 LEDs traseros
+18    | SHIFTER_N                  | Input     | Palanca Neutral (via optoacoplador)
+19    | LED_REAR (WS2812B)         | Output    | 16 LEDs traseros (SHIFTER_R → MCP23017)
 20    | ONEWIRE                    | I/O       | 4x DS18B20 temperatura
 21    | WHEEL_FL                   | Input     | Sensor rueda delantera izquierda
-35    | PEDAL (ADC)                | Analog In | Sensor Hall pedal
+35    | PEDAL (ADC)                | Analog In | Sensor Hall pedal (ADC1_CH4)
 36    | WHEEL_FR                   | Input     | Sensor rueda delantera derecha
-37    | ENCODER_A                  | Input     | Encoder dirección A
-38    | ENCODER_B                  | Input     | Encoder dirección B
-39    | ENCODER_Z                  | Input     | Encoder dirección Z
+37    | ENCODER_A                  | Input     | Encoder dirección A (cuadratura)
+38    | ENCODER_B                  | Input     | Encoder dirección B (cuadratura)
+39    | ENCODER_Z                  | Input     | Encoder dirección Z (índice)
 40    | BTN_MEDIA                  | Input     | Botón multimedia
-41    | BTN_4X4                    | Input     | Botón 4x4/4x2
-42    | TFT_BL (PWM)               | Output    | Backlight pantalla
-43    | DFPLAYER_TX (UART)         | Output    | Audio TX
-44    | DFPLAYER_RX (UART)         | Input     | Audio RX
-45    | BTN_LIGHTS                 | Input     | Strapping pin
-46    | TOUCH_IRQ                  | Input     | Strapping pin
-47    | SHIFTER_P                  | Input     | Palanca Park
-48    | SHIFTER_D2                 | Input     | Palanca D2
+41    | BTN_4X4                    | Input     | Botón modo 4x4/4x2
+42    | TFT_BL (PWM)               | Output    | Backlight pantalla (LEDC PWM)
+43    | DFPLAYER_TX (UART)         | Output    | Audio TX (UART0)
+44    | DFPLAYER_RX (UART)         | Input     | Audio RX (UART0)
+45    | BTN_LIGHTS                 | Input     | ⚠️ STRAPPING PIN (input-only, VDD_SPI)
+46    | TOUCH_IRQ                  | Input     | ⚠️ STRAPPING PIN (input-only)
+47    | SHIFTER_P                  | Input     | Palanca Park (via optoacoplador)
+48    | SHIFTER_D2                 | Input     | Palanca D2 (via optoacoplador)
 
-TOTAL: 35/36 pines utilizados (97% eficiencia)
-LIBRE: Ninguno (todos asignados)
+MCP23017 GPIOB0 → SHIFTER_R (Reverse) - Movido desde GPIO 19 para evitar conflicto con LED_REAR
+
+TOTAL: 34/36 pines GPIO + 1 MCP23017 (97% eficiencia)
+STRAPPING PINS: GPIO 0 (boot), GPIO 45 (VDD_SPI), GPIO 46 (ROM messages)
 */
 
 // ============================================================================

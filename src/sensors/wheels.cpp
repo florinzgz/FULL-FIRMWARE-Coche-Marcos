@@ -18,10 +18,42 @@ static bool wheelOk[Sensors::NUM_WHEELS];
 // 🔎 Nuevo: flag de inicialización global
 static bool initialized = false;
 
-void IRAM_ATTR wheelISR0() { pulses[0]++; }
-void IRAM_ATTR wheelISR1() { pulses[1]++; }
-void IRAM_ATTR wheelISR2() { pulses[2]++; }
-void IRAM_ATTR wheelISR3() { pulses[3]++; }
+// 🔒 CORRECCIÓN 4.10: Debounce para ISRs de ruedas
+// Sensores inductivos pueden generar rebotes a alta velocidad
+static volatile unsigned long lastPulseTime[Sensors::NUM_WHEELS] = {0};
+static constexpr unsigned long DEBOUNCE_US = 500;  // 500µs debounce (máx ~2000 Hz)
+
+void IRAM_ATTR wheelISR0() {
+    unsigned long now = micros();
+    if (now - lastPulseTime[0] > DEBOUNCE_US) {
+        pulses[0]++;
+        lastPulseTime[0] = now;
+    }
+}
+
+void IRAM_ATTR wheelISR1() {
+    unsigned long now = micros();
+    if (now - lastPulseTime[1] > DEBOUNCE_US) {
+        pulses[1]++;
+        lastPulseTime[1] = now;
+    }
+}
+
+void IRAM_ATTR wheelISR2() {
+    unsigned long now = micros();
+    if (now - lastPulseTime[2] > DEBOUNCE_US) {
+        pulses[2]++;
+        lastPulseTime[2] = now;
+    }
+}
+
+void IRAM_ATTR wheelISR3() {
+    unsigned long now = micros();
+    if (now - lastPulseTime[3] > DEBOUNCE_US) {
+        pulses[3]++;
+        lastPulseTime[3] = now;
+    }
+}
 
 void Sensors::initWheels() {
     for(int i=0; i<NUM_WHEELS; i++) {
