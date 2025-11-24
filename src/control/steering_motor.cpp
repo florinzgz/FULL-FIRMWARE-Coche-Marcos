@@ -40,9 +40,9 @@ void SteeringMotor::update() {
     // 🔒 CORRECCIÓN CRÍTICA: Verificar inicialización antes de actualizar
     if (!initialized) {
         Logger::warn("SteeringMotor update llamado sin init");
-        // Intento de parada de emergencia aunque no esté inicializado
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
+        // NOTA: No intentamos parada de emergencia aquí porque pca.begin() 
+        // no ha sido llamado y el objeto PCA9685 no está configurado.
+        // El control de potencia debe hacerse vía relés (Relays::disablePower())
         return;
     }
     
