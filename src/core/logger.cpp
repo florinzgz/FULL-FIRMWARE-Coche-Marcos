@@ -96,4 +96,25 @@ void errorf(const char *fmt, ...) {
     error(999, buf); // coherente con logger.h
 }
 
+// --- Debug functions ---
+// Nivel global de debug (en debug.cpp hay uno similar, usamos level 2 = DEBUG)
+static uint8_t debugLevel = 2;
+
+void debug(const char *msg) {
+    if (debugLevel >= 2) {
+        safePrint("[DEBUG] ", msg);
+    }
+}
+
+void debugf(const char *fmt, ...) {
+    if (debugLevel < 2) return;
+    constexpr size_t BUF_SZ = 256;
+    char buf[BUF_SZ];
+    va_list ap;
+    va_start(ap, fmt);
+    vformat(buf, BUF_SZ, fmt, ap);
+    va_end(ap);
+    debug(buf);
+}
+
 } // namespace Logger

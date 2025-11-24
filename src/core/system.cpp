@@ -149,3 +149,7 @@ void System::clearErrors() {
     }
     Storage::save(cfg);
 }
+
+bool System::hasError() {
+    return currentState == ERROR || cfg.errorCount > 0;
+}

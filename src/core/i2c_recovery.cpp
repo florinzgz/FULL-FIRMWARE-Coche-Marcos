@@ -368,4 +368,19 @@ bool isBusHealthy() {
     return (onlineCount > 0);
 }
 
+void markDeviceOffline(uint8_t deviceId) {
+    if (deviceId >= MAX_DEVICES) return;
+    
+    devices[deviceId].online = false;
+    devices[deviceId].consecutiveFailures++;
+    
+    // Calcular backoff exponencial para evitar reintentos frecuentes
+    uint8_t exponent = (devices[deviceId].consecutiveFailures - 1 > 5) ? 5 : (devices[deviceId].consecutiveFailures - 1);
+    uint32_t backoff = 1000 * (1 << exponent);
+    if (backoff > MAX_BACKOFF_MS) backoff = MAX_BACKOFF_MS;
+    devices[deviceId].nextRetryMs = millis() + backoff;
+    
+    Serial.printf("[DEBUG] Device %d marcado OFFLINE (backoff:%lus)\n", deviceId, backoff / 1000);
+}
+
 } // namespace I2CRecovery

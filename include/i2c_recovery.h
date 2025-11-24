@@ -131,4 +131,11 @@ void resetDeviceState(uint8_t deviceId);
  */
 bool isBusHealthy();
 
+/**
+ * @brief Marca un dispositivo como offline manualmente
+ * 
+ * @param deviceId ID único del dispositivo (0-15)
+ */
+void markDeviceOffline(uint8_t deviceId);
+
 } // namespace I2CRecovery

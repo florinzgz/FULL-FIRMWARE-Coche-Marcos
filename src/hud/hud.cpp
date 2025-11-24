@@ -241,7 +241,7 @@ void HUD::update() {
     float wheelEffortFR = cfg.currentSensorsEnabled ? tr.w[Traction::FR].effortPct : -1.0f;
     float wheelEffortRL = cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : -1.0f;
     float wheelEffortRR = cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : -1.0f;
-    GearPosition gear = sh.gear;
+    Shifter::Gear gear = sh.gear;
     bool lights = cfg.lightsEnabled && btns.lights;
     bool multimedia = cfg.multimediaEnabled && btns.multimedia;
     bool mode4x4 = tr.enabled4x4;

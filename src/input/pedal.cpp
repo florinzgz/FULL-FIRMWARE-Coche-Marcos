@@ -37,9 +37,9 @@ void Pedal::init() {
     s = {0, 0.0f, true};
     
     // 🔒 CORRECCIÓN MEDIA: Cargar calibración de configuración
-    if (cfg.pedalAdcMin > 0 && cfg.pedalAdcMax > cfg.pedalAdcMin) {
-        adcMin = cfg.pedalAdcMin;
-        adcMax = cfg.pedalAdcMax;
+    if (cfg.pedalMin > 0 && cfg.pedalMax > cfg.pedalMin) {
+        adcMin = cfg.pedalMin;
+        adcMax = cfg.pedalMax;
         Logger::infof("Pedal: Calibración cargada %d-%d", adcMin, adcMax);
     } else {
         Logger::infof("Pedal: Usando calibración por defecto %d-%d", adcMin, adcMax);
