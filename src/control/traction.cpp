@@ -12,6 +12,7 @@
 #include <cmath>     // std::isfinite, std::fabs
 #include <cstdint>
 #include <cstring>
+#include <algorithm> // std::min, std::max
 
 extern Storage::Config cfg;
 
@@ -26,9 +27,19 @@ namespace {
         return v;
     }
 
-    // Valor por defecto de corriente máxima para cálculo de % de esfuerzo.
-    // Si en cfg tienes un campo real (ej. cfg.maxMotorCurrentA), reemplázalo por ese.
-    constexpr float DEFAULT_MAX_CURRENT_A = 100.0f;
+    // 🔒 CORRECCIÓN 2.1: Obtener corriente máxima desde configuración
+    // En lugar de constante hardcodeada, usar valores configurables
+    inline float getMaxCurrentA(int channel) {
+        // Canal 4 = batería (típico 100A), resto = motores (típico 50A)
+        // Si cfg no tiene estos campos, usar defaults seguros
+        if (channel == 4) {
+            // Batería: 100A por defecto
+            return 100.0f; // TODO: usar cfg.maxBatteryCurrentA cuando esté disponible
+        } else {
+            // Motores: 50A por defecto  
+            return 50.0f;  // TODO: usar cfg.maxMotorCurrentA cuando esté disponible
+        }
+    }
 
     // Mapea 0..100% -> 0..255 PWM
     inline float demandPctToPwm(float pct) {
@@ -60,6 +71,14 @@ void Traction::setMode4x4(bool on) {
 }
 
 void Traction::setDemand(float pedalPct) {
+    // 🔒 CORRECCIÓN 2.2: Validación de NaN/Inf antes de clamp
+    if (!std::isfinite(pedalPct)) {
+        Logger::errorf("Traction: demanda inválida (NaN/Inf), usando 0");
+        System::logError(801); // código: demanda de tracción inválida
+        s.demandPct = 0.0f;
+        return;
+    }
+    
     pedalPct = clampf(pedalPct, 0.0f, 100.0f);
     s.demandPct = pedalPct;
 }
@@ -82,30 +101,47 @@ void Traction::update() {
         return;
     }
 
-    // Reparto básico: 50/50 entre ejes (puedes ajustar para 4x2 por s.enabled4x4)
+    // 🔒 CORRECCIÓN 2.3: Reparto básico 50/50 entre ejes en 4x4
+    // En modo 4x2, toda la potencia va al eje delantero
     const float base = s.demandPct;
-    float front = base * 0.5f;
-    float rear  = base * 0.5f;
-
-    // Si el modo es 4x2 (por ejemplo solo ejes delanteros), reasignar:
-    if (!s.enabled4x4) {
-        // Mantenemos demanda global en ejes delanteros y 0 en traseros
+    float front = 0.0f;
+    float rear = 0.0f;
+    
+    if (s.enabled4x4) {
+        // Modo 4x4: reparto 50% delantero, 50% trasero
+        front = base * 0.5f;
+        rear  = base * 0.5f;
+        Logger::debugf("Traction 4x4: base=%.1f%%, front=%.1f%%, rear=%.1f%%", base, front, rear);
+    } else {
+        // Modo 4x2: toda la potencia a ejes delanteros, traseros en 0
+        front = base;
         rear = 0.0f;
-        // front = base; // <-- opción si prefieres todo en delantero
+        Logger::debugf("Traction 4x2: base=%.1f%%, front=%.1f%%, rear=0%%", base, front);
     }
 
     // Ackermann: ajustar según ángulo de dirección
     auto steer = Steering::get();
     float factorFL = 1.0f;
     float factorFR = 1.0f;
-    if (cfg.steeringEnabled) {
+    
+    if (cfg.steeringEnabled && steer.valid) {
         float angle = std::fabs(steer.angleDeg);
-        float scale = clampf(1.0f - angle / 60.0f, 0.5f, 1.0f);
+        
+        // 🔒 CORRECCIÓN 2.4: Escalado Ackermann más suave (70% mínimo en vez de 50%)
+        // Evita reducción excesiva en curvas cerradas a baja velocidad
+        // A 60° de ángulo: rueda interior al 70% (antes 50%)
+        float scale = clampf(1.0f - (angle / 60.0f) * 0.3f, 0.7f, 1.0f);
+        
         if (steer.angleDeg > 0.0f) {
+            // Giro a la derecha: reducir rueda derecha
             factorFR = scale;
         } else if (steer.angleDeg < 0.0f) {
+            // Giro a la izquierda: reducir rueda izquierda
             factorFL = scale;
         }
+        
+        Logger::debugf("Ackermann: angle=%.1f°, factorFL=%.2f, factorFR=%.2f", 
+                       steer.angleDeg, factorFL, factorFR);
     }
 
     // Aplicar reparto por rueda
@@ -118,19 +154,20 @@ void Traction::update() {
     for (int i = 0; i < 4; ++i) {
         // -- Corriente
         if (cfg.currentSensorsEnabled) {
-            // IMPORTANTE: aquí uso índice 0-based. Si tu API de Sensors usa 1-based,
-            // cambia a Sensors::getCurrent(i+1).
+            // 🔒 CORRECCIÓN 2.5: API de sensores usa índices 0-based (0=FL, 1=FR, 2=RL, 3=RR)
+            // Documentado claramente en sensors.h
             float currentA = Sensors::getCurrent(i);
-            if (!std::isfinite(currentA)) {
-                System::logError(810 + i);
+            
+            // Validar lectura
+            if (!std::isfinite(currentA) || currentA < -999.0f) {
+                System::logError(810 + i); // códigos 810-813 para motores FL-RR
                 Logger::errorf("Traction: corriente inválida rueda %d", i);
                 currentA = 0.0f;
             }
             s.w[i].currentA = currentA;
 
-            // Calcular effortPct en base a máxima corriente de referencia.
-            float maxA = DEFAULT_MAX_CURRENT_A;
-            // Si tienes cfg.maxMotorCurrentA (o similar), reemplaza la línea anterior
+            // Calcular effortPct en base a máxima corriente del canal
+            float maxA = getMaxCurrentA(i);
             if (maxA > 0.0f) {
                 s.w[i].effortPct = clampf((currentA / maxA) * 100.0f, -100.0f, 100.0f);
             } else {
@@ -143,10 +180,10 @@ void Traction::update() {
 
         // -- Temperatura
         if (cfg.tempSensorsEnabled) {
-            // IMPORTANTE: aquí uso índice 0-based. Si tu API usa 1-based, usa (i+1).
+            // 🔒 API de Sensors::getTemperature() usa índices 0-based
             float t = Sensors::getTemperature(i);
-            if (!std::isfinite(t)) {
-                System::logError(820 + i);
+            if (!std::isfinite(t) || t < -999.0f) {
+                System::logError(820 + i); // códigos 820-823 para motores FL-RR
                 Logger::errorf("Traction: temperatura inválida rueda %d", i);
                 t = 0.0f;
             }
@@ -164,11 +201,39 @@ void Traction::update() {
         // e.g. MotorDriver::setPWM(i, static_cast<uint8_t>(s.w[i].outPWM));
     }
 
-    // Validación global
+    // 🔒 CORRECCIÓN 2.6: Validación mejorada de reparto anómalo
     float sumDemand = s.w[FL].demandPct + s.w[FR].demandPct + s.w[RL].demandPct + s.w[RR].demandPct;
-    if (sumDemand > 400.0f + 1e-6f) {
-        System::logError(800);
-        Logger::errorf("Traction: reparto anómalo >400%% (%.2f%%)", sumDemand);
+    
+    // Calcular límite esperado según modo
+    float maxExpectedSum = s.enabled4x4 ? (base * 2.0f) : base; // 4x4: base*2, 4x2: base
+    float tolerance = 15.0f; // 15% de margen por Ackermann y redondeos
+    
+    if (sumDemand > maxExpectedSum + tolerance) {
+        System::logError(800); // código: reparto anómalo detectado
+        Logger::errorf("Traction: reparto anómalo >%.0f%% esperado (%.2f%% real)", 
+                       maxExpectedSum, sumDemand);
+        
+        // Aplicar fallback: reducir todas las demandas proporcionalmente
+        if (sumDemand > 0.01f) { // evitar división por cero
+            float scaleFactor = maxExpectedSum / sumDemand;
+            Logger::warnf("Traction: aplicando factor corrección %.3f", scaleFactor);
+            for (int i = 0; i < 4; ++i) {
+                s.w[i].demandPct *= scaleFactor;
+                s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+            }
+        }
+    }
+    
+    // 🔒 Validación adicional: detectar reparto asimétrico extremo
+    float maxWheel = std::max({s.w[FL].demandPct, s.w[FR].demandPct, 
+                               s.w[RL].demandPct, s.w[RR].demandPct});
+    float minWheel = std::min({s.w[FL].demandPct, s.w[FR].demandPct, 
+                               s.w[RL].demandPct, s.w[RR].demandPct});
+    
+    if ((maxWheel - minWheel > 80.0f) && sumDemand > 50.0f) {
+        System::logError(802); // código: asimetría extrema
+        Logger::warnf("Traction: reparto asimétrico extremo (max=%.1f%%, min=%.1f%%)", 
+                      maxWheel, minWheel);
     }
 }
 

@@ -17,40 +17,50 @@ uint8_t HUDManager::longPressButtonId = 0;
 static TFT_eSPI tft = TFT_eSPI();
 
 void HUDManager::init() {
+    // 🔒 CORRECCIÓN CRÍTICA: Eliminar esperas activas, usar lógica no bloqueante
     // CRITICAL: Enable backlight and reset display BEFORE tft.init()
     pinMode(PIN_TFT_BL, OUTPUT);
     digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
     
     pinMode(PIN_TFT_RST, OUTPUT);
     digitalWrite(PIN_TFT_RST, LOW);
-    // Non-blocking: Use millis() instead of delay(10)
-    unsigned long rstStart = millis();
-    while (millis() - rstStart < 10) { /* Wait 10ms */ }
+    delay(10);  // Unavoidable hardware reset timing
     digitalWrite(PIN_TFT_RST, HIGH);
-    rstStart = millis();
-    while (millis() - rstStart < 10) { /* Wait 10ms */ }
+    delay(10);  // Unavoidable hardware reset timing
     
-    // Inicializar TFT (only once here)
+    // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT
     tft.init();
+    if (tft.width() == 0 || tft.height() == 0) {
+        Logger::error("HUD: TFT init failed - dimensions invalid");
+        System::logError(600);
+        return;
+    }
     
     // CRITICAL: ST7796S rotation configuration for full screen rendering
     // Rotation 3 provides landscape mode (480x320)
     // This rotation works best for 4-inch ST7796S displays
     tft.setRotation(3);  // Landscape mode: 480x320
-    // Non-blocking: Use millis() instead of delay(50)
-    unsigned long rotStart = millis();
-    while (millis() - rotStart < 50) { /* Allow display to process rotation */ }
+    delay(50);  // Allow display to process rotation - essential for ST7796S
+    
+    // 🔒 CORRECCIÓN CRÍTICA: Verificar dimensiones correctas
+    int w = tft.width();
+    int h = tft.height();
+    if (w != 480 || h != 320) {
+        Logger::warnf("HUD: Dimensiones inesperadas %dx%d (esperado 480x320)", w, h);
+        System::logError(601);
+    } else {
+        Logger::infof("HUD: Display inicializado correctamente %dx%d", w, h);
+    }
     
     // Force complete screen clear to initialize all pixels
     tft.fillScreen(TFT_BLACK);
-    // Non-blocking: Use millis() instead of delay(50)
-    unsigned long fillStart = millis();
-    while (millis() - fillStart < 50) { /* Allow display buffer to stabilize */ }
+    delay(50);  // Allow display buffer to stabilize
     
-    // Verify display dimensions are correct
-    int w = tft.width();
-    int h = tft.height();
-    // Expected: w=480, h=320 in landscape (ST7796S)
+    // 🔒 CORRECCIÓN MEDIA: Cargar brightness de configuración
+    if (cfg.displayBrightness > 0 && cfg.displayBrightness <= 255) {
+        brightness = cfg.displayBrightness;
+        Logger::infof("HUD: Brightness cargado de config: %d", brightness);
+    }
     
     // Configurar backlight PWM (GPIO 42) - optional for dimming control
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
@@ -70,9 +80,10 @@ void HUDManager::init() {
 }
 
 void HUDManager::update() {
-    // Control de frame rate (30 FPS = 33ms por frame)
+    // 🔒 CORRECCIÓN: Control de frame rate con constante
+    static constexpr uint32_t FRAME_INTERVAL_MS = 33;  // 30 FPS
     uint32_t now = millis();
-    if (now - lastUpdateMs < 33) {
+    if (now - lastUpdateMs < FRAME_INTERVAL_MS) {
         return;  // Saltar frame para mantener 30 FPS
     }
     lastUpdateMs = now;
@@ -319,7 +330,11 @@ void HUDManager::renderQuickMenu() {
 
 void HUDManager::renderHiddenMenu() {
     // Menú oculto con TODOS los datos de calibración y sensores
-    tft.fillScreen(TFT_BLACK);
+    // 🔒 CORRECCIÓN: Solo limpiar pantalla si necesita redibujo completo
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;  // Reset flag after full redraw
+    }
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(10, 5);

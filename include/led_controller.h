@@ -18,6 +18,14 @@
 
 namespace LEDController {
     
+    // 🔒 Animation and brightness constants (avoiding magic numbers)
+    constexpr uint8_t BRIGHTNESS_POSITION_LIGHTS = 51;  // 20% brightness for position lights
+    constexpr uint8_t BRIGHTNESS_FULL = 255;            // 100% brightness
+    constexpr uint8_t FADE_RATE_KITT = 60;              // Fade rate for KITT scanner
+    constexpr uint8_t FADE_RATE_CHASE = 30;             // Fade rate for chase effect
+    constexpr uint16_t EMERGENCY_FLASH_INTERVAL_MS = 100;  // Emergency flash toggle interval
+    constexpr uint16_t TURN_SIGNAL_BLINK_MS = 500;      // Turn signal blink interval
+    
     // LED Modes
     enum FrontMode {
         FRONT_OFF,          // All off

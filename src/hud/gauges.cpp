@@ -16,6 +16,10 @@ static void drawArc(int cx, int cy, int r, uint16_t color) {
 }
 
 static void drawNeedle(int cx, int cy, float value, float maxValue, int r, uint16_t color) {
+    // 🔒 CORRECCIÓN ALTA: Proteger contra división por cero
+    if (maxValue <= 0.0f) {
+        maxValue = 1.0f;  // Fallback seguro
+    }
     float angle = -135.0f + (value / maxValue) * 270.0f; // -135° a +135°
     float rad = angle * 0.0174533f;
     int x = cx + (int)(cosf(rad) * r);
@@ -43,7 +47,11 @@ void Gauges::init(TFT_eSPI *display) {
 }
 
 void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
-    kmh = constrain(kmh, 0.0f, (float)maxKmh);
+    // 🔒 CORRECCIÓN ALTA: Clamp speed con límite superior seguro
+    kmh = constrain(kmh, 0.0f, min((float)maxKmh, 999.0f));  // Prevenir overflow visual
+    
+    // 🔒 Validar maxKmh para prevenir división por cero
+    if (maxKmh <= 0) maxKmh = 200;  // Fallback seguro
 
     // Redibujar fondo solo si es la primera vez
     if (lastSpeed < 0) {
@@ -73,6 +81,9 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
 }
 
 void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm) {
+    // 🔒 CORRECCIÓN ALTA: Validar maxRpm para prevenir división por cero
+    if (maxRpm <= 0) maxRpm = 10000;  // Fallback seguro
+    
     rpm = constrain(rpm, 0.0f, (float)maxRpm);
 
     if (lastRpm < 0) {
