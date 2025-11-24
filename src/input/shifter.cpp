@@ -13,6 +13,9 @@ static uint8_t stableReadings = 0;
 static Shifter::Gear pendingGear = Shifter::P;
 
 // Shifter conectado vía HY-M158 optoacopladores (señales 12V aisladas)
+// NOTA: Con pull-up (interno o GPIO), idle = HIGH (1), activo cuando optoacoplador tira a LOW (0)
+// Si se cambia a MCP23017 con pull-up interno, verificar que la lógica de polaridad sea consistente
+// Verificar hardware: si optoacoplador invierte la señal, ajustar lógica aquí
 // Lee entrada digital con pull-up (LOW = activo)
 static bool readPin(uint8_t pin) { return digitalRead(pin) == 0; }
 

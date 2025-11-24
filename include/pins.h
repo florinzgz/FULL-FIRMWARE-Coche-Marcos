@@ -173,8 +173,18 @@
 // ============================================================================
 
 // -----------------------
-// Palanca de cambios (Shifter) - 5 posiciones
+// Shifter (Palanca de cambios) - 5 posiciones
 // Conectada vía HY-M158 optoacopladores (12V → 3.3V)
+// -----------------------
+// 🔒 NOTA DE POLARIDAD HARDWARE:
+// Los optoacopladores HY-M158 (PC817) invierten la señal:
+// - Cuando el shifter cierra circuito (posición activa) → LED optoacoplador enciende → transistor conduce → GPIO lee LOW
+// - Cuando shifter abierto (posición inactiva) → LED apagado → transistor corte → GPIO lee HIGH (pull-up)
+// Por tanto: idle = HIGH (1), posición activa = LOW (0)
+// 
+// Si se migra a MCP23017 con pull-up interno:
+// - Verificar que lógica siga siendo: activo cuando optoacoplador tira a LOW (0)
+// - Ajustar readPin() si la polaridad cambia en hardware futuro
 // -----------------------
 #define PIN_SHIFTER_P     47  // GPIO 47 - Posición P (Park)
 #define PIN_SHIFTER_D2    48  // GPIO 48 - Posición D2 (Drive 2 - alta velocidad)
