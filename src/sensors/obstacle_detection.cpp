@@ -42,12 +42,14 @@ static bool selectMuxChannel(uint8_t channel) {
 static bool initSensor(uint8_t idx) {
     if (idx >= NUM_OBSTACLE_SENSORS) return false;
     
-    // Power cycle via XSHUT
+    // Power cycle via XSHUT (non-blocking)
     pinMode(OBSTACLE_XSHUT_PINS[idx], OUTPUT);
     digitalWrite(OBSTACLE_XSHUT_PINS[idx], LOW);
-    delay(10);
+    uint32_t startMs = millis();
+    while (millis() - startMs < 10) yield();  // Non-blocking 10ms
     digitalWrite(OBSTACLE_XSHUT_PINS[idx], HIGH);
-    delay(INIT_DELAY_MS);
+    startMs = millis();
+    while (millis() - startMs < INIT_DELAY_MS) yield();  // Non-blocking INIT_DELAY_MS
     
     // Select multiplexer channel
     if (!selectMuxChannel(idx)) {

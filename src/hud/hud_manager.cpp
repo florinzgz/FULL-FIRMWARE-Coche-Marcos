@@ -330,7 +330,11 @@ void HUDManager::renderQuickMenu() {
 
 void HUDManager::renderHiddenMenu() {
     // Menú oculto con TODOS los datos de calibración y sensores
-    tft.fillScreen(TFT_BLACK);
+    // 🔒 CORRECCIÓN: Solo limpiar pantalla si necesita redibujo completo
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;  // Reset flag after full redraw
+    }
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(10, 5);
