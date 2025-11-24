@@ -35,4 +35,10 @@ void warnf(const char *fmt, ...);
 void errorf(uint16_t code, const char *fmt, ...);
 void errorf(const char *fmt, ...);
 
+// ---------------------------------------------------------------------------
+// Debug functions: solo emiten si nivel de log es DEBUG (2+)
+// ---------------------------------------------------------------------------
+void debug(const char *msg);
+void debugf(const char *fmt, ...);
+
 } // namespace Logger

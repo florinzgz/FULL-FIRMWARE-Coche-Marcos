@@ -40,4 +40,7 @@ namespace System {
 
     // Limpia todos los errores persistentes
     void clearErrors();
+
+    // Verifica si hay errores activos en el sistema
+    bool hasError();
 }
