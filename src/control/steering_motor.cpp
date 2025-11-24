@@ -34,10 +34,8 @@ static uint16_t pctToTicks(float pct) {
 }
 
 void SteeringMotor::init() {
-    // 🔒 Verificar que I2C está inicializado
-    // Si Wire no fue iniciado, intentar inicializarlo con pines por defecto
-    // Esto es un guard para casos donde se llama init() antes que otros módulos
-    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+    // I2C should already be initialized by I2CRecovery::init() in main.cpp
+    // Skip redundant Wire.begin() as initialization order is guaranteed
     
     if (!pca.begin()) {
         Logger::errorf("SteeringMotor: Fallo inicializar PCA9685 en 0x%02X", I2C_ADDR_PCA9685_STEERING);
@@ -66,6 +64,8 @@ void SteeringMotor::setDemandAngle(float deg) {
 void SteeringMotor::update() {
     if (!initialized) {
         Logger::warn("SteeringMotor update llamado sin init");
+        // Cannot safely stop motor if PCA9685 was never initialized
+        // Just return and let caller handle the error condition
         return;
     }
 

@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "dfplayer.h"
 #include "alerts.h"
+#include "i2c_recovery.h"
 #include <Wire.h>
 
 static Shifter::State s = {Shifter::P, false};
@@ -19,34 +20,32 @@ static bool readPin(uint8_t pin) { return digitalRead(pin) == 0; }
 
 // 🆕 Leer posiciones P y D2 desde MCP23017 GPIOB (movidos de GPIO 47 y 48)
 // MCP_PIN_SHIFTER_P = 9 (GPIOB1), MCP_PIN_SHIFTER_D2 = 10 (GPIOB2)
-static volatile uint8_t cachedGPIOB = 0xFF;  // Cache del registro GPIOB
-static volatile bool gpiobReadSuccess = false;
+static uint8_t cachedGPIOB = 0xFF;  // Cache del registro GPIOB
+static bool gpiobReadSuccess = false;
+
+// Device ID para tracking de I2CRecovery (usamos ID 1 para MCP23017 del shifter)
+static constexpr uint8_t MCP23017_DEVICE_ID = 1;
 
 static bool readMCP23017_GPIOB() {
-    // Lee el registro GPIOB completo (solo 1 lectura I2C por ciclo de update)
-    Wire.beginTransmission(I2C_ADDR_MCP23017);
-    Wire.write(0x13);  // GPIOB register
-    uint8_t error = Wire.endTransmission();
-    if (error != 0) {
+    // Lee el registro GPIOB completo usando I2CRecovery para mejor manejo de errores
+    uint8_t gpiob = 0;
+    if (!I2CRecovery::readBytesWithRetry(I2C_ADDR_MCP23017, 0x13, &gpiob, 1, MCP23017_DEVICE_ID)) {
         static bool errorLogged = false;
         if (!errorLogged) {
-            Logger::warnf("Shifter: MCP23017 I2C error %d, P/D2 positions unavailable", error);
+            Logger::warn("Shifter: MCP23017 I2C read failed, P/D2 positions unavailable");
             errorLogged = true;
         }
         gpiobReadSuccess = false;
         return false;
     }
-    Wire.requestFrom((uint8_t)I2C_ADDR_MCP23017, (uint8_t)1);
-    if (Wire.available()) {
-        cachedGPIOB = Wire.read();
-        gpiobReadSuccess = true;
-        return true;
-    }
-    gpiobReadSuccess = false;
-    return false;
+    cachedGPIOB = gpiob;
+    gpiobReadSuccess = true;
+    return true;
 }
 
 // Lee posición P desde MCP23017 GPIOB1
+// Hardware polarity: With MCP23017 internal pull-up enabled, the idle state is HIGH (1).
+// The optocoupler pulls SHIFTER_P to GND when active, so active = LOW (0).
 static bool readShifterP_MCP23017() {
     if (!gpiobReadSuccess) return false;
     // MCP_PIN_SHIFTER_P = 9 significa GPIOB1, bit 1 del registro GPIOB
@@ -55,6 +54,8 @@ static bool readShifterP_MCP23017() {
 }
 
 // Lee posición D2 desde MCP23017 GPIOB2
+// Hardware polarity: With MCP23017 internal pull-up enabled, the idle state is HIGH (1).
+// The optocoupler pulls SHIFTER_D2 to GND when active, so active = LOW (0).
 static bool readShifterD2_MCP23017() {
     if (!gpiobReadSuccess) return false;
     // MCP_PIN_SHIFTER_D2 = 10 significa GPIOB2, bit 2 del registro GPIOB
@@ -78,20 +79,28 @@ void Shifter::init() {
     pinMode(PIN_SHIFTER_R, INPUT_PULLUP);   // R (Reverse) - GPIO 19 (INPUT crítico)
     
     // Máscara de bits para GPIOB1 y GPIOB2 (P y D2)
-    constexpr uint8_t SHIFTER_PD2_MASK = (1 << 1) | (1 << 2);  // GPIOB1 | GPIOB2
+    // MCP_PIN_SHIFTER_P=9 (GPIOB1, bit 1), MCP_PIN_SHIFTER_D2=10 (GPIOB2, bit 2)
+    constexpr uint8_t SHIFTER_PD2_MASK = (1 << (MCP_PIN_SHIFTER_P - 8)) | (1 << (MCP_PIN_SHIFTER_D2 - 8));
     
     // 🆕 Configurar MCP23017 GPIOB1 y GPIOB2 como entradas con pull-up para P y D2
-    // IODIRB register = 0x01, bits 1 y 2 = inputs
-    Wire.beginTransmission(I2C_ADDR_MCP23017);
-    Wire.write(0x01);  // IODIRB register (I/O direction)
-    Wire.write(SHIFTER_PD2_MASK);  // Bits 1,2 = input (P y D2), resto outputs
-    Wire.endTransmission();
+    // Using read-modify-write pattern to preserve other bits
+    // Using I2CRecovery for consistency and better error handling
     
-    // GPPUB register = 0x0D, enable pull-ups on GPIOB1 y GPIOB2
-    Wire.beginTransmission(I2C_ADDR_MCP23017);
-    Wire.write(0x0D);  // GPPUB register (pull-up)
-    Wire.write(SHIFTER_PD2_MASK);  // Enable pull-up on GPIOB1 y GPIOB2
-    Wire.endTransmission();
+    // Read current IODIRB register and set bits as inputs
+    uint8_t iodirb = 0x00;
+    if (!I2CRecovery::readBytesWithRetry(I2C_ADDR_MCP23017, 0x01, &iodirb, 1, MCP23017_DEVICE_ID)) {
+        Logger::warn("Shifter init: Failed to read IODIRB, using default");
+    }
+    iodirb |= SHIFTER_PD2_MASK;  // Set bits as inputs, preserve others
+    I2CRecovery::writeBytesWithRetry(I2C_ADDR_MCP23017, 0x01, &iodirb, 1, MCP23017_DEVICE_ID);
+    
+    // Read current GPPUB register and enable pull-ups
+    uint8_t gppub = 0x00;
+    if (!I2CRecovery::readBytesWithRetry(I2C_ADDR_MCP23017, 0x0D, &gppub, 1, MCP23017_DEVICE_ID)) {
+        Logger::warn("Shifter init: Failed to read GPPUB, using default");
+    }
+    gppub |= SHIFTER_PD2_MASK;  // Enable pull-ups, preserve others
+    I2CRecovery::writeBytesWithRetry(I2C_ADDR_MCP23017, 0x0D, &gppub, 1, MCP23017_DEVICE_ID);
     
     Logger::info("Shifter init (D1/N/R via GPIO, P/D2 via MCP23017 GPIOB)");
 }
