@@ -17,29 +17,49 @@ static Shifter::Gear pendingGear = Shifter::P;
 // Lee entrada digital con pull-up (LOW = activo)
 static bool readPin(uint8_t pin) { return digitalRead(pin) == 0; }
 
-// 🔒 CORRECCIÓN: Leer posición R desde MCP23017 GPIOB0 (evita conflicto con LED_REAR en GPIO 19)
-static bool readShifterR_MCP23017() {
-    // MCP23017 GPIOB register = 0x13, bit 0 = GPIOB0
+// 🆕 Leer posiciones P y D2 desde MCP23017 GPIOB (movidos de GPIO 47 y 48)
+// MCP_PIN_SHIFTER_P = 9 (GPIOB1), MCP_PIN_SHIFTER_D2 = 10 (GPIOB2)
+static volatile uint8_t cachedGPIOB = 0xFF;  // Cache del registro GPIOB
+static volatile bool gpiobReadSuccess = false;
+
+static bool readMCP23017_GPIOB() {
+    // Lee el registro GPIOB completo (solo 1 lectura I2C por ciclo de update)
     Wire.beginTransmission(I2C_ADDR_MCP23017);
     Wire.write(0x13);  // GPIOB register
     uint8_t error = Wire.endTransmission();
     if (error != 0) {
-        // Log I2C error only once to avoid log spam
         static bool errorLogged = false;
         if (!errorLogged) {
-            Logger::warnf("Shifter: MCP23017 I2C error %d, R position unavailable", error);
+            Logger::warnf("Shifter: MCP23017 I2C error %d, P/D2 positions unavailable", error);
             errorLogged = true;
         }
-        return false;  // Error I2C, asumir no activo
+        gpiobReadSuccess = false;
+        return false;
     }
     Wire.requestFrom((uint8_t)I2C_ADDR_MCP23017, (uint8_t)1);
     if (Wire.available()) {
-        uint8_t gpiob = Wire.read();
-        // MCP_PIN_SHIFTER_R = 8 significa GPIOB0, bit 0 del registro GPIOB
-        // Lógica invertida: LOW = activo (igual que los otros pines del shifter)
-        return (gpiob & (1 << (MCP_PIN_SHIFTER_R - 8))) == 0;
+        cachedGPIOB = Wire.read();
+        gpiobReadSuccess = true;
+        return true;
     }
+    gpiobReadSuccess = false;
     return false;
+}
+
+// Lee posición P desde MCP23017 GPIOB1
+static bool readShifterP_MCP23017() {
+    if (!gpiobReadSuccess) return false;
+    // MCP_PIN_SHIFTER_P = 9 significa GPIOB1, bit 1 del registro GPIOB
+    // Lógica invertida: LOW = activo (igual que los otros pines del shifter)
+    return (cachedGPIOB & (1 << (MCP_PIN_SHIFTER_P - 8))) == 0;
+}
+
+// Lee posición D2 desde MCP23017 GPIOB2
+static bool readShifterD2_MCP23017() {
+    if (!gpiobReadSuccess) return false;
+    // MCP_PIN_SHIFTER_D2 = 10 significa GPIOB2, bit 2 del registro GPIOB
+    // Lógica invertida: LOW = activo (igual que los otros pines del shifter)
+    return (cachedGPIOB & (1 << (MCP_PIN_SHIFTER_D2 - 8))) == 0;
 }
 
 static void announce(Shifter::Gear g) {
@@ -52,34 +72,47 @@ static void announce(Shifter::Gear g) {
 
 void Shifter::init() {
     // Pines shifter conectados vía HY-M158 optoacopladores (12V → 3.3V)
-    pinMode(PIN_SHIFTER_P, INPUT_PULLUP);   // P (Park)
-    pinMode(PIN_SHIFTER_D2, INPUT_PULLUP);  // D2 (Drive 2)
-    pinMode(PIN_SHIFTER_D1, INPUT_PULLUP);  // D1 (Drive 1)
-    pinMode(PIN_SHIFTER_N, INPUT_PULLUP);   // N (Neutral)
-    // 🔒 NOTA: PIN_SHIFTER_R ahora se lee desde MCP23017 GPIOB0 (evita conflicto con LED_REAR GPIO 19)
-    // Configurar MCP23017 GPIOB0 como entrada con pull-up
+    // Solo D1, N, R están en GPIO directo ahora
+    pinMode(PIN_SHIFTER_D1, INPUT_PULLUP);  // D1 (Drive 1) - GPIO 7
+    pinMode(PIN_SHIFTER_N, INPUT_PULLUP);   // N (Neutral) - GPIO 18
+    pinMode(PIN_SHIFTER_R, INPUT_PULLUP);   // R (Reverse) - GPIO 19 (INPUT crítico)
+    
+    // Máscara de bits para GPIOB1 y GPIOB2 (P y D2)
+    constexpr uint8_t SHIFTER_PD2_MASK = (1 << 1) | (1 << 2);  // GPIOB1 | GPIOB2
+    
+    // 🆕 Configurar MCP23017 GPIOB1 y GPIOB2 como entradas con pull-up para P y D2
+    // IODIRB register = 0x01, bits 1 y 2 = inputs
     Wire.beginTransmission(I2C_ADDR_MCP23017);
     Wire.write(0x01);  // IODIRB register (I/O direction)
-    Wire.write(0x01);  // Bit 0 = input (1), resto outputs (0)
+    Wire.write(SHIFTER_PD2_MASK);  // Bits 1,2 = input (P y D2), resto outputs
     Wire.endTransmission();
+    
+    // GPPUB register = 0x0D, enable pull-ups on GPIOB1 y GPIOB2
     Wire.beginTransmission(I2C_ADDR_MCP23017);
     Wire.write(0x0D);  // GPPUB register (pull-up)
-    Wire.write(0x01);  // Enable pull-up on GPIOB0
+    Wire.write(SHIFTER_PD2_MASK);  // Enable pull-up on GPIOB1 y GPIOB2
     Wire.endTransmission();
-    Logger::info("Shifter init (via HY-M158 + MCP23017 for R)");
+    
+    Logger::info("Shifter init (D1/N/R via GPIO, P/D2 via MCP23017 GPIOB)");
 }
 
 void Shifter::update() {
     Shifter::Gear detectedGear = s.gear;
 
+    // 🆕 Leer registro GPIOB del MCP23017 una sola vez por ciclo
+    if (!readMCP23017_GPIOB()) {
+        // I2C read failed - P/D2 positions unavailable, fallback to GPIO-only positions
+        // Log only on first failure (handled inside readMCP23017_GPIOB)
+    }
+
     // 🔒 CORRECCIÓN CRÍTICA: Lee cada posición con debounce
     // Lee cada posición del shifter (prioridad P > D2 > D1 > N > R)
-    if(readPin(PIN_SHIFTER_P))       detectedGear = Shifter::P;
-    else if(readPin(PIN_SHIFTER_D2)) detectedGear = Shifter::D2;
-    else if(readPin(PIN_SHIFTER_D1)) detectedGear = Shifter::D1;
-    else if(readPin(PIN_SHIFTER_N))  detectedGear = Shifter::N;
-    // 🔒 NOTA: R se lee desde MCP23017 en lugar de GPIO directo
-    else if(readShifterR_MCP23017()) detectedGear = Shifter::R;
+    // 🆕 P y D2 ahora se leen desde MCP23017 GPIOB
+    if(readShifterP_MCP23017())       detectedGear = Shifter::P;
+    else if(readShifterD2_MCP23017()) detectedGear = Shifter::D2;
+    else if(readPin(PIN_SHIFTER_D1))  detectedGear = Shifter::D1;
+    else if(readPin(PIN_SHIFTER_N))   detectedGear = Shifter::N;
+    else if(readPin(PIN_SHIFTER_R))   detectedGear = Shifter::R;  // GPIO 19 directo
 
     uint32_t now = millis();
     

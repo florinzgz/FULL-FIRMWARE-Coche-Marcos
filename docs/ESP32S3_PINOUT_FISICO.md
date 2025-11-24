@@ -1,6 +1,6 @@
 # 📌 ESP32-S3-DevKitC-1 - Layout Físico de Pines
 
-**Versión:** 1.0  
+**Versión:** 1.1  
 **Fecha:** 2025-11-24  
 **Firmware:** Coche Inteligente Marcos
 
@@ -23,14 +23,14 @@
         
   ┌───┐ GND  ●────────────────────────────────────────────────────────● GND   ┌───┐
   │   │ GND  ●────────────────────────────────────────────────────────● 5V    │   │
-  │ P │ 19   ●  LED_REAR ←────────────────────────────────────────────● 14    │ P │  TFT_RST
+  │ P │ 19   ●  SHIFTER_R ←───────────────────────────────────────────● 14    │ P │  TFT_RST
   │ I │ 20   ●  ONEWIRE ←─────────────────────────────────────────────● 13    │ I │  TFT_DC
   │ N │ 21   ●  WHEEL_FL ←────────────────────────────────────────────● 12    │ N │  TFT_MISO
-  │ E │ 47   ●  SHIFTER_P ←───────────────────────────────────────────● 11    │ E │  TFT_MOSI
-  │ S │ 48   ●  SHIFTER_D2 ←──────────────────────────────────────────● 10    │ S │  TFT_SCK
+  │ E │ 47   ●  LED_REAR (WS2812B) ←──────────────────────────────────● 11    │ E │  TFT_MOSI
+  │ S │ 48   ●  TOUCH_CS ←────────────────────────────────────────────● 10    │ S │  TFT_SCK
   │   │ 45*  ●  BTN_LIGHTS ←──────────────────────────────────────────● 9     │   │  I2C_SCL
   │   │ 0*   ●  KEY_SYSTEM ←──────────────────────────────────────────● 46*   │   │  TOUCH_IRQ
-  │   │ 35   ●  PEDAL (ADC) ←─────────────────────────────────────────● 3     │   │  TOUCH_CS
+  │   │ 35   ●  PEDAL (ADC) ←─────────────────────────────────────────● 3     │   │  LIBRE 🆕
   │   │ 36   ●  WHEEL_FR ←────────────────────────────────────────────● 8     │   │  TFT_CS
   │   │ 37   ●  ENCODER_A ←───────────────────────────────────────────● 18    │   │  SHIFTER_N
   │   │ 38   ●  ENCODER_B ←───────────────────────────────────────────● 17    │   │  WHEEL_RL
@@ -71,11 +71,11 @@ Los siguientes pines afectan el modo de arranque del ESP32-S3. **Usar con cuidad
 |-----|------|---------|------|-------------|
 | 1 | GND | Tierra | - | Tierra común |
 | 2 | GND | Tierra | - | Tierra común |
-| 3 | 19 | LED_REAR | Output | LEDs WS2812B traseros (16 LEDs) |
+| 3 | 19 | SHIFTER_R | Input | Palanca Reverse (via optoacoplador) - INPUT crítico |
 | 4 | 20 | ONEWIRE | I/O | Bus DS18B20 (4x temp. motores) |
 | 5 | 21 | WHEEL_FL | Input | Sensor rueda Frontal Izquierda |
-| 6 | 47 | SHIFTER_P | Input | Palanca Park (via optoacoplador) |
-| 7 | 48 | SHIFTER_D2 | Input | Palanca D2 (via optoacoplador) |
+| 6 | 47 | LED_REAR | Output | LEDs WS2812B traseros (16 LEDs) - 🆕 Movido |
+| 7 | 48 | TOUCH_CS | Output | SPI CS táctil - 🆕 Movido de GPIO 3 |
 | 8 | 45* | BTN_LIGHTS | Input | Botón luces (⚠️ strapping pin) |
 | 9 | 0* | KEY_SYSTEM | Input | Boot/Llave sistema (⚠️ strapping) |
 | 10 | 35 | PEDAL | Analog | Sensor Hall pedal (ADC1_CH4) |
@@ -105,7 +105,7 @@ Los siguientes pines afectan el modo de arranque del ESP32-S3. **Usar con cuidad
 | 7 | 10 | TFT_SCK | Output | SPI Clock |
 | 8 | 9 | I2C_SCL | I/O | Bus I²C Clock |
 | 9 | 46* | TOUCH_IRQ | Input | IRQ táctil (⚠️ strapping pin) |
-| 10 | 3 | TOUCH_CS | Output | SPI CS táctil |
+| 10 | 3 | LIBRE | - | 🆕 Disponible para expansión futura |
 | 11 | 8 | TFT_CS | Output | SPI CS pantalla |
 | 12 | 18 | SHIFTER_N | Input | Palanca Neutral |
 | 13 | 17 | WHEEL_RL | Input | Sensor rueda Trasera Izquierda |
@@ -135,7 +135,8 @@ Los siguientes pines afectan el modo de arranque del ESP32-S3. **Usar con cuidad
 | 5 | GPIOA5 | MCP_PIN_RL_IN2 | Motor RL dirección |
 | 6 | GPIOA6 | MCP_PIN_RR_IN1 | Motor RR dirección |
 | 7 | GPIOA7 | MCP_PIN_RR_IN2 | Motor RR dirección |
-| **8** | **GPIOB0** | **MCP_PIN_SHIFTER_R** | **Palanca Reverse (movido de GPIO 19)** |
+| **9** | **GPIOB1** | **MCP_PIN_SHIFTER_P** | **Palanca Park - 🆕 Movido desde GPIO 47** |
+| **10** | **GPIOB2** | **MCP_PIN_SHIFTER_D2** | **Palanca D2 - 🆕 Movido desde GPIO 48** |
 
 ---
 
@@ -147,7 +148,7 @@ Los siguientes pines afectan el modo de arranque del ESP32-S3. **Usar con cuidad
 | PCA9685 #1 | 0x40 | PWM motores eje delantero |
 | PCA9685 #2 | 0x41 | PWM motores eje trasero |
 | PCA9685 #3 | 0x42 | PWM motor dirección |
-| MCP23017 | 0x20 | Expansor GPIO (IN1/IN2 + Shifter R) |
+| MCP23017 | 0x20 | Expansor GPIO (IN1/IN2 + Shifter P/D2) |
 
 ---
 
@@ -159,7 +160,7 @@ SCK  → GPIO 10 (compartido)
 MOSI → GPIO 11 (compartido)
 MISO → GPIO 12 (compartido)
 TFT_CS → GPIO 8
-TOUCH_CS → GPIO 3
+TOUCH_CS → GPIO 48 (🆕 movido de GPIO 3)
 ```
 
 ### I²C (Sensores + Expansores)
@@ -180,17 +181,25 @@ Baud: 9600
 
 ## 🔧 Notas de Implementación
 
-### 1. Conflicto GPIO 19 Resuelto
-- **Problema**: GPIO 19 estaba asignado a LED_REAR y SHIFTER_R
-- **Solución**: SHIFTER_R movido a MCP23017 GPIOB0
-- **Código**: Ver `shifter.cpp` para lectura vía I²C
+### 1. Reasignación de Pines (2025-11-24)
+- **GPIO 19**: Ahora exclusivo para SHIFTER_R (INPUT crítico para marcha atrás)
+- **GPIO 47**: LED_REAR (WS2812B) - Movido desde GPIO 19
+- **GPIO 48**: TOUCH_CS (SPI) - Movido desde GPIO 3
+- **GPIO 3**: LIBRE para futuras expansiones
+- **MCP23017 GPIOB1**: SHIFTER_P - Movido desde GPIO 47
+- **MCP23017 GPIOB2**: SHIFTER_D2 - Movido desde GPIO 48
 
 ### 2. Optoacopladores HY-M158
 - Aíslan señales 12V del vehículo → 3.3V del ESP32
-- Usados para: Shifter, Encoder, Sensores rueda
+- Usados para: Shifter (D1, N, R), Encoder, Sensores rueda
 - Lógica: LOW = activo (pull-up interno)
 
-### 3. Convertidores de Nivel
+### 3. MCP23017 para Shifter P y D2
+- P y D2 se leen via I²C desde MCP23017 GPIOB
+- R se lee directamente desde GPIO 19
+- Código optimizado: una sola lectura I²C de GPIOB por ciclo
+
+### 4. Convertidores de Nivel
 - Sensores 12V/5V requieren conversión a 3.3V
 - TXS0104E o similar bidireccional recomendado
 - Encoder E6B2-CWZ6C: 5-24V → 3.3V
@@ -205,7 +214,8 @@ Baud: 9600
 - [ ] Bus SPI verificado (no cortos entre CS)
 - [ ] LEDs WS2812B con capacitor 1000µF
 - [ ] Convertidores de nivel instalados
+- [ ] MCP23017 GPIOB configurado para inputs (P, D2)
 
 ---
 
-**Documento generado por FirmwareAuditor - 2025-11-24**
+**Documento actualizado por FirmwareAuditor - 2025-11-24**

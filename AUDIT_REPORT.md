@@ -242,53 +242,56 @@ El firmware ha sido auditado y corregido para los problemas de alta prioridad id
 
 ---
 
-## 🔌 AUDITORÍA DE PINOUT FÍSICO (2025-11-24)
+## 🔌 AUDITORÍA DE PINOUT FÍSICO (2025-11-24 - ACTUALIZADO)
+
+### Reasignación de Pines Crítica
+
+**Fecha:** 2025-11-24  
+**Motivo:** Resolución de conflictos GPIO y liberación de GPIO 3 para expansión futura.
+
+| Cambio | Antes | Después | Motivo |
+|--------|-------|---------|--------|
+| **PIN_SHIFTER_R** | MCP23017 GPIOB0 | GPIO 19 | INPUT crítico para detectar marcha atrás |
+| **PIN_LED_REAR** | GPIO 19 | GPIO 47 | Liberado por reasignación de P y D2 |
+| **PIN_TOUCH_CS** | GPIO 3 | GPIO 48 | Liberado por reasignación de P y D2 |
+| **MCP_PIN_SHIFTER_P** | GPIO 47 | MCP23017 GPIOB1 | Movido a expansor I²C |
+| **MCP_PIN_SHIFTER_D2** | GPIO 48 | MCP23017 GPIOB2 | Movido a expansor I²C |
+| **GPIO 3** | TOUCH_CS | LIBRE | Disponible para expansión futura |
 
 ### Verificación del Layout ESP32-S3-DevKitC-1
 
-Se ha verificado la asignación de pines contra el layout físico proporcionado:
-
 | Aspecto | Estado | Detalles |
 |---------|--------|----------|
-| Layout LADO 1 | ✅ Verificado | GND,GND,19,20,21,47,48,45,0,35,36,37,38,39,40,41,42,2,1,RX(44),TX(43),GND |
-| Layout LADO 2 | ✅ Verificado | GND,5V,14,13,12,11,10,9,46,3,8,18,17,16,15,7,6,5,4,RST,3V3,3V3 |
+| Layout LADO 1 | ✅ Actualizado | GPIO 19=SHIFTER_R, GPIO 47=LED_REAR, GPIO 48=TOUCH_CS |
+| Layout LADO 2 | ✅ Actualizado | GPIO 3=LIBRE |
 | Strapping pins | ⚠️ Documentado | GPIO 0, 45, 46 correctamente identificados |
-| Conflicto GPIO 19 | ✅ Resuelto | SHIFTER_R movido a MCP23017 GPIOB0 |
-| UART (43/44) | ✅ Correcto | Usados para DFPlayer Mini |
-| I2C (16/9) | ✅ Correcto | SDA=16, SCL=9 configurados |
+| Conflicto GPIO 19 | ✅ Resuelto | SHIFTER_R en GPIO 19, LED_REAR en GPIO 47 |
+| MCP23017 GPIOB | ✅ Configurado | P=GPIOB1, D2=GPIOB2 |
 
-### Conflicto Resuelto: GPIO 19
+### Uso de MCP23017 (Actualizado)
 
-**Problema identificado:** GPIO 19 estaba asignado simultáneamente a:
-- `PIN_SHIFTER_R` (Palanca Reverse)
-- `PIN_LED_REAR` (LEDs WS2812B traseros)
+```
+GPIOA (0x12):
+  - GPIOA0-7: Control IN1/IN2 de BTS7960 (motores tracción)
 
-**Solución implementada:**
-- `PIN_SHIFTER_R` migrado a MCP23017 GPIOB0 (expansor I²C)
-- Código en `shifter.cpp` actualizado para leer R vía I²C
-- GPIO 19 ahora exclusivo para LEDs traseros
+GPIOB (0x13):
+  - GPIOB1 (pin 9):  SHIFTER_P  (Park) - INPUT
+  - GPIOB2 (pin 10): SHIFTER_D2 (Drive 2) - INPUT
+```
 
-### Strapping Pins - Advertencias
+### Código Actualizado
 
-| GPIO | Función Boot | Uso Actual | Recomendación |
-|------|--------------|------------|---------------|
-| 0 | Boot Mode | KEY_SYSTEM | Agregar pull-up 10kΩ externo |
-| 45 | VDD_SPI | BTN_LIGHTS | Solo input, no afecta boot si nivel alto |
-| 46 | ROM messages | TOUCH_IRQ | Solo input, usar como IRQ es seguro |
+- **include/pins.h**: Definiciones de pines actualizadas
+- **src/input/shifter.cpp**: Lectura de P/D2 via MCP23017, R via GPIO directo
+- **docs/ESP32S3_PINOUT_FISICO.md**: Documentación actualizada
 
-### Corrección de Documentación
+### GPIO 3 - Disponible para Expansión
 
-- GPIO 3 **NO es strapping pin** (error corregido en pins.h)
-- Comentarios actualizados con notas de strapping reales
-- Tabla de pines expandida con descripción detallada
-
-### Documentación Creada
-
-📄 **docs/ESP32S3_PINOUT_FISICO.md**
-- Diagrama ASCII del layout físico
-- Tabla completa de asignación por lado
-- Guía de expansores I²C (MCP23017)
-- Notas de implementación y checklist
+GPIO 3 ahora está libre y puede usarse para:
+- Sensor adicional
+- LED de estado
+- Comunicación extra (UART, etc.)
+- Cualquier I/O de propósito general
 
 ---
 

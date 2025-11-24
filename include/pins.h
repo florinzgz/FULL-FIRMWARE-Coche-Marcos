@@ -86,7 +86,7 @@
 // -----------------------
 // Táctil (XPT2046 SPI)
 // -----------------------
-#define PIN_TOUCH_CS      3   // GPIO 3  - Chip Select (pin seguro, no es strapping)
+#define PIN_TOUCH_CS      48  // GPIO 48 - Chip Select (movido de GPIO 3 para liberar)
 #define PIN_TOUCH_IRQ     46  // GPIO 46 - Interrupción (⚠️ STRAPPING PIN, input-only)
 
 // -----------------------
@@ -191,23 +191,14 @@
 // -----------------------
 // Palanca de cambios (Shifter) - 5 posiciones
 // Conectada vía HY-M158 optoacopladores (12V → 3.3V)
+// P y D2 movidos a MCP23017 GPIOB para liberar GPIO 47 y 48
 // -----------------------
-#define PIN_SHIFTER_P     47  // GPIO 47 - Posición P (Park)
-#define PIN_SHIFTER_D2    48  // GPIO 48 - Posición D2 (Drive 2 - alta velocidad)
+// 🆕 Shifter P y D2 ahora vía MCP23017 GPIOB (pines 9 y 10 = GPIOB1 y GPIOB2)
+#define MCP_PIN_SHIFTER_P  9   // MCP23017 GPIOB1: P (Park) - antes GPIO 47
+#define MCP_PIN_SHIFTER_D2 10  // MCP23017 GPIOB2: D2 (Drive 2) - antes GPIO 48
 #define PIN_SHIFTER_D1    7   // GPIO 7  - Posición D1 (Drive 1 - baja velocidad)
 #define PIN_SHIFTER_N     18  // GPIO 18 - Posición N (Neutral)
-
-// ⚠️ CONFLICTO RESUELTO: GPIO 19 compartido con LED_REAR
-// PIN_SHIFTER_R movido a MCP23017 GPIOB0 para evitar conflicto hardware
-// El código en shifter.cpp debe usar MCP23017 para leer R via I2C
-#define MCP_PIN_SHIFTER_R 8   // MCP23017 GPIOB0: R (Reverse) - vía I2C
-
-// Macro de compatibilidad - ADVERTENCIA: No usar GPIO 19 directamente
-// Si se necesita el pin GPIO directo, reasignar LED_REAR a otra ubicación
-#ifdef SHIFTER_USE_GPIO_LEGACY
-#warning "SHIFTER_USE_GPIO_LEGACY está definido: GPIO 19 en conflicto con PIN_LED_REAR"
-#define PIN_SHIFTER_R     19  // ⚠️ CONFLICTO con PIN_LED_REAR - Solo para compatibilidad
-#endif
+#define PIN_SHIFTER_R     19  // GPIO 19 - Posición R (Reverse) - INPUT crítico para marcha atrás
 
 // -----------------------
 // Botones físicos
@@ -225,7 +216,7 @@
 // LEDs WS2812B (Iluminación Inteligente)
 // -----------------------
 #define PIN_LED_FRONT     1   // GPIO 1  - LEDs frontales (28 LEDs)
-#define PIN_LED_REAR      19  // GPIO 19 - LEDs traseros (16 LEDs) - ✅ Libre tras mover SHIFTER_R
+#define PIN_LED_REAR      47  // GPIO 47 - LEDs traseros (16 LEDs) - Movido de GPIO 19
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (3L + 10C + 3R)
 
@@ -238,7 +229,7 @@ GPIO  | Función                    | Tipo      | Notas
 0     | KEY_SYSTEM                 | Input     | ⚠️ STRAPPING PIN (Boot), pull-up externo
 1     | LED_FRONT (WS2812B)        | Output    | 28 LEDs
 2     | RELAY_MAIN                 | Output    | Relé principal (Power Hold)
-3     | TOUCH_CS                   | Output    | SPI CS táctil (pin seguro)
+3     | LIBRE                      | -         | 🆕 Disponible para expansión futura
 4     | RELAY_TRAC                 | Output    | Relé tracción 24V
 5     | RELAY_DIR                  | Output    | Relé dirección 12V
 6     | RELAY_SPARE                | Output    | Relé auxiliar
@@ -254,7 +245,7 @@ GPIO  | Función                    | Tipo      | Notas
 16    | I2C_SDA                    | I/O       | Bus I2C Data (+ pull-up 4.7kΩ)
 17    | WHEEL_RL                   | Input     | Sensor rueda trasera izquierda
 18    | SHIFTER_N                  | Input     | Palanca Neutral (via optoacoplador)
-19    | LED_REAR (WS2812B)         | Output    | 16 LEDs traseros (SHIFTER_R → MCP23017)
+19    | SHIFTER_R                  | Input     | Palanca Reverse (via optoacoplador) - INPUT crítico
 20    | ONEWIRE                    | I/O       | 4x DS18B20 temperatura
 21    | WHEEL_FL                   | Input     | Sensor rueda delantera izquierda
 35    | PEDAL (ADC)                | Analog In | Sensor Hall pedal (ADC1_CH4)
@@ -269,12 +260,14 @@ GPIO  | Función                    | Tipo      | Notas
 44    | DFPLAYER_RX (UART)         | Input     | Audio RX (UART0)
 45    | BTN_LIGHTS                 | Input     | ⚠️ STRAPPING PIN (input-only, VDD_SPI)
 46    | TOUCH_IRQ                  | Input     | ⚠️ STRAPPING PIN (input-only)
-47    | SHIFTER_P                  | Input     | Palanca Park (via optoacoplador)
-48    | SHIFTER_D2                 | Input     | Palanca D2 (via optoacoplador)
+47    | LED_REAR (WS2812B)         | Output    | 16 LEDs traseros - Movido de GPIO 19
+48    | TOUCH_CS                   | Output    | SPI CS táctil - Movido de GPIO 3
 
-MCP23017 GPIOB0 → SHIFTER_R (Reverse) - Movido desde GPIO 19 para evitar conflicto con LED_REAR
+MCP23017 GPIOB:
+  - GPIOB1 (pin 9)  → SHIFTER_P  (Park) - Movido desde GPIO 47
+  - GPIOB2 (pin 10) → SHIFTER_D2 (Drive 2) - Movido desde GPIO 48
 
-TOTAL: 34/36 pines GPIO + 1 MCP23017 (97% eficiencia)
+TOTAL: 33/36 pines GPIO + 2 MCP23017 GPIOB (94% eficiencia, GPIO 3 libre)
 STRAPPING PINS: GPIO 0 (boot), GPIO 45 (VDD_SPI), GPIO 46 (ROM messages)
 */
 
@@ -303,6 +296,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_I2C_SDA:
         case PIN_WHEEL_RL:
         case PIN_SHIFTER_N:
+        case PIN_SHIFTER_R:
         case PIN_LED_REAR:
         case PIN_ONEWIRE:
         case PIN_WHEEL_FL:
@@ -318,8 +312,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_DFPLAYER_RX:
         case PIN_BTN_LIGHTS:
         case PIN_TOUCH_IRQ:
-        case PIN_SHIFTER_P:
-        case PIN_SHIFTER_D2:
+            // Nota: PIN_SHIFTER_P y PIN_SHIFTER_D2 ahora están en MCP23017 GPIOB
             return true;
         default:
             return false;
