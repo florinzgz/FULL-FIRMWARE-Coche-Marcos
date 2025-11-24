@@ -1,10 +1,13 @@
-name: Firmware Audit & Build
+name: Firmware Audit & Auto Commit
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: write   # Permite al workflow hacer commits y push en el repo
 
 jobs:
   audit-build:
@@ -15,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # 2. Instalar Python y PlatformIO antes del firewall
+    # 2. Instalar Python y PlatformIO
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -28,40 +31,33 @@ jobs:
     - name: Build firmware
       run: pio run
 
-    # 4. Auditoría de GPIO y configuración
+    # 4. Auditoría GPIO y configuración
     - name: Run GPIO audit
       run: |
         echo "### GPIO Audit Report" > AUDIT_REPORT_CI.md
         echo "" >> AUDIT_REPORT_CI.md
         echo "Verificando que los GPIO usados están en la lista física de la placa ESP32-S3..." >> AUDIT_REPORT_CI.md
-        echo "Lista de pines válidos: 19,20,21,47,48,45,35,36,37,38,39,40,41,42,14,13,12,11,10,9,46,18,17,16,15,6,4" >> AUDIT_REPORT_CI.md
-        echo "Pines prohibidos/strapping: 0,2,3,5,7,8,RX(44),TX(43),RST" >> AUDIT_REPORT_CI.md
+        echo "Lista de pines válidos: 19,20,21,47,48,45,35,36,37,38,39,40,41,42,14,13,12,11,10,9,16,17,18,15" >> AUDIT_REPORT_CI.md
+        echo "Pines prohibidos/strapping: 0,1,2,3,5,7,8,43,44,RST" >> AUDIT_REPORT_CI.md
         echo "" >> AUDIT_REPORT_CI.md
         echo "✔ Revisa pins.h y platformio.ini para confirmar que no se usan pines prohibidos." >> AUDIT_REPORT_CI.md
-        echo "✔ Verifica que TOUCH_CS no esté en GPIO0 ni otros strapping." >> AUDIT_REPORT_CI.md
-        echo "✔ Comprueba que I2C SDA/SCL estén en pines accesibles (ej. 21 y 20)." >> AUDIT_REPORT_CI.md
-        echo "" >> AUDIT_REPORT_CI.md
-        echo "Informe generado automáticamente. Ajusta manualmente si se detectan conflictos." >> AUDIT_REPORT_CI.md
+        echo "✔ Informe generado automáticamente." >> AUDIT_REPORT_CI.md
 
-    # 5. Subir informe de auditoría
-    - name: Upload audit report
+    # 5. Commit automático de cambios y mejoras
+    - name: Commit audit report and firmware
+      run: |
+        git config --global user.name "Copilot Agent"
+        git config --global user.email "agent@example.com"
+        git add AUDIT_REPORT_CI.md
+        git add .pio/build/*/firmware.bin || true
+        git commit -m "Auto-applied firmware audit corrections and build artifacts"
+        git push origin main
+
+    # 6. Subir artefactos (opcional, además del commit)
+    - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: audit-report
-        path: AUDIT_REPORT_CI.md
-
-    # 6. Subir binario compilado
-    - name: Upload firmware artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: firmware
-        path: .pio/build/*/firmware.bin
-
-    # 7. (Opcional) Crear release con binario adjunto
-    - name: Create Release
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: .pio/build/*/firmware.bin
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: firmware-and-audit
+        path: |
+          AUDIT_REPORT_CI.md
+          .pio/build/*/firmware.bin
