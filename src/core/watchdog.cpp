@@ -75,18 +75,21 @@ uint32_t getLastFeedInterval() {
 // Intentar apagado seguro de relés
 void __attribute__((weak)) esp_task_wdt_isr_user_handler(void) {
     // CRÍTICO: Minimal code aquí - ISR context
-    // Apagar relés inmediatamente (safe state)
+    // 🔒 v2.4.1: NO usar delay() en ISR - puede causar corrupción
     
     // Apagar motores y auxiliares INMEDIATAMENTE (pines de pins.h)
-    digitalWrite(PIN_RELAY_MAIN, LOW);  // Main power relay
-    digitalWrite(PIN_RELAY_TRAC, LOW);  // Traction relay
-    digitalWrite(PIN_RELAY_DIR, LOW);   // Direction relay
-    digitalWrite(PIN_RELAY_SPARE, LOW); // Spare relay
+    // Acceso directo a registros GPIO para máxima velocidad y seguridad en ISR
+    GPIO.out_w1tc = ((1ULL << PIN_RELAY_MAIN) | 
+                     (1ULL << PIN_RELAY_TRAC) | 
+                     (1ULL << PIN_RELAY_DIR) | 
+                     (1ULL << PIN_RELAY_SPARE));
     
-    // Note: delay() in ISR is acceptable here as this is a critical emergency shutdown
-    // before system reset. The watchdog will reset the system regardless.
-    // This ensures relays have time to physically disengage before power loss.
-    delay(1000);
+    // 🔒 v2.4.1: Usar bucle de CPU para espera mínima en lugar de delay()
+    // Espera ~10ms para que los relés se desactiven físicamente
+    // A 240MHz, 10ms ≈ 2.4 millones de ciclos
+    for (volatile uint32_t i = 0; i < 2400000; i++) {
+        __asm__ __volatile__("nop");
+    }
     
     // El WDT reset ocurrirá ahora
 }

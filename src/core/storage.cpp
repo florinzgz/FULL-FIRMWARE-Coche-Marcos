@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include "settings.h"
 #include "logger.h"
+#include "system.h"  // 🔒 v2.4.1: Para logError
 
 static Preferences prefs;
 
@@ -11,9 +12,14 @@ Storage::Config cfg;
 static const char *kNamespace = "vehicle";
 static const char *kKeyBlob   = "config";
 
+// 🔒 v2.4.1: Magic number para detección de corrupción EEPROM
+static const uint32_t MAGIC_NUMBER = 0xDEADBEEF;
+static const char *kKeyMagic = "magic";
+
 void Storage::init() {
     if (!prefs.begin(kNamespace, false)) {
         Logger::warn("Storage init: fallo al abrir namespace");
+        System::logError(970);  // código: fallo apertura storage
     }
 }
 
@@ -106,9 +112,19 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
 }
 
 void Storage::load(Config &cfg) {
+    // 🔒 v2.4.1: Verificar magic number primero
+    uint32_t magic = prefs.getUInt(kKeyMagic, 0);
+    if (magic != MAGIC_NUMBER) {
+        Logger::error("Storage load: magic number inválido - EEPROM corrupta o no inicializada");
+        System::logError(971);  // código: EEPROM corrupta
+        defaults(cfg);
+        return;
+    }
+    
     size_t len = prefs.getBytesLength(kKeyBlob);
     if(len != sizeof(Config)) {
-        Logger::warn("Storage load: tamaño inválido, usando defaults");
+        Logger::warnf("Storage load: tamaño inválido (%u vs %u), usando defaults", len, sizeof(Config));
+        System::logError(972);  // código: tamaño config inválido
         defaults(cfg);
         return;
     }
@@ -116,31 +132,47 @@ void Storage::load(Config &cfg) {
 
     // validar versión y checksum
     if(cfg.version != kConfigVersion) {
-        Logger::warn("Storage load: versión inválida, usando defaults");
+        Logger::warnf("Storage load: versión inválida (%u vs %u), usando defaults", cfg.version, kConfigVersion);
+        System::logError(973);  // código: versión config inválida
         defaults(cfg);
         return;
     }
     uint32_t chk = computeChecksum(cfg);
     if(chk != cfg.checksum) {
-        Logger::warn("Storage load: checksum inválido, usando defaults");
+        Logger::errorf("Storage load: checksum inválido (0x%08X vs 0x%08X) - datos corruptos", chk, cfg.checksum);
+        System::logError(974);  // código: checksum inválido
         defaults(cfg);
         return;
     }
+    
+    Logger::infof("Storage: Config cargada OK (v%u, checksum 0x%08X)", cfg.version, cfg.checksum);
 }
 
 bool Storage::save(const Config &cfgIn) {
     Config tmp = cfgIn;
     tmp.version = kConfigVersion;
     tmp.checksum = computeChecksum(tmp);
-    size_t written = prefs.putBytes(kKeyBlob, &tmp, sizeof(Config));
-    if(written != sizeof(Config)) {
-        Logger::errorf("Storage save: fallo al escribir (%u bytes)", written);
+    
+    // 🔒 v2.4.1: Guardar magic number primero
+    if (!prefs.putUInt(kKeyMagic, MAGIC_NUMBER)) {
+        Logger::error("Storage save: fallo al escribir magic number");
+        System::logError(980);  // código: fallo escritura magic
         return false;
     }
+    
+    size_t written = prefs.putBytes(kKeyBlob, &tmp, sizeof(Config));
+    if(written != sizeof(Config)) {
+        Logger::errorf("Storage save: fallo al escribir (%u bytes vs %u esperados)", written, sizeof(Config));
+        System::logError(981);  // código: fallo escritura config
+        return false;
+    }
+    
+    Logger::infof("Storage: Config guardada OK (v%u, checksum 0x%08X)", tmp.version, tmp.checksum);
     return true;
 }
 
 void Storage::resetToFactory() {
     prefs.clear();
     Logger::warn("Storage: reset a valores de fábrica");
+    System::logError(985);  // código: reset a fábrica (info)
 }
