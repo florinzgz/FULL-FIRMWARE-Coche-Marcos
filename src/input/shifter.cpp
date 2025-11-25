@@ -7,6 +7,9 @@
 
 static Shifter::State s = {Shifter::P, false};
 
+// 🔒 v2.5.0: Flag de inicialización
+static bool initialized = false;
+
 // 🔒 CORRECCIÓN CRÍTICA: Debounce para prevenir lecturas erróneas por rebotes
 static constexpr uint32_t DEBOUNCE_MS = 50;
 static uint32_t lastChangeMs = 0;
@@ -57,6 +60,7 @@ void Shifter::init() {
         mcpShifter = nullptr;
     }
     
+    initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
     Logger::info("Shifter init completado (via MCP23017)");
 }
 
@@ -107,3 +111,6 @@ void Shifter::update() {
 
 Shifter::State Shifter::get() { return s; }
 void Shifter::setGear(Shifter::Gear g) { s.gear = g; s.changed = true; announce(g); }
+
+// 🔒 v2.5.0: Estado de inicialización
+bool Shifter::initOK() { return initialized; }

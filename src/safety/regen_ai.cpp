@@ -266,3 +266,8 @@ namespace RegenAI {
         state.energyRecovered += energyWh;
     }
 }
+
+// 🔒 v2.5.0: Estado de inicialización
+bool RegenAI::initOK() {
+    return initialized;
+}

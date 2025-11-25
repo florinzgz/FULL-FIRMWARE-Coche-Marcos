@@ -99,6 +99,12 @@ public:
      * @param duration Duración de la pulsación (ms)
      */
     static void handleLongPress(uint8_t buttonId, uint32_t duration);
+    
+    /**
+     * @brief Verifica si el módulo está inicializado correctamente
+     * @return true si la inicialización fue exitosa
+     */
+    static bool initOK();
 
 private:
     static MenuType currentMenu;

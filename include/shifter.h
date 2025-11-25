@@ -14,4 +14,7 @@ namespace Shifter {
 
     State get();
     void setGear(Gear g); // para forzar desde menú o pruebas
+    
+    // 🔒 v2.5.0: Estado de inicialización
+    bool initOK();
 }

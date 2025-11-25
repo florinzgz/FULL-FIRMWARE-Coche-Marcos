@@ -276,3 +276,8 @@ float CarSensors::calculateBatteryPercent(float voltage) {
     float percent = ((voltage - V_MIN) / (V_MAX - V_MIN)) * 100.0;
     return constrain(percent, 0.0, 100.0);
 }
+
+// 🔒 v2.5.0: Estado de inicialización
+bool CarSensors::initOK() {
+    return initialized;
+}
