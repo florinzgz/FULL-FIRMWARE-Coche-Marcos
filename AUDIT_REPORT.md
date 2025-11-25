@@ -32,7 +32,7 @@
 
 ### ✅ Soporte Condicional WiFi/OTA
 - El código ahora detecta automáticamente si las macros de build están definidas
-- Usa credenciales de build flags si están presentes, fallback a defaults si no
+- Usa credenciales de build flags si están presentes, recurre a valores predeterminados si no
 
 ---
 
