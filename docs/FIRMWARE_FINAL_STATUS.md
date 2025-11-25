@@ -2,23 +2,24 @@
 
 ## ✅ FIRMWARE 100% FUNCIONAL Y VERIFICADO
 
-Fecha: 2025-01-07
-Versión: Final Release
+Fecha: 2025-11-25
+Versión: 2.4.0 - Final Release
 ESP32: S3-DevKitC-1 (44 pines)
 
 ---
 
 ## 📋 RESUMEN EJECUTIVO
 
-**Estado:** ✅ **COMPLETO Y LISTO PARA COMPILAR**
+**Estado:** ✅ **COMPLETO Y LISTO PARA PRODUCCIÓN**
 
-**Correcciones implementadas:**
-- ✅ Todos los GPIOs inválidos corregidos
-- ✅ Conflictos GPIO resueltos
-- ✅ Shifter 12V vía HY-M158 optoacopladores
-- ✅ Sistema power management implementado
-- ✅ Menú oculto con PIN 8989
-- ✅ 13 de 16 canales HY-M158 usados (3 libres)
+**Correcciones v2.4.0:**
+- ✅ Race condition en sensores de ruedas corregida (acceso atómico)
+- ✅ SteeringMotor::get() implementado
+- ✅ Validación de índices negativos en sensores
+- ✅ Relays::emergencyStop() añadido
+- ✅ Histéresis en detección de errores (3 consecutivos)
+- ✅ Bucle bloqueante Serial eliminado
+- ✅ Delays de inicialización HUD reducidos (70ms → 0.6ms)
 
 ---
 
