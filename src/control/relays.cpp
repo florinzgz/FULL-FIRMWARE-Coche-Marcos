@@ -127,12 +127,19 @@ void Relays::emergencyStop() {
     state.lightsOn = false;
     state.mediaOn = false;
     
-    // Log solo si estamos en contexto normal (no ISR)
-    // En ISR, Serial puede causar problemas
-    if (!xPortInIsrContext()) {
+    // 🔒 v2.4.1: Log solo si no estamos en contexto ISR
+    // Usar detección de contexto compatible con ESP32 Arduino framework
+    #if defined(ESP32) || defined(ESP_PLATFORM)
+        // ESP32: xPortInIsrContext() es parte de FreeRTOS incluido en el framework
+        if (!xPortInIsrContext()) {
+            Logger::error("EMERGENCY STOP - Todos los relés desactivados");
+            System::logError(699); // código: parada de emergencia
+        }
+    #else
+        // Para otras plataformas, siempre intentar logging
         Logger::error("EMERGENCY STOP - Todos los relés desactivados");
-        System::logError(699); // código: parada de emergencia
-    }
+        System::logError(699);
+    #endif
 }
 
 void Relays::setLights(bool on) {
@@ -166,6 +173,8 @@ void Relays::update() {
     bool system_error = false;
     
     // 🔒 v2.4.1: Histéresis para evitar ciclos rápidos on/off
+    // NOTA: Estas variables estáticas son seguras porque update() solo se llama
+    // desde el loop principal en main.cpp, nunca desde ISRs o múltiples tareas.
     static uint32_t lastErrorMs = 0;
     static uint8_t consecutiveErrors = 0;
     uint32_t now = millis();
