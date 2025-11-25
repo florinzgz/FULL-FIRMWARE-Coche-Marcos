@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "dfplayer.h"
 #include "alerts.h"
+#include <Adafruit_MCP23X17.h>
 
 static Shifter::State s = {Shifter::P, false};
 
@@ -12,12 +13,16 @@ static uint32_t lastChangeMs = 0;
 static uint8_t stableReadings = 0;
 static Shifter::Gear pendingGear = Shifter::P;
 
-// Shifter conectado vía HY-M158 optoacopladores (señales 12V aisladas)
-// NOTA: Con pull-up (interno o GPIO), idle = HIGH (1), activo cuando optoacoplador tira a LOW (0)
-// Si se cambia a MCP23017 con pull-up interno, verificar que la lógica de polaridad sea consistente
-// Verificar hardware: si optoacoplador invierte la señal, ajustar lógica aquí
-// Lee entrada digital con pull-up (LOW = activo)
-static bool readPin(uint8_t pin) { return digitalRead(pin) == 0; }
+// ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4, pines 8-12 consecutivos)
+static Adafruit_MCP23X17* mcpShifter = nullptr;
+static bool mcpAvailable = false;
+
+// Lee entrada del MCP23017 con pull-up interno (LOW = activo)
+// Los optoacopladores HY-M158 invierten: activo = LED encendido = transistor conduce = LOW
+static bool readMcpPin(uint8_t pin) {
+    if (!mcpAvailable || mcpShifter == nullptr) return false;
+    return mcpShifter->digitalRead(pin) == 0;
+}
 
 static void announce(Shifter::Gear g) {
     // Use generic AUDIO_MODULO_OK for now - specific gear tracks need to be defined
@@ -28,25 +33,44 @@ static void announce(Shifter::Gear g) {
 }
 
 void Shifter::init() {
-    // Pines shifter conectados vía HY-M158 optoacopladores (12V → 3.3V)
-    pinMode(PIN_SHIFTER_P, INPUT_PULLUP);   // P (Park)
-    pinMode(PIN_SHIFTER_D2, INPUT_PULLUP);  // D2 (Drive 2)
-    pinMode(PIN_SHIFTER_D1, INPUT_PULLUP);  // D1 (Drive 1)
-    pinMode(PIN_SHIFTER_N, INPUT_PULLUP);   // N (Neutral)
-    pinMode(PIN_SHIFTER_R, INPUT_PULLUP);   // R (Reverse)
-    Logger::info("Shifter init (via HY-M158)");
+    // ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4)
+    // Pines consecutivos 8-12 para las 5 posiciones: P, R, N, D1, D2
+    mcpShifter = new Adafruit_MCP23X17();
+    
+    if (mcpShifter->begin_I2C(I2C_ADDR_MCP23017)) {
+        // Configurar todos los pines del shifter como entrada con pull-up
+        mcpShifter->pinMode(MCP_PIN_SHIFTER_P,  INPUT_PULLUP);  // GPIOB0: Park
+        mcpShifter->pinMode(MCP_PIN_SHIFTER_R,  INPUT_PULLUP);  // GPIOB1: Reverse
+        mcpShifter->pinMode(MCP_PIN_SHIFTER_N,  INPUT_PULLUP);  // GPIOB2: Neutral
+        mcpShifter->pinMode(MCP_PIN_SHIFTER_D1, INPUT_PULLUP);  // GPIOB3: Drive 1
+        mcpShifter->pinMode(MCP_PIN_SHIFTER_D2, INPUT_PULLUP);  // GPIOB4: Drive 2
+        
+        mcpAvailable = true;
+        Logger::info("Shifter: MCP23017 GPIOB0-B4 configurado (pines 8-12)");
+    } else {
+        mcpAvailable = false;
+        Logger::error(700, "Shifter: MCP23017 no disponible!");
+    }
+    
+    Logger::info("Shifter init completado (via MCP23017)");
 }
 
 void Shifter::update() {
+    // Si MCP23017 no está disponible, mantener última posición conocida
+    if (!mcpAvailable) {
+        s.changed = false;
+        return;
+    }
+    
     Shifter::Gear detectedGear = s.gear;
 
-    // 🔒 CORRECCIÓN CRÍTICA: Lee cada posición con debounce
-    // Lee cada posición del shifter (prioridad P > D2 > D1 > N > R)
-    if(readPin(PIN_SHIFTER_P))       detectedGear = Shifter::P;
-    else if(readPin(PIN_SHIFTER_D2)) detectedGear = Shifter::D2;
-    else if(readPin(PIN_SHIFTER_D1)) detectedGear = Shifter::D1;
-    else if(readPin(PIN_SHIFTER_N))  detectedGear = Shifter::N;
-    else if(readPin(PIN_SHIFTER_R))  detectedGear = Shifter::R;
+    // 🔒 Lee cada posición del shifter vía MCP23017 (prioridad P > R > N > D1 > D2)
+    // Orden de prioridad: Park es más importante que cualquier otra posición
+    if(readMcpPin(MCP_PIN_SHIFTER_P))       detectedGear = Shifter::P;
+    else if(readMcpPin(MCP_PIN_SHIFTER_R))  detectedGear = Shifter::R;
+    else if(readMcpPin(MCP_PIN_SHIFTER_N))  detectedGear = Shifter::N;
+    else if(readMcpPin(MCP_PIN_SHIFTER_D1)) detectedGear = Shifter::D1;
+    else if(readMcpPin(MCP_PIN_SHIFTER_D2)) detectedGear = Shifter::D2;
 
     uint32_t now = millis();
     

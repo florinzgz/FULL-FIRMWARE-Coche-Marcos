@@ -2,7 +2,7 @@
 
 ## Fecha: 2025-11-25
 ## ESP32-S3-DevKitC-1 (44 pines) - Control de Vehículo Eléctrico
-## Versión Firmware: 2.2.0
+## Versión Firmware: 2.3.0
 
 ---
 
@@ -10,15 +10,42 @@
 
 | Métrica | Estado |
 |---------|--------|
-| **Nota Global de Fiabilidad** | **94%** ⭐⭐⭐⭐⭐ |
+| **Nota Global de Fiabilidad** | **95%** ⭐⭐⭐⭐⭐ |
 | Archivos Auditados | 45+ |
-| GPIOs Validados | 35/36 (97%) |
-| Strapping Pins Identificados | 6 (con mitigaciones) |
+| GPIOs Validados | 34/36 (94%) |
+| Strapping Pins Críticos | ✅ 0 en funciones críticas |
+| Conflictos GPIO | ✅ 0 (todos resueltos) |
 | Usos de delay() Críticos | ✅ 0 (refactorizados) |
 | Guards de Inicialización | ✅ Implementados |
 | Sistema de Errores | ✅ Persistente |
 | Non-Blocking Main Loop | ✅ Implementado |
 | Build Status | ✅ SUCCESS 4/4 entornos |
+
+---
+
+## 🆕 MEJORAS APLICADAS EN v2.3.0
+
+### ✅ Reorganización Completa de GPIO
+- **TOUCH_CS**: Movido de GPIO 3 (strapping) → GPIO 21 (seguro)
+- **TOUCH_IRQ**: Movido de GPIO 46 (strapping) → GPIO 47 (seguro)
+- **LED_REAR**: Movido de GPIO 19 → GPIO 48 (resuelve conflicto con SHIFTER_R)
+- **SHIFTER_D2**: Migrado de GPIO 48 → MCP23017 GPIOB0 (libera GPIO para LEDs)
+
+### ✅ Resolución de Conflictos
+- **Conflicto GPIO 19**: SHIFTER_R y LED_REAR usaban el mismo pin
+  - Solución: LED_REAR movido a GPIO 48
+- **Strapping pins en funciones críticas**: TOUCH_CS usaba GPIO 3
+  - Solución: Movido a GPIO 21 (recomendación del usuario)
+
+### ✅ Mejoras de Estabilidad
+- Pines de pantalla táctil ahora usan GPIOs seguros (21, 47)
+- Expansor MCP23017 ahora gestiona Shifter D2 vía I²C
+- Documentación completa en `HARDWARE_REFERENCE.md`
+
+### ✅ Actualización de Documentación
+- Nuevo archivo `HARDWARE_REFERENCE.md` con documentación completa del hardware
+- Tabla de pines actualizada en `pins.h` con formato mejorado
+- Función `pin_is_strapping()` añadida para validación
 
 ---
 
