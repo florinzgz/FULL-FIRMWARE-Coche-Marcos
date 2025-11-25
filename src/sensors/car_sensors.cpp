@@ -189,9 +189,24 @@ void CarSensors::readTemperatureSensors() {
         lastData.ambientTemp = ambTemp;
     }
     
-    // Leer temperatura controlador (sensor 4 duplicado)
-    // Nota: Solo hay 5 sensores (0-4), usando 4 para controlador si disponible
-    lastData.controllerTemp = lastData.ambientTemp;
+    // 🔒 v2.4.0: Estimar temperatura controlador como promedio de temperaturas de motores
+    // NOTA: No hay sensor dedicado para controlador. Esta es una estimación
+    // basada en que el controlador está cerca de los motores y se calienta proporcionalmente.
+    // TODO: Añadir sensor DS18B20 dedicado para controlador si se requiere precisión.
+    float motorAvg = 0.0f;
+    int validCount = 0;
+    for (int i = 0; i < 4; i++) {
+        if (lastData.motorTemp[i] > 0.0f) {
+            motorAvg += lastData.motorTemp[i];
+            validCount++;
+        }
+    }
+    if (validCount > 0) {
+        lastData.controllerTemp = motorAvg / validCount;
+    } else {
+        // Si no hay lecturas de motor, usar ambiente + margen de calentamiento estimado
+        lastData.controllerTemp = lastData.ambientTemp + 10.0f;
+    }
 }
 
 void CarSensors::readEncoders() {

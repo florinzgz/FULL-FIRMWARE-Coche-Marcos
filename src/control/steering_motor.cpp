@@ -6,6 +6,7 @@
 #include "system.h"      // 🔒 v2.4.0: Para logError()
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <cmath>         // 🔒 v2.4.0: Para std::isfinite()
 
 // PCA9685 para motor dirección (I²C 0x42 según pins.h I2C_ADDR_PCA9685_STEERING)
 static Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_STEERING);
@@ -71,7 +72,7 @@ void SteeringMotor::update() {
     
     // 🔒 v2.4.0: Protección por sobrecorriente
     float currentA = Sensors::getCurrent(5);  // Canal 5 = motor dirección
-    if (currentA > kMaxCurrentA && isfinite(currentA)) {
+    if (currentA > kMaxCurrentA && std::isfinite(currentA)) {
         Logger::errorf("SteeringMotor: OVERCURRENT %.1fA (límite %.0fA)", currentA, kMaxCurrentA);
         System::logError(251);  // Código: overcurrent motor dirección
         // Detener motor inmediatamente
