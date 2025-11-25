@@ -6,16 +6,21 @@ El sistema ahora incluye conectividad WiFi y capacidad de actualización Over-Th
 
 ## 🔧 Configuración Inicial
 
-### 1. Configurar Credenciales WiFi
+### 1. Configurar Credenciales WiFi (Recomendado: Build Flags)
 
-Edita el archivo `src/core/wifi_manager.cpp` y cambia estos valores:
+**Método preferido:** Usa build flags en `platformio.ini`:
 
-```cpp
-const char* WIFI_SSID = "TU_RED_WIFI";           // Nombre de tu red WiFi
-const char* WIFI_PASSWORD = "TU_CONTRASEÑA";     // Contraseña WiFi
-const char* OTA_HOSTNAME = "coche-inteligente";  // Nombre del dispositivo
-const char* OTA_PASSWORD = "admin123";            // ⚠️ CAMBIAR por seguridad
+```ini
+build_flags =
+    -DWIFI_SSID=\"TU_RED_WIFI\"
+    -DWIFI_PASSWORD=\"TU_CONTRASEÑA\"
+    -DOTA_HOSTNAME=\"coche-inteligente\"
+    -DOTA_PASSWORD=\"TU_PASSWORD_SEGURO\"
 ```
+
+**Método alternativo:** Edita `src/core/wifi_manager.cpp` directamente.
+
+> ⚠️ **NOTA:** Las variables ahora usan sufijo `_CONFIG` (ej: `WIFI_SSID_CONFIG`) para evitar conflictos con macros de compilación.
 
 ### 2. Compilar y Subir Firmware
 

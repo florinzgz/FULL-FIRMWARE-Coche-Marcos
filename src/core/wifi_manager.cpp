@@ -26,7 +26,9 @@ namespace WiFiManager {
 #ifdef OTA_PASSWORD
     const char* OTA_PASSWORD_CONFIG = OTA_PASSWORD;
 #else
-    const char* OTA_PASSWORD_CONFIG = "admin123";  // Change this!
+    // SECURITY WARNING: Change this default password in production!
+    // Set OTA_PASSWORD via build flags: -DOTA_PASSWORD=\"your_secure_password\"
+    const char* OTA_PASSWORD_CONFIG = "coche_ota_temp_2024";
 #endif
     
     // Status variables
