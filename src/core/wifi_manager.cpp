@@ -3,11 +3,39 @@
 #include "alerts.h"
 
 namespace WiFiManager {
-    // WiFi credentials - CHANGE THESE!
-    const char* WIFI_SSID = "YOUR_WIFI_SSID";
-    const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-    const char* OTA_HOSTNAME = "coche-inteligente";
-    const char* OTA_PASSWORD = "admin123";  // Change this!
+    // WiFi credentials - Configuration via build flags is recommended
+    // SECURITY NOTE: For production, always set credentials via build flags in platformio.ini
+    // rather than using the defaults below. Use: -DWIFI_SSID=\"your_ssid\" etc.
+    // 
+    // Note: Variable names use _CONFIG suffix to avoid conflicts with build flag macros.
+    // The pointers are const at every level for safety (cppcoreguidelines).
+#ifdef WIFI_SSID
+    const char* const WIFI_SSID_CONFIG = WIFI_SSID;
+#else
+    const char* const WIFI_SSID_CONFIG = "YOUR_WIFI_SSID";
+#endif
+
+#ifdef WIFI_PASSWORD
+    const char* const WIFI_PASSWORD_CONFIG = WIFI_PASSWORD;
+#else
+    const char* const WIFI_PASSWORD_CONFIG = "YOUR_WIFI_PASSWORD";
+#endif
+
+#ifdef OTA_HOSTNAME
+    const char* const OTA_HOSTNAME_CONFIG = OTA_HOSTNAME;
+#else
+    const char* const OTA_HOSTNAME_CONFIG = "coche-inteligente";
+#endif
+    
+#ifdef OTA_PASSWORD
+    const char* const OTA_PASSWORD_CONFIG = OTA_PASSWORD;
+#else
+    // SECURITY WARNING: This is a placeholder default password.
+    // For production use, ALWAYS set OTA_PASSWORD via build flags:
+    // -DOTA_PASSWORD=\"your_secure_random_password\"
+    // or disable OTA functionality entirely if not needed.
+    const char* const OTA_PASSWORD_CONFIG = "CHANGE_THIS_PASSWORD";
+#endif
     
     // Status variables
     bool connected = false;
@@ -20,14 +48,14 @@ namespace WiFiManager {
     static const unsigned long CONNECTION_TIMEOUT = 10000; // 10 seconds
     
     void init() {
-        Logger::infof("WiFi: Iniciando conexión a %s", WIFI_SSID);
+        Logger::infof("WiFi: Iniciando conexión a %s", WIFI_SSID_CONFIG);
         
         // Set WiFi mode
         WiFi.mode(WIFI_STA);
-        WiFi.setHostname(OTA_HOSTNAME);
+        WiFi.setHostname(OTA_HOSTNAME_CONFIG);
         
         // Start connection (non-blocking)
-        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+        WiFi.begin(WIFI_SSID_CONFIG, WIFI_PASSWORD_CONFIG);
         
         // Set connection state for non-blocking check in update()
         connectionInProgress = true;
@@ -50,14 +78,14 @@ namespace WiFiManager {
                 Logger::infof("WiFi: RSSI: %d dBm", WiFi.RSSI());
                 
                 // Start mDNS
-                if (MDNS.begin(OTA_HOSTNAME)) {
-                    Logger::infof("WiFi: mDNS iniciado: %s.local", OTA_HOSTNAME);
+                if (MDNS.begin(OTA_HOSTNAME_CONFIG)) {
+                    Logger::infof("WiFi: mDNS iniciado: %s.local", OTA_HOSTNAME_CONFIG);
                     MDNS.addService("http", "tcp", 80);
                 }
                 
                 // Configure OTA
-                ArduinoOTA.setHostname(OTA_HOSTNAME);
-                ArduinoOTA.setPassword(OTA_PASSWORD);
+                ArduinoOTA.setHostname(OTA_HOSTNAME_CONFIG);
+                ArduinoOTA.setPassword(OTA_PASSWORD_CONFIG);
                 
                 ArduinoOTA.onStart(onOTAStart);
                 ArduinoOTA.onEnd(onOTAEnd);
@@ -91,7 +119,7 @@ namespace WiFiManager {
                 lastReconnectAttempt = now;
                 Logger::info("WiFi: Intentando reconectar...");
                 WiFi.disconnect();
-                WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+                WiFi.begin(WIFI_SSID_CONFIG, WIFI_PASSWORD_CONFIG);
             }
         } else if (WiFi.status() == WL_CONNECTED && !connected) {
             connected = true;
