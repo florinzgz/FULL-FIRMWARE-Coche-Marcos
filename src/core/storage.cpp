@@ -61,6 +61,15 @@ void Storage::defaults(Config &cfg) {
     cfg.tempSensorsEnabled     = false;
     cfg.currentSensorsEnabled  = false;
     cfg.steeringEnabled        = false;
+    
+    // 🔒 v2.4.2: Odómetro y mantenimiento
+    cfg.odometer.totalKm = 0.0f;
+    cfg.odometer.tripKm = 0.0f;
+    cfg.odometer.lastServiceKm = 0.0f;
+    cfg.odometer.lastServiceDate = 0;
+    cfg.odometer.engineHours = 0;
+    cfg.maintenanceIntervalKm = 500;     // Mantenimiento cada 500 km
+    cfg.maintenanceIntervalDays = 180;   // Mantenimiento cada 6 meses (180 días)
 
     // Errores persistentes
     cfg.errorCount = 0;
@@ -102,6 +111,11 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
     mix((uint8_t*)&cfg.tempSensorsEnabled, sizeof(cfg.tempSensorsEnabled));
     mix((uint8_t*)&cfg.currentSensorsEnabled, sizeof(cfg.currentSensorsEnabled));
     mix((uint8_t*)&cfg.steeringEnabled, sizeof(cfg.steeringEnabled));
+    
+    // 🔒 v2.4.2: Odómetro y mantenimiento
+    mix((uint8_t*)&cfg.odometer, sizeof(cfg.odometer));
+    mix((uint8_t*)&cfg.maintenanceIntervalKm, sizeof(cfg.maintenanceIntervalKm));
+    mix((uint8_t*)&cfg.maintenanceIntervalDays, sizeof(cfg.maintenanceIntervalDays));
 
     // Errores persistentes
     mix((uint8_t*)&cfg.errorCount, sizeof(cfg.errorCount));
@@ -192,4 +206,56 @@ bool Storage::isCorrupted() {
     }
     
     return false;  // Datos válidos
+}
+
+// ============================================================================
+// 🔒 v2.4.2: Funciones de Odómetro y Mantenimiento
+// ============================================================================
+
+void Storage::updateOdometer(float distanceKm) {
+    if (distanceKm <= 0.0f) return;
+    
+    cfg.odometer.totalKm += distanceKm;
+    cfg.odometer.tripKm += distanceKm;
+    
+    // Guardar cada 0.1 km para evitar escrituras excesivas
+    static float lastSavedKm = 0.0f;
+    if (cfg.odometer.totalKm - lastSavedKm >= 0.1f) {
+        save(cfg);
+        lastSavedKm = cfg.odometer.totalKm;
+    }
+}
+
+void Storage::resetTripOdometer() {
+    cfg.odometer.tripKm = 0.0f;
+    save(cfg);
+    Logger::info("Odómetro parcial reseteado");
+}
+
+void Storage::recordMaintenance() {
+    cfg.odometer.lastServiceKm = cfg.odometer.totalKm;
+    cfg.odometer.lastServiceDate = millis() / 1000;  // Segundos desde arranque (usar RTC si disponible)
+    save(cfg);
+    Logger::infof("Mantenimiento registrado a %.1f km", cfg.odometer.totalKm);
+}
+
+bool Storage::isMaintenanceDue() {
+    // Verificar por kilómetros
+    float kmSinceService = cfg.odometer.totalKm - cfg.odometer.lastServiceKm;
+    if (kmSinceService >= cfg.maintenanceIntervalKm) {
+        Logger::warnf("⚠️ MANTENIMIENTO PENDIENTE: %.1f km desde último servicio (intervalo: %u km)",
+                     kmSinceService, cfg.maintenanceIntervalKm);
+        return true;
+    }
+    
+    // TODO: Verificar por días si hay RTC disponible
+    // Por ahora solo verificamos kilómetros
+    
+    return false;
+}
+
+float Storage::getKmUntilService() {
+    float kmSinceService = cfg.odometer.totalKm - cfg.odometer.lastServiceKm;
+    float kmRemaining = cfg.maintenanceIntervalKm - kmSinceService;
+    return (kmRemaining > 0.0f) ? kmRemaining : 0.0f;
 }
