@@ -108,6 +108,33 @@ void Relays::disablePower() {
     Logger::warn("Relays power disabled - Secuencia completada");
 }
 
+// 🔒 v2.4.1: Parada de emergencia inmediata
+void Relays::emergencyStop() {
+    // CRÍTICO: Sin debounce, sin delays, sin verificaciones
+    // Esta función debe desactivar TODOS los relés lo más rápido posible
+    // Se llama desde ISR del watchdog o en caso de emergencia crítica
+    
+    // Desactivar todos los relés inmediatamente
+    digitalWrite(PIN_RELAY_DIR, LOW);
+    digitalWrite(PIN_RELAY_TRAC, LOW);
+    digitalWrite(PIN_RELAY_MAIN, LOW);
+    digitalWrite(PIN_RELAY_SPARE, LOW);
+    
+    // Actualizar estado
+    state.mainOn = false;
+    state.tractionOn = false;
+    state.steeringOn = false;
+    state.lightsOn = false;
+    state.mediaOn = false;
+    
+    // Log solo si estamos en contexto normal (no ISR)
+    // En ISR, Serial puede causar problemas
+    if (!xPortInIsrContext()) {
+        Logger::error("EMERGENCY STOP - Todos los relés desactivados");
+        System::logError(699); // código: parada de emergencia
+    }
+}
+
 void Relays::setLights(bool on) {
     if(!initialized) {
         Logger::warn("Relays setLights() llamado sin init");
@@ -137,6 +164,11 @@ void Relays::update() {
 
     // 🔒 CORRECCIÓN 5.4: Lógica real de detección de errores críticos
     bool system_error = false;
+    
+    // 🔒 v2.4.1: Histéresis para evitar ciclos rápidos on/off
+    static uint32_t lastErrorMs = 0;
+    static uint8_t consecutiveErrors = 0;
+    uint32_t now = millis();
     
     // Check 1: Overcurrent en batería (canal 4 = batería)
     float batteryCurrent = Sensors::getCurrent(4);
@@ -171,11 +203,22 @@ void Relays::update() {
         system_error = true;
     }
     
-    // Si hay error crítico, desactivar todo inmediatamente
+    // 🔒 v2.4.1: Lógica de histéresis para evitar ciclos rápidos
     if(system_error) {
-        Logger::errorf("Relays: ERROR CRÍTICO - Desactivando todos los relés");
-        System::logError(600); // código: fallo crítico relés
-        disablePower();
+        consecutiveErrors++;
+        lastErrorMs = now;
+        
+        // Solo desactivar si hay 3+ errores consecutivos (para evitar falsos positivos)
+        if (consecutiveErrors >= 3) {
+            Logger::errorf("Relays: ERROR CRÍTICO (%d consecutivos) - Desactivando todos los relés", consecutiveErrors);
+            System::logError(600); // código: fallo crítico relés
+            disablePower();
+        }
+    } else {
+        // Resetear contador de errores después de 1 segundo sin errores
+        if (now - lastErrorMs > 1000) {
+            consecutiveErrors = 0;
+        }
     }
 }
 

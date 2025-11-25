@@ -243,27 +243,32 @@ void Sensors::updateCurrent() {
 }
 
 float Sensors::getCurrent(int channel) {
-    if(channel < NUM_CURRENTS) return lastCurrent[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastCurrent[channel];
     return 0.0f;
 }
 
 float Sensors::getVoltage(int channel) {
-    if(channel < NUM_CURRENTS) return lastVoltage[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastVoltage[channel];
     return 0.0f;
 }
 
 float Sensors::getPower(int channel) {
-    if(channel < NUM_CURRENTS) return lastPower[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastPower[channel];
     return 0.0f;
 }
 
 float Sensors::getShuntVoltage(int channel) {
-    if(channel < NUM_CURRENTS) return lastShunt[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastShunt[channel];
     return 0.0f;
 }
 
 bool Sensors::isCurrentSensorOk(int channel) {
-    if(channel < NUM_CURRENTS) return sensorOk[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return sensorOk[channel];
     return false;
 }
 

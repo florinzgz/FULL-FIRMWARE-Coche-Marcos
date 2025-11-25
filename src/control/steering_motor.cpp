@@ -119,3 +119,8 @@ void SteeringMotor::update() {
 bool SteeringMotor::initOK() {
     return initialized && pcaOK;
 }
+
+// 🔒 v2.4.0: Obtener estado actual del motor de dirección
+const SteeringMotor::State& SteeringMotor::get() {
+    return s;
+}

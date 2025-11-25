@@ -67,12 +67,18 @@ void Sensors::updateWheels() {
         }
 
         if(dt >= 100) { // cada 100ms
-            float revs = (float)pulses[i] / PULSES_PER_REV;
+            // 🔒 v2.4.1: Lectura atómica de pulses para evitar race conditions
+            noInterrupts();
+            unsigned long currentPulses = pulses[i];
+            pulses[i] = 0;
+            interrupts();
+            
+            float revs = (float)currentPulses / PULSES_PER_REV;
 
             // Distancia acumulada en mm
             distance[i] += (unsigned long)(revs * WHEEL_CIRCUM_MM);
 
-            if(pulses[i] > 0) {
+            if(currentPulses > 0) {
                 float mm_per_s = (revs * WHEEL_CIRCUM_MM) / (dt / 1000.0f);
                 float kmh = (mm_per_s / 1000.0f) * 3.6f;
                 // 🔒 Clamp a velocidad máxima definida en constants.h
@@ -85,24 +91,26 @@ void Sensors::updateWheels() {
                 wheelOk[i] = true;
             }
 
-            pulses[i] = 0;
             lastUpdate[i] = now;
         }
     }
 }
 
 float Sensors::getWheelSpeed(int wheel) {
-    if(wheel < NUM_WHEELS) return speed[wheel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(wheel >= 0 && wheel < NUM_WHEELS) return speed[wheel];
     return 0.0f;
 }
 
 unsigned long Sensors::getWheelDistance(int wheel) {
-    if(wheel < NUM_WHEELS) return distance[wheel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(wheel >= 0 && wheel < NUM_WHEELS) return distance[wheel];
     return 0;
 }
 
 bool Sensors::isWheelSensorOk(int wheel) {
-    if(wheel < NUM_WHEELS) return wheelOk[wheel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(wheel >= 0 && wheel < NUM_WHEELS) return wheelOk[wheel];
     return false;
 }
 

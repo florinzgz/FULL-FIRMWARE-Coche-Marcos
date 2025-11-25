@@ -13,6 +13,9 @@ namespace Relays {
     void init();
     void enablePower();  // principal + tracción + dirección
     void disablePower();
+    
+    // 🔒 v2.4.1: Parada de emergencia inmediata (sin debounce, sin delays)
+    void emergencyStop();
 
     void setLights(bool on);
     void setMedia(bool on);
