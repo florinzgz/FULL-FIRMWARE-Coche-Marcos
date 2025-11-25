@@ -112,38 +112,17 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
 }
 
 void Storage::load(Config &cfg) {
-    // 🔒 v2.4.1: Verificar magic number primero
-    uint32_t magic = prefs.getUInt(kKeyMagic, 0);
-    if (magic != MAGIC_NUMBER) {
-        Logger::error("Storage load: magic number inválido - EEPROM corrupta o no inicializada");
-        System::logError(971);  // código: EEPROM corrupta
+    // 🔒 v2.4.2: Verificar corrupción antes de cargar
+    if (isCorrupted()) {
+        Logger::error("Storage: EEPROM corrupta. Restaurando valores por defecto.");
+        System::logError(975);  // código: restauración automática
         defaults(cfg);
+        save(cfg);  // Guardar defaults para próximo arranque
         return;
     }
     
-    size_t len = prefs.getBytesLength(kKeyBlob);
-    if(len != sizeof(Config)) {
-        Logger::warnf("Storage load: tamaño inválido (%u vs %u), usando defaults", len, sizeof(Config));
-        System::logError(972);  // código: tamaño config inválido
-        defaults(cfg);
-        return;
-    }
+    // Datos verificados - cargar configuración
     prefs.getBytes(kKeyBlob, &cfg, sizeof(Config));
-
-    // validar versión y checksum
-    if(cfg.version != kConfigVersion) {
-        Logger::warnf("Storage load: versión inválida (%u vs %u), usando defaults", cfg.version, kConfigVersion);
-        System::logError(973);  // código: versión config inválida
-        defaults(cfg);
-        return;
-    }
-    uint32_t chk = computeChecksum(cfg);
-    if(chk != cfg.checksum) {
-        Logger::errorf("Storage load: checksum inválido (0x%08X vs 0x%08X) - datos corruptos", chk, cfg.checksum);
-        System::logError(974);  // código: checksum inválido
-        defaults(cfg);
-        return;
-    }
     
     Logger::infof("Storage: Config cargada OK (v%u, checksum 0x%08X)", cfg.version, cfg.checksum);
 }
@@ -175,4 +154,42 @@ void Storage::resetToFactory() {
     prefs.clear();
     Logger::warn("Storage: reset a valores de fábrica");
     System::logError(985);  // código: reset a fábrica (info)
+}
+
+// 🔒 v2.4.2: Función para verificar corrupción de EEPROM
+bool Storage::isCorrupted() {
+    // Verificar magic number
+    uint32_t magic = prefs.getUInt(kKeyMagic, 0);
+    if (magic != MAGIC_NUMBER) {
+        Logger::warnf("Storage: magic number inválido (0x%08X vs 0x%08X)", magic, MAGIC_NUMBER);
+        return true;
+    }
+    
+    // Verificar tamaño de datos
+    size_t len = prefs.getBytesLength(kKeyBlob);
+    if (len != sizeof(Config)) {
+        Logger::warnf("Storage: tamaño inválido (%u vs %u)", len, sizeof(Config));
+        return true;
+    }
+    
+    // Leer config temporal para verificar checksum
+    Config tempCfg;
+    prefs.getBytes(kKeyBlob, &tempCfg, sizeof(Config));
+    
+    // Verificar versión
+    if (tempCfg.version != kConfigVersion) {
+        Logger::warnf("Storage: versión inválida (%u vs %u)", tempCfg.version, kConfigVersion);
+        return true;
+    }
+    
+    // Calcular y comparar checksum
+    uint32_t storedChecksum = tempCfg.checksum;
+    uint32_t currentChecksum = computeChecksum(tempCfg);
+    
+    if (storedChecksum != currentChecksum) {
+        Logger::warnf("Storage corrupta: checksum esperado=0x%08X, actual=0x%08X", storedChecksum, currentChecksum);
+        return true;
+    }
+    
+    return false;  // Datos válidos
 }

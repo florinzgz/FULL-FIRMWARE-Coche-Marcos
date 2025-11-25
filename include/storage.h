@@ -61,6 +61,9 @@ namespace Storage {
 
     // Helpers
     uint32_t computeChecksum(const Config &cfg);
+    
+    // 🔒 v2.4.2: Función para verificar corrupción de EEPROM
+    bool isCorrupted();
 }  // namespace Storage
 
 // Global config instance
