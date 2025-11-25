@@ -16,6 +16,9 @@ bool HUDManager::hiddenMenuActive = false;
 uint32_t HUDManager::longPressStartMs = 0;
 uint8_t HUDManager::longPressButtonId = 0;
 
+// 🔒 v2.5.0: Flag de inicialización
+static bool initialized = false;
+
 // TFT singleton
 static TFT_eSPI tft = TFT_eSPI();
 
@@ -80,6 +83,9 @@ void HUDManager::init() {
     
     needsRedraw = true;
     currentMenu = MenuType::NONE;
+    
+    initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
+    Logger::info("HUDManager: Inicialización completada");
 }
 
 void HUDManager::update() {
@@ -207,6 +213,11 @@ void HUDManager::handleLongPress(uint8_t buttonId, uint32_t duration) {
         // Activar/desactivar menú oculto
         activateHiddenMenu(!hiddenMenuActive);
     }
+}
+
+// 🔒 v2.5.0: Estado de inicialización
+bool HUDManager::initOK() {
+    return initialized;
 }
 
 // ===== Funciones de renderizado =====

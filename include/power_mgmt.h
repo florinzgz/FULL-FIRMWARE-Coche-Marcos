@@ -138,4 +138,11 @@ void notifySteeringCentered();
  */
 void notifyWheelSensorsOK();
 
+/**
+ * @brief Verifica si el módulo está inicializado correctamente
+ * 
+ * @return true si la inicialización fue exitosa
+ */
+bool initOK();
+
 } // namespace PowerMgmt

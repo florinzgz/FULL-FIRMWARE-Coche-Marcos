@@ -157,3 +157,8 @@ bool Buttons::toggled4x4() {
     ev4x4 = false;
     return e;
 }
+
+// 🔒 v2.5.0: Estado de inicialización
+bool Buttons::initOK() {
+    return initialized;
+}

@@ -31,6 +31,7 @@ constexpr uint32_t AUDIO_WAIT_MS        = 2000; // Espera reproducción audio ap
 static PowerState currentState = PowerState::OFF;
 static bool steeringCentered = false;
 static bool wheelSensorsOK = false;
+static bool initialized = false;  // 🔒 v2.5.0: Flag de inicialización
 
 static uint32_t lastKeyChangeTime = 0;
 static bool lastKeyState = false;
@@ -107,6 +108,7 @@ void init() {
     activateRelay(PIN_RELAY_AUX_12V);
     currentState = PowerState::POWER_HOLD;
     
+    initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
     Logger::info("PowerMgmt: Inicializado - Power Hold y 12V Auxiliares activos, esperando centrado volante");
 }
 
@@ -237,6 +239,11 @@ void notifySteeringCentered() {
 void notifyWheelSensorsOK() {
     wheelSensorsOK = true;
     Logger::info("PowerMgmt: Notificación: Sensores ruedas OK");
+}
+
+// 🔒 v2.5.0: Estado de inicialización
+bool initOK() {
+    return initialized;
 }
 
 } // namespace PowerMgmt

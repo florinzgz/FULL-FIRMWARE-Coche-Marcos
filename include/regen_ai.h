@@ -72,4 +72,7 @@ namespace RegenAI {
     
     // Update energy recovery statistics
     void updateEnergyStats(float powerW, float durationMs);
+    
+    // 🔒 v2.5.0: Estado de inicialización
+    bool initOK();
 }

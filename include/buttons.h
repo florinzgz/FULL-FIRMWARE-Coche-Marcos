@@ -28,4 +28,7 @@ namespace Buttons {
     bool toggledLights();
     bool toggledMultimedia();
     bool toggled4x4();
+    
+    // 🔒 v2.5.0: Estado de inicialización
+    bool initOK();
 }

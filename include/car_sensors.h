@@ -53,6 +53,12 @@ public:
      * @return Porcentaje (0-100)
      */
     static float calculateBatteryPercent(float voltage);
+    
+    /**
+     * @brief Verifica si el módulo está inicializado correctamente
+     * @return true si la inicialización fue exitosa
+     */
+    static bool initOK();
 
 private:
     static CarData lastData;
