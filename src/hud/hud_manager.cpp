@@ -23,16 +23,20 @@ static bool initialized = false;
 static TFT_eSPI tft = TFT_eSPI();
 
 void HUDManager::init() {
-    // 🔒 CORRECCIÓN CRÍTICA: Eliminar esperas activas, usar lógica no bloqueante
+    // 🔒 v2.4.2: Hardware reset con tiempos mínimos necesarios
+    // NOTA: Los delays de reset TFT son requeridos por hardware y ocurren
+    // solo una vez durante el arranque del sistema. Son inevitables pero
+    // están documentados para claridad.
+    
     // CRITICAL: Enable backlight and reset display BEFORE tft.init()
     pinMode(PIN_TFT_BL, OUTPUT);
     digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
     
     pinMode(PIN_TFT_RST, OUTPUT);
     digitalWrite(PIN_TFT_RST, LOW);
-    delay(10);  // Unavoidable hardware reset timing
+    delayMicroseconds(100);  // 🔒 v2.4.2: Reducido a 100µs (mínimo para ST7796S)
     digitalWrite(PIN_TFT_RST, HIGH);
-    delay(10);  // Unavoidable hardware reset timing
+    delayMicroseconds(500);  // 🔒 v2.4.2: Reducido a 500µs post-reset
     
     // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT
     tft.init();
@@ -44,9 +48,8 @@ void HUDManager::init() {
     
     // CRITICAL: ST7796S rotation configuration for full screen rendering
     // Rotation 3 provides landscape mode (480x320)
-    // This rotation works best for 4-inch ST7796S displays
     tft.setRotation(3);  // Landscape mode: 480x320
-    delay(50);  // Allow display to process rotation - essential for ST7796S
+    // 🔒 v2.4.2: Eliminado delay(50) - setRotation no requiere espera adicional
     
     // 🔒 CORRECCIÓN CRÍTICA: Verificar dimensiones correctas
     int w = tft.width();
@@ -60,7 +63,7 @@ void HUDManager::init() {
     
     // Force complete screen clear to initialize all pixels
     tft.fillScreen(TFT_BLACK);
-    delay(50);  // Allow display buffer to stabilize
+    // 🔒 v2.4.2: Eliminado delay(50) - fillScreen es síncrono, no requiere espera
     
     // 🔒 CORRECCIÓN MEDIA: Cargar brightness de configuración
     if (cfg.displayBrightness > 0 && cfg.displayBrightness <= 255) {

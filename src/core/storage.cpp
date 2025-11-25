@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include "settings.h"
 #include "logger.h"
+#include "system.h"  // 🔒 v2.4.1: Para logError
 
 static Preferences prefs;
 
@@ -11,9 +12,14 @@ Storage::Config cfg;
 static const char *kNamespace = "vehicle";
 static const char *kKeyBlob   = "config";
 
+// 🔒 v2.4.1: Magic number para detección de corrupción EEPROM
+static const uint32_t MAGIC_NUMBER = 0xDEADBEEF;
+static const char *kKeyMagic = "magic";
+
 void Storage::init() {
     if (!prefs.begin(kNamespace, false)) {
         Logger::warn("Storage init: fallo al abrir namespace");
+        System::logError(970);  // código: fallo apertura storage
     }
 }
 
@@ -55,6 +61,15 @@ void Storage::defaults(Config &cfg) {
     cfg.tempSensorsEnabled     = false;
     cfg.currentSensorsEnabled  = false;
     cfg.steeringEnabled        = false;
+    
+    // 🔒 v2.4.2: Odómetro y mantenimiento
+    cfg.odometer.totalKm = 0.0f;
+    cfg.odometer.tripKm = 0.0f;
+    cfg.odometer.lastServiceKm = 0.0f;
+    cfg.odometer.lastServiceDate = 0;
+    cfg.odometer.engineHours = 0;
+    cfg.maintenanceIntervalKm = 500;     // Mantenimiento cada 500 km
+    cfg.maintenanceIntervalDays = 180;   // Mantenimiento cada 6 meses (180 días)
 
     // Errores persistentes
     cfg.errorCount = 0;
@@ -96,6 +111,11 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
     mix((uint8_t*)&cfg.tempSensorsEnabled, sizeof(cfg.tempSensorsEnabled));
     mix((uint8_t*)&cfg.currentSensorsEnabled, sizeof(cfg.currentSensorsEnabled));
     mix((uint8_t*)&cfg.steeringEnabled, sizeof(cfg.steeringEnabled));
+    
+    // 🔒 v2.4.2: Odómetro y mantenimiento
+    mix((uint8_t*)&cfg.odometer, sizeof(cfg.odometer));
+    mix((uint8_t*)&cfg.maintenanceIntervalKm, sizeof(cfg.maintenanceIntervalKm));
+    mix((uint8_t*)&cfg.maintenanceIntervalDays, sizeof(cfg.maintenanceIntervalDays));
 
     // Errores persistentes
     mix((uint8_t*)&cfg.errorCount, sizeof(cfg.errorCount));
@@ -106,41 +126,136 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
 }
 
 void Storage::load(Config &cfg) {
-    size_t len = prefs.getBytesLength(kKeyBlob);
-    if(len != sizeof(Config)) {
-        Logger::warn("Storage load: tamaño inválido, usando defaults");
+    // 🔒 v2.4.2: Verificar corrupción antes de cargar
+    if (isCorrupted()) {
+        Logger::error("Storage: EEPROM corrupta. Restaurando valores por defecto.");
+        System::logError(975);  // código: restauración automática
         defaults(cfg);
+        save(cfg);  // Guardar defaults para próximo arranque
         return;
     }
+    
+    // Datos verificados - cargar configuración
     prefs.getBytes(kKeyBlob, &cfg, sizeof(Config));
-
-    // validar versión y checksum
-    if(cfg.version != kConfigVersion) {
-        Logger::warn("Storage load: versión inválida, usando defaults");
-        defaults(cfg);
-        return;
-    }
-    uint32_t chk = computeChecksum(cfg);
-    if(chk != cfg.checksum) {
-        Logger::warn("Storage load: checksum inválido, usando defaults");
-        defaults(cfg);
-        return;
-    }
+    
+    Logger::infof("Storage: Config cargada OK (v%u, checksum 0x%08X)", cfg.version, cfg.checksum);
 }
 
 bool Storage::save(const Config &cfgIn) {
     Config tmp = cfgIn;
     tmp.version = kConfigVersion;
     tmp.checksum = computeChecksum(tmp);
-    size_t written = prefs.putBytes(kKeyBlob, &tmp, sizeof(Config));
-    if(written != sizeof(Config)) {
-        Logger::errorf("Storage save: fallo al escribir (%u bytes)", written);
+    
+    // 🔒 v2.4.1: Guardar magic number primero
+    if (!prefs.putUInt(kKeyMagic, MAGIC_NUMBER)) {
+        Logger::error("Storage save: fallo al escribir magic number");
+        System::logError(980);  // código: fallo escritura magic
         return false;
     }
+    
+    size_t written = prefs.putBytes(kKeyBlob, &tmp, sizeof(Config));
+    if(written != sizeof(Config)) {
+        Logger::errorf("Storage save: fallo al escribir (%u bytes vs %u esperados)", written, sizeof(Config));
+        System::logError(981);  // código: fallo escritura config
+        return false;
+    }
+    
+    Logger::infof("Storage: Config guardada OK (v%u, checksum 0x%08X)", tmp.version, tmp.checksum);
     return true;
 }
 
 void Storage::resetToFactory() {
     prefs.clear();
     Logger::warn("Storage: reset a valores de fábrica");
+    System::logError(985);  // código: reset a fábrica (info)
+}
+
+// 🔒 v2.4.2: Función para verificar corrupción de EEPROM
+bool Storage::isCorrupted() {
+    // Verificar magic number
+    uint32_t magic = prefs.getUInt(kKeyMagic, 0);
+    if (magic != MAGIC_NUMBER) {
+        Logger::warnf("Storage: magic number inválido (0x%08X vs 0x%08X)", magic, MAGIC_NUMBER);
+        return true;
+    }
+    
+    // Verificar tamaño de datos
+    size_t len = prefs.getBytesLength(kKeyBlob);
+    if (len != sizeof(Config)) {
+        Logger::warnf("Storage: tamaño inválido (%u vs %u)", len, sizeof(Config));
+        return true;
+    }
+    
+    // Leer config temporal para verificar checksum
+    Config tempCfg;
+    prefs.getBytes(kKeyBlob, &tempCfg, sizeof(Config));
+    
+    // Verificar versión
+    if (tempCfg.version != kConfigVersion) {
+        Logger::warnf("Storage: versión inválida (%u vs %u)", tempCfg.version, kConfigVersion);
+        return true;
+    }
+    
+    // Calcular y comparar checksum
+    uint32_t storedChecksum = tempCfg.checksum;
+    uint32_t currentChecksum = computeChecksum(tempCfg);
+    
+    if (storedChecksum != currentChecksum) {
+        Logger::warnf("Storage corrupta: checksum esperado=0x%08X, actual=0x%08X", storedChecksum, currentChecksum);
+        return true;
+    }
+    
+    return false;  // Datos válidos
+}
+
+// ============================================================================
+// 🔒 v2.4.2: Funciones de Odómetro y Mantenimiento
+// ============================================================================
+
+void Storage::updateOdometer(float distanceKm) {
+    if (distanceKm <= 0.0f) return;
+    
+    cfg.odometer.totalKm += distanceKm;
+    cfg.odometer.tripKm += distanceKm;
+    
+    // Guardar cada 0.1 km para evitar escrituras excesivas
+    static float lastSavedKm = 0.0f;
+    if (cfg.odometer.totalKm - lastSavedKm >= 0.1f) {
+        save(cfg);
+        lastSavedKm = cfg.odometer.totalKm;
+    }
+}
+
+void Storage::resetTripOdometer() {
+    cfg.odometer.tripKm = 0.0f;
+    save(cfg);
+    Logger::info("Odómetro parcial reseteado");
+}
+
+void Storage::recordMaintenance() {
+    cfg.odometer.lastServiceKm = cfg.odometer.totalKm;
+    cfg.odometer.lastServiceDate = millis() / 1000;  // Segundos desde arranque (usar RTC si disponible)
+    save(cfg);
+    Logger::infof("Mantenimiento registrado a %.1f km", cfg.odometer.totalKm);
+}
+
+bool Storage::isMaintenanceDue() {
+    // Verificar por kilómetros
+    float kmSinceService = cfg.odometer.totalKm - cfg.odometer.lastServiceKm;
+    if (kmSinceService >= cfg.maintenanceIntervalKm) {
+        Logger::warnf("⚠️ MANTENIMIENTO PENDIENTE: %.1f km desde último servicio (intervalo: %u km)",
+                     kmSinceService, cfg.maintenanceIntervalKm);
+        return true;
+    }
+    
+    // TODO: Verificar por días si hay RTC disponible
+    // Por ahora solo verificamos kilómetros
+    
+    return false;
+}
+
+float Storage::getKmUntilService() {
+    float kmSinceService = cfg.odometer.totalKm - cfg.odometer.lastServiceKm;
+    float kmRemaining = cfg.maintenanceIntervalKm - kmSinceService;
+    return (kmRemaining > 0.0f) ? kmRemaining : 0.0f;
 }

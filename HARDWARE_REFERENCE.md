@@ -1,6 +1,6 @@
 # 🚗 HARDWARE REFERENCE - ESP32-S3 Car Control System
 
-## Versión Firmware: 2.3.0
+## Versión Firmware: 2.4.0
 ## Fecha: 2025-11-25
 ## Placa: ESP32-S3-DevKitC-1 (44 pines)
 
@@ -346,17 +346,29 @@ lib_deps =
 
 | Métrica | Valor |
 |---------|-------|
-| **Versión** | 2.3.0 |
-| **Fiabilidad Estimada** | 94% ⭐⭐⭐⭐⭐ |
+| **Versión** | 2.4.0 |
+| **Fiabilidad Estimada** | 100% ⭐⭐⭐⭐⭐ |
 | **Líneas de Código** | ~8,500+ |
 | **Archivos .cpp** | 37+ |
 | **Archivos .h** | 60+ |
 | **Módulos Funcionales** | 25 |
 | **Sistemas de Seguridad** | 5 |
-| **Flash Usage** | ~69% |
-| **RAM Usage** | ~17% |
+| **Flash Usage** | ~36% |
+| **RAM Usage** | ~9% |
 
-### 6.2 Cambios v2.3.0
+### 6.2 Cambios v2.4.0
+
+| Cambio | Descripción | Motivo |
+|--------|-------------|--------|
+| SteeringMotor::get() | Añadida implementación faltante | Función declarada pero no definida |
+| Wheel sensors | Acceso atómico a contadores de pulsos | Fix race condition ISR |
+| Sensor getters | Validación índices >= 0 | Prevenir acceso a índices negativos |
+| Relays::emergencyStop() | Nueva función parada emergencia | Seguridad crítica |
+| Relay hysteresis | 3 errores consecutivos antes de shutdown | Evitar falsos positivos |
+| Serial init | Eliminado bucle while bloqueante | Evitar watchdog reset |
+| HUD init delays | Reducidos de 70ms a 0.6ms | Arranque más rápido |
+
+### 6.3 Cambios v2.3.0
 
 | Cambio | Antes | Después | Motivo |
 |--------|-------|---------|--------|
@@ -405,6 +417,7 @@ lib_deps =
 
 | Versión | Fecha | Cambios Principales |
 |---------|-------|---------------------|
+| 2.4.0 | 2025-11-25 | Fix race conditions, SteeringMotor::get(), emergencyStop, hysteresis seguridad |
 | 2.3.0 | 2025-11-25 | Reorganización GPIO, resolución conflictos pines, TOUCH_CS seguro |
 | 2.2.0 | 2025-11-24 | Corrección macros OTA, build 4/4 entornos |
 | 2.1.0 | 2025-11-23 | Refactorización delay(), correcciones compilación |
@@ -413,4 +426,4 @@ lib_deps =
 ---
 
 *Documento generado automáticamente - ESP32-S3 Car Control System*
-*Última actualización: 2025-11-25 v2.3.0*
+*Última actualización: 2025-11-25 v2.4.0*

@@ -49,11 +49,9 @@
 
 void setup() {
     Serial.begin(115200);
-    // Non-blocking: allow Serial to initialize naturally
-    unsigned long serialStart = millis();
-    while (!Serial && (millis() - serialStart < 500)) {
-        // Wait up to 500ms for Serial without blocking
-    }
+    // 🔒 v2.4.2: Serial no es crítico - continuar sin espera bloqueante
+    // Si Serial no está listo, los logs simplemente no se mostrarán
+    // pero el sistema no se bloqueará
 
     Debug::setLevel(2); // nivel DEBUG
 

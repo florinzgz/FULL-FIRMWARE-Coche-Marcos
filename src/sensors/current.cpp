@@ -50,7 +50,7 @@ static bool tcaSelect(uint8_t channel) {
     
     // 🔒 CORRECCIÓN CRÍTICA: Proteger acceso I2C con mutex
     if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        // Usar tcaSelectSafe en lugar de Wire directo
+        // Mutex adquirido - acceso I2C protegido
         if (!I2CRecovery::tcaSelectSafe(channel, TCA_ADDR)) {
             Logger::errorf("TCA select fail ch %d - recovery attempt", channel);
             I2CRecovery::recoverBus();  // Intentar recuperar bus
@@ -58,13 +58,17 @@ static bool tcaSelect(uint8_t channel) {
             // 🔒 CORRECCIÓN: Retry después de recovery
             if (!I2CRecovery::tcaSelectSafe(channel, TCA_ADDR)) {
                 Logger::errorf("TCA select fail ch %d después de recovery", channel);
-                xSemaphoreGive(i2cMutex);
+                xSemaphoreGive(i2cMutex);  // Liberar mutex antes de salir
                 return false;
             }
         }
-        xSemaphoreGive(i2cMutex);
+        xSemaphoreGive(i2cMutex);  // Liberar mutex en éxito
         return true;
     } else {
+        // 🔒 v2.4.2: NOTA - No hay race condition aquí.
+        // Cuando xSemaphoreTake retorna pdFALSE (timeout), el mutex NO fue adquirido,
+        // por lo tanto NO hay necesidad de llamar xSemaphoreGive.
+        // El mutex sigue disponible para otros tasks.
         Logger::error("Current: mutex I2C timeout en tcaSelect");
         return false;
     }
@@ -243,27 +247,32 @@ void Sensors::updateCurrent() {
 }
 
 float Sensors::getCurrent(int channel) {
-    if(channel < NUM_CURRENTS) return lastCurrent[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastCurrent[channel];
     return 0.0f;
 }
 
 float Sensors::getVoltage(int channel) {
-    if(channel < NUM_CURRENTS) return lastVoltage[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastVoltage[channel];
     return 0.0f;
 }
 
 float Sensors::getPower(int channel) {
-    if(channel < NUM_CURRENTS) return lastPower[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastPower[channel];
     return 0.0f;
 }
 
 float Sensors::getShuntVoltage(int channel) {
-    if(channel < NUM_CURRENTS) return lastShunt[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return lastShunt[channel];
     return 0.0f;
 }
 
 bool Sensors::isCurrentSensorOk(int channel) {
-    if(channel < NUM_CURRENTS) return sensorOk[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_CURRENTS) return sensorOk[channel];
     return false;
 }
 

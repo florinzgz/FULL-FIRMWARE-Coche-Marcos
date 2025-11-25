@@ -147,12 +147,14 @@ void Sensors::updateTemperature() {
 }
 
 float Sensors::getTemperature(int channel) {
-    if(channel < NUM_TEMPS) return lastTemp[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_TEMPS) return lastTemp[channel];
     return 0.0f;
 }
 
 bool Sensors::isTemperatureSensorOk(int channel) {
-    if(channel < NUM_TEMPS) return sensorOk[channel];
+    // 🔒 v2.4.1: Validación de rango completa
+    if(channel >= 0 && channel < NUM_TEMPS) return sensorOk[channel];
     return false;
 }
 
