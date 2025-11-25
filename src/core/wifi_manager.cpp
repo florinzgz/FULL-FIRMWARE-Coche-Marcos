@@ -3,32 +3,38 @@
 #include "alerts.h"
 
 namespace WiFiManager {
-    // WiFi credentials - CHANGE THESE!
-    // Note: Variable names use _CONFIG suffix to avoid conflicts with build flag macros
+    // WiFi credentials - Configuration via build flags is recommended
+    // SECURITY NOTE: For production, always set credentials via build flags in platformio.ini
+    // rather than using the defaults below. Use: -DWIFI_SSID=\"your_ssid\" etc.
+    // 
+    // Note: Variable names use _CONFIG suffix to avoid conflicts with build flag macros.
+    // The pointers are const at every level for safety (cppcoreguidelines).
 #ifdef WIFI_SSID
-    const char* WIFI_SSID_CONFIG = WIFI_SSID;
+    const char* const WIFI_SSID_CONFIG = WIFI_SSID;
 #else
-    const char* WIFI_SSID_CONFIG = "YOUR_WIFI_SSID";
+    const char* const WIFI_SSID_CONFIG = "YOUR_WIFI_SSID";
 #endif
 
 #ifdef WIFI_PASSWORD
-    const char* WIFI_PASSWORD_CONFIG = WIFI_PASSWORD;
+    const char* const WIFI_PASSWORD_CONFIG = WIFI_PASSWORD;
 #else
-    const char* WIFI_PASSWORD_CONFIG = "YOUR_WIFI_PASSWORD";
+    const char* const WIFI_PASSWORD_CONFIG = "YOUR_WIFI_PASSWORD";
 #endif
 
 #ifdef OTA_HOSTNAME
-    const char* OTA_HOSTNAME_CONFIG = OTA_HOSTNAME;
+    const char* const OTA_HOSTNAME_CONFIG = OTA_HOSTNAME;
 #else
-    const char* OTA_HOSTNAME_CONFIG = "coche-inteligente";
+    const char* const OTA_HOSTNAME_CONFIG = "coche-inteligente";
 #endif
     
 #ifdef OTA_PASSWORD
-    const char* OTA_PASSWORD_CONFIG = OTA_PASSWORD;
+    const char* const OTA_PASSWORD_CONFIG = OTA_PASSWORD;
 #else
-    // SECURITY WARNING: Change this default password in production!
-    // Set OTA_PASSWORD via build flags: -DOTA_PASSWORD=\"your_secure_password\"
-    const char* OTA_PASSWORD_CONFIG = "coche_ota_temp_2024";
+    // SECURITY WARNING: This is a placeholder default password.
+    // For production use, ALWAYS set OTA_PASSWORD via build flags:
+    // -DOTA_PASSWORD=\"your_secure_random_password\"
+    // or disable OTA functionality entirely if not needed.
+    const char* const OTA_PASSWORD_CONFIG = "CHANGE_THIS_PASSWORD";
 #endif
     
     // Status variables

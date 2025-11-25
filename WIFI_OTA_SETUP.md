@@ -20,7 +20,8 @@ build_flags =
 
 **Método alternativo:** Edita `src/core/wifi_manager.cpp` directamente.
 
-> ⚠️ **NOTA:** Las variables ahora usan sufijo `_CONFIG` (ej: `WIFI_SSID_CONFIG`) para evitar conflictos con macros de compilación.
+> ⚠️ **NOTA IMPORTANTE:** El sufijo `_CONFIG` (ej: `WIFI_SSID_CONFIG`) se usa **solo internamente** en el código C++ para evitar conflictos.  
+> Al definir las credenciales en los build flags de `platformio.ini`, **debes usar los nombres originales de los macros SIN el sufijo** (ej: `-DWIFI_SSID=...`, no `-DWIFI_SSID_CONFIG=...`).
 
 ### 2. Compilar y Subir Firmware
 
