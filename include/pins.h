@@ -3,7 +3,7 @@
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
-// 🔒 ACTUALIZADO 2025-11-25 v2.3.0 - Reorganización completa + Resolución conflictos
+// 🔒 ACTUALIZADO 2025-11-25 v2.4.0 - Mejoras de fiabilidad y funcionalidad
 // ============================================================================
 //
 // PINES REALES DISPONIBLES EN LA PLACA (36 GPIOs):

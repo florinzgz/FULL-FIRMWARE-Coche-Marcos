@@ -59,4 +59,7 @@ namespace TCSSystem {
     
     // Set drive mode (0=Eco, 1=Normal, 2=Sport)
     void setDriveMode(uint8_t mode);
+    
+    // 🔒 v2.4.0: Estado de inicialización
+    bool initOK();
 }

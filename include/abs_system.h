@@ -49,4 +49,7 @@ namespace ABSSystem {
     // Apply ABS modulation to brake demand for a specific wheel
     // Returns modulated brake demand (0-100%)
     float modulateBrake(int wheel, float brakeDemand);
+    
+    // 🔒 v2.4.0: Estado de inicialización
+    bool initOK();
 }

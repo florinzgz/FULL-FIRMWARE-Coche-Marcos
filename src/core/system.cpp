@@ -8,6 +8,8 @@
 #include "relays.h"
 #include "logger.h"
 #include "storage.h"
+#include "steering_motor.h"   // 🔒 v2.4.0: Para verificar motor dirección
+#include "traction.h"         // 🔒 v2.4.0: Para verificar tracción
 
 extern Storage::Config cfg;
 
@@ -28,13 +30,26 @@ System::Health System::selfTest() {
         h.ok = false;
     }
 
-    // Dirección
+    // Dirección (encoder)
     if(cfg.steeringEnabled) {
         if(!Steering::initOK()) {
             System::logError(200);
-            Logger::errorf("SelfTest: dirección no responde");
+            Logger::errorf("SelfTest: encoder dirección no responde");
             h.steeringOK = false;
             h.ok = false;
+        }
+        
+        // 🔒 v2.4.0: Verificar motor dirección también
+        // NOTA CRÍTICA: El motor de dirección NO es crítico para arranque inicial porque:
+        // 1. Puede inicializarse tardíamente una vez que I2C esté estable
+        // 2. El vehículo está PARADO durante selfTest (marcha P obligatoria)
+        // 3. El sistema de relés cortará potencia si hay fallo grave
+        // Sin embargo, se marca h.steeringOK = false para indicar problema parcial
+        if(!SteeringMotor::initOK()) {
+            System::logError(250);
+            Logger::errorf("SelfTest: motor dirección no responde (no crítico en arranque)");
+            h.steeringOK = false;
+            // h.ok permanece true - vehículo puede arrancar pero con precaución
         }
     }
 
@@ -73,6 +88,14 @@ System::Health System::selfTest() {
         System::logError(600);
         Logger::errorf("SelfTest: relés no responden");
         h.ok = false;
+    }
+    
+    // 🔒 v2.4.0: Tracción (no crítico pero loggear)
+    if(cfg.tractionEnabled) {
+        if(!Traction::initOK()) {
+            Logger::warn("SelfTest: módulo tracción no inicializado");
+            // No marcar como fallo crítico
+        }
     }
 
     // DFPlayer (no crítico)

@@ -198,3 +198,8 @@ namespace ABSSystem {
         return brakeDemand;
     }
 }
+
+// 🔒 v2.4.0: Estado de inicialización
+bool ABSSystem::initOK() {
+    return initialized;
+}
