@@ -5,13 +5,21 @@
 #include "steering.h"
 #include "shifter.h"
 #include "wheels.h"
+#include "storage.h"        // 🔒 v2.4.0: Para cfg
+#include "logger.h"         // 🔒 v2.4.0: Para logging
 #include <Arduino.h>
+#include <cmath>            // 🔒 v2.4.0: Para isfinite()
+
+extern Storage::Config cfg; // 🔒 v2.4.0: Acceso a configuración
 
 // Variables estáticas
 CarData CarSensors::lastData = {};
 uint32_t CarSensors::lastSecondaryRead = 0;
+static bool initialized = false;  // 🔒 v2.4.0: Flag de inicialización
 
 void CarSensors::init() {
+    Logger::info("CarSensors: Inicializando sensores...");
+    
     // Inicializar sensores de corriente (INA226)
     Sensors::initCurrent();
     
@@ -27,9 +35,18 @@ void CarSensors::init() {
     memset(&lastData, 0, sizeof(CarData));
     lastData.gear = GearPosition::PARK;
     lastSecondaryRead = 0;
+    
+    initialized = true;
+    Logger::info("CarSensors: Inicialización completada");
 }
 
 CarData CarSensors::readAll() {
+    // 🔒 v2.4.0: Guard de inicialización
+    if (!initialized) {
+        Logger::warn("CarSensors::readAll() llamado sin init");
+        return lastData;
+    }
+    
     CarData data = lastData;
     
     // Leer sensores críticos (alta frecuencia)
@@ -49,11 +66,17 @@ CarData CarSensors::readAll() {
         lastSecondaryRead = now;
     }
     
-    // Copiar datos
+    // Copiar datos con validación
     data.batteryVoltage = lastData.batteryVoltage;
     data.batteryPercent = calculateBatteryPercent(data.batteryVoltage);
     data.batteryCurrent = lastData.batteryCurrent;
-    data.batteryPower = data.batteryVoltage * data.batteryCurrent;
+    
+    // 🔒 v2.4.0: Validar cálculo de potencia
+    if (std::isfinite(data.batteryVoltage) && std::isfinite(data.batteryCurrent)) {
+        data.batteryPower = data.batteryVoltage * data.batteryCurrent;
+    } else {
+        data.batteryPower = 0.0f;
+    }
     
     for (int i = 0; i < 4; i++) {
         data.motorCurrent[i] = lastData.motorCurrent[i];
@@ -104,31 +127,71 @@ void CarSensors::readSecondary() {
 }
 
 void CarSensors::readINA226Sensors() {
+    // 🔒 v2.4.0: Verificar si sensores están habilitados
+    if (!cfg.currentSensorsEnabled) {
+        for (int i = 0; i < 4; i++) {
+            lastData.motorCurrent[i] = 0.0f;
+        }
+        lastData.batteryCurrent = 0.0f;
+        lastData.batteryVoltage = 0.0f;
+        lastData.steeringCurrent = 0.0f;
+        return;
+    }
+    
     // Leer 4 sensores INA226 de motores (canales 0-3)
     for (int i = 0; i < 4; i++) {
-        lastData.motorCurrent[i] = Sensors::getCurrent(i);
+        float current = Sensors::getCurrent(i);
+        // 🔒 v2.4.0: Validar lectura
+        if (std::isfinite(current)) {
+            lastData.motorCurrent[i] = current;
+        } else {
+            lastData.motorCurrent[i] = 0.0f;
+        }
     }
     
     // Leer sensor INA226 batería (canal 4)
-    lastData.batteryCurrent = Sensors::getCurrent(4);
-    lastData.batteryVoltage = Sensors::getVoltage(4);
+    float battCurrent = Sensors::getCurrent(4);
+    float battVoltage = Sensors::getVoltage(4);
+    
+    // 🔒 v2.4.0: Validar lecturas batería
+    lastData.batteryCurrent = std::isfinite(battCurrent) ? battCurrent : 0.0f;
+    lastData.batteryVoltage = std::isfinite(battVoltage) ? battVoltage : 0.0f;
     
     // Leer sensor INA226 dirección (canal 5)
-    lastData.steeringCurrent = Sensors::getCurrent(5);
+    float steerCurrent = Sensors::getCurrent(5);
+    lastData.steeringCurrent = std::isfinite(steerCurrent) ? steerCurrent : 0.0f;
 }
 
 void CarSensors::readTemperatureSensors() {
+    // 🔒 v2.4.0: Verificar si sensores están habilitados
+    if (!cfg.tempSensorsEnabled) {
+        for (int i = 0; i < 4; i++) {
+            lastData.motorTemp[i] = 0.0f;
+        }
+        lastData.ambientTemp = 0.0f;
+        lastData.controllerTemp = 0.0f;
+        return;
+    }
+    
     // Leer 4 sensores de temperatura de motores
     for (int i = 0; i < 4; i++) {
-        lastData.motorTemp[i] = Sensors::getTemperature(i);
+        float temp = Sensors::getTemperature(i);
+        // 🔒 v2.4.0: Validar lectura
+        if (std::isfinite(temp) && temp > -50.0f && temp < 150.0f) {
+            lastData.motorTemp[i] = temp;
+        }
+        // Si inválido, mantener último valor
     }
     
     // Leer temperatura ambiente (sensor 4)
-    lastData.ambientTemp = Sensors::getTemperature(4);
+    float ambTemp = Sensors::getTemperature(4);
+    if (std::isfinite(ambTemp) && ambTemp > -50.0f && ambTemp < 80.0f) {
+        lastData.ambientTemp = ambTemp;
+    }
     
-    // Leer temperatura controlador (sensor 5)
+    // Leer temperatura controlador (sensor 4 duplicado)
     // Nota: Solo hay 5 sensores (0-4), usando 4 para controlador si disponible
-    lastData.controllerTemp = Sensors::getTemperature(4);
+    lastData.controllerTemp = lastData.ambientTemp;
 }
 
 void CarSensors::readEncoders() {

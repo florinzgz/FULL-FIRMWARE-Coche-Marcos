@@ -248,3 +248,8 @@ void setDriveMode(uint8_t mode) {
 }
 
 } // namespace TCSSystem
+
+// 🔒 v2.4.0: Estado de inicialización
+bool TCSSystem::initOK() {
+    return initialized;
+}

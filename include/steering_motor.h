@@ -13,4 +13,7 @@ namespace SteeringMotor {
     void update();
 
     const State& get();
+    
+    // 🔒 v2.4.0: Estado de inicialización
+    bool initOK();
 }
