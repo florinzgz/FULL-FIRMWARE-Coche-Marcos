@@ -1,6 +1,9 @@
 #include "hud_manager.h"
 #include "hud.h"
 #include "pins.h"
+#include "logger.h"
+#include "system.h"
+#include "storage.h"
 #include <Arduino.h>
 
 // Variables estáticas

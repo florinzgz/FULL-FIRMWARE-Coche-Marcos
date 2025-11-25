@@ -4,7 +4,7 @@
 namespace Storage {
 
     // Versión de estructura de datos guardada
-    const uint16_t kConfigVersion = 3;   // ⚠️ subir versión al cambiar estructura
+    const uint16_t kConfigVersion = 4;   // ⚠️ subir versión al cambiar estructura (v4: added displayBrightness)
 
     struct ErrorLog {
         uint16_t code;       // código de error
@@ -29,6 +29,7 @@ namespace Storage {
         // HUD opciones
         bool showTemps;
         bool showEffort;
+        uint8_t displayBrightness;  // Brillo de pantalla (0-255)
 
         // Módulos habilitados
         bool audioEnabled;

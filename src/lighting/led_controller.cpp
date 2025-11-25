@@ -1,5 +1,6 @@
 #include "led_controller.h"
 #include "logger.h"
+#include "pins.h"
 #include <Arduino.h>
 
 namespace LEDController {
