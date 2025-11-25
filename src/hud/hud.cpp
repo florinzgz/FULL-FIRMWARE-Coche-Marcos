@@ -83,7 +83,7 @@ void HUD::init() {
     
     // Log total init time for performance monitoring
     uint32_t initDuration = millis() - startMs;
-    Logger::infof("HUD visual test completed in %lums", initDuration);
+    Logger::infof("HUD visual test completed in %ums", (unsigned int)initDuration);
 
     // Initialize dashboard components
     // CRITICAL: These must be called after tft is initialized and rotation is set
