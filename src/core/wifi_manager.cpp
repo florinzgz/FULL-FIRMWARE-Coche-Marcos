@@ -4,10 +4,26 @@
 
 namespace WiFiManager {
     // WiFi credentials - CHANGE THESE!
-    const char* WIFI_SSID = "YOUR_WIFI_SSID";
-    const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
-    const char* OTA_HOSTNAME = "coche-inteligente";
-    const char* OTA_PASSWORD = "admin123";  // Change this!
+    // Note: Variable names use _CONFIG suffix to avoid conflicts with build flag macros
+#ifdef WIFI_SSID
+    const char* WIFI_SSID_CONFIG = WIFI_SSID;
+#else
+    const char* WIFI_SSID_CONFIG = "YOUR_WIFI_SSID";
+#endif
+
+#ifdef WIFI_PASSWORD
+    const char* WIFI_PASSWORD_CONFIG = WIFI_PASSWORD;
+#else
+    const char* WIFI_PASSWORD_CONFIG = "YOUR_WIFI_PASSWORD";
+#endif
+
+    const char* OTA_HOSTNAME_CONFIG = "coche-inteligente";
+    
+#ifdef OTA_PASSWORD
+    const char* OTA_PASSWORD_CONFIG = OTA_PASSWORD;
+#else
+    const char* OTA_PASSWORD_CONFIG = "admin123";  // Change this!
+#endif
     
     // Status variables
     bool connected = false;
@@ -20,14 +36,14 @@ namespace WiFiManager {
     static const unsigned long CONNECTION_TIMEOUT = 10000; // 10 seconds
     
     void init() {
-        Logger::infof("WiFi: Iniciando conexión a %s", WIFI_SSID);
+        Logger::infof("WiFi: Iniciando conexión a %s", WIFI_SSID_CONFIG);
         
         // Set WiFi mode
         WiFi.mode(WIFI_STA);
-        WiFi.setHostname(OTA_HOSTNAME);
+        WiFi.setHostname(OTA_HOSTNAME_CONFIG);
         
         // Start connection (non-blocking)
-        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+        WiFi.begin(WIFI_SSID_CONFIG, WIFI_PASSWORD_CONFIG);
         
         // Set connection state for non-blocking check in update()
         connectionInProgress = true;
@@ -50,14 +66,14 @@ namespace WiFiManager {
                 Logger::infof("WiFi: RSSI: %d dBm", WiFi.RSSI());
                 
                 // Start mDNS
-                if (MDNS.begin(OTA_HOSTNAME)) {
-                    Logger::infof("WiFi: mDNS iniciado: %s.local", OTA_HOSTNAME);
+                if (MDNS.begin(OTA_HOSTNAME_CONFIG)) {
+                    Logger::infof("WiFi: mDNS iniciado: %s.local", OTA_HOSTNAME_CONFIG);
                     MDNS.addService("http", "tcp", 80);
                 }
                 
                 // Configure OTA
-                ArduinoOTA.setHostname(OTA_HOSTNAME);
-                ArduinoOTA.setPassword(OTA_PASSWORD);
+                ArduinoOTA.setHostname(OTA_HOSTNAME_CONFIG);
+                ArduinoOTA.setPassword(OTA_PASSWORD_CONFIG);
                 
                 ArduinoOTA.onStart(onOTAStart);
                 ArduinoOTA.onEnd(onOTAEnd);
@@ -91,7 +107,7 @@ namespace WiFiManager {
                 lastReconnectAttempt = now;
                 Logger::info("WiFi: Intentando reconectar...");
                 WiFi.disconnect();
-                WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+                WiFi.begin(WIFI_SSID_CONFIG, WIFI_PASSWORD_CONFIG);
             }
         } else if (WiFi.status() == WL_CONNECTED && !connected) {
             connected = true;

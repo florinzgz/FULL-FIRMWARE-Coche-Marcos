@@ -5,10 +5,11 @@
 
 namespace WiFiManager {
     // WiFi configuration
-    extern const char* WIFI_SSID;
-    extern const char* WIFI_PASSWORD;
-    extern const char* OTA_HOSTNAME;
-    extern const char* OTA_PASSWORD;
+    // Note: These names are prefixed to avoid conflicts with build flags
+    extern const char* WIFI_SSID_CONFIG;
+    extern const char* WIFI_PASSWORD_CONFIG;
+    extern const char* OTA_HOSTNAME_CONFIG;
+    extern const char* OTA_PASSWORD_CONFIG;
     
     // Status
     extern bool connected;
