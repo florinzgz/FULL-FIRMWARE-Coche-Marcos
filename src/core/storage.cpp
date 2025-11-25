@@ -40,11 +40,13 @@ void Storage::defaults(Config &cfg) {
     // HUD
     cfg.showTemps  = true;
     cfg.showEffort = true;
+    cfg.displayBrightness = 200;  // Brillo por defecto (200 de 255)
 
     // Módulos
     cfg.audioEnabled      = true;
     cfg.lightsEnabled     = true;
     cfg.multimediaEnabled = true;
+    cfg.tractionEnabled   = true;  // Módulo de tracción habilitado por defecto
 
     // Nuevos flags de tolerancia a fallos
     // ⚙️ Inicialmente deshabilitados para modo standalone (solo pantalla)
@@ -83,9 +85,11 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
     mix((uint8_t*)&cfg.steerZeroOffset, sizeof(cfg.steerZeroOffset));
     mix((uint8_t*)&cfg.showTemps, sizeof(cfg.showTemps));
     mix((uint8_t*)&cfg.showEffort, sizeof(cfg.showEffort));
+    mix((uint8_t*)&cfg.displayBrightness, sizeof(cfg.displayBrightness));
     mix((uint8_t*)&cfg.audioEnabled, sizeof(cfg.audioEnabled));
     mix((uint8_t*)&cfg.lightsEnabled, sizeof(cfg.lightsEnabled));
     mix((uint8_t*)&cfg.multimediaEnabled, sizeof(cfg.multimediaEnabled));
+    mix((uint8_t*)&cfg.tractionEnabled, sizeof(cfg.tractionEnabled));
 
     // Nuevos flags
     mix((uint8_t*)&cfg.wheelSensorsEnabled, sizeof(cfg.wheelSensorsEnabled));

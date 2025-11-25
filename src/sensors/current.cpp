@@ -110,11 +110,18 @@ void Sensors::initCurrent() {
             float shuntOhm = (i == 4) ? SHUNT_BATTERY_OHM : SHUNT_MOTOR_OHM;
             float maxCurrent = (i == 4) ? MAX_CURRENT_BATTERY : MAX_CURRENT_MOTOR;
             
-            // 🔒 CORRECCIÓN CRÍTICA: Descomentar calibración INA226
+            // 🔒 CORRECCIÓN CRÍTICA: Usar API correcta de INA226 v0.6.x
             // Calibrar para shunt CG FL-2C según canal
-            ina[i]->configure(INA226_AVERAGES_1, INA226_BUS_CONV_TIME_1100US, 
-                             INA226_SHUNT_CONV_TIME_1100US, INA226_MODE_SHUNT_BUS_CONT);
-            ina[i]->calibrate(shuntOhm, maxCurrent);
+            ina[i]->setAverage(INA226_1_SAMPLE);
+            ina[i]->setBusVoltageConversionTime(INA226_1100_us);
+            ina[i]->setShuntVoltageConversionTime(INA226_1100_us);
+            int err = ina[i]->setMaxCurrentShunt(maxCurrent, shuntOhm);
+            
+            if (err != INA226_ERR_NONE) {
+                Logger::errorf("INA226 ch%d calibration error: %d", i, err);
+                sensorOk[i] = false;
+                continue;
+            }
             
             sensorOk[i] = true;
             Logger::infof("INA226 OK ch%d (%.4fΩ, %.0fA)", i, shuntOhm, maxCurrent);

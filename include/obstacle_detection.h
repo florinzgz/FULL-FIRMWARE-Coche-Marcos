@@ -35,13 +35,13 @@ namespace ObstacleDetection {
         ObstacleLevel level;    // Proximity level
         bool valid;             // Data validity flag
         
-        ObstacleZone() : distanceMm(ObstacleConfig::DISTANCE_INVALID), 
+        ObstacleZone() : distanceMm(::ObstacleConfig::DISTANCE_INVALID), 
                         confidence(0), level(LEVEL_INVALID), valid(false) {}
     };
     
     // Complete sensor state (8x8 grid)
     struct ObstacleSensor {
-        ObstacleZone zones[ObstacleConfig::ZONES_PER_SENSOR];
+        ObstacleZone zones[::ObstacleConfig::ZONES_PER_SENSOR];
         uint16_t minDistance;           // Closest obstacle in all zones (mm)
         ObstacleLevel proximityLevel;   // Overall proximity level
         bool enabled;                   // Sensor enabled flag
@@ -50,15 +50,15 @@ namespace ObstacleDetection {
         uint32_t lastUpdateMs;          // Last successful update timestamp
         uint8_t errorCount;             // Consecutive error counter
         
-        ObstacleSensor() : minDistance(ObstacleConfig::DISTANCE_INVALID),
+        ObstacleSensor() : minDistance(::ObstacleConfig::DISTANCE_INVALID),
                           proximityLevel(LEVEL_INVALID), enabled(true),
                           healthy(false), offsetMm(0), lastUpdateMs(0), errorCount(0) {}
     };
     
     // Persistent configuration (saved to storage)
-    struct ObstacleConfig {
-        bool sensorsEnabled[ObstacleConfig::NUM_SENSORS];
-        int16_t offsetsMm[ObstacleConfig::NUM_SENSORS];
+    struct ObstacleSettings {
+        bool sensorsEnabled[::ObstacleConfig::NUM_SENSORS];
+        int16_t offsetsMm[::ObstacleConfig::NUM_SENSORS];
         uint16_t thresholdCritical;
         uint16_t thresholdWarning;
         uint16_t thresholdCaution;
@@ -66,12 +66,12 @@ namespace ObstacleDetection {
         bool visualAlertsEnabled;
         
         // Initialize with defaults
-        ObstacleConfig() : thresholdCritical(ObstacleConfig::DISTANCE_CRITICAL),
-                          thresholdWarning(ObstacleConfig::DISTANCE_WARNING),
-                          thresholdCaution(ObstacleConfig::DISTANCE_CAUTION),
+        ObstacleSettings() : thresholdCritical(::ObstacleConfig::DISTANCE_CRITICAL),
+                          thresholdWarning(::ObstacleConfig::DISTANCE_WARNING),
+                          thresholdCaution(::ObstacleConfig::DISTANCE_CAUTION),
                           audioAlertsEnabled(true),
                           visualAlertsEnabled(true) {
-            for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
+            for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
                 sensorsEnabled[i] = true;
                 offsetsMm[i] = 0;
             }
@@ -93,10 +93,10 @@ namespace ObstacleDetection {
         
         ObstacleStatus() : sensorsHealthy(0), sensorsEnabled(0), 
                           overallLevel(LEVEL_INVALID),
-                          minDistanceFront(ObstacleConfig::DISTANCE_INVALID),
-                          minDistanceRear(ObstacleConfig::DISTANCE_INVALID),
-                          minDistanceLeft(ObstacleConfig::DISTANCE_INVALID),
-                          minDistanceRight(ObstacleConfig::DISTANCE_INVALID),
+                          minDistanceFront(::ObstacleConfig::DISTANCE_INVALID),
+                          minDistanceRear(::ObstacleConfig::DISTANCE_INVALID),
+                          minDistanceLeft(::ObstacleConfig::DISTANCE_INVALID),
+                          minDistanceRight(::ObstacleConfig::DISTANCE_INVALID),
                           emergencyStopActive(false), parkingAssistActive(false),
                           lastUpdateMs(0) {}
     };
@@ -187,13 +187,13 @@ namespace ObstacleDetection {
      * Get current configuration
      * @return Reference to configuration structure
      */
-    const ObstacleConfig& getConfig();
+    const ObstacleSettings& getConfig();
     
     /**
      * Update configuration
      * @param config New configuration to apply
      */
-    void setConfig(const ObstacleConfig& config);
+    void setConfig(const ObstacleSettings& config);
     
     /**
      * Get specific zone data

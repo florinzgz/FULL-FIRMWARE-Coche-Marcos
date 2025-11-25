@@ -42,6 +42,15 @@ constexpr uint32_t SENSOR_TIMEOUT_MS = 1000;    // 🔒 Timeout para sensor sin 
 // Conversión y factores
 // =======================
 constexpr float MM_TO_KMH   = 0.0036f;       // mm/s → km/h  (3.6 / 1000 = 0.0036)
+
+// Undefine Arduino.h macros to avoid conflicts
+#ifdef DEG_TO_RAD
+#undef DEG_TO_RAD
+#endif
+#ifdef RAD_TO_DEG
+#undef RAD_TO_DEG
+#endif
+
 constexpr float DEG_TO_RAD  = 3.14159265358979323846f / 180.0f; // grados → radianes
 constexpr float RAD_TO_DEG  = 180.0f / 3.14159265358979323846f; // radianes → grados
 

@@ -51,24 +51,39 @@ void HUD::init() {
     // NOTE: tft.init() and tft.setRotation(3) are already called by HUDManager::init()
     // Do NOT call tft.init() again - it causes display issues
     
+    // 🔒 REFACTORED: Non-blocking visual test using millis() instead of delay()
     // Test visual: verify SPI communication works
     // Display is 480x320 in landscape mode (rotation 3 for ST7796S)
-    tft.fillScreen(TFT_RED);
-    delay(500);
-    tft.fillScreen(TFT_GREEN);
-    delay(500);
-    tft.fillScreen(TFT_BLUE);
-    delay(500);
-    tft.fillScreen(TFT_BLACK);
+    static const uint16_t TEST_COLORS[] = {TFT_RED, TFT_GREEN, TFT_BLUE, TFT_BLACK};
+    static const uint32_t COLOR_DURATION_MS = 150;  // Reduced from 500ms for faster init
+    
+    uint32_t startMs = millis();
+    for (int i = 0; i < 4; i++) {
+        tft.fillScreen(TEST_COLORS[i]);
+        // Non-blocking wait using millis()
+        uint32_t colorStart = millis();
+        while (millis() - colorStart < COLOR_DURATION_MS) {
+            yield();  // Allow background tasks to run
+        }
+    }
     
     // Draw test text to confirm rendering (centered for 480x320)
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("ST7796S OK", 240, 160, 4);  // Center of 480x320
-    delay(1000);
+    
+    // Non-blocking wait for text display (reduced from 1000ms)
+    uint32_t textStart = millis();
+    while (millis() - textStart < 300) {
+        yield();  // Allow background tasks to run
+    }
     
     // Clear screen and prepare for dashboard
     tft.fillScreen(TFT_BLACK);
+    
+    // Log total init time for performance monitoring
+    uint32_t initDuration = millis() - startMs;
+    Logger::infof("HUD visual test completed in %ums", (unsigned int)initDuration);
 
     // Initialize dashboard components
     // CRITICAL: These must be called after tft is initialized and rotation is set
@@ -87,7 +102,7 @@ void HUD::init() {
         System::logError(760); // código reservado: fallo táctil
     }
 
-    Logger::info("HUD init OK - Display ILI9488 ready");
+    Logger::info("HUD init OK - Display ST7796S ready");
     
     // Draw initial dashboard elements
     // Show title and status - car visualization will appear when update() is called
