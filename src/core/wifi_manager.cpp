@@ -17,7 +17,11 @@ namespace WiFiManager {
     const char* WIFI_PASSWORD_CONFIG = "YOUR_WIFI_PASSWORD";
 #endif
 
+#ifdef OTA_HOSTNAME
+    const char* OTA_HOSTNAME_CONFIG = OTA_HOSTNAME;
+#else
     const char* OTA_HOSTNAME_CONFIG = "coche-inteligente";
+#endif
     
 #ifdef OTA_PASSWORD
     const char* OTA_PASSWORD_CONFIG = OTA_PASSWORD;
