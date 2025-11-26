@@ -1,8 +1,8 @@
 # 🔍 AUDITORÍA COMPLETA DEL FIRMWARE - COCHE MARCOS
 
-## Fecha: 2025-11-25
+## Fecha: 2025-11-26
 ## ESP32-S3-DevKitC-1 (44 pines) - Control de Vehículo Eléctrico
-## Versión Firmware: 2.5.0
+## Versión Firmware: 2.6.0
 
 ---
 
@@ -12,7 +12,7 @@
 |---------|--------|
 | **Nota Global de Fiabilidad** | **100%** ⭐⭐⭐⭐⭐ |
 | Archivos Auditados | 50+ |
-| GPIOs Validados | 34/36 (94%) |
+| GPIOs Validados | 30/36 (83%) + MCP23017 13/16 (81%) |
 | Strapping Pins Críticos | ✅ 0 en funciones críticas |
 | Conflictos GPIO | ✅ 0 (todos resueltos) |
 | Usos de delay() Críticos | ✅ 0 (refactorizados) |
@@ -23,23 +23,29 @@
 | Protección Overcurrent | ✅ Implementada en motor dirección |
 | Validación de Sensores | ✅ Completa con fallbacks |
 | Build Status | ✅ SUCCESS 4/4 entornos |
+| Documentación | ✅ project_config.ini sincronizado |
 
 ---
 
-## 🆕 MEJORAS APLICADAS EN v2.5.0
+## 🆕 MEJORAS APLICADAS EN v2.6.0
 
-### ✅ Consistencia de API - initOK() en TODOS los módulos
-- **RegenAI::initOK()**: Nueva función para verificar estado del sistema de frenado regenerativo AI
-- **Shifter::initOK()**: Nueva función para verificar palanca de cambios (vía MCP23017)
-- **Buttons::initOK()**: Nueva función para verificar botones físicos
-- **PowerMgmt::initOK()**: Nueva función para verificar gestión de alimentación
-- **CarSensors::initOK()**: Nueva función para verificar recolector de sensores
-- **HUDManager::initOK()**: Nueva función para verificar sistema de visualización
+### ✅ Sincronización de Documentación
+- **project_config.ini**: Actualizado completamente para coincidir con pins.h v2.3.0+
+- **GPIO Map**: Corregido mapa de pines (I2C_SDA=GPIO8, TOUCH_CS=GPIO21, etc.)
+- **Shifter**: Documentado uso de MCP23017 GPIOB0-4 en lugar de GPIOs directos
+- **LEDs**: LED_REAR corregido a GPIO48 (era GPIO19)
+- **Touch**: TOUCH_CS=GPIO21, TOUCH_IRQ=GPIO47 (evita strapping pins)
+- **GPIOs libres**: Documentados GPIO 18, 19, 45, 46 como disponibles
 
-### ✅ Fiabilidad Mejorada
-- **Logging mejorado**: Mensajes de inicialización en todos los módulos
-- **Flags de inicialización consistentes**: Patrón uniforme en toda la base de código
-- **Guards de seguridad reforzados**: Verificación de estado antes de operaciones críticas
+### ✅ Verificación de Hardware
+- **GPIO 46**: Confirmado como LIBRE (no usado para botón de batería)
+- **Botón batería**: No existe físicamente, solo software para menú oculto
+- **platformio.ini**: Verificado y correcto (sin cambios necesarios)
+
+### ✅ Consistencia Total
+- **pins.h**: Fuente de verdad para asignación de pines ✅
+- **platformio.ini**: Build flags sincronizados con pins.h ✅
+- **project_config.ini**: Documentación sincronizada ✅
 
 ---
 
