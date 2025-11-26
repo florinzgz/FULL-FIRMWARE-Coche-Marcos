@@ -184,10 +184,10 @@ Lado 2: GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RS
 
 | GPIO | Uso Actual | Riesgo | Mitigación |
 |------|------------|--------|------------|
-| 0 | KEY_SYSTEM / TOUCH_CS | 🟡 Medio | Pull-up externo requerido |
-| 3 | TOUCH_CS (pins.h) | 🟡 Medio | Configuración post-boot |
-| 45 | BTN_LIGHTS | 🟡 Medio | Entrada con pull-up |
-| 46 | TOUCH_IRQ | 🟡 Medio | Entrada con pull-up |
+| 0 | KEY_SYSTEM | 🟡 Medio | Pull-up externo requerido |
+| 3 | WHEEL_FL | 🟡 Medio | Configuración post-boot |
+| 45 | 🆓 LIBRE | 🟢 Bajo | Disponible para expansión |
+| 46 | 🆓 LIBRE | 🟢 Bajo | Disponible para expansión |
 | 43 | DFPLAYER_TX | 🟢 Bajo | UART reservado |
 | 44 | DFPLAYER_RX | 🟢 Bajo | UART reservado |
 
@@ -196,41 +196,50 @@ Lado 2: GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RS
 **Comunicaciones:**
 | Pin | Función | Estado |
 |-----|---------|--------|
-| 16 | I2C_SDA | ✅ Correcto |
+| 8 | I2C_SDA | ✅ Correcto |
 | 9 | I2C_SCL | ✅ Correcto |
-| 8-14 | SPI TFT | ✅ Correcto |
+| 10-14 | SPI TFT | ✅ Correcto |
 | 42 | TFT_BL (PWM) | ✅ Correcto |
 | 43/44 | UART DFPlayer | ✅ Correcto |
 
 **Relés de Potencia:**
 | Pin | Función | Estado |
 |-----|---------|--------|
-| 2 | RELAY_MAIN | ✅ Correcto |
-| 4 | RELAY_TRAC | ✅ Correcto |
-| 5 | RELAY_DIR | ✅ Correcto |
-| 6 | RELAY_SPARE | ✅ Correcto |
+| 4 | RELAY_MAIN | ✅ Correcto |
+| 5 | RELAY_TRAC | ✅ Correcto |
+| 6 | RELAY_DIR | ✅ Correcto |
+| 7 | RELAY_SPARE | ✅ Correcto |
 
 **Sensores:**
 | Pin | Función | Estado |
 |-----|---------|--------|
 | 35 | PEDAL (ADC) | ✅ Correcto |
 | 37/38/39 | Encoder A/B/Z | ✅ Correcto |
-| 21/36/17/15 | Wheel FL/FR/RL/RR | ✅ Correcto |
+| 3/36/17/15 | Wheel FL/FR/RL/RR | ✅ Correcto |
 | 20 | OneWire DS18B20 | ✅ Correcto |
+| 21 | TOUCH_CS | ✅ Correcto |
+| 47 | TOUCH_IRQ | ✅ Correcto |
 
-**Shifter (5 posiciones vía HY-M158):**
+**Shifter (5 posiciones vía MCP23017 GPIOB):**
+| Pin MCP23017 | Función | Estado |
+|--------------|---------|--------|
+| GPIOB0 (pin 8) | SHIFTER_P | ✅ Correcto |
+| GPIOB1 (pin 9) | SHIFTER_R | ✅ Correcto |
+| GPIOB2 (pin 10) | SHIFTER_N | ✅ Correcto |
+| GPIOB3 (pin 11) | SHIFTER_D1 | ✅ Correcto |
+| GPIOB4 (pin 12) | SHIFTER_D2 | ✅ Correcto |
+
+**LEDs WS2812B:**
 | Pin | Función | Estado |
 |-----|---------|--------|
-| 47 | SHIFTER_P | ✅ Correcto |
-| 48 | SHIFTER_D2 | ✅ Correcto |
-| 7 | SHIFTER_D1 | ✅ Correcto |
-| 18 | SHIFTER_N | ✅ Correcto |
-| 19 | SHIFTER_R | ⚠️ Conflicto LED_REAR |
+| 1 | LED_FRONT (28 LEDs) | ✅ Correcto |
+| 48 | LED_REAR (16 LEDs) | ✅ Correcto |
 
-### ⚠️ Conflicto Detectado:
-- **GPIO 19**: Usado por SHIFTER_R y LED_REAR (WS2812B)
-- **Impacto**: Bajo (LED_REAR fue reubicado según pins.h línea 211)
-- **Estado**: Documentado y mitigado
+### ✅ Conflictos Resueltos v2.3.0:
+- **GPIO 19**: Antes usado por SHIFTER_R y LED_REAR - ✅ RESUELTO
+  - LED_REAR movido a GPIO 48
+  - Shifter completo migrado a MCP23017 GPIOB0-4
+- **GPIO 3**: Antes TOUCH_CS (strapping) → WHEEL_FL ahora, TOUCH_CS movido a GPIO 21
 
 ---
 
