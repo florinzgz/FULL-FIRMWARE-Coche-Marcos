@@ -185,7 +185,7 @@ Lado 2: GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RS
 | GPIO | Uso Actual | Riesgo | Mitigación |
 |------|------------|--------|------------|
 | 0 | KEY_SYSTEM | 🟡 Medio | Pull-up externo requerido |
-| 3 | WHEEL_FL | 🟡 Medio | Configuración post-boot |
+| 3 | WHEEL_FL | 🟡 Medio | Sensor rueda, sin efecto en boot |
 | 45 | 🆓 LIBRE | 🟢 Bajo | Disponible para expansión |
 | 46 | 🆓 LIBRE | 🟢 Bajo | Disponible para expansión |
 | 43 | DFPLAYER_TX | 🟢 Bajo | UART reservado |
