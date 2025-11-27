@@ -10,6 +10,8 @@
 ## 📋 ÍNDICE
 
 1. [Introducción y Lista de Materiales](#1-introducción-y-lista-de-materiales)
+   - [1.2 Lista de Componentes](#12-lista-de-componentes)
+   - [1.3 🔧 Componentes Adicionales (Resistencias, Diodos, etc.)](#13--componentes-adicionales-necesarios)
 2. [Módulo 1: ESP32-S3-DevKitC-1](#2-módulo-1-esp32-s3-devkitc-1-placa-principal)
 3. [Módulo 2: Bus I²C](#3-módulo-2-bus-i2c---comunicaciones)
 4. [Módulo 3: Pantalla ST7796S + Táctil](#4-módulo-3-pantalla-st7796s--táctil-xpt2046)
@@ -61,6 +63,116 @@ Este manual detalla **cada conexión cable por cable** del sistema de control de
 | 2 | Tira LED | WS2812B | Iluminación |
 | 2 | Optoacoplador | HY-M158 (8 canales) | Aislamiento |
 | 4 | Relé | SRD-05VDC-SL-C | Control potencia |
+
+### 1.3 🔧 COMPONENTES ADICIONALES NECESARIOS
+
+Además de los componentes principales, necesitarás los siguientes elementos pasivos y de protección:
+
+#### Resistencias
+
+| Cantidad | Valor | Potencia | Ubicación | Función |
+|----------|-------|----------|-----------|---------|
+| 2 | **4.7kΩ** | 1/4W | Bus I²C (SDA y SCL) | Pull-up OBLIGATORIO para comunicación I²C |
+| 1 | **4.7kΩ** | 1/4W | Bus OneWire (GPIO 20) | Pull-up OBLIGATORIO para DS18B20 |
+| 1 | **2.7kΩ** | 1/4W | Divisor pedal (R1) | Divisor tensión 5V→3.3V para sensor Hall |
+| 1 | **4.7kΩ** | 1/4W | Divisor pedal (R2) | Divisor tensión 5V→3.3V para sensor Hall |
+| 1 | **330Ω** | 1/4W | LEDs frontales (GPIO 1) | Protección señal DIN WS2812B |
+| 1 | **330Ω** | 1/4W | LEDs traseros (GPIO 48) | Protección señal DIN WS2812B |
+
+#### Capacitores
+
+| Cantidad | Valor | Voltaje | Ubicación | Función |
+|----------|-------|---------|-----------|---------|
+| 1 | **1000µF** | 10V | LEDs frontales (cerca VCC) | Filtrado/estabilización WS2812B |
+| 1 | **1000µF** | 10V | LEDs traseros (cerca VCC) | Filtrado/estabilización WS2812B |
+| 2 | **100nF** | 50V | Bus I²C (cerca ESP32) | Desacoplo señales I²C (opcional) |
+| 1 | **100µF** | 35V | Entrada 24V BTS7960 | Filtrado alimentación motores |
+| 1 | **100µF** | 16V | Entrada 12V BTS7960 dirección | Filtrado alimentación motor |
+
+#### Fusibles
+
+| Cantidad | Valor | Tipo | Ubicación | Función |
+|----------|-------|------|-----------|---------|
+| 1 | **50A** | Blade/cuchilla | Batería 24V (línea positiva) | Protección sobrecorriente tracción |
+| 1 | **30A** | Blade/cuchilla | Batería 12V (línea positiva) | Protección sobrecorriente auxiliar |
+| 1 | **5A** | Fusible 5x20mm | Línea 5V (después convertidor) | Protección electrónica |
+
+#### Diodos
+
+| Cantidad | Modelo | Ubicación | Función |
+|----------|--------|-----------|---------|
+| 4 | **1N4007** | Bobinas relés (si módulo no los tiene) | Diodo flyback protección |
+| 1 | **1N5822** (Schottky) | Salida convertidor 12V→5V | Protección inversión polaridad |
+
+#### Convertidores de Voltaje
+
+| Cantidad | Tipo | Entrada | Salida | Corriente | Función |
+|----------|------|---------|--------|-----------|---------|
+| 1 | Buck DC-DC | 12V | 5V | 3A mínimo | Alimentación ESP32, LEDs, lógica |
+| 1 | Buck DC-DC | 24V | 12V | 10A (opcional) | Si solo tienes batería 24V |
+
+#### Conectores Recomendados
+
+| Cantidad | Tipo | Calibre | Ubicación |
+|----------|------|---------|-----------|
+| 4 | XT60 | 12 AWG | Conexiones batería 24V |
+| 4 | XT30 | 16 AWG | Conexiones batería 12V |
+| 20 | Dupont hembra | 22 AWG | Conexiones a ESP32 |
+| 10 | JST-XH 2pin | 22 AWG | Conexiones sensores |
+
+#### Diagrama de Componentes Adicionales
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    COMPONENTES ADICIONALES                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  BUS I²C (OBLIGATORIO):                                                 │
+│  ┌─────────────────────────────────────────┐                           │
+│  │  3.3V ●────┬────[4.7kΩ]────● GPIO 8 (SDA)                          │
+│  │            │                                                         │
+│  │            └────[4.7kΩ]────● GPIO 9 (SCL)                          │
+│  └─────────────────────────────────────────┘                           │
+│                                                                         │
+│  BUS ONEWIRE DS18B20 (OBLIGATORIO):                                    │
+│  ┌─────────────────────────────────────────┐                           │
+│  │  3.3V ●────────[4.7kΩ]────● GPIO 20                                │
+│  └─────────────────────────────────────────┘                           │
+│                                                                         │
+│  DIVISOR TENSIÓN PEDAL (OBLIGATORIO):                                  │
+│  ┌─────────────────────────────────────────┐                           │
+│  │  Sensor 5V ●──[2.7kΩ]──┬──● GPIO 35                                │
+│  │                        │                                             │
+│  │                     [4.7kΩ]                                         │
+│  │                        │                                             │
+│  │                       GND                                            │
+│  └─────────────────────────────────────────┘                           │
+│                                                                         │
+│  LEDs WS2812B (RECOMENDADO):                                           │
+│  ┌─────────────────────────────────────────┐                           │
+│  │  GPIO 1 ●────[330Ω]────● DIN (frontales)                           │
+│  │  GPIO 48 ●───[330Ω]────● DIN (traseros)                            │
+│  │                                                                      │
+│  │  5V ●──┬──[1000µF]──● GND (cerca de LEDs)                          │
+│  └─────────────────────────────────────────┘                           │
+│                                                                         │
+│  PROTECCIÓN BATERÍA (OBLIGATORIO):                                     │
+│  ┌─────────────────────────────────────────┐                           │
+│  │  Batería 24V + ●──[FUSIBLE 50A]──● Sistema                         │
+│  │  Batería 12V + ●──[FUSIBLE 30A]──● Sistema                         │
+│  └─────────────────────────────────────────┘                           │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### ⚠️ Notas Importantes sobre Componentes Adicionales
+
+1. **Pull-ups I²C**: SIN estas resistencias, el bus I²C NO funcionará
+2. **Pull-up OneWire**: SIN esta resistencia, los DS18B20 NO responderán
+3. **Divisor de tensión**: SIN este divisor, el GPIO 35 SE DAÑARÁ con los 5V del sensor
+4. **Fusibles**: NUNCA operar sin fusibles - riesgo de incendio
+5. **Capacitores LEDs**: Evitan parpadeos y protegen de picos de corriente
+6. **Resistencias 330Ω**: Protegen la señal de datos de los LEDs WS2812B
 
 ---
 
