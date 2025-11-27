@@ -237,7 +237,7 @@ void loop() {
         // Animated SystemStatus
         data.status.fourWheelDrive = true;                           // 4x4 active
         data.status.lights = (demoTime > 5.0f && demoTime < 20.0f);  // Lights cycle
-        data.status.parkingBrake = (data.speed < 3.0f);              // Brake when slow
+        data.status.parkingBrake = (data.speed < 10.0f);
         data.status.wifi = false;                                    // WiFi off
         data.status.bluetooth = false;                               // Bluetooth off
         data.status.warnings = (data.motorTemp[0] > 52.0f) ? 1 : 0;  // Temp warning
