@@ -5,6 +5,60 @@
 #include "pins.h"
 #include "settings.h"
 
+// ============================================================================
+// Demo Mode Animation Constants (STANDALONE_DISPLAY)
+// ============================================================================
+#ifdef STANDALONE_DISPLAY
+// Timing
+static const uint32_t DEMO_CYCLE_MS = 30000;           // Full animation cycle duration (30 seconds)
+
+// Wave frequencies (radians per second factor)
+static const float DEMO_SPEED_WAVE_FREQ = 0.4f;        // Speed/RPM oscillation frequency
+static const float DEMO_STEER_WAVE_FREQ = 0.5f;        // Steering oscillation frequency
+
+// Speed and RPM ranges
+static const float DEMO_MIN_SPEED = 5.0f;              // Minimum speed (km/h)
+static const float DEMO_SPEED_RANGE = 45.0f;           // Speed variation range (km/h)
+static const float DEMO_MIN_RPM = 600.0f;              // Minimum RPM
+static const float DEMO_RPM_RANGE = 2400.0f;           // RPM variation range
+
+// Pedal and steering
+static const float DEMO_MIN_PEDAL = 10.0f;             // Minimum pedal position (%)
+static const float DEMO_PEDAL_RANGE = 70.0f;           // Pedal variation range (%)
+static const float DEMO_MAX_STEER_ANGLE = 15.0f;       // Maximum steering angle (degrees)
+static const float DEMO_ENCODER_RANGE = 500.0f;        // Encoder value variation range
+
+// Battery
+static const float DEMO_MIN_VOLTAGE = 24.0f;           // Minimum battery voltage (V)
+static const float DEMO_VOLTAGE_RANGE = 1.0f;          // Voltage variation range (V)
+static const float DEMO_MIN_CURRENT = 1.0f;            // Minimum battery current (A)
+static const float DEMO_CURRENT_RANGE = 8.0f;          // Current variation range (A)
+
+// Temperatures
+static const float DEMO_MIN_FRONT_TEMP = 40.0f;        // Minimum front motor temp (°C)
+static const float DEMO_FRONT_TEMP_RANGE = 15.0f;      // Front temp variation range (°C)
+static const float DEMO_MIN_REAR_TEMP = 38.0f;         // Minimum rear motor temp (°C)
+static const float DEMO_REAR_TEMP_RANGE = 12.0f;       // Rear temp variation range (°C)
+static const float DEMO_MIN_CONTROLLER_TEMP = 35.0f;   // Minimum controller temp (°C)
+static const float DEMO_CONTROLLER_TEMP_RANGE = 10.0f; // Controller temp variation range (°C)
+
+// Motor currents
+static const float DEMO_MIN_FRONT_CURRENT = 1.0f;      // Minimum front motor current (A)
+static const float DEMO_FRONT_CURRENT_RANGE = 4.0f;    // Front motor current variation (A)
+static const float DEMO_MIN_REAR_CURRENT = 1.0f;       // Minimum rear motor current (A)
+static const float DEMO_REAR_CURRENT_RANGE = 3.0f;     // Rear motor current variation (A)
+static const float DEMO_MIN_STEER_CURRENT = 0.2f;      // Minimum steering current (A)
+static const float DEMO_STEER_CURRENT_RANGE = 1.0f;    // Steering current variation (A)
+
+// Feature timing (seconds within demo cycle)
+static const float DEMO_LIGHTS_ON_TIME = 5.0f;         // Lights turn on at this time
+static const float DEMO_LIGHTS_OFF_TIME = 20.0f;       // Lights turn off at this time
+
+// Thresholds
+static const float DEMO_GEAR_CHANGE_SPEED = 3.0f;      // Speed threshold for P↔D1 gear change
+static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for warning indicator
+#endif
+
 // Núcleo
 #include "system.h"
 #include "storage.h"
@@ -202,45 +256,45 @@ void loop() {
     if (now - lastHudUpdate >= HUD_UPDATE_INTERVAL) {
         lastHudUpdate = now;
         
-        // Demo time for animation (cycles every 30 seconds)
+        // Demo time for animation (uses named constants for timing)
         static uint32_t demoStartTime = millis();
-        float demoTime = (float)((now - demoStartTime) % 30000) / 1000.0f;
-        float wave = (sinf(demoTime * 0.4f) + 1.0f) / 2.0f;  // 0 to 1 oscillation
-        float steerWave = sinf(demoTime * 0.5f);             // -1 to 1 for steering
+        float demoTime = (float)((now - demoStartTime) % DEMO_CYCLE_MS) / 1000.0f;
+        float wave = (sinf(demoTime * DEMO_SPEED_WAVE_FREQ) + 1.0f) / 2.0f;  // 0 to 1 oscillation
+        float steerWave = sinf(demoTime * DEMO_STEER_WAVE_FREQ);             // -1 to 1 for steering
         
-        // Create animated simulated car data
+        // Create animated simulated car data using named constants
         CarData data;
-        data.speed = 5.0f + wave * 30.0f;            // 5 to 35 km/h (matches MAX_SPEED_KMH)
-        data.rpm = 100 + (int)(wave * 300.0f);       // 100 to 400 RPM (matches MAX_RPM)
-        data.batteryVoltage = 24.0f + wave * 1.0f;   // 24.0 to 25.0V variation
-        data.batteryCurrent = 1.0f + wave * 8.0f;    // 1 to 9A (proportional to speed)
-        data.batteryPercent = 85 + (int)(wave * 10); // 85% to 95%
-        data.motorTemp[0] = 40.0f + wave * 15.0f;    // Motor FL temp
-        data.motorTemp[1] = 40.0f + wave * 15.0f;    // Motor FR temp
-        data.motorTemp[2] = 38.0f + wave * 12.0f;    // Motor RL temp
-        data.motorTemp[3] = 38.0f + wave * 12.0f;    // Motor RR temp
-        data.ambientTemp = 25.0f;                    // 25°C ambient (static)
-        data.controllerTemp = 35.0f + wave * 10.0f;  // 35-45°C controller
-        data.motorCurrent[0] = 1.0f + wave * 4.0f;   // Motor FL current
-        data.motorCurrent[1] = 1.0f + wave * 4.0f;   // Motor FR current
-        data.motorCurrent[2] = 1.0f + wave * 3.0f;   // Motor RL current
-        data.motorCurrent[3] = 1.0f + wave * 3.0f;   // Motor RR current
-        data.steeringCurrent = 0.2f + fabsf(steerWave) * 1.0f;  // Steering current (fabsf for float)
-        data.pedalPercent = 10.0f + wave * 70.0f;    // 10% to 80% pedal
-        data.steeringAngle = steerWave * 15.0f;      // -15° to +15°
-        data.gear = (data.speed > 10.0f) ? GearPosition::DRIVE1 : GearPosition::PARK;
+        data.speed = DEMO_MIN_SPEED + wave * DEMO_SPEED_RANGE;
+        data.rpm = DEMO_MIN_RPM + (int)(wave * DEMO_RPM_RANGE);
+        data.batteryVoltage = DEMO_MIN_VOLTAGE + wave * DEMO_VOLTAGE_RANGE;
+        data.batteryCurrent = DEMO_MIN_CURRENT + wave * DEMO_CURRENT_RANGE;
+        data.batteryPercent = 85 + (int)(wave * 10);
+        data.motorTemp[0] = DEMO_MIN_FRONT_TEMP + wave * DEMO_FRONT_TEMP_RANGE;
+        data.motorTemp[1] = DEMO_MIN_FRONT_TEMP + wave * DEMO_FRONT_TEMP_RANGE;
+        data.motorTemp[2] = DEMO_MIN_REAR_TEMP + wave * DEMO_REAR_TEMP_RANGE;
+        data.motorTemp[3] = DEMO_MIN_REAR_TEMP + wave * DEMO_REAR_TEMP_RANGE;
+        data.ambientTemp = 25.0f;
+        data.controllerTemp = DEMO_MIN_CONTROLLER_TEMP + wave * DEMO_CONTROLLER_TEMP_RANGE;
+        data.motorCurrent[0] = DEMO_MIN_FRONT_CURRENT + wave * DEMO_FRONT_CURRENT_RANGE;
+        data.motorCurrent[1] = DEMO_MIN_FRONT_CURRENT + wave * DEMO_FRONT_CURRENT_RANGE;
+        data.motorCurrent[2] = DEMO_MIN_REAR_CURRENT + wave * DEMO_REAR_CURRENT_RANGE;
+        data.motorCurrent[3] = DEMO_MIN_REAR_CURRENT + wave * DEMO_REAR_CURRENT_RANGE;
+        data.steeringCurrent = DEMO_MIN_STEER_CURRENT + fabsf(steerWave) * DEMO_STEER_CURRENT_RANGE;
+        data.pedalPercent = DEMO_MIN_PEDAL + wave * DEMO_PEDAL_RANGE;
+        data.steeringAngle = steerWave * DEMO_MAX_STEER_ANGLE;
+        data.gear = (data.speed > DEMO_GEAR_CHANGE_SPEED) ? GearPosition::DRIVE1 : GearPosition::PARK;
         data.batteryPower = data.batteryVoltage * data.batteryCurrent;
-        data.odoTotal = 1234.5f + (now - demoStartTime) / 60000.0f;  // Slowly increment
+        data.odoTotal = 1234.5f + (now - demoStartTime) / 60000.0f;
         data.odoTrip = 56.7f + (now - demoStartTime) / 120000.0f;
-        data.encoderValue = 2048.0f + steerWave * 500.0f;  // Encoder follows steering
+        data.encoderValue = 2048.0f + steerWave * DEMO_ENCODER_RANGE;
         
-        // Animated SystemStatus
-        data.status.fourWheelDrive = true;                           // 4x4 active
-        data.status.lights = (demoTime > 5.0f && demoTime < 20.0f);  // Lights cycle
-        data.status.parkingBrake = (data.speed < 10.0f);
-        data.status.wifi = false;                                    // WiFi off
-        data.status.bluetooth = false;                               // Bluetooth off
-        data.status.warnings = (data.motorTemp[0] > 52.0f) ? 1 : 0;  // Temp warning
+        // Animated SystemStatus using named timing constants
+        data.status.fourWheelDrive = true;
+        data.status.lights = (demoTime > DEMO_LIGHTS_ON_TIME && demoTime < DEMO_LIGHTS_OFF_TIME);
+        data.status.parkingBrake = (data.speed < DEMO_GEAR_CHANGE_SPEED);
+        data.status.wifi = false;
+        data.status.bluetooth = false;
+        data.status.warnings = (data.motorTemp[0] > DEMO_TEMP_WARNING_THRESHOLD) ? 1 : 0;
         
         HUDManager::updateCarData(data);
         HUDManager::update();
