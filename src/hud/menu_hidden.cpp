@@ -52,6 +52,18 @@ static const int MENU_WIDTH = 360;
 static const int MENU_ITEM_HEIGHT = 20;
 static const int NUM_MENU_ITEMS = 8;
 
+// Opciones del menú (evitar duplicación - DRY)
+static const char* const MENU_ITEMS[NUM_MENU_ITEMS] = {
+    "1) Calibrar pedal",
+    "2) Calibrar encoder",
+    "3) Ajuste regen (%)",
+    "4) Modulos ON/OFF",
+    "5) Guardar y salir",
+    "6) Restaurar fabrica",
+    "7) Ver errores",
+    "8) Borrar errores"
+};
+
 // Helper para debounce con timeout
 static void waitTouchRelease(uint32_t maxWaitMs = DEBOUNCE_TIMEOUT_MS) {
     if (touch == nullptr) return;
@@ -357,24 +369,13 @@ static void drawMenuFull() {
     tft->drawRect(60, 40, 360, 240, TFT_WHITE);
     tft->setTextDatum(TL_DATUM);
 
-    const char* items[8] = {
-        "1) Calibrar pedal",
-        "2) Calibrar encoder",
-        "3) Ajuste regen (%)",
-        "4) Modulos ON/OFF",
-        "5) Guardar y salir",
-        "6) Restaurar fabrica",
-        "7) Ver errores",
-        "8) Borrar errores"
-    };
-
     tft->setTextColor(TFT_WHITE, TFT_BLACK);
     tft->drawString("MENU OCULTO", 80, 50, 2);
 
-    for(int i=0; i<8; i++) {
+    for(int i=0; i<NUM_MENU_ITEMS; i++) {
         uint16_t col = (i+1 == selectedOption) ? TFT_YELLOW : TFT_WHITE;
         tft->setTextColor(col, TFT_BLACK);
-        tft->drawString(items[i], 80, 80 + i*20, 2);
+        tft->drawString(MENU_ITEMS[i], 80, 80 + i*20, 2);
     }
 
     // Código
@@ -384,24 +385,13 @@ static void drawMenuFull() {
 }
 
 static void updateOptionHighlight() {
-    const char* items[8] = {
-        "1) Calibrar pedal",
-        "2) Calibrar encoder",
-        "3) Ajuste regen (%)",
-        "4) Modulos ON/OFF",
-        "5) Guardar y salir",
-        "6) Restaurar fabrica",
-        "7) Ver errores",
-        "8) Borrar errores"
-    };
-
     // Redibujar solo la línea anterior y la nueva
     if(lastSelectedOption != -1 && lastSelectedOption != selectedOption) {
         tft->setTextColor(TFT_WHITE, TFT_BLACK);
-        tft->drawString(items[lastSelectedOption-1], 80, 80 + (lastSelectedOption-1)*20, 2);
+        tft->drawString(MENU_ITEMS[lastSelectedOption-1], 80, 80 + (lastSelectedOption-1)*20, 2);
     }
     tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft->drawString(items[selectedOption-1], 80, 80 + (selectedOption-1)*20, 2);
+    tft->drawString(MENU_ITEMS[selectedOption-1], 80, 80 + (selectedOption-1)*20, 2);
 }
 
 static void updateCodeDisplay() {
