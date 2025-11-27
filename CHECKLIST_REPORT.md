@@ -166,7 +166,7 @@
 | 5) Guardar y salir | ✅ | Storage::save() |
 | 6) Restaurar fábrica | ✅ | Storage::defaults() |
 | 7) Ver errores | ✅ | showErrors() con pantalla detallada |
-| 8) Borrar errores | ✅ | clearErrorsMenu() con confirmación |
+| 8) Borrar errores | ⚠️ | clearErrorsMenu() sin confirmación |
 
 ### 3.3 Completado en v2.6.0
 - [x] Implementar calibración real del pedal (GUI interactiva MIN/MAX)
