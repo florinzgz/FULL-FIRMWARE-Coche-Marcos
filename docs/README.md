@@ -80,6 +80,22 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 ---
 
+## 🔊 Audio y Alertas
+
+| Archivo | Descripción |
+|---------|-------------|
+| [AUDIO_TRACKS_GUIDE.md](AUDIO_TRACKS_GUIDE.md) | Guía completa de tracks de audio para DFPlayer Mini (38 actuales + 30 sugeridos) |
+
+---
+
+## 📈 Mejoras y Roadmap
+
+| Archivo | Descripción |
+|---------|-------------|
+| [MEJORAS_PROPUESTAS.md](MEJORAS_PROPUESTAS.md) | Análisis de limitaciones y propuestas de mejora para todos los módulos |
+
+---
+
 ## 📁 Estructura del Repositorio
 
 ```
