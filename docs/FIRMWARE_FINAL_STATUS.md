@@ -52,12 +52,12 @@ ESP32: S3-DevKitC-1 (44 pines)
 ### 3. Sistema de Relés Unificado
 
 **Power Management (4 relés SRD-05VDC-SL-C):**
-- GPIO 2: Relé 1 (Power Hold Buck 5V) ✅
-- GPIO 4: Relé 2 (12V Auxiliares) ✅
-- GPIO 5: Relé 3 (24V Potencia) ✅
-- GPIO 32: Relé 4 (Reserva) ⚠️ **NOTA:** GPIO 32 NO EXISTE en placa 44 pines
+- GPIO 4: Relé 1 (RELAY_MAIN - Power Hold) ✅
+- GPIO 5: Relé 2 (RELAY_TRAC - Tracción 24V) ✅
+- GPIO 6: Relé 3 (RELAY_DIR - Dirección 12V) ✅
+- GPIO 7: Relé 4 (RELAY_SPARE - Auxiliar) ✅
 
-**CORRECCIÓN PENDIENTE:** GPIO 32 debe cambiarse a GPIO válido (ej: GPIO 20)
+**✅ CORREGIDO v2.7.0:** Todos los relés usan GPIOs válidos (4-7 consecutivos)
 
 ---
 
@@ -76,10 +76,10 @@ GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RST, 3V3, 
 ### Asignación Actual Completa
 
 #### Power Management (4 relés)
-- GPIO 2: Power Hold Buck 5V
-- GPIO 4: 12V Auxiliares
-- GPIO 5: 24V Potencia
-- GPIO 32: ⚠️ **INVÁLIDO** → Cambiar a GPIO 20
+- GPIO 4: RELAY_MAIN (Power Hold)
+- GPIO 5: RELAY_TRAC (Tracción 24V)
+- GPIO 6: RELAY_DIR (Dirección 12V)
+- GPIO 7: RELAY_SPARE (Auxiliar)
 
 #### Control de Motor Dirección
 - GPIO 37: Encoder A
@@ -229,29 +229,22 @@ GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RST, 3V3, 
 
 ---
 
-## ⚠️ CORRECCIÓN FINAL PENDIENTE
+## ✅ TODAS LAS CORRECCIONES APLICADAS
 
-**GPIO 32 (Relé 4):** NO EXISTE en ESP32-S3-DevKitC-1 44 pines
+**Estado v2.7.0:** Todas las correcciones pendientes han sido aplicadas:
 
-**Solución recomendada:**
-```cpp
-// En power_mgmt.h o pins.h
-#define PIN_RELAY_SPARE  20  // Cambiar de 32 a 20 (válido)
-```
-
-**GPIOs libres disponibles para Relé 4:**
-- GPIO 20, GPIO 47 (si no están en uso)
+- ✅ GPIO 32 → GPIO 7 (PIN_RELAY_SPARE en pins.h)
+- ✅ Todos los relés ahora usan GPIOs consecutivos (4-7)
+- ✅ No hay GPIOs inválidos en el firmware
 
 ---
 
 ## 📊 ESTADÍSTICAS FINALES
 
-**GPIOs usados:** ~40 de 42 disponibles (44 total - 2 UART)
+**GPIOs usados:** ~30 de 36 disponibles (83%)
 
 **GPIOs libres:**
-- GPIO 20 (si Relé 4 no lo usa)
-- GPIO 3, 8 (depende de TFT)
-- Algunos GPIOs dependiendo de configuración TFT exacta
+- GPIO 18, 19, 45, 46 (4 pines disponibles para expansión)
 
 **HY-M158:**
 - 13 canales usados
@@ -259,7 +252,7 @@ GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RST, 3V3, 
 
 **I²C:**
 - TCA9548A (0x70): 6 canales usados (INA226)
-- PCA9685 (0x41): Motor dirección
+- PCA9685 (0x42): Motor dirección
 
 ---
 
@@ -297,19 +290,18 @@ pio device monitor
 
 - [x] GPIOs inválidos corregidos (24,26,27,28,29)
 - [x] Conflictos GPIO resueltos (40, 13-17)
-- [x] Shifter 12V vía HY-M158
-- [x] Encoder Z corregido (GPIO 46)
-- [x] Motor RR remapeado (GPIOs 18,11,12)
-- [x] OneWire remapeado (GPIO 19)
-- [x] Botones remapeados (45,21,39,42)
-- [x] Sistema relés implementado
-- [x] Menú oculto completo
+- [x] Shifter 12V vía MCP23017 GPIOB0-4
+- [x] Encoder Z corregido (GPIO 39)
+- [x] OneWire en GPIO 20
+- [x] Botones en GPIOs válidos
+- [x] Sistema relés implementado (GPIOs 4-7)
+- [x] Menú oculto 100% completo
 - [x] Documentación actualizada
-- [ ] **Corregir GPIO 32 (Relé 4) → GPIO 20**
+- [x] **CORREGIDO: Relé 4 usa GPIO 7 (no GPIO 32)**
 
 ---
 
-**FIRMWARE LISTO PARA PRODUCCIÓN (tras corrección GPIO 32)**
+**FIRMWARE 100% LISTO PARA PRODUCCIÓN**
 
-*Generado automáticamente - GitHub Copilot*
-*Fecha: 2025-01-07*
+*Actualizado: 2025-11-27*  
+*Versión: v2.7.0*

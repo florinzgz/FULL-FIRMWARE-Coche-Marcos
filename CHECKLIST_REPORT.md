@@ -406,8 +406,8 @@
 ## 9. 🔮 RECOMENDACIONES FUTURAS
 
 ### Alta Prioridad
-1. ⬜ Sistemas ADAS (ABS, TCS, ESP simulados)
-2. ⬜ Actualización OTA via WiFi
+1. ✅ Sistemas ADAS (ABS, TCS implementados - v2.4.0+)
+2. ⬜ Actualización OTA via WiFi (base implementada, requiere config)
 3. ⬜ RTC para tracking de mantenimiento por días
 
 ### Media Prioridad
