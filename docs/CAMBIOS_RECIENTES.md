@@ -1,121 +1,109 @@
 # Cambios Recientes en el Firmware
 
-## Versión: 2.4.0
-**Fecha:** 2025-11-25  
+## Versión: 2.8.0
+**Fecha:** 2025-11-27  
 
 ---
 
-## 🔒 Mejoras de Fiabilidad y Seguridad v2.4.0
+## 🆕 Novedades v2.8.0
 
-### 1. Corrección de Race Conditions ✅
+### 1. Sistema de Telemetría Avanzada ✅
 
-**Problema:** Los contadores de pulsos de ruedas eran accedidos de forma no atómica entre ISR y loop principal.
+**Nuevo módulo:** `telemetry.h` + `telemetry.cpp`
 
-**Solución:** Acceso atómico usando `noInterrupts()`/`interrupts()`:
-```cpp
-// Antes (race condition)
-float revs = (float)pulses[i] / PULSES_PER_REV;
-pulses[i] = 0;
-
-// Después (acceso atómico)
-noInterrupts();
-unsigned long currentPulses = pulses[i];
-pulses[i] = 0;
-interrupts();
-```
-
-### 2. Implementación de SteeringMotor::get() ✅
-
-**Problema:** Función declarada en header pero nunca implementada.
-
-**Solución:** Añadida implementación:
-```cpp
-const SteeringMotor::State& SteeringMotor::get() {
-    return s;
-}
-```
-
-### 3. Validación de Índices en Sensores ✅
-
-**Problema:** Los getters solo verificaban límite superior (`channel < NUM_CURRENTS`).
-
-**Solución:** Verificación completa:
-```cpp
-// Antes
-if(channel < NUM_CURRENTS) return lastCurrent[channel];
-
-// Después
-if(channel >= 0 && channel < NUM_CURRENTS) return lastCurrent[channel];
-```
-
-### 4. Nueva Función de Parada de Emergencia ✅
-
-**Añadido:** `Relays::emergencyStop()` para desactivar todos los relés inmediatamente sin delays ni debounce.
+**Características:**
+- ✅ Checksum FNV-1a + Magic Number para detección de corrupción
+- ✅ Persistencia automática en NVS (Preferences)
+- ✅ Métricas extendidas: distancia, energía, velocidad, batería, temperatura
+- ✅ Exportación JSON para SD/WiFi/app móvil
+- ✅ Funciones resetSession() y resetTrip()
 
 ```cpp
-void Relays::emergencyStop() {
-    // Desactivar todos los relés inmediatamente
-    digitalWrite(PIN_RELAY_DIR, LOW);
-    digitalWrite(PIN_RELAY_TRAC, LOW);
-    digitalWrite(PIN_RELAY_MAIN, LOW);
-    digitalWrite(PIN_RELAY_SPARE, LOW);
-    // ...
-}
+// Ejemplo de uso
+Telemetry::init();
+Telemetry::updateSpeed(25.5f);
+Telemetry::addDistance(0.1f);
+Telemetry::updateBattery(24.5f, 10.2f, 85.0f);
+String json = Telemetry::exportToJson();
 ```
 
-### 5. Histéresis en Detección de Errores ✅
+### 2. Estructura RedundantSensor ✅
 
-**Mejora:** Los relés ahora requieren 3 errores consecutivos antes de desactivarse para evitar falsos positivos por ruido de sensores.
+**Añadido a:** `sensors.h`
 
-### 6. Eliminación de Bucles Bloqueantes ✅
+**Propósito:** Tolerancia a fallos para sensores críticos.
 
-**main.cpp:** Eliminado bucle `while (!Serial)` que podía causar watchdog reset.
-
-**hud_manager.cpp:** Reducidos delays de inicialización TFT de 70ms a ~0.6ms usando `delayMicroseconds()`.
+```cpp
+struct RedundantSensor {
+    float primaryValue;
+    float secondaryValue;
+    bool primaryValid;
+    bool secondaryValid;
+    
+    float getSafeValue() const;     // Promedio o fallback
+    bool hasDiscrepancy() const;    // Detecta diferencias
+    bool isOperational() const;     // Al menos uno funciona
+};
+```
 
 ---
 
-## 📊 Cambios en Archivos
+## 🔒 Mejoras de Fiabilidad v2.4.0-v2.7.0
 
-### Archivos Modificados:
-- `src/control/steering_motor.cpp` - Añadida implementación `get()`
-- `src/control/relays.cpp` + `include/relays.h` - Emergency stop + histéresis
-- `src/sensors/wheels.cpp` - Acceso atómico a contadores
-- `src/sensors/current.cpp` - Validación índices negativos
-- `src/sensors/temperature.cpp` - Validación índices negativos
-- `src/main.cpp` - Eliminado bucle bloqueante Serial
-- `src/hud/hud_manager.cpp` - Reducidos delays de reset TFT
+### Race Conditions Corregidas ✅
 
-### Estado del Firmware:
+**Problema:** Contadores de pulsos de ruedas accedidos de forma no atómica.
+
+**Solución:** Acceso atómico con `noInterrupts()`/`interrupts()`.
+
+### SteeringMotor::get() Implementado ✅
+
+**Problema:** Función declarada pero nunca implementada.
+
+### Validación de Índices ✅
+
+**Problema:** Solo se verificaba límite superior.
+
+**Solución:** Verificación completa `channel >= 0 && channel < NUM`.
+
+### Parada de Emergencia ✅
+
+**Añadido:** `Relays::emergencyStop()` para desactivar todos los relés inmediatamente.
+
+### Histéresis en Errores ✅
+
+**Mejora:** 3 errores consecutivos antes de desactivar (evita falsos positivos).
+
+---
+
+## 📊 Estado Actual
+
 | Métrica | Valor |
 |---------|-------|
-| **RAM** | 9.0% (29,392 bytes) |
-| **Flash** | 35.7% (468,285 bytes) |
+| **RAM** | 9.0% (~29,500 bytes) |
+| **Flash** | 36.6% (~480,000 bytes) |
 | **Entornos OK** | 4/4 |
 
 ---
 
 ## 🔧 Versiones Anteriores
 
+### v2.7.0 (2025-11-27)
+- Documentación sincronizada con pins.h
+- Verificación línea por línea del firmware
+
+### v2.4.0 (2025-11-25)
+- Race conditions corregidas
+- Histéresis en detección de errores
+
 ### v2.3.0 (2025-11-25)
-- Reorganización GPIO y resolución conflictos de pines
-- TOUCH_CS movido de GPIO 3 a GPIO 21 (pin seguro)
-- LED_REAR movido de GPIO 19 a GPIO 48
-- Shifter completo migrado a MCP23017 (pines B0-B4)
+- Reorganización GPIO
+- Shifter migrado a MCP23017
 
 ### v2.2.0 (2025-11-24)
 - Corrección macros OTA
-- Build exitoso 4/4 entornos
-
-### v2.1.0 (2025-11-23)
-- Refactorización delay() → millis()
-- Correcciones de compilación
-
-### v2.0.0 (2025-11-22)
-- Auditoría completa del firmware
-- Implementación de 2x PCA9685 para control PWM
 
 ---
 
-**Documento actualizado:** 2025-11-25  
-**Para más detalles:** Ver `HARDWARE_REFERENCE.md` y `docs/PIN_MAPPING_DEVKITC1.md`
+**Documento actualizado:** 2025-11-27  
+**Versión actual:** v2.8.0
