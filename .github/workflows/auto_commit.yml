@@ -1,7 +1,9 @@
-name: Firmware Audit & Auto Commit
+name: Firmware Build & Verification
 
 on:
   push:
+    branches: [ "main" ]
+  pull_request:
     branches: [ "main" ]
   workflow_dispatch:   # Permite lanzarlo manualmente desde Actions
 
@@ -9,52 +11,132 @@ permissions:
   contents: write   # Permite al workflow hacer commits y push en el repo
 
 jobs:
-  audit-build:
+  # ============================================
+  # Job 1: Build all firmware environments
+  # ============================================
+  build:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        environment: 
+          - esp32-s3-devkitc
+          - esp32-s3-devkitc-release
+          - esp32-s3-devkitc-ota
+          - esp32-s3-devkitc-test
+      fail-fast: false
+    
     steps:
     # 1. Checkout del repo
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    # 2. Instalar Python y PlatformIO
+    # 2. Cache PlatformIO dependencies
+    - name: Cache PlatformIO
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.platformio
+          ~/.cache/pip
+        key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+        restore-keys: |
+          ${{ runner.os }}-pio-
+
+    # 3. Instalar Python y PlatformIO
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
 
     - name: Install PlatformIO
       run: pip install platformio
 
-    # 3. Compilar el firmware
-    - name: Build firmware
-      run: pio run
+    # 4. Compilar el firmware para el entorno especificado
+    - name: Build firmware (${{ matrix.environment }})
+      run: pio run -e ${{ matrix.environment }}
 
-    # 4. Auditoría básica
-    - name: Run audit
-      run: |
-        echo "### Firmware Audit Report" > AUDIT_REPORT.md
-        echo "" >> AUDIT_REPORT.md
-        echo "✔ Verificación de dependencias en platformio.ini" >> AUDIT_REPORT.md
-        echo "✔ Validación de GPIOs seguros (19,20,21,35–42)" >> AUDIT_REPORT.md
-        echo "✔ Sustitución de delay() por millis() recomendada" >> AUDIT_REPORT.md
-        echo "✔ Informe generado automáticamente" >> AUDIT_REPORT.md
-
-    # 5. Commit automático de cambios y mejoras
-    - name: Commit audit report and firmware
-      run: |
-        git config --global user.name "Copilot Agent"
-        git config --global user.email "agent@example.com"
-        git add AUDIT_REPORT.md
-        git add .pio/build/*/firmware.bin || true
-        git commit -m "Auto-applied firmware audit corrections and build artifacts"
-        git push origin main
-
-    # 6. Subir artefactos (opcional)
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+    # 5. Subir artefactos de compilación
+    - name: Upload firmware artifact
+      uses: actions/upload-artifact@v4
       with:
-        name: firmware-and-audit
-        path: |
-          AUDIT_REPORT.md
-          .pio/build/*/firmware.bin
+        name: firmware-${{ matrix.environment }}
+        path: .pio/build/${{ matrix.environment }}/firmware.bin
+        if-no-files-found: error
+
+  # ============================================
+  # Job 2: Verification and summary
+  # ============================================
+  verify:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Verify build outputs
+      run: |
+        echo "🔍 Verificación de compilación de firmware"
+        echo "=========================================="
+        
+        # Count successful builds
+        BUILD_COUNT=$(find artifacts -name "firmware.bin" | wc -l)
+        echo "✅ Compilaciones exitosas: $BUILD_COUNT/4"
+        
+        # List all firmware files with sizes
+        echo ""
+        echo "📦 Artefactos generados:"
+        find artifacts -name "firmware.bin" -exec ls -lh {} \;
+        
+        # Verify all expected builds exist
+        if [ "$BUILD_COUNT" -eq 4 ]; then
+          echo ""
+          echo "✅ Todos los entornos compilaron correctamente"
+        else
+          echo ""
+          echo "❌ Algunos entornos fallaron la compilación"
+          exit 1
+        fi
+
+    - name: Generate verification report
+      run: |
+        echo "# 🔧 Firmware Verification Report" > VERIFICATION_REPORT.md
+        echo "" >> VERIFICATION_REPORT.md
+        echo "**Fecha:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> VERIFICATION_REPORT.md
+        echo "**Commit:** ${{ github.sha }}" >> VERIFICATION_REPORT.md
+        echo "**Branch:** ${{ github.ref_name }}" >> VERIFICATION_REPORT.md
+        echo "" >> VERIFICATION_REPORT.md
+        echo "## 📊 Resultados de Compilación" >> VERIFICATION_REPORT.md
+        echo "" >> VERIFICATION_REPORT.md
+        echo "| Entorno | Estado | Tamaño |" >> VERIFICATION_REPORT.md
+        echo "|---------|--------|--------|" >> VERIFICATION_REPORT.md
+        
+        for env in esp32-s3-devkitc esp32-s3-devkitc-release esp32-s3-devkitc-ota esp32-s3-devkitc-test; do
+          if [ -f "artifacts/firmware-$env/firmware.bin" ]; then
+            SIZE=$(ls -lh "artifacts/firmware-$env/firmware.bin" | awk '{print $5}')
+            echo "| $env | ✅ OK | $SIZE |" >> VERIFICATION_REPORT.md
+          else
+            echo "| $env | ❌ FAIL | - |" >> VERIFICATION_REPORT.md
+          fi
+        done
+        
+        echo "" >> VERIFICATION_REPORT.md
+        echo "## ✅ Verificaciones Pasadas" >> VERIFICATION_REPORT.md
+        echo "" >> VERIFICATION_REPORT.md
+        echo "- [x] Todas las dependencias instaladas correctamente" >> VERIFICATION_REPORT.md
+        echo "- [x] Código compila sin errores" >> VERIFICATION_REPORT.md
+        echo "- [x] Artefactos de firmware generados" >> VERIFICATION_REPORT.md
+        echo "- [x] Todos los entornos (dev, release, OTA, test) verificados" >> VERIFICATION_REPORT.md
+        echo "" >> VERIFICATION_REPORT.md
+        echo "---" >> VERIFICATION_REPORT.md
+        echo "*Generado automáticamente por GitHub Actions*" >> VERIFICATION_REPORT.md
+
+    - name: Upload verification report
+      uses: actions/upload-artifact@v4
+      with:
+        name: verification-report
+        path: VERIFICATION_REPORT.md
