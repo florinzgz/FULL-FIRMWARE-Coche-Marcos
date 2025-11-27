@@ -90,7 +90,7 @@ Música:           Apagada
 
 ### Secuencia de Arranque:
 1. **Colores de prueba SPI** (rojo → verde → azul, 0.5s cada uno)
-2. **"ILI9488 OK"** (pantalla negra, texto blanco centrado, 1s)
+2. **"ST7796S OK"** (pantalla negra, texto blanco centrado, 1s)
 3. **Logo de arranque** (1.5s)
 4. **Dashboard completo**:
    - Mercedes AMG GT (título)
@@ -100,7 +100,32 @@ Música:           Apagada
    - 4 ruedas con ángulo 0° (estáticas)
    - Temperaturas y esfuerzos: "-- °C" / "-- %"
    - Icono 4x4 activo
-   - Roll/Pitch: 0.5° / -1.2°
+   - **Botón DEMO MENU** (esquina inferior derecha) - ¡NUEVO!
+
+---
+
+## Acceso al Menú Oculto (Modo Demo)
+
+En modo standalone, puedes acceder al **Menú Oculto** de forma sencilla:
+
+### Método 1: Botón DEMO MENU (Recomendado)
+1. Localiza el botón azul **"DEMO MENU"** en la esquina inferior derecha
+2. **Mantén pulsado el botón durante 1.5 segundos**
+3. El menú oculto se activará automáticamente
+
+### Método 2: Toque en icono de batería
+1. Toca el icono de batería (esquina superior derecha) repetidamente
+2. Esto introduce el código de acceso 8989
+
+### Qué puedes hacer en el Menú Oculto:
+- ✅ **Calibrar pedal** - Configurar valores mínimo/máximo del pedal
+- ✅ **Calibrar encoder** - Centrar el volante
+- ✅ **Ajuste regeneración** - Configurar porcentaje de regeneración (0-100%)
+- ✅ **Módulos ON/OFF** - Activar/desactivar luces, multimedia, tracción
+- ✅ **Guardar y salir** - Guardar configuración y volver al dashboard
+- ✅ **Restaurar fábrica** - Restaurar valores por defecto
+- ✅ **Ver errores** - Consultar errores persistentes del sistema
+- ✅ **Borrar errores** - Limpiar log de errores (con confirmación)
 
 ---
 
@@ -252,7 +277,7 @@ El modo standalone reduce el uso de SRAM al omitir módulos de sensores y contro
 Si encuentras problemas:
 1. Revisa logs en Serial Monitor (115200 baud)
 2. Verifica conexiones físicas con multímetro
-3. Comprueba que la versión del firmware sea la última (commit `aa8c0d3` o superior)
+3. Comprueba que la versión del firmware sea la última
 4. Abre un issue en GitHub con:
    - Descripción del problema
    - Logs del Serial Monitor
@@ -261,6 +286,6 @@ Si encuentras problemas:
 
 ---
 
-**Última actualización:** 2025-01-18  
-**Versión firmware:** aa8c0d3 + STANDALONE_MODE  
+**Última actualización:** 2025-11-27  
+**Versión firmware:** STANDALONE_MODE + Demo Menu Access  
 **Autor:** GitHub Copilot
