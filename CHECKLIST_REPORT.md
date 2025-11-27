@@ -161,7 +161,7 @@
 |--------|--------|----------------|
 | 1) Calibrar pedal | ✅ | startPedalCalibration() + updatePedalCalibration() |
 | 2) Calibrar encoder | ✅ | startEncoderCalibration() + updateEncoderCalibration() |
-| 3) Ajuste regen (%) | ✅ | applyRegenAdjust() con guardado |
+| 3) Ajuste regen (%) | ⚠️ | Stub: solo resetea REGEN_DEFAULT |
 | 4) Módulos ON/OFF | ✅ | applyModules() con guardado |
 | 5) Guardar y salir | ✅ | Storage::save() |
 | 6) Restaurar fábrica | ✅ | Storage::defaults() |
