@@ -47,6 +47,8 @@ static int regenAdjustValue = 0;  // ✅ v2.7.0: Valor temporal para ajuste rege
 static const int TOUCH_MIN_RAW = 200;   // Valor mínimo raw del touch
 static const int TOUCH_MAX_RAW = 3900;  // Valor máximo raw del touch
 static const uint32_t DEBOUNCE_TIMEOUT_MS = 500;  // Timeout para debounce
+static const uint32_t DEBOUNCE_SHORT_MS = 200;    // ✅ v2.7.0: Debounce corto para ajustes rápidos
+static const uint32_t FEEDBACK_DISPLAY_MS = 1500; // ✅ v2.7.0: Tiempo de visualización de feedback
 
 // Zonas táctiles del menú (8 opciones)
 static const int MENU_X1 = 60;
@@ -181,7 +183,7 @@ static void updatePedalCalibration(bool touched) {
             
             // Esperar un momento
             uint32_t waitStart = millis();
-            while (millis() - waitStart < 1500) { yield(); }
+            while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         } else {
             // Calibración inválida
             Logger::error("Calibración pedal fallida - rango insuficiente");
@@ -241,7 +243,7 @@ static void updateEncoderCalibration(bool touched) {
         tft->drawString(valueStr, 240, 180, 2);
         
         uint32_t waitStart = millis();
-        while (millis() - waitStart < 1500) { yield(); }
+        while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         
         calibState = CalibrationState::NONE;
     }
@@ -354,14 +356,14 @@ static void updateRegenAdjust(int touchX, int touchY, bool touched) {
         tft->drawString(valueStr, 240, 170, 4);
         
         uint32_t waitStart = millis();
-        while (millis() - waitStart < 1500) { yield(); }
+        while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         
         calibState = CalibrationState::NONE;
         return;
     }
     
     if (needsRedraw) {
-        waitTouchRelease(200);  // Debounce corto para permitir ajuste rápido
+        waitTouchRelease(DEBOUNCE_SHORT_MS);  // Debounce corto para permitir ajuste rápido
         drawRegenAdjustScreen();
     }
     
@@ -463,7 +465,7 @@ static void startClearErrorsConfirm() {
         tft->drawString("No hay errores que borrar", 240, 170, 2);
         
         uint32_t waitStart = millis();
-        while (millis() - waitStart < 1500) { yield(); }
+        while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         return;
     }
     
@@ -491,7 +493,7 @@ static void drawClearErrorsConfirmScreen() {
     char msgStr[48];
     snprintf(msgStr, sizeof(msgStr), "Borrar %d errores?", count);
     tft->drawString(msgStr, 240, 100, 2);
-    tft->drawString("Esta accion no se puede deshacer", 240, 125, 2);
+    tft->drawString("Esta accion es irreversible", 240, 125, 2);
     
     // Botón CANCELAR
     tft->fillRect(80, 180, 120, 50, TFT_DARKGREY);
@@ -536,7 +538,7 @@ static void updateClearErrorsConfirm(int touchX, int touchY, bool touched) {
         tft->drawString("ERRORES BORRADOS", 240, 140, 4);
         
         uint32_t waitStart = millis();
-        while (millis() - waitStart < 1500) { yield(); }
+        while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         
         calibState = CalibrationState::NONE;
         return;
@@ -649,7 +651,7 @@ void MenuHidden::update(bool batteryIconPressed) {
         // ✅ v2.7.0: Manejar ajuste interactivo de regen
         else if (calibState == CalibrationState::REGEN_ADJUST) {
             updateRegenAdjust(touchX, touchY, touched);
-            if (touched) waitTouchRelease(200);  // Debounce corto después de procesar
+            if (touched) waitTouchRelease(DEBOUNCE_SHORT_MS);  // Debounce corto después de procesar
         }
         // ✅ v2.7.0: Manejar confirmación de borrado de errores
         else if (calibState == CalibrationState::CLEAR_ERRORS_CONFIRM) {
