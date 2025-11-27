@@ -67,6 +67,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 |---------|-------------|
 | [NON_BLOCKING_TIMING.md](NON_BLOCKING_TIMING.md) | Arquitectura de temporización non-blocking con millis() |
 | [STANDALONE_MODE.md](STANDALONE_MODE.md) | Modo standalone para pruebas de pantalla sin hardware |
+| [GUIA_PRUEBAS_INCREMENTALES.md](GUIA_PRUEBAS_INCREMENTALES.md) | **🆕 Guía paso a paso** - Cómo probar pantalla y añadir funcionalidades gradualmente |
 
 ---
 
