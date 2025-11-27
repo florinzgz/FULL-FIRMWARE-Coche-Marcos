@@ -1,6 +1,10 @@
 #include "sensors.h"
 #include "logger.h"
 #include "storage.h"
+#include "pedal.h"
+#include "shifter.h"
+#include "steering.h"
+#include "buttons.h"
 #include <Arduino.h>
 #include <cstdio>
 
@@ -155,5 +159,46 @@ namespace Sensors {
                 snprintf(buffer, bufSize, "UNKNOWN SENSOR");
                 return false;
         }
+    }
+    
+    // ========================================================================
+    // Diagnóstico de dispositivos de entrada
+    // ========================================================================
+    
+    InputDeviceStatus getInputDeviceStatus() {
+        InputDeviceStatus status;
+        
+        // Estado del pedal
+        status.pedalOK = Pedal::initOK();
+        auto pedalState = Pedal::get();
+        status.pedalValid = pedalState.valid;
+        status.pedalPercent = pedalState.percent;
+        status.pedalRaw = pedalState.raw;
+        
+        // Estado del shifter (palanca de cambios)
+        status.shifterOK = Shifter::initOK();
+        auto shifterState = Shifter::get();
+        status.shifterGear = static_cast<uint8_t>(shifterState.gear);
+        
+        // Estado del steering (encoder de dirección)
+        status.steeringOK = Steering::initOK();
+        auto steerState = Steering::get();
+        status.steeringCentered = steerState.centered;
+        status.steeringValid = steerState.valid;
+        status.steeringAngle = steerState.angleDeg;
+        status.steeringTicks = steerState.ticks;
+        
+        // Estado de los botones
+        status.buttonsOK = Buttons::initOK();
+        auto btnsState = Buttons::get();
+        status.lightsActive = btnsState.lights;
+        status.multimediaActive = btnsState.multimedia;
+        status.mode4x4Active = btnsState.mode4x4;
+        
+        // Estado general - todos los inputs críticos deben estar OK
+        status.allInputsOK = status.pedalOK && status.shifterOK && 
+                            status.steeringOK && status.buttonsOK;
+        
+        return status;
     }
 }

@@ -78,4 +78,50 @@ namespace Sensors {
      * @return true si el sensor está OK
      */
     bool getSensorDiagnosticText(uint8_t sensorType, uint8_t sensorIdx, char* buffer, size_t bufSize);
+    
+    // ========================================================================
+    // Diagnóstico de dispositivos de entrada
+    // ========================================================================
+    
+    // Estado de dispositivos de entrada (pedal, shifter, steering, buttons)
+    struct InputDeviceStatus {
+        // Pedal
+        bool pedalOK;               // Pedal inicializado
+        bool pedalValid;            // Lectura válida
+        float pedalPercent;         // Porcentaje actual
+        int pedalRaw;               // Valor ADC crudo
+        
+        // Shifter (palanca de cambios)
+        bool shifterOK;             // Shifter inicializado
+        uint8_t shifterGear;        // Marcha actual (0=P, 1=D2, 2=D1, 3=N, 4=R)
+        
+        // Steering (encoder de dirección)
+        bool steeringOK;            // Encoder inicializado
+        bool steeringCentered;      // Centrado completado
+        bool steeringValid;         // Lectura válida
+        float steeringAngle;        // Ángulo actual
+        long steeringTicks;         // Ticks del encoder
+        
+        // Buttons
+        bool buttonsOK;             // Botones inicializados
+        bool lightsActive;          // Luces activadas
+        bool multimediaActive;      // Multimedia activado
+        bool mode4x4Active;         // Modo 4x4 activado
+        
+        // Estado general
+        bool allInputsOK;           // Todos los inputs funcionando
+        
+        InputDeviceStatus() : pedalOK(false), pedalValid(false), pedalPercent(0.0f), pedalRaw(0),
+                             shifterOK(false), shifterGear(0),
+                             steeringOK(false), steeringCentered(false), steeringValid(false),
+                             steeringAngle(0.0f), steeringTicks(0),
+                             buttonsOK(false), lightsActive(false), multimediaActive(false), mode4x4Active(false),
+                             allInputsOK(false) {}
+    };
+    
+    /**
+     * @brief Obtiene estado de todos los dispositivos de entrada
+     * @return InputDeviceStatus con información de pedal, shifter, steering, buttons
+     */
+    InputDeviceStatus getInputDeviceStatus();
 }

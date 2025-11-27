@@ -5,6 +5,7 @@
 #include "system.h"
 #include "storage.h"
 #include "sensors.h"  // Para estado de sensores
+#include "pedal.h"    // Para calibración del pedal
 #include <Arduino.h>
 
 // Variables estáticas
@@ -269,59 +270,136 @@ void HUDManager::renderCalibration() {
 void HUDManager::renderHardwareTest() {
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextSize(2);
-    tft.setCursor(20, 20);
+    tft.setCursor(20, 5);
     tft.println("TEST HARDWARE");
     
-    // Obtener estado real de sensores
+    // Obtener estado real de sensores y entradas
     Sensors::SystemStatus status = Sensors::getSystemStatus();
+    Sensors::InputDeviceStatus inputStatus = Sensors::getInputDeviceStatus();
     
     tft.setTextSize(1);
+    
+    // ====== COLUMNA IZQUIERDA: SENSORES ======
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.setCursor(10, 35);
+    tft.print("-- SENSORES --");
     
     // INA226 sensores
     uint16_t colorINA = (status.currentSensorsOK == status.currentSensorsTotal) ? TFT_GREEN : 
                         (status.currentSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
     tft.setTextColor(colorINA, TFT_BLACK);
-    tft.setCursor(20, 60);
-    tft.printf("INA226 Sensores: %d/%d activos", status.currentSensorsOK, status.currentSensorsTotal);
+    tft.setCursor(10, 50);
+    tft.printf("INA226: %d/%d", status.currentSensorsOK, status.currentSensorsTotal);
     
     // DS18B20 sensores
     uint16_t colorTemp = (status.temperatureSensorsOK == status.temperatureSensorsTotal) ? TFT_GREEN : 
                          (status.temperatureSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
     tft.setTextColor(colorTemp, TFT_BLACK);
-    tft.setCursor(20, 90);
-    tft.printf("DS18B20 Temp: %d/%d activos", status.temperatureSensorsOK, status.temperatureSensorsTotal);
+    tft.setCursor(10, 65);
+    tft.printf("DS18B20: %d/%d", status.temperatureSensorsOK, status.temperatureSensorsTotal);
     
     // Ruedas
     uint16_t colorWheel = (status.wheelSensorsOK == status.wheelSensorsTotal) ? TFT_GREEN : 
                           (status.wheelSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
     tft.setTextColor(colorWheel, TFT_BLACK);
-    tft.setCursor(20, 120);
-    tft.printf("Encoders rueda: %d/%d activos", status.wheelSensorsOK, status.wheelSensorsTotal);
+    tft.setCursor(10, 80);
+    tft.printf("Ruedas: %d/%d", status.wheelSensorsOK, status.wheelSensorsTotal);
     
     // Batería
     tft.setTextColor(status.batteryMonitorOK ? TFT_GREEN : TFT_RED, TFT_BLACK);
-    tft.setCursor(20, 150);
-    tft.printf("Monitor bateria: %s", status.batteryMonitorOK ? "OK" : "FALLO");
+    tft.setCursor(10, 95);
+    tft.printf("Bateria: %s", status.batteryMonitorOK ? "OK" : "FAIL");
     
     // Temperatura máxima
     if (status.temperatureWarning) {
         tft.setTextColor(TFT_RED, TFT_BLACK);
-        tft.setCursor(20, 180);
-        tft.printf("!! TEMP CRITICA: %.1fC !!", status.maxTemperature);
+        tft.setCursor(10, 115);
+        tft.printf("TEMP CRIT: %.1fC", status.maxTemperature);
     } else if (status.maxTemperature > Sensors::INVALID_TEMPERATURE + 10.0f) {
         tft.setTextColor(TFT_CYAN, TFT_BLACK);
-        tft.setCursor(20, 180);
+        tft.setCursor(10, 115);
         tft.printf("Temp max: %.1fC", status.maxTemperature);
     }
     
-    // Estado general
-    uint16_t sysColor = status.allSensorsHealthy ? TFT_GREEN : 
-                        status.criticalSensorsOK ? TFT_YELLOW : TFT_RED;
+    // ====== COLUMNA DERECHA: ENTRADAS ======
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.setCursor(250, 35);
+    tft.print("-- ENTRADAS --");
+    
+    // Pedal
+    uint16_t colorPedal = inputStatus.pedalOK && inputStatus.pedalValid ? TFT_GREEN : 
+                          inputStatus.pedalOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(colorPedal, TFT_BLACK);
+    tft.setCursor(250, 50);
+    tft.printf("Pedal: %.1f%% [%d]", inputStatus.pedalPercent, inputStatus.pedalRaw);
+    
+    // Steering
+    uint16_t colorSteer = inputStatus.steeringOK && inputStatus.steeringCentered ? TFT_GREEN :
+                          inputStatus.steeringOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(colorSteer, TFT_BLACK);
+    tft.setCursor(250, 65);
+    tft.printf("Volante: %.1f deg", inputStatus.steeringAngle);
+    tft.setCursor(250, 80);
+    tft.printf("Centrado: %s", inputStatus.steeringCentered ? "SI" : "NO");
+    
+    // Shifter
+    uint16_t colorShift = inputStatus.shifterOK ? TFT_GREEN : TFT_RED;
+    tft.setTextColor(colorShift, TFT_BLACK);
+    tft.setCursor(250, 95);
+    const char* gearNames[] = {"P", "D2", "D1", "N", "R"};
+    uint8_t gearIdx = inputStatus.shifterGear < 5 ? inputStatus.shifterGear : 0;
+    tft.printf("Marcha: %s", gearNames[gearIdx]);
+    
+    // Botones
+    tft.setTextColor(inputStatus.buttonsOK ? TFT_GREEN : TFT_RED, TFT_BLACK);
+    tft.setCursor(250, 110);
+    tft.printf("Botones: %s", inputStatus.buttonsOK ? "OK" : "FAIL");
+    tft.setCursor(250, 125);
+    tft.setTextColor(TFT_CYAN, TFT_BLACK);
+    tft.printf("Estado: L:%s M:%s 4:%s", 
+               inputStatus.lightsActive ? "ON" : "off",
+               inputStatus.multimediaActive ? "ON" : "off",
+               inputStatus.mode4x4Active ? "ON" : "off");
+    
+    // ====== ESTADO GENERAL ======
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.setCursor(10, 150);
+    tft.print("-- ESTADO GENERAL --");
+    
+    // Sensores
+    uint16_t sensorColor = status.allSensorsHealthy ? TFT_GREEN : 
+                           status.criticalSensorsOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(sensorColor, TFT_BLACK);
+    tft.setCursor(10, 165);
+    tft.printf("Sensores: %s", status.allSensorsHealthy ? "TODOS OK" : 
+                               status.criticalSensorsOK ? "PARCIAL" : "FALLO");
+    
+    // Entradas
+    uint16_t inputColor = inputStatus.allInputsOK ? TFT_GREEN : TFT_RED;
+    tft.setTextColor(inputColor, TFT_BLACK);
+    tft.setCursor(10, 180);
+    tft.printf("Entradas: %s", inputStatus.allInputsOK ? "TODOS OK" : "FALLO");
+    
+    // Estado del sistema general
+    bool allOK = status.allSensorsHealthy && inputStatus.allInputsOK;
+    uint16_t sysColor = allOK ? TFT_GREEN : 
+                        (status.criticalSensorsOK && inputStatus.pedalOK) ? TFT_YELLOW : TFT_RED;
     tft.setTextColor(sysColor, TFT_BLACK);
-    tft.setCursor(20, 220);
-    tft.print("Estado: ");
-    tft.println(status.allSensorsHealthy ? "TODOS OK" : 
-                status.criticalSensorsOK ? "PARCIAL" : "FALLO CRITICO");
+    tft.setTextSize(2);
+    tft.setCursor(10, 200);
+    tft.print(allOK ? "SISTEMA: OK" : 
+              (status.criticalSensorsOK && inputStatus.pedalOK) ? "SISTEMA: WARN" : "SISTEMA: FAIL");
+    
+    // Calibración del pedal
+    tft.setTextSize(1);
+    int pedalMin, pedalMax;
+    uint8_t curve;
+    Pedal::getCalibration(pedalMin, pedalMax, curve);
+    tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
+    tft.setCursor(250, 165);
+    tft.printf("Pedal cal: %d-%d", pedalMin, pedalMax);
+    tft.setCursor(250, 180);
+    tft.printf("Curva: %s", curve == 0 ? "Lineal" : curve == 1 ? "Suave" : "Agresiva");
 }
 
 void HUDManager::renderWifiConfig() {
@@ -438,17 +516,36 @@ void HUDManager::renderHiddenMenu() {
     tft.setCursor(250, 105);
     tft.printf("Controlador: %4.1fC", carData.controllerTemp);
     
-    // Sección 4: Pedal y Encoder
+    // Sección 4: Estado de dispositivos de entrada
+    Sensors::InputDeviceStatus inputStatus = Sensors::getInputDeviceStatus();
+    
     tft.setCursor(250, 125);
-    tft.print("PEDAL:");
+    tft.print("ENTRADAS:");
+    
+    // Estado del pedal con color
+    uint16_t colorPedal = inputStatus.pedalOK && inputStatus.pedalValid ? TFT_GREEN : 
+                          inputStatus.pedalOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(colorPedal, TFT_BLACK);
     tft.setCursor(250, 140);
-    tft.printf("Posicion: %5.1f%%", carData.pedalPosition);
+    tft.printf("Pedal: %5.1f%% [%d]", inputStatus.pedalPercent, inputStatus.pedalRaw);
+    
+    // Estado del steering con color
+    uint16_t colorSteer = inputStatus.steeringOK && inputStatus.steeringCentered ? TFT_GREEN :
+                          inputStatus.steeringOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(colorSteer, TFT_BLACK);
     tft.setCursor(250, 155);
-    tft.printf("Encoder raw: %6.0f", carData.encoderValue);
+    tft.printf("Volante: %5.1f deg", inputStatus.steeringAngle);
+    
+    // Estado del shifter con color
+    uint16_t colorShift = inputStatus.shifterOK ? TFT_GREEN : TFT_RED;
+    tft.setTextColor(colorShift, TFT_BLACK);
     tft.setCursor(250, 170);
-    tft.printf("Angulo volante: %5.1f", carData.steeringAngle);
+    const char* gearNames[] = {"P", "D2", "D1", "N", "R"};
+    uint8_t gearIdx = inputStatus.shifterGear < 5 ? inputStatus.shifterGear : 0;
+    tft.printf("Marcha: %s", gearNames[gearIdx]);
     
     // Sección 5: Velocidad y RPM
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.setCursor(5, 160);
     tft.print("MOVIMIENTO:");
     tft.setCursor(5, 175);
@@ -456,7 +553,7 @@ void HUDManager::renderHiddenMenu() {
     tft.setCursor(5, 190);
     tft.printf("RPM: %6.0f", carData.rpm);
     
-    // Sección 6: Estado de Sensores (NUEVO)
+    // Sección 6: Estado de Sensores
     Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
     tft.setCursor(5, 210);
     tft.print("SENSORES:");
@@ -489,36 +586,41 @@ void HUDManager::renderHiddenMenu() {
         tft.printf("!! TEMP CRITICA: %.1fC !!", sensorStatus.maxTemperature);
     }
     
-    // Sección 7: Estado del sistema
+    // Sección 7: Estado general del sistema
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.setCursor(250, 200);
-    tft.print("ESTADO:");
+    tft.print("SISTEMA:");
+    
+    // Estado de entradas
+    uint16_t colorInputs = inputStatus.allInputsOK ? TFT_GREEN : TFT_RED;
+    tft.setTextColor(colorInputs, TFT_BLACK);
     tft.setCursor(250, 215);
-    tft.print("Marcha: ");
-    switch (carData.gear) {
-        case GearPosition::PARK:    tft.print("PARK"); break;
-        case GearPosition::REVERSE: tft.print("REVERSA"); break;
-        case GearPosition::NEUTRAL: tft.print("NEUTRAL"); break;
-        case GearPosition::DRIVE1:  tft.print("DRIVE 1"); break;
-        case GearPosition::DRIVE2:  tft.print("DRIVE 2"); break;
-    }
+    tft.print(inputStatus.allInputsOK ? "Inputs: OK" : "Inputs: FAIL");
+    
+    // Botones activos
+    tft.setTextColor(TFT_CYAN, TFT_BLACK);
+    tft.setCursor(250, 230);
+    tft.printf("BTN: %s%s%s", 
+               inputStatus.lightsActive ? "L" : "-",
+               inputStatus.multimediaActive ? "M" : "-",
+               inputStatus.mode4x4Active ? "4" : "-");
     
     // Odómetros
-    tft.setCursor(250, 235);
-    tft.printf("Odo: %.1f km", carData.odoTotal);
-    tft.setCursor(250, 250);
-    tft.printf("Trip: %.1f km", carData.odoTrip);
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.setCursor(250, 245);
+    tft.printf("Odo: %.1f/%.1f", carData.odoTotal, carData.odoTrip);
     
     // Estado general del sistema
-    uint16_t sysColor = sensorStatus.allSensorsHealthy ? TFT_GREEN : 
-                        sensorStatus.criticalSensorsOK ? TFT_YELLOW : TFT_RED;
+    bool allOK = sensorStatus.allSensorsHealthy && inputStatus.allInputsOK;
+    uint16_t sysColor = allOK ? TFT_GREEN : 
+                        (sensorStatus.criticalSensorsOK && inputStatus.pedalOK) ? TFT_YELLOW : TFT_RED;
     tft.setTextColor(sysColor, TFT_BLACK);
-    tft.setCursor(250, 270);
-    tft.print(sensorStatus.allSensorsHealthy ? "SYS: OK" : 
-              sensorStatus.criticalSensorsOK ? "SYS: WARN" : "SYS: FAIL");
+    tft.setCursor(250, 260);
+    tft.print(allOK ? "SYS: OK" : 
+              (sensorStatus.criticalSensorsOK && inputStatus.pedalOK) ? "SYS: WARN" : "SYS: FAIL");
     
     // Instrucciones salida
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
-    tft.setCursor(5, 280);
+    tft.setCursor(5, 300);
     tft.print("Pulse 3s bateria para salir");
 }
