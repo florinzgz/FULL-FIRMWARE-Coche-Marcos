@@ -35,12 +35,13 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 | Archivo | Descripción |
 |---------|-------------|
+| [MANUAL_COMPLETO_CONEXIONES.md](MANUAL_COMPLETO_CONEXIONES.md) | **📘 MANUAL COMPLETO** - Guía detallada de conexiones cable por cable, organizada por módulos y componentes |
 | [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | **📌 Referencia principal del hardware** - Componentes, especificaciones, arquitectura y conexiones GPIO actualizadas (v2.8.0) |
 | [PIN_MAPPING_DEVKITC1.md](PIN_MAPPING_DEVKITC1.md) | **📌 Mapeo oficial de pines GPIO** - Asignación completa de pines para ESP32-S3-DevKitC-1 (v2.4.0) |
 | [HARDWARE_CONFIGURACION_COMPLETA.md](HARDWARE_CONFIGURACION_COMPLETA.md) | Configuración completa del hardware del sistema |
 | [HY-M158_MAPPING.md](HY-M158_MAPPING.md) | Mapeo de canales de los módulos optoacopladores HY-M158 |
 
-> ⚠️ **IMPORTANTE**: Para conexiones de hardware, consultar siempre `REFERENCIA_HARDWARE.md` y `PIN_MAPPING_DEVKITC1.md` ya que contienen las asignaciones GPIO actualizadas y verificadas con el firmware.
+> ⚠️ **IMPORTANTE**: Para conexiones de hardware, consultar siempre `MANUAL_COMPLETO_CONEXIONES.md` para instrucciones detalladas cable por cable, y `PIN_MAPPING_DEVKITC1.md` para la asignación oficial de GPIOs.
 
 ---
 
