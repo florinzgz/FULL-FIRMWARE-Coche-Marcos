@@ -47,7 +47,7 @@ namespace Sensors {
         
         // Contar sensores de temperatura DS18B20 OK
         status.temperatureSensorsOK = 0;
-        status.maxTemperature = -999.0f;
+        status.maxTemperature = INVALID_TEMPERATURE;
         status.temperatureWarning = false;
         
         if (cfg.tempSensorsEnabled) {
@@ -78,8 +78,9 @@ namespace Sensors {
         status.wheelSensorsTotal = NUM_WHEELS;
         
         // Determinar estado general
-        // Sensores críticos: al menos batería + 2 ruedas
-        status.criticalSensorsOK = status.batteryMonitorOK && (status.wheelSensorsOK >= 2);
+        // Sensores críticos: al menos batería + MIN_WHEEL_SENSORS_CRITICAL ruedas
+        status.criticalSensorsOK = status.batteryMonitorOK && 
+                                   (status.wheelSensorsOK >= MIN_WHEEL_SENSORS_CRITICAL);
         
         // Todos los sensores habilitados están OK
         bool currentOK = !cfg.currentSensorsEnabled || (status.currentSensorsOK == status.currentSensorsTotal);
@@ -91,7 +92,7 @@ namespace Sensors {
     }
     
     bool getSensorDiagnosticText(uint8_t sensorType, uint8_t sensorIdx, char* buffer, size_t bufSize) {
-        if (buffer == nullptr || bufSize < 32) return false;
+        if (buffer == nullptr || bufSize < SENSOR_DIAG_BUFFER_MIN) return false;
         
         switch (sensorType) {
             case 0: // Corriente (INA226)

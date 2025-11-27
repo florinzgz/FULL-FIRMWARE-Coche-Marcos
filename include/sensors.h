@@ -26,6 +26,11 @@ namespace Sensors {
     // Diagnóstico unificado de sensores
     // ========================================================================
     
+    // Constantes para diagnóstico de sensores
+    constexpr float INVALID_TEMPERATURE = -999.0f;  // Valor de temperatura inválida/no inicializada
+    constexpr uint8_t MIN_WHEEL_SENSORS_CRITICAL = 2;  // Mínimo sensores de rueda para operación segura
+    constexpr size_t SENSOR_DIAG_BUFFER_MIN = 32;  // Tamaño mínimo buffer para diagnóstico
+    
     // Estado consolidado de todos los sensores
     struct SystemStatus {
         // Contadores de sensores funcionando
@@ -51,10 +56,11 @@ namespace Sensors {
         uint32_t lastUpdateMs;
         
         SystemStatus() : currentSensorsOK(0), temperatureSensorsOK(0), wheelSensorsOK(0),
-                        currentSensorsTotal(6), temperatureSensorsTotal(5), wheelSensorsTotal(4),
+                        currentSensorsTotal(NUM_CURRENTS), temperatureSensorsTotal(NUM_TEMPS), 
+                        wheelSensorsTotal(NUM_WHEELS),
                         allSensorsHealthy(false), criticalSensorsOK(false),
                         batteryMonitorOK(false), temperatureWarning(false),
-                        maxTemperature(0.0f), lastUpdateMs(0) {}
+                        maxTemperature(INVALID_TEMPERATURE), lastUpdateMs(0) {}
     };
     
     /**

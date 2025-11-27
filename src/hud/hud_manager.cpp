@@ -308,7 +308,7 @@ void HUDManager::renderHardwareTest() {
         tft.setTextColor(TFT_RED, TFT_BLACK);
         tft.setCursor(20, 180);
         tft.printf("!! TEMP CRITICA: %.1fC !!", status.maxTemperature);
-    } else if (status.maxTemperature > -990.0f) {
+    } else if (status.maxTemperature > Sensors::INVALID_TEMPERATURE + 10.0f) {
         tft.setTextColor(TFT_CYAN, TFT_BLACK);
         tft.setCursor(20, 180);
         tft.printf("Temp max: %.1fC", status.maxTemperature);

@@ -208,13 +208,7 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
     lastTempWarning = tempWarning;
     lastMaxTemp = maxTemp;
     
-    // Posición: abajo derecha del indicador de sensores
-    const int x = 70;
-    const int y = 280;
-    const int w = 60;
-    const int h = 20;
-    
-    tft->fillRect(x, y, w, h, TFT_BLACK);
+    tft->fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W, TEMP_WARNING_H, TFT_BLACK);
     
     if(tempWarning) {
         // Mostrar advertencia de temperatura crítica
@@ -222,6 +216,6 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
         tft->setTextColor(TFT_RED, TFT_BLACK);
         char buf[16];
         snprintf(buf, sizeof(buf), "%.0fC!", maxTemp);
-        tft->drawString(buf, x + 5, y + h/2, 2);
+        tft->drawString(buf, TEMP_WARNING_X + 5, TEMP_WARNING_Y + TEMP_WARNING_H/2, 2);
     }
 }
