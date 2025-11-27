@@ -7,13 +7,8 @@ on:
     branches: [ "main" ]
   workflow_dispatch:   # Permite lanzarlo manualmente desde Actions
 
-# Define environments in one place for consistency
-env:
-  ENVIRONMENTS: "esp32-s3-devkitc esp32-s3-devkitc-release esp32-s3-devkitc-ota esp32-s3-devkitc-test"
-  TOTAL_ENVIRONMENTS: 4
-
 permissions:
-  contents: write   # Permite al workflow hacer commits y push en el repo
+  contents: read   # Only read access needed since we don't commit
 
 jobs:
   # ============================================
@@ -88,9 +83,13 @@ jobs:
         echo "🔍 Verificación de compilación de firmware"
         echo "=========================================="
         
+        # Expected environments (must match matrix above)
+        EXPECTED_ENVS=("esp32-s3-devkitc" "esp32-s3-devkitc-release" "esp32-s3-devkitc-ota" "esp32-s3-devkitc-test")
+        TOTAL_ENVIRONMENTS=${#EXPECTED_ENVS[@]}
+        
         # Count successful builds
         BUILD_COUNT=$(find artifacts -name "firmware.bin" | wc -l)
-        echo "✅ Compilaciones exitosas: $BUILD_COUNT/${{ env.TOTAL_ENVIRONMENTS }}"
+        echo "✅ Compilaciones exitosas: $BUILD_COUNT/$TOTAL_ENVIRONMENTS"
         
         # List all firmware files with sizes
         echo ""
@@ -98,7 +97,7 @@ jobs:
         find artifacts -name "firmware.bin" -exec ls -lh {} \;
         
         # Verify all expected builds exist
-        if [ "$BUILD_COUNT" -eq ${{ env.TOTAL_ENVIRONMENTS }} ]; then
+        if [ "$BUILD_COUNT" -eq "$TOTAL_ENVIRONMENTS" ]; then
           echo ""
           echo "✅ Todos los entornos compilaron correctamente"
         else
@@ -109,6 +108,9 @@ jobs:
 
     - name: Generate verification report
       run: |
+        # Expected environments (must match matrix above)
+        EXPECTED_ENVS=("esp32-s3-devkitc" "esp32-s3-devkitc-release" "esp32-s3-devkitc-ota" "esp32-s3-devkitc-test")
+        
         echo "# 🔧 Firmware Verification Report" > VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
         echo "**Fecha:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> VERIFICATION_REPORT.md
@@ -120,8 +122,8 @@ jobs:
         echo "| Entorno | Estado | Tamaño |" >> VERIFICATION_REPORT.md
         echo "|---------|--------|--------|" >> VERIFICATION_REPORT.md
         
-        # Use environments from env variable
-        for env in ${{ env.ENVIRONMENTS }}; do
+        # Iterate using proper bash array
+        for env in "${EXPECTED_ENVS[@]}"; do
           if [ -f "artifacts/firmware-$env/firmware.bin" ]; then
             SIZE=$(ls -lh "artifacts/firmware-$env/firmware.bin" | awk '{print $5}')
             echo "| $env | ✅ OK | $SIZE |" >> VERIFICATION_REPORT.md
