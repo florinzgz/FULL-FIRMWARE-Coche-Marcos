@@ -210,8 +210,8 @@ void loop() {
         
         // Create animated simulated car data
         CarData data;
-        data.speed = 5.0f + wave * 45.0f;            // 5 to 50 km/h
-        data.rpm = 600 + (int)(wave * 2400.0f);      // 600 to 3000 RPM
+        data.speed = 5.0f + wave * 30.0f;            // 5 to 35 km/h (matches MAX_SPEED_KMH)
+        data.rpm = 100 + (int)(wave * 300.0f);       // 100 to 400 RPM (matches MAX_RPM)
         data.batteryVoltage = 24.0f + wave * 1.0f;   // 24.0 to 25.0V variation
         data.batteryCurrent = 1.0f + wave * 8.0f;    // 1 to 9A (proportional to speed)
         data.batteryPercent = 85 + (int)(wave * 10); // 85% to 95%
