@@ -12,6 +12,7 @@
 #include "watchdog.h"
 #include "i2c_recovery.h"
 #include "bluetooth_controller.h"
+#include "telemetry.h"           // 🆕 v2.8.0: Sistema de telemetría
 
 // Entradas
 #include "pedal.h"
@@ -153,6 +154,9 @@ void setup() {
     TCSSystem::init();
     RegenAI::init();
     
+    // --- Telemetry System ---
+    Telemetry::init();           // 🆕 v2.8.0: Sistema de telemetría
+    
     // --- Bluetooth Emergency Override Controller ---
     BluetoothController::init();
 
@@ -267,6 +271,9 @@ void loop() {
     ABSSystem::update();
     TCSSystem::update();
     RegenAI::update();
+    
+    // Telemetry
+    Telemetry::update();         // 🆕 v2.8.0: Sistema de telemetría
 
     // HUD - Update at fixed 30 FPS for fluid rendering
     if (now - lastHudUpdate >= HUD_UPDATE_INTERVAL) {

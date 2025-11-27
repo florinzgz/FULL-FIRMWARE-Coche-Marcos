@@ -4,6 +4,8 @@
 #include "temperature.h"
 #include <stdint.h>
 #include <stddef.h>  // Para size_t
+#include <cmath>     // Para isfinite
+#include <Arduino.h> // Para millis()
 
 // API global de sensores
 namespace Sensors {
@@ -21,6 +23,82 @@ namespace Sensors {
 
     // Devuelve voltaje de batería (V)
     float getVoltage(int idx);
+    
+    // ========================================================================
+    // 🆕 v2.8.0: Sensor Redundante para Seguridad Crítica
+    // ========================================================================
+    
+    /**
+     * @brief Estructura para manejo de sensores redundantes
+     * Proporciona tolerancia a fallos para sensores críticos del vehículo
+     * mediante lecturas primaria/secundaria con validación cruzada.
+     */
+    struct RedundantSensor {
+        float primaryValue;         // Valor del sensor primario
+        float secondaryValue;       // Valor del sensor secundario (backup)
+        bool primaryValid;          // Sensor primario válido
+        bool secondaryValid;        // Sensor secundario válido
+        float maxDeviation;         // Máxima desviación permitida entre sensores
+        uint32_t lastUpdateMs;      // Timestamp última actualización
+        
+        RedundantSensor() : primaryValue(0.0f), secondaryValue(0.0f),
+                           primaryValid(false), secondaryValid(false),
+                           maxDeviation(5.0f), lastUpdateMs(0) {}
+        
+        /**
+         * @brief Obtiene un valor seguro del sensor
+         * @return Promedio si ambos válidos y concordantes,
+         *         valor del sensor válido si solo uno funciona,
+         *         0.0f si ninguno válido
+         */
+        float getSafeValue() const {
+            // Ninguno válido - retornar valor seguro
+            if (!primaryValid && !secondaryValid) {
+                return 0.0f;
+            }
+            
+            // Solo uno válido - usar ese
+            if (!primaryValid) return secondaryValid ? secondaryValue : 0.0f;
+            if (!secondaryValid) return primaryValue;
+            
+            // Ambos válidos - verificar concordancia
+            float deviation = std::fabs(primaryValue - secondaryValue);
+            if (deviation <= maxDeviation) {
+                // Valores concordantes - retornar promedio
+                return (primaryValue + secondaryValue) / 2.0f;
+            }
+            
+            // Valores discordantes - preferir primario pero marcar warning
+            // En implementación real, esto debería loggear un error
+            return primaryValue;
+        }
+        
+        /**
+         * @brief Verifica si hay discrepancia entre sensores
+         */
+        bool hasDiscrepancy() const {
+            if (!primaryValid || !secondaryValid) return false;
+            return std::fabs(primaryValue - secondaryValue) > maxDeviation;
+        }
+        
+        /**
+         * @brief Verifica si al menos un sensor funciona
+         */
+        bool isOperational() const {
+            return primaryValid || secondaryValid;
+        }
+        
+        /**
+         * @brief Actualiza valores del sensor redundante
+         */
+        void update(float primary, bool primaryOk, float secondary, bool secondaryOk) {
+            primaryValue = primary;
+            primaryValid = primaryOk && std::isfinite(primary);
+            secondaryValue = secondary;
+            secondaryValid = secondaryOk && std::isfinite(secondary);
+            lastUpdateMs = millis();
+        }
+    };
     
     // ========================================================================
     // Diagnóstico unificado de sensores
