@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <math.h>  // For sinf() in demo mode
 
 // Configuración
 #include "pins.h"
@@ -197,43 +198,49 @@ void loop() {
     uint32_t now = millis();
     
 #ifdef STANDALONE_DISPLAY
-    // 🧪 STANDALONE MODE: Update HUD with simulated values
+    // 🧪 STANDALONE MODE: Update HUD with animated simulated values
     if (now - lastHudUpdate >= HUD_UPDATE_INTERVAL) {
         lastHudUpdate = now;
         
-        // Create simulated car data
-        CarData data;
-        data.speed = 12.0f;                    // 12 km/h
-        data.rpm = 850;                        // Idle RPM
-        data.batteryVoltage = 24.5f;           // 24.5V
-        data.batteryCurrent = 2.3f;            // 2.3A
-        data.batteryPercent = 87;              // 87%
-        data.motorTemp[0] = 42.0f;             // Motor FL temp
-        data.motorTemp[1] = 42.0f;             // Motor FR temp
-        data.motorTemp[2] = 42.0f;             // Motor RL temp
-        data.motorTemp[3] = 42.0f;             // Motor RR temp
-        data.ambientTemp = 25.0f;              // 25°C ambient
-        data.controllerTemp = 38.0f;           // 38°C controller
-        data.motorCurrent[0] = 2.0f;           // Motor FL current
-        data.motorCurrent[1] = 2.0f;           // Motor FR current
-        data.motorCurrent[2] = 2.0f;           // Motor RL current
-        data.motorCurrent[3] = 2.0f;           // Motor RR current
-        data.steeringCurrent = 0.5f;           // Steering motor current
-        data.pedalPercent = 50.0f;             // 50% pedal (simulated)
-        data.steeringAngle = 0.0f;             // Centered
-        data.gear = GearPosition::PARK;        // Park
-        data.batteryPower = data.batteryVoltage * data.batteryCurrent;  // Power (W)
-        data.odoTotal = 1234.5f;               // Total odometer
-        data.odoTrip = 56.7f;                  // Trip odometer
-        data.encoderValue = 2048.0f;           // Encoder mid-value
+        // Demo time for animation (cycles every 30 seconds)
+        static uint32_t demoStartTime = millis();
+        float demoTime = (float)((now - demoStartTime) % 30000) / 1000.0f;
+        float wave = (sinf(demoTime * 0.4f) + 1.0f) / 2.0f;  // 0 to 1 oscillation
+        float steerWave = sinf(demoTime * 0.5f);             // -1 to 1 for steering
         
-        // SystemStatus initialization
-        data.status.fourWheelDrive = true;     // 4x4 active
-        data.status.lights = false;            // Lights off
-        data.status.parkingBrake = true;       // Parking brake on (in PARK)
-        data.status.wifi = false;              // WiFi off
-        data.status.bluetooth = false;         // Bluetooth off
-        data.status.warnings = 0;              // No warnings
+        // Create animated simulated car data
+        CarData data;
+        data.speed = 5.0f + wave * 45.0f;            // 5 to 50 km/h
+        data.rpm = 600 + (int)(wave * 2400.0f);      // 600 to 3000 RPM
+        data.batteryVoltage = 24.0f + wave * 1.0f;   // 24.0 to 25.0V variation
+        data.batteryCurrent = 1.0f + wave * 8.0f;    // 1 to 9A (proportional to speed)
+        data.batteryPercent = 85 + (int)(wave * 10); // 85% to 95%
+        data.motorTemp[0] = 40.0f + wave * 15.0f;    // Motor FL temp
+        data.motorTemp[1] = 40.0f + wave * 15.0f;    // Motor FR temp
+        data.motorTemp[2] = 38.0f + wave * 12.0f;    // Motor RL temp
+        data.motorTemp[3] = 38.0f + wave * 12.0f;    // Motor RR temp
+        data.ambientTemp = 25.0f;                    // 25°C ambient (static)
+        data.controllerTemp = 35.0f + wave * 10.0f;  // 35-45°C controller
+        data.motorCurrent[0] = 1.0f + wave * 4.0f;   // Motor FL current
+        data.motorCurrent[1] = 1.0f + wave * 4.0f;   // Motor FR current
+        data.motorCurrent[2] = 1.0f + wave * 3.0f;   // Motor RL current
+        data.motorCurrent[3] = 1.0f + wave * 3.0f;   // Motor RR current
+        data.steeringCurrent = 0.2f + fabs(steerWave) * 1.0f;  // Steering current
+        data.pedalPercent = 10.0f + wave * 70.0f;    // 10% to 80% pedal
+        data.steeringAngle = steerWave * 15.0f;      // -15° to +15°
+        data.gear = (data.speed > 3.0f) ? GearPosition::DRIVE1 : GearPosition::PARK;
+        data.batteryPower = data.batteryVoltage * data.batteryCurrent;
+        data.odoTotal = 1234.5f + (now - demoStartTime) / 60000.0f;  // Slowly increment
+        data.odoTrip = 56.7f + (now - demoStartTime) / 120000.0f;
+        data.encoderValue = 2048.0f + steerWave * 500.0f;  // Encoder follows steering
+        
+        // Animated SystemStatus
+        data.status.fourWheelDrive = true;                           // 4x4 active
+        data.status.lights = (demoTime > 5.0f && demoTime < 20.0f);  // Lights cycle
+        data.status.parkingBrake = (data.speed < 3.0f);              // Brake when slow
+        data.status.wifi = false;                                    // WiFi off
+        data.status.bluetooth = false;                               // Bluetooth off
+        data.status.warnings = (data.motorTemp[0] > 52.0f) ? 1 : 0;  // Temp warning
         
         HUDManager::updateCarData(data);
         HUDManager::update();

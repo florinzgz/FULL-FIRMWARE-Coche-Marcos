@@ -44,24 +44,36 @@ static const int DEMO_BTN_X1 = 400;
 static const int DEMO_BTN_Y1 = 260;
 static const int DEMO_BTN_X2 = 475;
 static const int DEMO_BTN_Y2 = 295;
+
+// Demo mode animation state - creates realistic simulation
+static bool demoAnimationEnabled = true;
+static uint32_t demoStartTime = 0;
 #endif
 
 // Layout 480x320 (rotación 3 → 480x320 landscape)
 // Note: Rotation 3 used for ST7796S 4-inch display in horizontal orientation
-static const int X_SPEED = 120;
-static const int Y_SPEED = 180;
-static const int X_RPM   = 360;
-static const int Y_RPM   = 180;
+static const int X_SPEED = 70;   // Left gauge - moved left for car visualization
+static const int Y_SPEED = 175;
+static const int X_RPM   = 410;  // Right gauge - moved right for car visualization
+static const int Y_RPM   = 175;
 
-// Zonas ruedas
-static const int X_FL = 120;
-static const int Y_FL = 90;
-static const int X_FR = 360;
-static const int Y_FR = 90;
-static const int X_RL = 120;
-static const int Y_RL = 260;
-static const int X_RR = 360;
-static const int Y_RR = 260;
+// Zonas ruedas - centered between gauges
+// Car body center: X=240, Y=175
+static const int X_FL = 195;     // Front left wheel - inner from center
+static const int Y_FL = 115;     // Front wheels - top
+static const int X_FR = 285;     // Front right wheel - inner from center
+static const int Y_FR = 115;
+static const int X_RL = 195;     // Rear left wheel
+static const int Y_RL = 235;     // Rear wheels - bottom
+static const int X_RR = 285;     // Rear right wheel
+static const int Y_RR = 235;
+
+// Car body dimensions (centered at 240, 175)
+static const int CAR_BODY_X = 175;      // Car body left edge
+static const int CAR_BODY_Y = 100;      // Car body top edge
+static const int CAR_BODY_W = 130;      // Car body width
+static const int CAR_BODY_H = 150;      // Car body height
+static bool carBodyDrawn = false;       // Track if car body needs redraw
 
 extern Storage::Config cfg;   // acceso a flags
 
@@ -130,14 +142,18 @@ void HUD::init() {
     
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-    tft.drawString("Esperando sensores...", 240, 90, 2);
+    tft.drawString("Esperando sensores...", 240, 80, 2);
     
     // Draw placeholder car outline to show display is working
-    tft.drawRect(180, 120, 120, 140, TFT_DARKGREY);  // Simple car box
-    tft.drawCircle(210, 130, 10, TFT_DARKGREY);  // FL wheel placeholder
-    tft.drawCircle(270, 130, 10, TFT_DARKGREY);  // FR wheel placeholder  
-    tft.drawCircle(210, 250, 10, TFT_DARKGREY);  // RL wheel placeholder
-    tft.drawCircle(270, 250, 10, TFT_DARKGREY);  // RR wheel placeholder
+    // Using the same positions as drawCarBody() for consistency
+    tft.drawRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, TFT_DARKGREY);  // Car body
+    tft.drawCircle(X_FL, Y_FL, 10, TFT_DARKGREY);  // FL wheel placeholder
+    tft.drawCircle(X_FR, Y_FR, 10, TFT_DARKGREY);  // FR wheel placeholder  
+    tft.drawCircle(X_RL, Y_RL, 10, TFT_DARKGREY);  // RL wheel placeholder
+    tft.drawCircle(X_RR, Y_RR, 10, TFT_DARKGREY);  // RR wheel placeholder
+    
+    // Reset carBodyDrawn flag so it will be redrawn on first update
+    carBodyDrawn = false;
 }
 
 void HUD::showLogo() {
@@ -193,6 +209,44 @@ static bool isTouchInDemoButton(int x, int y) {
 }
 #endif
 
+// Draw car body outline connecting the four wheels
+// This creates a visual representation of the vehicle in the center
+static void drawCarBody() {
+    // Only draw once (static background)
+    if (carBodyDrawn) return;
+    
+    // Draw car body (top-down view)
+    // Main body rectangle with rounded corners effect
+    uint16_t bodyColor = TFT_DARKGREY;
+    
+    // Car body outline
+    tft.drawRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, bodyColor);
+    
+    // Front hood area (narrower)
+    int hoodX = CAR_BODY_X + 15;
+    int hoodW = CAR_BODY_W - 30;
+    tft.drawRect(hoodX, CAR_BODY_Y, hoodW, 20, bodyColor);
+    
+    // Rear trunk area (narrower)  
+    tft.drawRect(hoodX, CAR_BODY_Y + CAR_BODY_H - 20, hoodW, 20, bodyColor);
+    
+    // Center line (car axis)
+    int centerX = CAR_BODY_X + CAR_BODY_W / 2;
+    tft.drawLine(centerX, CAR_BODY_Y + 25, centerX, CAR_BODY_Y + CAR_BODY_H - 25, TFT_DARKGREY);
+    
+    // Wheel connection lines (axles)
+    // Front axle
+    tft.drawLine(X_FL, Y_FL, X_FR, Y_FR, TFT_DARKGREY);
+    // Rear axle
+    tft.drawLine(X_RL, Y_RL, X_RR, Y_RR, TFT_DARKGREY);
+    
+    // Side rails (connecting front and rear wheels)
+    tft.drawLine(X_FL, Y_FL, X_RL, Y_RL, TFT_DARKGREY);
+    tft.drawLine(X_FR, Y_FR, X_RR, Y_RR, TFT_DARKGREY);
+    
+    carBodyDrawn = true;
+}
+
 void HUD::drawPedalBar(float pedalPercent) {
     const int y = 300;       // Posición vertical
     const int height = 18;   // Altura de la barra
@@ -239,27 +293,61 @@ void HUD::drawPedalBar(float pedalPercent) {
 
 void HUD::update() {
 #ifdef STANDALONE_DISPLAY
-    // STANDALONE MODE: Use simulated sensor values for display testing
-    // This allows the dashboard to be fully visible without hardware
-    float speedKmh = 12.0f;  // 12 km/h simulated speed
-    float rpm = 850.0f;      // 850 RPM simulated idle
-    float pedalPercent = 50.0f;  // 50% pedal
-    float steerAngleFL = 0.0f;
-    float steerAngleFR = 0.0f;
-    float wheelTempFL = 42.0f;  // Simulated temps
-    float wheelTempFR = 42.0f;
-    float wheelTempRL = 42.0f;
-    float wheelTempRR = 42.0f;
-    float wheelEffortFL = 30.0f;  // Simulated effort %
-    float wheelEffortFR = 30.0f;
-    float wheelEffortRL = 30.0f;
-    float wheelEffortRR = 30.0f;
+    // STANDALONE MODE: Use animated simulated sensor values for demo
+    // This creates a realistic simulation to test all display features
     
-    // Simulated system state (System::State is an enum, so use READY)
-    System::State sys = System::State::READY;
+    // Initialize demo start time on first call
+    if (demoStartTime == 0) {
+        demoStartTime = millis();
+    }
     
-    // Simulated shifter gear (use Shifter::Gear for icons)
-    Shifter::Gear gear = Shifter::Gear::P;
+    // Calculate demo time in seconds (cycles every 30 seconds)
+    float demoTime = (float)((millis() - demoStartTime) % 30000) / 1000.0f;
+    
+    // Calculate sinusoidal oscillation for smooth animations (0 to 1 to 0)
+    float wave = (sinf(demoTime * 0.4f) + 1.0f) / 2.0f;  // 0 to 1 oscillation
+    float steerWave = sinf(demoTime * 0.5f);             // -1 to 1 for steering
+    
+    // Animated demo values - creates a realistic driving simulation
+    float speedKmh;
+    float rpm;
+    float pedalPercent;
+    float steerAngleFL;
+    float steerAngleFR;
+    Shifter::Gear gear;
+    System::State sys;
+    
+    if (demoAnimationEnabled) {
+        // Animated values simulating a driving scenario
+        speedKmh = 5.0f + wave * 45.0f;       // 5 to 50 km/h variation
+        rpm = 600.0f + wave * 2400.0f;         // 600 to 3000 RPM
+        pedalPercent = 10.0f + wave * 70.0f;   // 10% to 80% pedal
+        steerAngleFL = steerWave * 15.0f;      // -15° to +15° steering
+        steerAngleFR = steerWave * 15.0f;      // Same for both front wheels
+        gear = (speedKmh > 3.0f) ? Shifter::Gear::D1 : Shifter::Gear::P;
+        sys = System::State::RUN;
+    } else {
+        // Static values (original behavior)
+        speedKmh = 12.0f;
+        rpm = 850.0f;
+        pedalPercent = 50.0f;
+        steerAngleFL = 0.0f;
+        steerAngleFR = 0.0f;
+        gear = Shifter::Gear::P;
+        sys = System::State::READY;
+    }
+    
+    // Animated wheel temperatures (slight variation)
+    float wheelTempFL = 40.0f + wave * 15.0f;   // 40 to 55°C
+    float wheelTempFR = 40.0f + wave * 15.0f;
+    float wheelTempRL = 38.0f + wave * 12.0f;   // Rear slightly cooler
+    float wheelTempRR = 38.0f + wave * 12.0f;
+    
+    // Animated motor effort (proportional to speed/pedal)
+    float wheelEffortFL = 20.0f + wave * 40.0f;  // 20% to 60%
+    float wheelEffortFR = 20.0f + wave * 40.0f;
+    float wheelEffortRL = 18.0f + wave * 35.0f;
+    float wheelEffortRR = 18.0f + wave * 35.0f;
     
     // Simulated button state (needed for MenuHidden)
     Buttons::State btns;
@@ -268,17 +356,18 @@ void HUD::update() {
     btns.multimedia = false;
     btns.mode4x4 = false;
     
-    bool lights = false;
-    bool multimedia = false;
-    bool mode4x4 = true;
-    bool eco = false;
+    // Animated feature states
+    bool lights = (demoTime > 5.0f && demoTime < 20.0f);  // Lights on during middle of demo
+    bool multimedia = (demoTime > 10.0f && demoTime < 25.0f);
+    bool mode4x4 = true;  // Always 4x4 in demo
+    bool eco = (pedalPercent < 40.0f);  // Eco when pedal is low
     
-    // Simulated sensor status for standalone mode
+    // Simulated sensor status for standalone mode (all OK)
     uint8_t sensorCurrentOK = 6;
     uint8_t sensorTempOK = 5;
     uint8_t sensorWheelOK = 4;
-    bool tempWarning = false;
-    float maxTemp = 42.0f;
+    bool tempWarning = (wheelTempFL > 52.0f);  // Warning when temp is high
+    float maxTemp = max(max(wheelTempFL, wheelTempFR), max(wheelTempRL, wheelTempRR));
     
 #else
     auto pedal = Pedal::get();
@@ -325,6 +414,9 @@ void HUD::update() {
     bool tempWarning = sensorStatus.temperatureWarning;
     float maxTemp = sensorStatus.maxTemperature;
 #endif
+
+    // Draw car body outline (once, static background)
+    drawCarBody();
 
     // Render gauges (ya optimizados internamente)
     Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent);
