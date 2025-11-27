@@ -733,3 +733,17 @@ void MenuHidden::update(bool batteryIconPressed) {
 bool MenuHidden::isActive() {
     return menuActive;
 }
+
+void MenuHidden::activateDirectly() {
+    // Activate hidden menu directly without code entry (for demo mode)
+    if (!menuActive && tft != nullptr) {
+        menuActive = true;
+        codeBuffer = accessCode;  // Set code to access code to match state
+        Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
+        drawMenuFull();
+        lastMenuActive = true;
+        lastSelectedOption = selectedOption;
+        lastCodeBuffer = codeBuffer;
+        Logger::info("Menu oculto activado directamente (modo demo)");
+    }
+}

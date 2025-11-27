@@ -29,6 +29,23 @@
 static TFT_eSPI tft;
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
+// Touch calibration constants (matching menu_hidden.cpp)
+static const int TOUCH_MIN_RAW = 200;   // Minimum raw touch value
+static const int TOUCH_MAX_RAW = 3900;  // Maximum raw touch value
+
+// Demo mode button detection for STANDALONE_DISPLAY
+#ifdef STANDALONE_DISPLAY
+static uint32_t demoButtonPressStart = 0;
+static bool demoButtonWasPressed = false;
+static const uint32_t DEMO_BUTTON_LONG_PRESS_MS = 1500;  // 1.5 seconds for long press
+
+// Demo button position (bottom right corner, visible area)
+static const int DEMO_BTN_X1 = 400;
+static const int DEMO_BTN_Y1 = 260;
+static const int DEMO_BTN_X2 = 475;
+static const int DEMO_BTN_Y2 = 295;
+#endif
+
 // Layout 480x320 (rotación 3 → 480x320 landscape)
 // Note: Rotation 3 used for ST7796S 4-inch display in horizontal orientation
 static const int X_SPEED = 120;
@@ -144,6 +161,37 @@ void HUD::showError() {
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.drawString("ERROR", 240, 40, 4);
 }
+
+#ifdef STANDALONE_DISPLAY
+// Draw demo mode button for easy hidden menu access
+static void drawDemoButton() {
+    // Only draw if hidden menu is not active
+    if (MenuHidden::isActive()) return;
+    
+    // Draw button background
+    tft.fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, 
+                      DEMO_BTN_X2 - DEMO_BTN_X1, DEMO_BTN_Y2 - DEMO_BTN_Y1, 
+                      5, TFT_NAVY);
+    tft.drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, 
+                      DEMO_BTN_X2 - DEMO_BTN_X1, DEMO_BTN_Y2 - DEMO_BTN_Y1, 
+                      5, TFT_CYAN);
+    
+    // Draw button text
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(TFT_CYAN, TFT_NAVY);
+    int centerX = (DEMO_BTN_X1 + DEMO_BTN_X2) / 2;
+    int centerY = (DEMO_BTN_Y1 + DEMO_BTN_Y2) / 2;
+    tft.drawString("DEMO", centerX, centerY - 6, 2);
+    tft.setTextColor(TFT_WHITE, TFT_NAVY);
+    tft.drawString("MENU", centerX, centerY + 8, 1);
+}
+
+// Check if touch is in demo button area
+static bool isTouchInDemoButton(int x, int y) {
+    return (x >= DEMO_BTN_X1 && x <= DEMO_BTN_X2 && 
+            y >= DEMO_BTN_Y1 && y <= DEMO_BTN_Y2);
+}
+#endif
 
 void HUD::drawPedalBar(float pedalPercent) {
     const int y = 300;       // Posición vertical
@@ -311,13 +359,46 @@ void HUD::update() {
 
     // Barra de pedal en la parte inferior
     drawPedalBar(pedalPercent);
+    
+#ifdef STANDALONE_DISPLAY
+    // Draw demo button for easy hidden menu access
+    drawDemoButton();
+#endif
 
     // --- Lectura táctil usando touch_map ---
     bool batteryTouch = false;
+#ifdef STANDALONE_DISPLAY
+    bool demoButtonTouched = false;
+    static bool hiddenMenuJustActivated = false;
+#endif
+
     if (touch.touched()) {
         TS_Point p = touch.getPoint();
-        int x = map(p.x, 200, 3900, 0, 480);
-        int y = map(p.y, 200, 3900, 0, 320);
+        // Map raw touch coordinates to screen coordinates using calibration constants
+        int x = map(p.x, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 480);
+        int y = map(p.y, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 320);
+
+#ifdef STANDALONE_DISPLAY
+        // Check demo button touch with long press detection
+        // Reset long press timer if touch moves outside button area
+        bool touchInButton = isTouchInDemoButton(x, y) && !MenuHidden::isActive();
+        if (touchInButton) {
+            uint32_t now = millis();
+            if (!demoButtonWasPressed) {
+                demoButtonPressStart = now;
+                demoButtonWasPressed = true;
+                Logger::info("Demo button touched - hold 1.5s for menu");
+            } else if (now - demoButtonPressStart >= DEMO_BUTTON_LONG_PRESS_MS) {
+                // Long press detected - activate hidden menu directly
+                demoButtonTouched = true;
+                hiddenMenuJustActivated = true;
+                Logger::info("Demo button long press - activating hidden menu");
+            }
+        } else {
+            // Reset if touch moved outside button area
+            demoButtonWasPressed = false;
+        }
+#endif
 
         TouchAction act = getTouchedZone(x, y);
         switch (act) {
@@ -339,8 +420,24 @@ void HUD::update() {
             default:
                 break;
         }
+    } else {
+#ifdef STANDALONE_DISPLAY
+        demoButtonWasPressed = false;
+#endif
     }
 
+#ifdef STANDALONE_DISPLAY
+    // In demo mode, activate hidden menu directly on demo button long press
+    // This bypasses the code entry mechanism for easier testing
+    if (demoButtonTouched && hiddenMenuJustActivated) {
+        MenuHidden::activateDirectly();
+        hiddenMenuJustActivated = false;
+    } else {
+        // Normal battery touch handling
+        MenuHidden::update(btns.batteryIcon || batteryTouch);
+    }
+#else
     // Menú oculto: botón físico o toque en batería
     MenuHidden::update(btns.batteryIcon || batteryTouch);
+#endif
 }

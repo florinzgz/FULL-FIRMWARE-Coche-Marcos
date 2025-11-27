@@ -27,6 +27,11 @@ namespace MenuHidden {
     // --- Estado del menú ---
     // Devuelve true si el menú oculto está activo.
     bool isActive();
+    
+    // --- Activación directa del menú (modo DEMO) ---
+    // Activa el menú oculto directamente sin necesidad de código.
+    // Usado en modo STANDALONE_DISPLAY para facilitar pruebas.
+    void activateDirectly();
 
     // --- Notas ---
     // * El código de acceso por defecto es 8989.
