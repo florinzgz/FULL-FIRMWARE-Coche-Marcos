@@ -157,7 +157,7 @@ static void updatePedalCalibration(bool touched) {
     }
     else if (calibState == CalibrationState::PEDAL_DONE) {
         // Validar calibración
-        if (pedalCalibMax > pedalCalibMin + 500) {
+        if (pedalCalibMax >= pedalCalibMin + 500) {
             // Guardar calibración
             cfg.pedalMin = pedalCalibMin;
             cfg.pedalMax = pedalCalibMax;
