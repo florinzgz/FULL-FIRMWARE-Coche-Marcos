@@ -129,7 +129,7 @@ static void updatePedalCalibration(bool touched) {
     }
     else if (calibState == CalibrationState::PEDAL_MAX) {
         snprintf(valueStr, sizeof(valueStr), "ADC: %d", pedal.raw);
-        drawCalibrationScreen("CALIBRAR PEDAL", "Pisa el pedal al maximo", valueStr);
+        drawCalibrationScreen("CALIBRAR PEDAL", "Pisa el pedal al máximo", valueStr);
         
         // Actualizar máximo continuamente
         if (pedal.raw > pedalCalibMin + 100) {
