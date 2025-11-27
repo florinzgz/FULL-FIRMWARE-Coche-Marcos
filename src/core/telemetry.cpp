@@ -12,6 +12,11 @@
 namespace Telemetry {
 
 // -----------------------
+// Constantes
+// -----------------------
+static const float MIN_DISTANCE_THRESHOLD = 0.001f;  // km mínimo para cálculos
+
+// -----------------------
 // Variables internas
 // -----------------------
 static VehicleData data;
@@ -19,6 +24,14 @@ static Config cfg;
 static bool initialized = false;
 static uint32_t lastPersistMs = 0;
 static Preferences prefs;
+
+// Acumuladores para promedios (a nivel de namespace para evitar variables estáticas en funciones)
+static double speedAccum = 0.0;
+static uint32_t speedSamples = 0;
+static double currentAccum = 0.0;
+static uint32_t currentSamples = 0;
+static double tempAccum = 0.0;
+static uint32_t tempSamples = 0;
 
 // Namespace para NVS
 static const char* NVS_NAMESPACE = "telemetry";
@@ -173,7 +186,7 @@ bool initOK() {
 }
 
 float getAvgConsumptionWhKm() {
-    if (data.sessionDistanceKm <= 0.001) return 0.0f;
+    if (data.sessionDistanceKm <= MIN_DISTANCE_THRESHOLD) return 0.0f;
     return static_cast<float>((data.sessionEnergyKwh * 1000.0) / data.sessionDistanceKm);
 }
 
@@ -209,14 +222,10 @@ void updateSpeed(float speedKmh) {
     if (speedKmh > data.maxSpeedKmh) {
         data.maxSpeedKmh = speedKmh;
     }
-    // Promedio móvil simple
-    static uint32_t speedSamples = 0;
-    static double speedAccum = 0.0;
+    // Promedio usando acumuladores a nivel de namespace
     speedAccum += speedKmh;
     speedSamples++;
-    if (speedSamples > 0) {
-        data.avgSpeedKmh = static_cast<float>(speedAccum / speedSamples);
-    }
+    data.avgSpeedKmh = static_cast<float>(speedAccum / speedSamples);
 }
 
 void addDistance(float distanceKm) {
@@ -259,14 +268,10 @@ void updateBattery(float voltage, float current, float soc) {
         data.maxBatteryCurrent = absCurrent;
     }
     
-    // Promedio móvil de corriente
-    static uint32_t currentSamples = 0;
-    static double currentAccum = 0.0;
+    // Promedio usando acumuladores a nivel de namespace
     currentAccum += absCurrent;
     currentSamples++;
-    if (currentSamples > 0) {
-        data.avgBatteryCurrent = static_cast<float>(currentAccum / currentSamples);
-    }
+    data.avgBatteryCurrent = static_cast<float>(currentAccum / currentSamples);
 }
 
 void updateTemperature(float motorTemp, float batteryTemp) {
@@ -274,14 +279,10 @@ void updateTemperature(float motorTemp, float batteryTemp) {
         data.maxMotorTemp = motorTemp;
     }
     
-    // Promedio móvil de temperatura motor
-    static uint32_t tempSamples = 0;
-    static double tempAccum = 0.0;
+    // Promedio usando acumuladores a nivel de namespace
     tempAccum += motorTemp;
     tempSamples++;
-    if (tempSamples > 0) {
-        data.avgMotorTemp = static_cast<float>(tempAccum / tempSamples);
-    }
+    data.avgMotorTemp = static_cast<float>(tempAccum / tempSamples);
     
     if (batteryTemp > data.maxBatteryTemp) {
         data.maxBatteryTemp = batteryTemp;
