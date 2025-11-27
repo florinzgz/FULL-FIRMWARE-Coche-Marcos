@@ -240,8 +240,9 @@ static void drawCarBody() {
     
     // Center line (car axis) - using named constants for margins
     int centerX = CAR_BODY_X + CAR_BODY_W / 2;
-    tft.drawLine(centerX, CAR_BODY_Y + CAR_CENTER_LINE_MARGIN, 
-                 centerX, CAR_BODY_Y + CAR_BODY_H - CAR_CENTER_LINE_MARGIN, TFT_DARKGREY);
+    int lineTop = CAR_BODY_Y + CAR_CENTER_LINE_MARGIN;
+    int lineBottom = CAR_BODY_Y + CAR_BODY_H - CAR_CENTER_LINE_MARGIN;
+    tft.drawLine(centerX, lineTop, centerX, lineBottom, TFT_DARKGREY);
     
     // Wheel connection lines (axles)
     tft.drawLine(X_FL, Y_FL, X_FR, Y_FR, TFT_DARKGREY);  // Front axle
