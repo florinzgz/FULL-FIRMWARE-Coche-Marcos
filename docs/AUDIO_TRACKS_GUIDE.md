@@ -5,7 +5,29 @@
 
 ---
 
-## 📋 Audios Actuales (38 Tracks)
+## ⚠️ IMPORTANTE: Cómo Grabar los Audios
+
+**Los archivos MP3 NO están incluidos.** Debes grabarlos tú siguiendo estos pasos:
+
+### 📝 Pasos Rápidos para Grabar
+
+1. **Ir a [TTSMaker.com](https://ttsmaker.com/)**
+2. **Seleccionar idioma:** Español (España)
+3. **Copiar el texto** de la columna "Texto Sugerido" de las tablas de abajo
+4. **Clic en "Convertir a Voz"**
+5. **Descargar el MP3**
+6. **Renombrar** el archivo a `XXXX.mp3` (ejemplo: `0001.mp3`, `0039.mp3`)
+7. **Copiar todos los archivos** a la raíz de la tarjeta SD
+
+### 💾 Requisitos de la Tarjeta SD
+- **Formato:** FAT32
+- **Capacidad:** 1GB - 32GB  
+- **Velocidad:** Clase 4 o superior
+- **Archivos:** Copiar directamente en la raíz (no en carpetas)
+
+---
+
+## 📋 Audios Implementados (68 Tracks)
 
 Los archivos de audio deben copiarse a la tarjeta SD del DFPlayer Mini con el formato `XXXX.mp3` (4 dígitos).
 
@@ -113,69 +135,71 @@ Los archivos de audio deben copiarse a la tarjeta SD del DFPlayer Mini con el fo
 
 ---
 
-## 🎙️ Audios Adicionales Sugeridos
+## 🆕 Audios Avanzados - IMPLEMENTADOS (Tracks 39-68)
+
+> ✅ **Ya implementados en `include/alerts.h`** - Solo necesitas grabar los MP3
 
 ### Sistemas de Seguridad Avanzados (Tracks 39-44)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0039 | AUDIO_ABS_ACTIVADO | ABS activo | "Sistema antibloqueo de frenos activado." |
-| 0040 | AUDIO_ABS_DESACTIVADO | ABS inactivo | "Sistema antibloqueo de frenos desactivado." |
-| 0041 | AUDIO_TCS_ACTIVADO | TCS activo | "Control de tracción activado." |
-| 0042 | AUDIO_TCS_DESACTIVADO | TCS inactivo | "Control de tracción desactivado." |
-| 0043 | AUDIO_REGEN_ON | Regen activo | "Frenado regenerativo activado." |
-| 0044 | AUDIO_REGEN_OFF | Regen inactivo | "Frenado regenerativo desactivado." |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0039 | `0039.mp3` | AUDIO_ABS_ACTIVADO | "Sistema antibloqueo de frenos activado." |
+| 0040 | `0040.mp3` | AUDIO_ABS_DESACTIVADO | "Sistema antibloqueo de frenos desactivado." |
+| 0041 | `0041.mp3` | AUDIO_TCS_ACTIVADO | "Control de tracción activado." |
+| 0042 | `0042.mp3` | AUDIO_TCS_DESACTIVADO | "Control de tracción desactivado." |
+| 0043 | `0043.mp3` | AUDIO_REGEN_ON | "Frenado regenerativo activado." |
+| 0044 | `0044.mp3` | AUDIO_REGEN_OFF | "Frenado regenerativo desactivado." |
 
 ### WiFi y Conectividad (Tracks 45-48)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0045 | AUDIO_WIFI_CONECTADO | WiFi conectado | "Conexión WiFi establecida." |
-| 0046 | AUDIO_WIFI_DESCONECTADO | WiFi perdido | "Conexión WiFi perdida." |
-| 0047 | AUDIO_OTA_INICIADO | OTA iniciando | "Actualización remota iniciada. No desconecte el vehículo." |
-| 0048 | AUDIO_OTA_COMPLETADO | OTA completado | "Actualización completada. Reiniciando sistema." |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0045 | `0045.mp3` | AUDIO_WIFI_CONECTADO | "Conexión WiFi establecida." |
+| 0046 | `0046.mp3` | AUDIO_WIFI_DESCONECTADO | "Conexión WiFi perdida." |
+| 0047 | `0047.mp3` | AUDIO_OTA_INICIADO | "Actualización remota iniciada. No desconecte el vehículo." |
+| 0048 | `0048.mp3` | AUDIO_OTA_COMPLETADO | "Actualización completada. Reiniciando sistema." |
 
 ### Bluetooth (Tracks 49-51)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0049 | AUDIO_BT_CONECTADO | BT conectado | "Mando Bluetooth conectado." |
-| 0050 | AUDIO_BT_DESCONECTADO | BT perdido | "Mando Bluetooth desconectado." |
-| 0051 | AUDIO_BT_EMPAREJANDO | BT pairing | "Buscando mando Bluetooth. Mantenga pulsado el botón de emparejamiento." |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0049 | `0049.mp3` | AUDIO_BT_CONECTADO | "Mando Bluetooth conectado." |
+| 0050 | `0050.mp3` | AUDIO_BT_DESCONECTADO | "Mando Bluetooth desconectado." |
+| 0051 | `0051.mp3` | AUDIO_BT_EMPAREJANDO | "Buscando mando Bluetooth. Mantenga pulsado el botón de emparejamiento." |
 
 ### Estados del Vehículo (Tracks 52-56)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0052 | AUDIO_VELOCIDAD_MAXIMA | Límite velocidad | "Velocidad máxima alcanzada." |
-| 0053 | AUDIO_SOBRECORRIENTE | Overcurrent | "Advertencia. Corriente excesiva detectada." |
-| 0054 | AUDIO_OBSTACULO | Obstáculo detectado | "Atención. Obstáculo detectado." |
-| 0055 | AUDIO_ESTACIONANDO | Asistencia parking | "Modo asistencia de estacionamiento activado." |
-| 0056 | AUDIO_ARRANQUE_SUAVE | Arranque suave | "Iniciando arranque suave de motores." |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0052 | `0052.mp3` | AUDIO_VELOCIDAD_MAXIMA | "Velocidad máxima alcanzada." |
+| 0053 | `0053.mp3` | AUDIO_SOBRECORRIENTE | "Advertencia. Corriente excesiva detectada." |
+| 0054 | `0054.mp3` | AUDIO_OBSTACULO | "Atención. Obstáculo detectado." |
+| 0055 | `0055.mp3` | AUDIO_ESTACIONANDO | "Modo asistencia de estacionamiento activado." |
+| 0056 | `0056.mp3` | AUDIO_ARRANQUE_SUAVE | "Iniciando arranque suave de motores." |
 
 ### Información de Telemetría (Tracks 57-60)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0057 | AUDIO_BATERIA_50 | 50% batería | "Nivel de batería al 50 por ciento." |
-| 0058 | AUDIO_BATERIA_25 | 25% batería | "Nivel de batería al 25 por ciento. Considere recargar." |
-| 0059 | AUDIO_DISTANCIA_1KM | 1km recorrido | "Ha recorrido un kilómetro en esta sesión." |
-| 0060 | AUDIO_AHORRO_ENERGIA | Ahorro energía | "Modo ahorro de energía activado." |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0057 | `0057.mp3` | AUDIO_BATERIA_50 | "Nivel de batería al 50 por ciento." |
+| 0058 | `0058.mp3` | AUDIO_BATERIA_25 | "Nivel de batería al 25 por ciento. Considere recargar." |
+| 0059 | `0059.mp3` | AUDIO_DISTANCIA_1KM | "Ha recorrido un kilómetro en esta sesión." |
+| 0060 | `0060.mp3` | AUDIO_AHORRO_ENERGIA | "Modo ahorro de energía activado." |
 
 ### Modos de Conducción (Tracks 61-63)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0061 | AUDIO_MODO_ECO | Modo Eco | "Modo eco activado. Máxima eficiencia." |
-| 0062 | AUDIO_MODO_NORMAL | Modo Normal | "Modo normal activado." |
-| 0063 | AUDIO_MODO_SPORT | Modo Sport | "Modo deportivo activado. Máxima potencia." |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0061 | `0061.mp3` | AUDIO_MODO_ECO | "Modo eco activado. Máxima eficiencia." |
+| 0062 | `0062.mp3` | AUDIO_MODO_NORMAL | "Modo normal activado." |
+| 0063 | `0063.mp3` | AUDIO_MODO_SPORT | "Modo deportivo activado. Máxima potencia." |
 
 ### Feedback de Configuración (Tracks 64-68)
-| Track | Constante Sugerida | Descripción | Texto Sugerido |
-|-------|-------------------|-------------|----------------|
-| 0064 | AUDIO_CONFIG_GUARDADA | Config guardada | "Configuración guardada correctamente." |
-| 0065 | AUDIO_CONFIG_RESTAURADA | Config restaurada | "Configuración de fábrica restaurada." |
-| 0066 | AUDIO_ERRORES_BORRADOS | Errores borrados | "Registro de errores borrado." |
-| 0067 | AUDIO_REGEN_AJUSTADO | Regen ajustado | "Nivel de regeneración ajustado." |
-| 0068 | AUDIO_BEEP | Beep confirmación | *(Sonido corto de confirmación)* |
+| Track | Archivo | Constante | Texto para Grabar |
+|-------|---------|-----------|-------------------|
+| 0064 | `0064.mp3` | AUDIO_CONFIG_GUARDADA | "Configuración guardada correctamente." |
+| 0065 | `0065.mp3` | AUDIO_CONFIG_RESTAURADA | "Configuración de fábrica restaurada." |
+| 0066 | `0066.mp3` | AUDIO_ERRORES_BORRADOS | "Registro de errores borrado." |
+| 0067 | `0067.mp3` | AUDIO_REGEN_AJUSTADO | "Nivel de regeneración ajustado." |
+| 0068 | `0068.mp3` | AUDIO_BEEP | *(Sonido corto de confirmación - buscar "beep sound" en YouTube)* |
 
 ---
 
-## 📁 Estructura de la Tarjeta SD
+## 📁 Estructura Final de la Tarjeta SD
 
 ```
 SD Card (FAT32)
@@ -184,126 +208,225 @@ SD Card (FAT32)
 ├── 0003.mp3    (AUDIO_ERROR_GENERAL)
 ├── ...
 ├── 0038.mp3    (AUDIO_TRACCION_4X2)
-└── [0039-0068].mp3   (Audios adicionales sugeridos)
+├── 0039.mp3    (AUDIO_ABS_ACTIVADO)
+├── 0040.mp3    (AUDIO_ABS_DESACTIVADO)
+├── ...
+└── 0068.mp3    (AUDIO_BEEP)
 ```
 
-**Requisitos de la tarjeta SD:**
-- Formato: FAT32
-- Capacidad: 1GB - 32GB
-- Velocidad: Clase 4 o superior
-- Archivos MP3: Bitrate recomendado 128-320 kbps
+**Total: 68 archivos MP3**
 
 ---
 
-## 🎤 Cómo Grabar los Audios
+## 🎤 Métodos para Grabar los Audios
 
-### Opción 1: Síntesis de Voz Online (Gratis)
-1. Ir a [TTSMaker](https://ttsmaker.com/) o [Natural Readers](https://www.naturalreaders.com/)
-2. Seleccionar voz en español (España)
-3. Pegar el texto sugerido
-4. Descargar como MP3
-5. Renombrar con formato `XXXX.mp3`
+### ✅ Método 1: TTSMaker (RECOMENDADO - Gratis)
 
-### Opción 2: Google Text-to-Speech
+1. Abrir **[ttsmaker.com](https://ttsmaker.com/)**
+2. Configurar:
+   - Idioma: **Spanish (Spain)**
+   - Voz: Seleccionar una voz que te guste
+3. Pegar el texto de la tabla
+4. Clic en **"Start to Convert"**
+5. Clic en **"Download MP3"**
+6. Renombrar el archivo descargado a `XXXX.mp3`
+7. Repetir para cada track
+
+### Método 2: Natural Readers (Gratis)
+
+1. Ir a **[naturalreaders.com](https://www.naturalreaders.com/)**
+2. Seleccionar voz española
+3. Pegar texto → Descargar
+
+### Método 3: Script Python con gTTS
+
 ```python
 from gtts import gTTS
-import os
 
+# Diccionario completo de textos (tracks 1-68)
 textos = {
-    "0039": "Sistema antibloqueo de frenos activado",
-    "0040": "Sistema antibloqueo de frenos desactivado",
-    # ... añadir más
+    # Sistema principal
+    "0001": "Bienvenido Marcos. El sistema está listo para comenzar.",
+    "0002": "Cerrando sistemas. Hasta pronto.",
+    "0003": "Atención. Se ha detectado un error general.",
+    
+    # Calibración pedal
+    "0004": "Calibración del pedal completada correctamente.",
+    "0005": "Error en el sensor del pedal. Revise la conexión.",
+    
+    # Sensores de corriente
+    "0006": "Calibración de sensores de corriente finalizada.",
+    "0007": "Error en sensores de corriente o shunt desconectado.",
+    
+    # Encoder dirección
+    "0008": "Encoder sincronizado correctamente.",
+    "0009": "Error en el sensor de dirección. Compruebe el encoder.",
+    
+    # Temperatura
+    "0010": "Temperatura del motor elevada. Reduzca la velocidad.",
+    "0011": "Temperatura del motor normalizada.",
+    
+    # Batería
+    "0012": "Nivel de batería bajo. Conecte el cargador, por favor.",
+    "0013": "Advertencia. Batería en nivel crítico. Desconectando tracción.",
+    
+    # Freno estacionamiento
+    "0014": "Freno de estacionamiento activado.",
+    "0015": "Freno de estacionamiento desactivado.",
+    
+    # Luces
+    "0016": "Luces encendidas.",
+    "0017": "Luces apagadas.",
+    
+    # Radio/Multimedia
+    "0018": "Sistema multimedia activado.",
+    "0019": "Sistema multimedia desactivado.",
+    
+    # Marchas
+    "0020": "Marcha D uno activada.",
+    "0021": "Marcha D dos activada.",
+    "0022": "Marcha atrás activada.",
+    "0023": "Punto muerto.",
+    "0024": "Vehículo en posición de estacionamiento.",
+    
+    # Menú oculto
+    "0025": "Menú de calibración avanzado activado.",
+    "0026": "Iniciando calibración del pedal. Presione lentamente hasta el fondo.",
+    "0027": "Calibrando sensores de corriente. Espere unos segundos.",
+    "0028": "Calibrando el punto central del volante. Manténgalo recto.",
+    
+    # Test sistema
+    "0029": "Iniciando comprobación completa del sistema.",
+    "0030": "Comprobación finalizada. Todos los módulos operativos.",
+    
+    # Emergencia
+    "0031": "Modo de emergencia activado. Motor deshabilitado.",
+    "0032": "Reinicio de seguridad completado.",
+    
+    # Errores sensores
+    "0033": "Error en sensor de temperatura.",
+    "0034": "Anomalía en lectura de corriente.",
+    "0035": "Sin señal de velocidad. Revise sensores de rueda.",
+    
+    # Estado módulos
+    "0036": "Módulo verificado correctamente.",
+    
+    # Tracción
+    "0037": "Tracción 4x4 inteligente activada.",
+    "0038": "Tracción 4x2 inteligente activada.",
+    
+    # === TRACKS AVANZADOS (39-68) ===
+    
+    # Sistemas seguridad
+    "0039": "Sistema antibloqueo de frenos activado.",
+    "0040": "Sistema antibloqueo de frenos desactivado.",
+    "0041": "Control de tracción activado.",
+    "0042": "Control de tracción desactivado.",
+    "0043": "Frenado regenerativo activado.",
+    "0044": "Frenado regenerativo desactivado.",
+    
+    # WiFi y conectividad
+    "0045": "Conexión WiFi establecida.",
+    "0046": "Conexión WiFi perdida.",
+    "0047": "Actualización remota iniciada. No desconecte el vehículo.",
+    "0048": "Actualización completada. Reiniciando sistema.",
+    
+    # Bluetooth
+    "0049": "Mando Bluetooth conectado.",
+    "0050": "Mando Bluetooth desconectado.",
+    "0051": "Buscando mando Bluetooth. Mantenga pulsado el botón de emparejamiento.",
+    
+    # Estados vehículo
+    "0052": "Velocidad máxima alcanzada.",
+    "0053": "Advertencia. Corriente excesiva detectada.",
+    "0054": "Atención. Obstáculo detectado.",
+    "0055": "Modo asistencia de estacionamiento activado.",
+    "0056": "Iniciando arranque suave de motores.",
+    
+    # Telemetría
+    "0057": "Nivel de batería al 50 por ciento.",
+    "0058": "Nivel de batería al 25 por ciento. Considere recargar.",
+    "0059": "Ha recorrido un kilómetro en esta sesión.",
+    "0060": "Modo ahorro de energía activado.",
+    
+    # Modos conducción
+    "0061": "Modo eco activado. Máxima eficiencia.",
+    "0062": "Modo normal activado.",
+    "0063": "Modo deportivo activado. Máxima potencia.",
+    
+    # Config feedback
+    "0064": "Configuración guardada correctamente.",
+    "0065": "Configuración de fábrica restaurada.",
+    "0066": "Registro de errores borrado.",
+    "0067": "Nivel de regeneración ajustado.",
+    # 0068 es un beep - descargar de internet
 }
 
+# Generar todos los MP3
 for num, texto in textos.items():
+    print(f"Generando {num}.mp3...")
     tts = gTTS(text=texto, lang='es')
     tts.save(f"{num}.mp3")
+
+print("¡Completado! Generados 67 archivos MP3")
+print("Nota: 0068.mp3 (beep) debe descargarse por separado")
 ```
 
-### Opción 3: Grabación Manual
+**Para ejecutar el script:**
+```bash
+pip install gTTS
+python generar_audios.py
+```
+
+### Método 4: Grabación con Micrófono
+
+Si prefieres grabar tu propia voz:
 - Usar micrófono de buena calidad
 - Grabar en ambiente silencioso
-- Exportar a MP3 mono, 128kbps, 22050Hz
+- Exportar a MP3: mono, 128kbps, 22050Hz
 - Normalizar volumen entre archivos
 
 ---
 
-## 🔧 Actualizar el Código
+## 📊 Resumen de Tracks
 
-Para añadir los nuevos audios, edita `include/alerts.h`:
-
-```cpp
-// Añadir después de AUDIO_TRACCION_4X2 = 38:
-
-// Sistemas de seguridad avanzados
-AUDIO_ABS_ACTIVADO = 39,
-AUDIO_ABS_DESACTIVADO = 40,
-AUDIO_TCS_ACTIVADO = 41,
-AUDIO_TCS_DESACTIVADO = 42,
-AUDIO_REGEN_ON = 43,
-AUDIO_REGEN_OFF = 44,
-
-// WiFi y conectividad
-AUDIO_WIFI_CONECTADO = 45,
-AUDIO_WIFI_DESCONECTADO = 46,
-AUDIO_OTA_INICIADO = 47,
-AUDIO_OTA_COMPLETADO = 48,
-
-// Bluetooth
-AUDIO_BT_CONECTADO = 49,
-AUDIO_BT_DESCONECTADO = 50,
-AUDIO_BT_EMPAREJANDO = 51,
-
-// Estados del vehículo
-AUDIO_VELOCIDAD_MAXIMA = 52,
-AUDIO_SOBRECORRIENTE = 53,
-AUDIO_OBSTACULO = 54,
-AUDIO_ESTACIONANDO = 55,
-AUDIO_ARRANQUE_SUAVE = 56,
-
-// Telemetría
-AUDIO_BATERIA_50 = 57,
-AUDIO_BATERIA_25 = 58,
-AUDIO_DISTANCIA_1KM = 59,
-AUDIO_AHORRO_ENERGIA = 60,
-
-// Modos de conducción
-AUDIO_MODO_ECO = 61,
-AUDIO_MODO_NORMAL = 62,
-AUDIO_MODO_SPORT = 63,
-
-// Feedback configuración
-AUDIO_CONFIG_GUARDADA = 64,
-AUDIO_CONFIG_RESTAURADA = 65,
-AUDIO_ERRORES_BORRADOS = 66,
-AUDIO_REGEN_AJUSTADO = 67,
-AUDIO_BEEP = 68,
-```
+| Categoría | Rango | Cantidad |
+|-----------|-------|----------|
+| Sistema principal | 1-3 | 3 |
+| Calibración pedal/sensores | 4-9 | 6 |
+| Temperatura/Batería | 10-13 | 4 |
+| Freno/Luces/Media | 14-19 | 6 |
+| Marchas | 20-24 | 5 |
+| Menú oculto | 25-28 | 4 |
+| Test sistema | 29-30 | 2 |
+| Emergencia | 31-32 | 2 |
+| Errores sensores | 33-35 | 3 |
+| Módulos/Tracción | 36-38 | 3 |
+| **Seguridad (ABS/TCS/Regen)** | 39-44 | 6 |
+| **WiFi/OTA** | 45-48 | 4 |
+| **Bluetooth** | 49-51 | 3 |
+| **Estados vehículo** | 52-56 | 5 |
+| **Telemetría** | 57-60 | 4 |
+| **Modos conducción** | 61-63 | 3 |
+| **Config feedback** | 64-68 | 5 |
+| **TOTAL** | **1-68** | **68** |
 
 ---
 
-## 📊 Resumen
+## ✅ Checklist de Grabación
 
-| Categoría | Tracks Actuales | Tracks Sugeridos |
-|-----------|-----------------|------------------|
-| Sistema principal | 3 | - |
-| Calibración | 6 | - |
-| Sensores | 6 | - |
-| Batería/Temp | 4 | - |
-| Marchas | 5 | - |
-| Luces/Media | 4 | - |
-| Seguridad | 2 | 6 |
-| Test/Módulos | 4 | - |
-| Tracción | 2 | - |
-| WiFi/BT | - | 7 |
-| Estados vehículo | - | 5 |
-| Telemetría | - | 4 |
-| Modos conducción | - | 3 |
-| Config feedback | - | 5 |
-| **TOTAL** | **38** | **30** |
-
-**Total con mejoras: 68 tracks**
+- [ ] Tracks 1-38 (Básicos)
+- [ ] Tracks 39-44 (Seguridad: ABS, TCS, Regen)
+- [ ] Tracks 45-48 (WiFi, OTA)
+- [ ] Tracks 49-51 (Bluetooth)
+- [ ] Tracks 52-56 (Estados vehículo)
+- [ ] Tracks 57-60 (Telemetría)
+- [ ] Tracks 61-63 (Modos: Eco, Normal, Sport)
+- [ ] Tracks 64-68 (Configuración)
+- [ ] Copiar todos a tarjeta SD FAT32
+- [ ] Probar con DFPlayer Mini
 
 ---
 
-*Documento creado: 2025-11-27*
+*Documento actualizado: 2025-11-27*  
+*Constantes implementadas en: `include/alerts.h`*
