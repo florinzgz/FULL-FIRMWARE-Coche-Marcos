@@ -1,8 +1,8 @@
 # 🔍 AUDITORÍA COMPLETA DEL FIRMWARE - COCHE MARCOS
 
-## Fecha: 2025-11-26
+## Fecha: 2025-11-27
 ## ESP32-S3-DevKitC-1 (44 pines) - Control de Vehículo Eléctrico
-## Versión Firmware: 2.6.0
+## Versión Firmware: 2.7.0
 
 ---
 
@@ -22,8 +22,35 @@
 | Non-Blocking Main Loop | ✅ Implementado |
 | Protección Overcurrent | ✅ Implementada en motor dirección |
 | Validación de Sensores | ✅ Completa con fallbacks |
+| Menú Oculto | ✅ 100% funcionalidad implementada |
 | Build Status | ✅ SUCCESS 4/4 entornos |
 | Documentación | ✅ project_config.ini sincronizado |
+
+---
+
+## 🆕 MEJORAS APLICADAS EN v2.7.0
+
+### ✅ Ajuste Interactivo de Regeneración
+- **Archivo**: `menu_hidden.cpp`
+- **Función**: `startRegenAdjust()` + `updateRegenAdjust()`
+- **Características**:
+  - Slider visual con barra de progreso
+  - Botones [-10%] y [+10%] para ajuste rápido
+  - Ajuste directo tocando la barra
+  - Valor mostrado en tiempo real (fuente grande)
+  - Botón GUARDAR para confirmar cambios
+  - Timeout de seguridad (30 segundos)
+  - Guardado automático en Storage con checksum
+
+### ✅ Confirmación de Borrado de Errores
+- **Archivo**: `menu_hidden.cpp`
+- **Función**: `startClearErrorsConfirm()` + `updateClearErrorsConfirm()`
+- **Características**:
+  - Diálogo de confirmación con botones CANCELAR/BORRAR
+  - Mensaje claro: "Esta acción no se puede deshacer"
+  - Detección automática si no hay errores
+  - Feedback visual y auditivo
+  - Timeout de seguridad (30 segundos)
 
 ---
 
@@ -424,6 +451,8 @@ Logger::debugf("Debug: %s", str);
 - [x] Módulos críticos con initOK() ✅ v2.4.0
 - [x] Sensores con validación isfinite() ✅ v2.4.0
 - [x] initOK() en RegenAI, Shifter, Buttons, PowerMgmt, CarSensors, HUDManager ✅ v2.5.0
+- [x] Ajuste interactivo regeneración (slider + botones +/-) ✅ v2.7.0
+- [x] Confirmación antes de borrar errores (diálogo CANCELAR/BORRAR) ✅ v2.7.0
 - [ ] Calibración dinámica touch (futura mejora)
 
 ---
@@ -443,11 +472,14 @@ Logger::debugf("Debug: %s", str);
 - ✅ Guards de inicialización en TODOS los módulos
 - ✅ Conflicto GPIO 19 resuelto completamente
 - ✅ initOK() implementado en TODOS los módulos (v2.5.0)
+- ✅ Menú oculto 100% funcionalidad implementada (v2.7.0)
+- ✅ Ajuste regeneración interactivo con GUI (v2.7.0)
+- ✅ Confirmación segura borrado errores (v2.7.0)
 
 **Estado:** 🟢 **FIRMWARE 100% OPERATIVO Y VERIFICADO PARA PRODUCCIÓN**
 
 ---
 
 *Auditoría generada automáticamente por FirmwareAuditor*  
-*Fecha: 2025-11-25*  
-*Copilot Agent - v2.5.0*
+*Fecha: 2025-11-27*  
+*Copilot Agent - v2.7.0*

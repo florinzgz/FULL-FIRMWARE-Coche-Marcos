@@ -32,13 +32,16 @@ enum class CalibrationState {
     PEDAL_MAX,
     PEDAL_DONE,
     ENCODER_CENTER,
-    ENCODER_DONE
+    ENCODER_DONE,
+    REGEN_ADJUST,       // ✅ v2.7.0: Ajuste interactivo de regen
+    CLEAR_ERRORS_CONFIRM // ✅ v2.7.0: Confirmación borrado errores
 };
 static CalibrationState calibState = CalibrationState::NONE;
 static int pedalCalibMin = 0;
 static int pedalCalibMax = 4095;
 static uint32_t calibStartMs = 0;
 static const uint32_t CALIB_TIMEOUT_MS = 30000;  // 30 segundos timeout
+static int regenAdjustValue = 0;  // ✅ v2.7.0: Valor temporal para ajuste regen
 
 // Constantes de calibración táctil
 static const int TOUCH_MIN_RAW = 200;   // Valor mínimo raw del touch
@@ -251,11 +254,122 @@ static void updateEncoderCalibration(bool touched) {
     }
 }
 
-static void applyRegenAdjust(int value) {
-    cfg.regenPercent = constrain(value, 0, 100);
-    Storage::save(cfg);
-    Logger::infof("Ajuste de regen guardado: %d%%", cfg.regenPercent);
+// ✅ v2.7.0: Iniciar ajuste interactivo de regeneración
+static void startRegenAdjust() {
+    calibState = CalibrationState::REGEN_ADJUST;
+    calibStartMs = millis();
+    regenAdjustValue = cfg.regenPercent;  // Cargar valor actual
+    Logger::info("Iniciando ajuste de regen - usa touch para ajustar");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+}
+
+// ✅ v2.7.0: Dibujar pantalla de ajuste de regen
+static void drawRegenAdjustScreen() {
+    if (tft == nullptr) return;
+    
+    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    tft->drawRect(60, 40, 360, 240, TFT_CYAN);
+    
+    tft->setTextDatum(TC_DATUM);
+    tft->setTextColor(TFT_CYAN, TFT_BLACK);
+    tft->drawString("AJUSTE REGENERACION", 240, 50, 4);
+    
+    // Valor actual grande
+    char valueStr[16];
+    snprintf(valueStr, sizeof(valueStr), "%d%%", regenAdjustValue);
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_GREEN, TFT_BLACK);
+    tft->drawString(valueStr, 240, 120, 6);
+    
+    // Barra visual del valor
+    int barWidth = (regenAdjustValue * 280) / 100;
+    tft->fillRect(100, 170, 280, 20, TFT_DARKGREY);
+    tft->fillRect(100, 170, barWidth, 20, TFT_GREEN);
+    tft->drawRect(100, 170, 280, 20, TFT_WHITE);
+    
+    // Botones [-] y [+]
+    tft->fillRect(80, 200, 60, 40, TFT_RED);
+    tft->drawRect(80, 200, 60, 40, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, TFT_RED);
+    tft->drawString("-10", 110, 220, 2);
+    
+    tft->fillRect(340, 200, 60, 40, TFT_GREEN);
+    tft->drawRect(340, 200, 60, 40, TFT_WHITE);
+    tft->setTextColor(TFT_BLACK, TFT_GREEN);
+    tft->drawString("+10", 370, 220, 2);
+    
+    // Botón Guardar
+    tft->fillRect(180, 200, 120, 40, TFT_BLUE);
+    tft->drawRect(180, 200, 120, 40, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, TFT_BLUE);
+    tft->drawString("GUARDAR", 240, 220, 2);
+    
+    // Instrucciones
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->drawString("Toca [-] o [+] para ajustar", 240, 260, 2);
+}
+
+// ✅ v2.7.0: Actualizar ajuste de regen
+static void updateRegenAdjust(int touchX, int touchY, bool touched) {
+    if (!touched) {
+        drawRegenAdjustScreen();
+        return;
+    }
+    
+    bool needsRedraw = false;
+    
+    // Detectar toque en botón [-] (disminuir 10%)
+    if (touchX >= 80 && touchX <= 140 && touchY >= 200 && touchY <= 240) {
+        regenAdjustValue = constrain(regenAdjustValue - 10, 0, 100);
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        needsRedraw = true;
+    }
+    // Detectar toque en botón [+] (aumentar 10%)
+    else if (touchX >= 340 && touchX <= 400 && touchY >= 200 && touchY <= 240) {
+        regenAdjustValue = constrain(regenAdjustValue + 10, 0, 100);
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        needsRedraw = true;
+    }
+    // Detectar toque en barra (ajuste directo)
+    else if (touchX >= 100 && touchX <= 380 && touchY >= 170 && touchY <= 190) {
+        regenAdjustValue = constrain(((touchX - 100) * 100) / 280, 0, 100);
+        needsRedraw = true;
+    }
+    // Detectar toque en botón GUARDAR
+    else if (touchX >= 180 && touchX <= 300 && touchY >= 200 && touchY <= 240) {
+        cfg.regenPercent = regenAdjustValue;
+        Storage::save(cfg);
+        Logger::infof("Ajuste de regen guardado: %d%%", cfg.regenPercent);
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        
+        // Mostrar confirmación
+        tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+        tft->drawRect(60, 40, 360, 240, TFT_GREEN);
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_GREEN, TFT_BLACK);
+        tft->drawString("REGEN GUARDADO", 240, 130, 4);
+        
+        char valueStr[16];
+        snprintf(valueStr, sizeof(valueStr), "%d%%", regenAdjustValue);
+        tft->drawString(valueStr, 240, 170, 4);
+        
+        uint32_t waitStart = millis();
+        while (millis() - waitStart < 1500) { yield(); }
+        
+        calibState = CalibrationState::NONE;
+        return;
+    }
+    
+    if (needsRedraw) {
+        waitTouchRelease(200);  // Debounce corto para permitir ajuste rápido
+        drawRegenAdjustScreen();
+    }
+    
+    // Timeout
+    if (millis() - calibStartMs > CALIB_TIMEOUT_MS) {
+        Logger::warn("Ajuste regen timeout - cancelado");
+        calibState = CalibrationState::NONE;
+    }
 }
 
 static void applyModules(bool lights, bool media, bool traction) {
@@ -335,19 +449,110 @@ static void showErrors() {
     }
 }
 
-static void clearErrorsMenu() {
-    System::clearErrors();
-    Logger::info("Errores persistentes borrados.");
-    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+// ✅ v2.7.0: Iniciar confirmación para borrar errores
+static void startClearErrorsConfirm() {
+    int count = System::getErrorCount();
+    if (count == 0) {
+        // No hay errores que borrar
+        tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+        tft->drawRect(60, 40, 360, 240, TFT_GREEN);
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_GREEN, TFT_BLACK);
+        tft->drawString("SIN ERRORES", 240, 130, 4);
+        tft->setTextColor(TFT_WHITE, TFT_BLACK);
+        tft->drawString("No hay errores que borrar", 240, 170, 2);
+        
+        uint32_t waitStart = millis();
+        while (millis() - waitStart < 1500) { yield(); }
+        return;
+    }
+    
+    calibState = CalibrationState::CLEAR_ERRORS_CONFIRM;
+    calibStartMs = millis();
+    Logger::info("Solicitando confirmación para borrar errores");
+}
+
+// ✅ v2.7.0: Dibujar pantalla de confirmación
+static void drawClearErrorsConfirmScreen() {
+    if (tft == nullptr) return;
+    
+    int count = System::getErrorCount();
     
     tft->fillRect(60, 40, 360, 240, TFT_BLACK);
-    tft->drawRect(60, 40, 360, 240, TFT_GREEN);
-    tft->setTextDatum(MC_DATUM);
-    tft->setTextColor(TFT_GREEN, TFT_BLACK);
-    tft->drawString("ERRORES BORRADOS", 240, 140, 4);
+    tft->drawRect(60, 40, 360, 240, TFT_RED);
     
-    uint32_t waitStart = millis();
-    while (millis() - waitStart < 1500) { yield(); }
+    tft->setTextDatum(TC_DATUM);
+    tft->setTextColor(TFT_RED, TFT_BLACK);
+    tft->drawString("CONFIRMAR BORRADO", 240, 50, 4);
+    
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_WHITE, TFT_BLACK);
+    
+    char msgStr[48];
+    snprintf(msgStr, sizeof(msgStr), "Borrar %d errores?", count);
+    tft->drawString(msgStr, 240, 100, 2);
+    tft->drawString("Esta accion no se puede deshacer", 240, 125, 2);
+    
+    // Botón CANCELAR
+    tft->fillRect(80, 180, 120, 50, TFT_DARKGREY);
+    tft->drawRect(80, 180, 120, 50, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, TFT_DARKGREY);
+    tft->drawString("CANCELAR", 140, 205, 2);
+    
+    // Botón CONFIRMAR
+    tft->fillRect(280, 180, 120, 50, TFT_RED);
+    tft->drawRect(280, 180, 120, 50, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, TFT_RED);
+    tft->drawString("BORRAR", 340, 205, 2);
+}
+
+// ✅ v2.7.0: Actualizar confirmación de borrado
+static void updateClearErrorsConfirm(int touchX, int touchY, bool touched) {
+    if (!touched) {
+        drawClearErrorsConfirmScreen();
+        return;
+    }
+    
+    // Detectar toque en botón CANCELAR
+    if (touchX >= 80 && touchX <= 200 && touchY >= 180 && touchY <= 230) {
+        Logger::info("Borrado de errores cancelado");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        waitTouchRelease();
+        calibState = CalibrationState::NONE;
+        return;
+    }
+    
+    // Detectar toque en botón CONFIRMAR (BORRAR)
+    if (touchX >= 280 && touchX <= 400 && touchY >= 180 && touchY <= 230) {
+        System::clearErrors();
+        Logger::info("Errores persistentes borrados (confirmado).");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        
+        // Mostrar mensaje de éxito
+        tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+        tft->drawRect(60, 40, 360, 240, TFT_GREEN);
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_GREEN, TFT_BLACK);
+        tft->drawString("ERRORES BORRADOS", 240, 140, 4);
+        
+        uint32_t waitStart = millis();
+        while (millis() - waitStart < 1500) { yield(); }
+        
+        calibState = CalibrationState::NONE;
+        return;
+    }
+    
+    // Timeout - cancelar automáticamente
+    if (millis() - calibStartMs > CALIB_TIMEOUT_MS) {
+        Logger::warn("Confirmación borrado errores timeout - cancelado");
+        calibState = CalibrationState::NONE;
+    }
+}
+
+// Función anterior mantenida por compatibilidad (ahora deprecated)
+static void clearErrorsMenu() {
+    // ✅ v2.7.0: Redirigir a confirmación interactiva
+    startClearErrorsConfirm();
 }
 
 // Función para detectar toque en opciones del menú
@@ -419,10 +624,17 @@ void MenuHidden::update(bool batteryIconPressed) {
     // Si hay calibración en proceso, manejarla
     if (calibState != CalibrationState::NONE) {
         bool touched = false;
+        int touchX = 0, touchY = 0;
+        
         if (touch != nullptr && touch->touched()) {
+            TS_Point p = touch->getPoint();
+            touchX = map(p.x, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 480);
+            touchY = map(p.y, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 320);
             touched = true;
-            // Debounce con timeout
-            waitTouchRelease();
+            // Debounce con timeout (no para regen que necesita detección continua)
+            if (calibState != CalibrationState::REGEN_ADJUST) {
+                waitTouchRelease();
+            }
         }
         
         if (calibState == CalibrationState::PEDAL_MIN || 
@@ -433,6 +645,15 @@ void MenuHidden::update(bool batteryIconPressed) {
         else if (calibState == CalibrationState::ENCODER_CENTER ||
                  calibState == CalibrationState::ENCODER_DONE) {
             updateEncoderCalibration(touched);
+        }
+        // ✅ v2.7.0: Manejar ajuste interactivo de regen
+        else if (calibState == CalibrationState::REGEN_ADJUST) {
+            updateRegenAdjust(touchX, touchY, touched);
+            if (touched) waitTouchRelease(200);  // Debounce corto después de procesar
+        }
+        // ✅ v2.7.0: Manejar confirmación de borrado de errores
+        else if (calibState == CalibrationState::CLEAR_ERRORS_CONFIRM) {
+            updateClearErrorsConfirm(touchX, touchY, touched);
         }
         
         // Si terminó la calibración, redibujar menú
@@ -489,12 +710,12 @@ void MenuHidden::update(bool batteryIconPressed) {
             switch(selectedOption) {
                 case 1: startPedalCalibration(); break;
                 case 2: startEncoderCalibration(); break;
-                case 3: applyRegenAdjust(REGEN_DEFAULT); break;
+                case 3: startRegenAdjust(); break;  // ✅ v2.7.0: Ajuste interactivo
                 case 4: applyModules(true, true, true); break;
                 case 5: saveAndExit(); break;
                 case 6: restoreFactory(); break;
                 case 7: showErrors(); break;
-                case 8: clearErrorsMenu(); break;
+                case 8: startClearErrorsConfirm(); break;  // ✅ v2.7.0: Confirmación
             }
             
             // Redibujar menú después de acción (excepto si se cerró)
