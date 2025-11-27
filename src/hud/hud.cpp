@@ -95,8 +95,7 @@ void HUD::init() {
 
     if (touch.begin()) {
         touch.setRotation(3);  // Match TFT rotation for proper touch mapping
-        // TODO: Implement dynamic touch calibration if default values don't align properly
-        // Current hardcoded mapping may need adjustment for different ILI9488 units
+        MenuHidden::initTouch(&touch);  // Pasar puntero táctil al menú oculto
         Logger::info("Touchscreen XPT2046 inicializado OK");
     } else {
         Logger::error("Touchscreen XPT2046 no detectado");
