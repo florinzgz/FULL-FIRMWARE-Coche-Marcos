@@ -115,6 +115,22 @@ FULL-FIRMWARE-Coche-Marcos/
 
 ---
 
+## 📥 Descargar Firmware Actualizado
+
+Para descargar el firmware compilado más reciente:
+
+1. **Ir a GitHub Actions:** [https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos/actions](https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos/actions)
+2. **Seleccionar** el workflow "Firmware Build & Verification" más reciente con estado ✅ (verde)
+3. **Descargar** los artefactos (Artifacts) en la sección inferior de la página del workflow:
+   - `firmware-esp32-s3-devkitc` - Versión de desarrollo
+   - `firmware-esp32-s3-devkitc-release` - **Versión de producción (recomendada)**
+   - `firmware-esp32-s3-devkitc-ota` - Versión con soporte OTA
+   - `firmware-esp32-s3-devkitc-test` - Versión de test
+
+> ⚠️ **Nota:** Los artefactos de GitHub Actions expiran después de 90 días. Para versiones permanentes, consulta la sección de Releases.
+
+---
+
 ## 🚀 Comenzar
 
 ### Compilación del Firmware
@@ -189,6 +205,7 @@ pio device monitor
 
 ## 🔗 Enlaces Útiles
 
+- **📥 Descargar Firmware:** [GitHub Actions](https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos/actions) - Artefactos compilados
 - **Código fuente:** [include/pins.h](../include/pins.h) - Definición de pines
 - **Configuración build:** [platformio.ini](../platformio.ini) - Flags de compilación
 - **Configuración proyecto:** [project_config.ini](PROJECT_CONFIG.ini) - Documentación completa
