@@ -225,7 +225,7 @@ void loop() {
         data.motorCurrent[1] = 1.0f + wave * 4.0f;   // Motor FR current
         data.motorCurrent[2] = 1.0f + wave * 3.0f;   // Motor RL current
         data.motorCurrent[3] = 1.0f + wave * 3.0f;   // Motor RR current
-        data.steeringCurrent = 0.2f + fabs(steerWave) * 1.0f;  // Steering current
+        data.steeringCurrent = 0.2f + fabsf(steerWave) * 1.0f;  // Steering current (fabsf for float)
         data.pedalPercent = 10.0f + wave * 70.0f;    // 10% to 80% pedal
         data.steeringAngle = steerWave * 15.0f;      // -15° to +15°
         data.gear = (data.speed > 3.0f) ? GearPosition::DRIVE1 : GearPosition::PARK;

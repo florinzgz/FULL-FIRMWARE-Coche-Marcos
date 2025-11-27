@@ -158,6 +158,7 @@ void HUD::init() {
 
 void HUD::showLogo() {
     tft.fillScreen(TFT_BLACK);
+    carBodyDrawn = false;  // Reset flag so car body will be redrawn after logo
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("Mercedes AMG", 240, 120, 4);
@@ -166,6 +167,7 @@ void HUD::showLogo() {
 
 void HUD::showReady() {
     tft.fillScreen(TFT_BLACK);
+    carBodyDrawn = false;  // Reset flag so car body will be redrawn
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.drawString("READY", 240, 40, 4);
@@ -173,6 +175,7 @@ void HUD::showReady() {
 
 void HUD::showError() {
     tft.fillScreen(TFT_BLACK);
+    carBodyDrawn = false;  // Reset flag so car body will be redrawn
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.drawString("ERROR", 240, 40, 4);
@@ -367,7 +370,11 @@ void HUD::update() {
     uint8_t sensorTempOK = 5;
     uint8_t sensorWheelOK = 4;
     bool tempWarning = (wheelTempFL > 52.0f);  // Warning when temp is high
-    float maxTemp = max(max(wheelTempFL, wheelTempFR), max(wheelTempRL, wheelTempRR));
+    // Calculate max temperature using explicit comparisons (clearer than nested max())
+    float maxTemp = wheelTempFL;
+    if (wheelTempFR > maxTemp) maxTemp = wheelTempFR;
+    if (wheelTempRL > maxTemp) maxTemp = wheelTempRL;
+    if (wheelTempRR > maxTemp) maxTemp = wheelTempRR;
     
 #else
     auto pedal = Pedal::get();
