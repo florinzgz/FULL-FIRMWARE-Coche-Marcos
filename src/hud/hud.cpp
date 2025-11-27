@@ -29,6 +29,10 @@
 static TFT_eSPI tft;
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
+// Touch calibration constants (matching menu_hidden.cpp)
+static const int TOUCH_MIN_RAW = 200;   // Minimum raw touch value
+static const int TOUCH_MAX_RAW = 3900;  // Maximum raw touch value
+
 // Demo mode button detection for STANDALONE_DISPLAY
 #ifdef STANDALONE_DISPLAY
 static uint32_t demoButtonPressStart = 0;
@@ -370,12 +374,15 @@ void HUD::update() {
 
     if (touch.touched()) {
         TS_Point p = touch.getPoint();
-        int x = map(p.x, 200, 3900, 0, 480);
-        int y = map(p.y, 200, 3900, 0, 320);
+        // Map raw touch coordinates to screen coordinates using calibration constants
+        int x = map(p.x, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 480);
+        int y = map(p.y, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 320);
 
 #ifdef STANDALONE_DISPLAY
         // Check demo button touch with long press detection
-        if (isTouchInDemoButton(x, y) && !MenuHidden::isActive()) {
+        // Reset long press timer if touch moves outside button area
+        bool touchInButton = isTouchInDemoButton(x, y) && !MenuHidden::isActive();
+        if (touchInButton) {
             uint32_t now = millis();
             if (!demoButtonWasPressed) {
                 demoButtonPressStart = now;
@@ -388,6 +395,7 @@ void HUD::update() {
                 Logger::info("Demo button long press - activating hidden menu");
             }
         } else {
+            // Reset if touch moved outside button area
             demoButtonWasPressed = false;
         }
 #endif
@@ -420,9 +428,8 @@ void HUD::update() {
 
 #ifdef STANDALONE_DISPLAY
     // In demo mode, activate hidden menu directly on demo button long press
+    // This bypasses the code entry mechanism for easier testing
     if (demoButtonTouched && hiddenMenuJustActivated) {
-        // Force hidden menu activation by simulating rapid battery touches
-        // This enters the code 8989 quickly
         MenuHidden::activateDirectly();
         hiddenMenuJustActivated = false;
     } else {
