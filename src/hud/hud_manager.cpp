@@ -315,10 +315,14 @@ void HUDManager::renderHardwareTest() {
         tft.setTextColor(TFT_RED, TFT_BLACK);
         tft.setCursor(10, 115);
         tft.printf("TEMP CRIT: %.1fC", status.maxTemperature);
-    } else if (status.maxTemperature > Sensors::INVALID_TEMPERATURE + 10.0f) {
+    } else if (status.maxTemperature != Sensors::INVALID_TEMPERATURE) {
         tft.setTextColor(TFT_CYAN, TFT_BLACK);
         tft.setCursor(10, 115);
         tft.printf("Temp max: %.1fC", status.maxTemperature);
+    } else {
+        tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        tft.setCursor(10, 115);
+        tft.print("Temp max: N/A");
     }
     
     // ====== COLUMNA DERECHA: ENTRADAS ======

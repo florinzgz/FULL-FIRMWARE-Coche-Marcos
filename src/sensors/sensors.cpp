@@ -44,8 +44,8 @@ namespace Sensors {
                     status.currentSensorsOK++;
                 }
             }
-            // Canal 4 es batería
-            status.batteryMonitorOK = isCurrentSensorOk(4);
+            // Canal de batería
+            status.batteryMonitorOK = isCurrentSensorOk(BATTERY_CHANNEL_IDX);
         }
         status.currentSensorsTotal = NUM_CURRENTS;
         
@@ -55,11 +55,15 @@ namespace Sensors {
         status.temperatureWarning = false;
         
         if (cfg.tempSensorsEnabled) {
+            bool foundValidTemp = false;
             for (int i = 0; i < NUM_TEMPS; i++) {
                 if (isTemperatureSensorOk(i)) {
                     status.temperatureSensorsOK++;
                     float temp = getTemperature(i);
-                    if (temp > status.maxTemperature) {
+                    if (!foundValidTemp) {
+                        status.maxTemperature = temp;
+                        foundValidTemp = true;
+                    } else if (temp > status.maxTemperature) {
                         status.maxTemperature = temp;
                     }
                     if (temp > TEMP_CRITICAL_CELSIUS) {

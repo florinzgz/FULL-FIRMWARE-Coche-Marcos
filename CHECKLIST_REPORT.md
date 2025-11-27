@@ -159,20 +159,20 @@
 ### 3.2 Opciones del Menú
 | Opción | Estado | Implementación |
 |--------|--------|----------------|
-| 1) Calibrar pedal | ⚠️ | Stub (applyCalibrationPedal) |
-| 2) Calibrar encoder | ⚠️ | Stub (applyCalibrationEncoder) |
-| 3) Ajuste regen (%) | ⚠️ | Stub con REGEN_DEFAULT |
-| 4) Módulos ON/OFF | ⚠️ | Stub |
+| 1) Calibrar pedal | ✅ | startPedalCalibration() + updatePedalCalibration() |
+| 2) Calibrar encoder | ✅ | startEncoderCalibration() + updateEncoderCalibration() |
+| 3) Ajuste regen (%) | ✅ | applyRegenAdjust() con guardado |
+| 4) Módulos ON/OFF | ✅ | applyModules() con guardado |
 | 5) Guardar y salir | ✅ | Storage::save() |
 | 6) Restaurar fábrica | ✅ | Storage::defaults() |
-| 7) Ver errores | ✅ | System::getErrorCount() |
-| 8) Borrar errores | ✅ | System::clearErrors() |
+| 7) Ver errores | ✅ | showErrors() con pantalla detallada |
+| 8) Borrar errores | ✅ | clearErrorsMenu() con confirmación |
 
-### 3.3 Mejoras Pendientes
-- [ ] Implementar calibración real del pedal
-- [ ] Implementar calibración real del encoder
-- [ ] Navegación táctil completa
-- [ ] Visualización de errores detallada
+### 3.3 Completado en v2.6.0
+- [x] Implementar calibración real del pedal (GUI interactiva MIN/MAX)
+- [x] Implementar calibración real del encoder (centrado de volante)
+- [x] Navegación táctil completa (detección XPT2046, zonas, debounce)
+- [x] Visualización de errores detallada (pantalla dedicada)
 
 ---
 

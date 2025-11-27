@@ -19,21 +19,23 @@ static float lastBattery = -999.0f;
 static int lastErrorCount = -1;
 
 // Cache para estado de sensores
-static uint8_t lastCurrentOK = 255;
-static uint8_t lastTempOK = 255;
-static uint8_t lastWheelOK = 255;
+static uint8_t lastCurrentOK = 0;
+static uint8_t lastTempOK = 0;
+static uint8_t lastWheelOK = 0;
 static bool lastTempWarning = false;
 static float lastMaxTemp = -999.0f;
+static bool sensorsCacheInitialized = false;
 
 void Icons::init(TFT_eSPI *display) {
     tft = display;
     initialized = true;
-    // Reset cache de sensores
-    lastCurrentOK = 255;
-    lastTempOK = 255;
-    lastWheelOK = 255;
+    // Reset cache de sensores con flag de inicialización
+    lastCurrentOK = 0;
+    lastTempOK = 0;
+    lastWheelOK = 0;
     lastTempWarning = false;
     lastMaxTemp = -999.0f;
+    sensorsCacheInitialized = false;
     Logger::info("Icons init OK");
 }
 
@@ -152,12 +154,14 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
                             uint8_t currentTotal, uint8_t tempTotal, uint8_t wheelTotal) {
     if(!initialized) return;
     
-    // Solo redibujar si hay cambios
-    if(currentOK == lastCurrentOK && tempOK == lastTempOK && wheelOK == lastWheelOK) return;
+    // Solo redibujar si hay cambios (o primera vez)
+    if(sensorsCacheInitialized && 
+       currentOK == lastCurrentOK && tempOK == lastTempOK && wheelOK == lastWheelOK) return;
     
     lastCurrentOK = currentOK;
     lastTempOK = tempOK;
     lastWheelOK = wheelOK;
+    sensorsCacheInitialized = true;
     
     // Limpiar área
     tft->fillRect(SENSOR_STATUS_X1, SENSOR_STATUS_Y1, 

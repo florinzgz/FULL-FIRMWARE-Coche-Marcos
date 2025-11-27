@@ -30,6 +30,7 @@ namespace Sensors {
     constexpr float INVALID_TEMPERATURE = -999.0f;  // Valor de temperatura inválida/no inicializada
     constexpr uint8_t MIN_WHEEL_SENSORS_CRITICAL = 2;  // Mínimo sensores de rueda para operación segura
     constexpr size_t SENSOR_DIAG_BUFFER_MIN = 32;  // Tamaño mínimo buffer para diagnóstico
+    constexpr int BATTERY_CHANNEL_IDX = 4;  // Índice del canal de batería (INA226)
     
     // Estado consolidado de todos los sensores
     struct SystemStatus {

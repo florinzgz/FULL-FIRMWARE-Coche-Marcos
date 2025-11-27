@@ -66,6 +66,8 @@ static void waitTouchRelease(uint32_t maxWaitMs = DEBOUNCE_TIMEOUT_MS) {
 // -----------------------
 
 static void drawCalibrationScreen(const char* title, const char* instruction, const char* value) {
+    if (tft == nullptr) return;  // Guard contra puntero nulo
+    
     tft->fillRect(60, 40, 360, 240, TFT_BLACK);
     tft->drawRect(60, 40, 360, 240, TFT_CYAN);
     
@@ -113,7 +115,7 @@ static void updatePedalCalibration(bool touched) {
     
     if (calibState == CalibrationState::PEDAL_MIN) {
         snprintf(valueStr, sizeof(valueStr), "ADC: %d", pedal.raw);
-        drawCalibrationScreen("CALIBRAR PEDAL", "Suelta el pedal (minimo)", valueStr);
+        drawCalibrationScreen("CALIBRAR PEDAL", "Suelta el pedal (mínimo)", valueStr);
         
         // Actualizar mínimo continuamente
         if (pedal.raw > 0) {
