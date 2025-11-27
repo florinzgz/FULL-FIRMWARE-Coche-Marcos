@@ -1,7 +1,7 @@
 # 🚗 HARDWARE REFERENCE - ESP32-S3 Car Control System
 
-## Versión Firmware: 2.4.0
-## Fecha: 2025-11-25
+## Versión Firmware: 2.8.0
+## Fecha: 2025-11-27
 ## Placa: ESP32-S3-DevKitC-1 (44 pines)
 
 ---
@@ -346,7 +346,7 @@ lib_deps =
 
 | Métrica | Valor |
 |---------|-------|
-| **Versión** | 2.4.0 |
+| **Versión** | 2.8.0 |
 | **Fiabilidad Estimada** | 100% ⭐⭐⭐⭐⭐ |
 | **Líneas de Código** | ~8,500+ |
 | **Archivos .cpp** | 37+ |
@@ -356,7 +356,15 @@ lib_deps =
 | **Flash Usage** | ~36% |
 | **RAM Usage** | ~9% |
 
-### 6.2 Cambios v2.4.0
+### 6.2 Cambios v2.8.0
+
+| Cambio | Descripción | Motivo |
+|--------|-------------|--------|
+| Telemetría | Sistema de telemetría con checksum FNV-1a | Métricas avanzadas |
+| RedundantSensor | Estructura para sensores redundantes | Tolerancia a fallos |
+| Documentación | Todos los manuales en directorio docs/ | Organización |
+
+### 6.3 Cambios v2.4.0
 
 | Cambio | Descripción | Motivo |
 |--------|-------------|--------|
@@ -368,7 +376,7 @@ lib_deps =
 | Serial init | Eliminado bucle while bloqueante | Evitar watchdog reset |
 | HUD init delays | Reducidos de 70ms a 0.6ms | Arranque más rápido |
 
-### 6.3 Cambios v2.3.0
+### 6.4 Cambios v2.3.0
 
 | Cambio | Antes | Después | Motivo |
 |--------|-------|---------|--------|
@@ -387,7 +395,7 @@ lib_deps =
 
 **GPIOs liberados**: 18, 19, 45, 46 (4 pines disponibles para futuras expansiones)
 
-### 6.3 Recomendaciones para Nuevos Colaboradores
+### 6.5 Recomendaciones para Nuevos Colaboradores
 
 1. **Lectura Obligatoria**:
    - `pins.h` - Asignación de pines
@@ -417,6 +425,7 @@ lib_deps =
 
 | Versión | Fecha | Cambios Principales |
 |---------|-------|---------------------|
+| 2.8.0 | 2025-11-27 | Sistema telemetría, RedundantSensor, documentación actualizada |
 | 2.4.0 | 2025-11-25 | Fix race conditions, SteeringMotor::get(), emergencyStop, hysteresis seguridad |
 | 2.3.0 | 2025-11-25 | Reorganización GPIO, resolución conflictos pines, TOUCH_CS seguro |
 | 2.2.0 | 2025-11-24 | Corrección macros OTA, build 4/4 entornos |
@@ -426,4 +435,4 @@ lib_deps =
 ---
 
 *Documento generado automáticamente - ESP32-S3 Car Control System*
-*Última actualización: 2025-11-25 v2.4.0*
+*Última actualización: 2025-11-27 v2.8.0*
