@@ -228,7 +228,7 @@ void loop() {
         data.steeringCurrent = 0.2f + fabsf(steerWave) * 1.0f;  // Steering current (fabsf for float)
         data.pedalPercent = 10.0f + wave * 70.0f;    // 10% to 80% pedal
         data.steeringAngle = steerWave * 15.0f;      // -15° to +15°
-        data.gear = (data.speed > 3.0f) ? GearPosition::DRIVE1 : GearPosition::PARK;
+        data.gear = (data.speed > 10.0f) ? GearPosition::DRIVE1 : GearPosition::PARK;
         data.batteryPower = data.batteryVoltage * data.batteryCurrent;
         data.odoTotal = 1234.5f + (now - demoStartTime) / 60000.0f;  // Slowly increment
         data.odoTrip = 56.7f + (now - demoStartTime) / 120000.0f;
