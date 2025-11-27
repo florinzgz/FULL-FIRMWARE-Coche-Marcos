@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "system.h"
 #include "storage.h"
+#include "sensors.h"  // Para estado de sensores
 #include <Arduino.h>
 
 // Variables estáticas
@@ -271,13 +272,56 @@ void HUDManager::renderHardwareTest() {
     tft.setCursor(20, 20);
     tft.println("TEST HARDWARE");
     
+    // Obtener estado real de sensores
+    Sensors::SystemStatus status = Sensors::getSystemStatus();
+    
     tft.setTextSize(1);
+    
+    // INA226 sensores
+    uint16_t colorINA = (status.currentSensorsOK == status.currentSensorsTotal) ? TFT_GREEN : 
+                        (status.currentSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    tft.setTextColor(colorINA, TFT_BLACK);
     tft.setCursor(20, 60);
-    tft.println("INA226 Sensores: 6 activos");
+    tft.printf("INA226 Sensores: %d/%d activos", status.currentSensorsOK, status.currentSensorsTotal);
+    
+    // DS18B20 sensores
+    uint16_t colorTemp = (status.temperatureSensorsOK == status.temperatureSensorsTotal) ? TFT_GREEN : 
+                         (status.temperatureSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    tft.setTextColor(colorTemp, TFT_BLACK);
     tft.setCursor(20, 90);
-    tft.println("Temperatura DS18B20: 5 activos");
+    tft.printf("DS18B20 Temp: %d/%d activos", status.temperatureSensorsOK, status.temperatureSensorsTotal);
+    
+    // Ruedas
+    uint16_t colorWheel = (status.wheelSensorsOK == status.wheelSensorsTotal) ? TFT_GREEN : 
+                          (status.wheelSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    tft.setTextColor(colorWheel, TFT_BLACK);
     tft.setCursor(20, 120);
-    tft.println("Encoders rueda: 4 activos");
+    tft.printf("Encoders rueda: %d/%d activos", status.wheelSensorsOK, status.wheelSensorsTotal);
+    
+    // Batería
+    tft.setTextColor(status.batteryMonitorOK ? TFT_GREEN : TFT_RED, TFT_BLACK);
+    tft.setCursor(20, 150);
+    tft.printf("Monitor bateria: %s", status.batteryMonitorOK ? "OK" : "FALLO");
+    
+    // Temperatura máxima
+    if (status.temperatureWarning) {
+        tft.setTextColor(TFT_RED, TFT_BLACK);
+        tft.setCursor(20, 180);
+        tft.printf("!! TEMP CRITICA: %.1fC !!", status.maxTemperature);
+    } else if (status.maxTemperature > -990.0f) {
+        tft.setTextColor(TFT_CYAN, TFT_BLACK);
+        tft.setCursor(20, 180);
+        tft.printf("Temp max: %.1fC", status.maxTemperature);
+    }
+    
+    // Estado general
+    uint16_t sysColor = status.allSensorsHealthy ? TFT_GREEN : 
+                        status.criticalSensorsOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(sysColor, TFT_BLACK);
+    tft.setCursor(20, 220);
+    tft.print("Estado: ");
+    tft.println(status.allSensorsHealthy ? "TODOS OK" : 
+                status.criticalSensorsOK ? "PARCIAL" : "FALLO CRITICO");
 }
 
 void HUDManager::renderWifiConfig() {
@@ -412,16 +456,44 @@ void HUDManager::renderHiddenMenu() {
     tft.setCursor(5, 190);
     tft.printf("RPM: %6.0f", carData.rpm);
     
-    // Sección 6: Odómetros
+    // Sección 6: Estado de Sensores (NUEVO)
+    Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
     tft.setCursor(5, 210);
-    tft.printf("Odo Total: %8.2f km", carData.odoTotal);
+    tft.print("SENSORES:");
+    
+    // INA226 (corriente)
+    uint16_t colorINA = (sensorStatus.currentSensorsOK == sensorStatus.currentSensorsTotal) ? TFT_GREEN : 
+                        (sensorStatus.currentSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    tft.setTextColor(colorINA, TFT_BLACK);
     tft.setCursor(5, 225);
-    tft.printf("Odo Parcial: %6.2f km", carData.odoTrip);
+    tft.printf("INA226: %d/%d", sensorStatus.currentSensorsOK, sensorStatus.currentSensorsTotal);
+    
+    // DS18B20 (temperatura)
+    uint16_t colorTemp = (sensorStatus.temperatureSensorsOK == sensorStatus.temperatureSensorsTotal) ? TFT_GREEN : 
+                         (sensorStatus.temperatureSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    tft.setTextColor(colorTemp, TFT_BLACK);
+    tft.setCursor(80, 225);
+    tft.printf("DS18B20: %d/%d", sensorStatus.temperatureSensorsOK, sensorStatus.temperatureSensorsTotal);
+    
+    // Ruedas
+    uint16_t colorWheel = (sensorStatus.wheelSensorsOK == sensorStatus.wheelSensorsTotal) ? TFT_GREEN : 
+                          (sensorStatus.wheelSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    tft.setTextColor(colorWheel, TFT_BLACK);
+    tft.setCursor(175, 225);
+    tft.printf("RUEDAS: %d/%d", sensorStatus.wheelSensorsOK, sensorStatus.wheelSensorsTotal);
+    
+    // Advertencia de temperatura
+    if (sensorStatus.temperatureWarning) {
+        tft.setTextColor(TFT_RED, TFT_BLACK);
+        tft.setCursor(5, 240);
+        tft.printf("!! TEMP CRITICA: %.1fC !!", sensorStatus.maxTemperature);
+    }
     
     // Sección 7: Estado del sistema
-    tft.setCursor(5, 245);
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.setCursor(250, 200);
     tft.print("ESTADO:");
-    tft.setCursor(5, 260);
+    tft.setCursor(250, 215);
     tft.print("Marcha: ");
     switch (carData.gear) {
         case GearPosition::PARK:    tft.print("PARK"); break;
@@ -431,8 +503,22 @@ void HUDManager::renderHiddenMenu() {
         case GearPosition::DRIVE2:  tft.print("DRIVE 2"); break;
     }
     
+    // Odómetros
+    tft.setCursor(250, 235);
+    tft.printf("Odo: %.1f km", carData.odoTotal);
+    tft.setCursor(250, 250);
+    tft.printf("Trip: %.1f km", carData.odoTrip);
+    
+    // Estado general del sistema
+    uint16_t sysColor = sensorStatus.allSensorsHealthy ? TFT_GREEN : 
+                        sensorStatus.criticalSensorsOK ? TFT_YELLOW : TFT_RED;
+    tft.setTextColor(sysColor, TFT_BLACK);
+    tft.setCursor(250, 270);
+    tft.print(sensorStatus.allSensorsHealthy ? "SYS: OK" : 
+              sensorStatus.criticalSensorsOK ? "SYS: WARN" : "SYS: FAIL");
+    
     // Instrucciones salida
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
-    tft.setCursor(250, 280);
-    tft.print("Pulse 3s para salir");
+    tft.setCursor(5, 280);
+    tft.print("Pulse 3s bateria para salir");
 }

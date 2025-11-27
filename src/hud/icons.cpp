@@ -18,9 +18,22 @@ static bool lastRegen = false;
 static float lastBattery = -999.0f;
 static int lastErrorCount = -1;
 
+// Cache para estado de sensores
+static uint8_t lastCurrentOK = 255;
+static uint8_t lastTempOK = 255;
+static uint8_t lastWheelOK = 255;
+static bool lastTempWarning = false;
+static float lastMaxTemp = -999.0f;
+
 void Icons::init(TFT_eSPI *display) {
     tft = display;
     initialized = true;
+    // Reset cache de sensores
+    lastCurrentOK = 255;
+    lastTempOK = 255;
+    lastWheelOK = 255;
+    lastTempWarning = false;
+    lastMaxTemp = -999.0f;
     Logger::info("Icons init OK");
 }
 
@@ -132,5 +145,83 @@ void Icons::drawErrorWarning() {
         tft->drawString(buf, WARNING_X2 + 5, WARNING_Y1 + 15, 2);
     } else {
         tft->fillRect(WARNING_X1, WARNING_Y1, (WARNING_X2 - WARNING_X1) + 40, WARNING_Y2 - WARNING_Y1, TFT_BLACK);
+    }
+}
+
+void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
+                            uint8_t currentTotal, uint8_t tempTotal, uint8_t wheelTotal) {
+    if(!initialized) return;
+    
+    // Solo redibujar si hay cambios
+    if(currentOK == lastCurrentOK && tempOK == lastTempOK && wheelOK == lastWheelOK) return;
+    
+    lastCurrentOK = currentOK;
+    lastTempOK = tempOK;
+    lastWheelOK = wheelOK;
+    
+    // Limpiar área
+    tft->fillRect(SENSOR_STATUS_X1, SENSOR_STATUS_Y1, 
+                  SENSOR_STATUS_X2 - SENSOR_STATUS_X1, 
+                  SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1, TFT_BLACK);
+    
+    // Helper para determinar color basado en proporción OK/Total
+    auto getStatusColor = [](uint8_t ok, uint8_t total) -> uint16_t {
+        if (total == 0) return TFT_DARKGREY;  // Deshabilitado
+        if (ok == total) return TFT_GREEN;     // Todos OK
+        if (ok == 0) return TFT_RED;           // Todos fallidos
+        return TFT_YELLOW;                     // Parcial
+    };
+    
+    // Posiciones para los 3 indicadores LED
+    const int ledRadius = 6;
+    const int startX = SENSOR_STATUS_X1 + 15;
+    const int ledY = SENSOR_STATUS_Y1 + 12;
+    const int textY = SENSOR_STATUS_Y1 + 25;
+    const int spacing = 40;
+    
+    // LED 1: Corriente (INA226)
+    uint16_t colorCurrent = getStatusColor(currentOK, currentTotal);
+    tft->fillCircle(startX, ledY, ledRadius, colorCurrent);
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(colorCurrent, TFT_BLACK);
+    tft->drawString("I", startX, textY, 1);
+    
+    // LED 2: Temperatura (DS18B20)
+    uint16_t colorTemp = getStatusColor(tempOK, tempTotal);
+    tft->fillCircle(startX + spacing, ledY, ledRadius, colorTemp);
+    tft->setTextColor(colorTemp, TFT_BLACK);
+    tft->drawString("T", startX + spacing, textY, 1);
+    
+    // LED 3: Ruedas
+    uint16_t colorWheel = getStatusColor(wheelOK, wheelTotal);
+    tft->fillCircle(startX + 2*spacing, ledY, ledRadius, colorWheel);
+    tft->setTextColor(colorWheel, TFT_BLACK);
+    tft->drawString("W", startX + 2*spacing, textY, 1);
+}
+
+void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
+    if(!initialized) return;
+    
+    // Solo redibujar si hay cambios significativos
+    if(tempWarning == lastTempWarning && fabs(maxTemp - lastMaxTemp) < 1.0f) return;
+    
+    lastTempWarning = tempWarning;
+    lastMaxTemp = maxTemp;
+    
+    // Posición: abajo derecha del indicador de sensores
+    const int x = 70;
+    const int y = 280;
+    const int w = 60;
+    const int h = 20;
+    
+    tft->fillRect(x, y, w, h, TFT_BLACK);
+    
+    if(tempWarning) {
+        // Mostrar advertencia de temperatura crítica
+        tft->setTextDatum(ML_DATUM);
+        tft->setTextColor(TFT_RED, TFT_BLACK);
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%.0fC!", maxTemp);
+        tft->drawString(buf, x + 5, y + h/2, 2);
     }
 }

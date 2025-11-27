@@ -8,6 +8,7 @@
 #include "menu_hidden.h"
 #include "touch_map.h"         // 👈 añadido
 #include "display_types.h"     // For GearPosition enum
+#include "sensors.h"           // Para SystemStatus de sensores
 
 #include "pedal.h"
 #include "steering.h"
@@ -225,6 +226,13 @@ void HUD::update() {
     bool mode4x4 = true;
     bool eco = false;
     
+    // Simulated sensor status for standalone mode
+    uint8_t sensorCurrentOK = 6;
+    uint8_t sensorTempOK = 5;
+    uint8_t sensorWheelOK = 4;
+    bool tempWarning = false;
+    float maxTemp = 42.0f;
+    
 #else
     auto pedal = Pedal::get();
     auto steer = Steering::get();
@@ -261,6 +269,14 @@ void HUD::update() {
     bool multimedia = cfg.multimediaEnabled && btns.multimedia;
     bool mode4x4 = tr.enabled4x4;
     bool eco = pedal.percent > 0 && !btns.mode4x4;
+    
+    // Obtener estado de sensores para indicadores
+    Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
+    uint8_t sensorCurrentOK = sensorStatus.currentSensorsOK;
+    uint8_t sensorTempOK = sensorStatus.temperatureSensorsOK;
+    uint8_t sensorWheelOK = sensorStatus.wheelSensorsOK;
+    bool tempWarning = sensorStatus.temperatureWarning;
+    float maxTemp = sensorStatus.maxTemperature;
 #endif
 
     // Render gauges (ya optimizados internamente)
@@ -286,6 +302,13 @@ void HUD::update() {
 
     // Icono de advertencia si hay errores almacenados
     Icons::drawErrorWarning();
+    
+    // Indicador de estado de sensores (LEDs I/T/W)
+    Icons::drawSensorStatus(sensorCurrentOK, sensorTempOK, sensorWheelOK,
+                           Sensors::NUM_CURRENTS, Sensors::NUM_TEMPS, Sensors::NUM_WHEELS);
+    
+    // Advertencia de temperatura crítica
+    Icons::drawTempWarning(tempWarning, maxTemp);
 
     // Barra de pedal en la parte inferior
     drawPedalBar(pedalPercent);

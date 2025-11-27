@@ -19,6 +19,30 @@ namespace Icons {
 
     // advertencia de errores persistentes
     void drawErrorWarning();
+    
+    /**
+     * @brief Dibuja indicador de estado de sensores
+     * Muestra LED de estado para cada grupo de sensores:
+     * - Verde: Todos OK
+     * - Amarillo: Algunos fallos
+     * - Rojo: Fallo crítico
+     * 
+     * @param currentOK Sensores de corriente OK (0-6)
+     * @param tempOK Sensores de temperatura OK (0-5)
+     * @param wheelOK Sensores de rueda OK (0-4)
+     * @param currentTotal Total sensores de corriente
+     * @param tempTotal Total sensores de temperatura
+     * @param wheelTotal Total sensores de rueda
+     */
+    void drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
+                         uint8_t currentTotal, uint8_t tempTotal, uint8_t wheelTotal);
+    
+    /**
+     * @brief Dibuja indicador de temperatura crítica
+     * @param tempWarning true si hay temperatura crítica
+     * @param maxTemp Temperatura máxima actual
+     */
+    void drawTempWarning(bool tempWarning, float maxTemp);
 
     // ============================================================
     // Constantes de layout (480x320, rotación 1)
@@ -53,4 +77,10 @@ namespace Icons {
     constexpr int WARNING_Y1 = 0;
     constexpr int WARNING_X2 = 280;
     constexpr int WARNING_Y2 = 40;
+    
+    // Indicador de estado de sensores (junto a warning, 120x40 px)
+    constexpr int SENSOR_STATUS_X1 = 290;
+    constexpr int SENSOR_STATUS_Y1 = 0;
+    constexpr int SENSOR_STATUS_X2 = 410;
+    constexpr int SENSOR_STATUS_Y2 = 40;
 }

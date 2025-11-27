@@ -1,5 +1,10 @@
 #include "sensors.h"
 #include "logger.h"
+#include "storage.h"
+#include <Arduino.h>
+#include <cstdio>
+
+extern Storage::Config cfg;
 
 namespace Sensors {
 
@@ -17,5 +22,137 @@ namespace Sensors {
 
     bool initOK() {
         return ok;
+    }
+    
+    // ========================================================================
+    // Diagnóstico unificado de sensores
+    // ========================================================================
+    
+    SystemStatus getSystemStatus() {
+        SystemStatus status;
+        status.lastUpdateMs = millis();
+        
+        // Contar sensores de corriente INA226 OK
+        status.currentSensorsOK = 0;
+        if (cfg.currentSensorsEnabled) {
+            for (int i = 0; i < NUM_CURRENTS; i++) {
+                if (isCurrentSensorOk(i)) {
+                    status.currentSensorsOK++;
+                }
+            }
+            // Canal 4 es batería
+            status.batteryMonitorOK = isCurrentSensorOk(4);
+        }
+        status.currentSensorsTotal = NUM_CURRENTS;
+        
+        // Contar sensores de temperatura DS18B20 OK
+        status.temperatureSensorsOK = 0;
+        status.maxTemperature = -999.0f;
+        status.temperatureWarning = false;
+        
+        if (cfg.tempSensorsEnabled) {
+            for (int i = 0; i < NUM_TEMPS; i++) {
+                if (isTemperatureSensorOk(i)) {
+                    status.temperatureSensorsOK++;
+                    float temp = getTemperature(i);
+                    if (temp > status.maxTemperature) {
+                        status.maxTemperature = temp;
+                    }
+                    if (temp > TEMP_CRITICAL_CELSIUS) {
+                        status.temperatureWarning = true;
+                    }
+                }
+            }
+        }
+        status.temperatureSensorsTotal = NUM_TEMPS;
+        
+        // Contar sensores de rueda OK
+        status.wheelSensorsOK = 0;
+        if (cfg.wheelSensorsEnabled) {
+            for (int i = 0; i < NUM_WHEELS; i++) {
+                if (isWheelSensorOk(i)) {
+                    status.wheelSensorsOK++;
+                }
+            }
+        }
+        status.wheelSensorsTotal = NUM_WHEELS;
+        
+        // Determinar estado general
+        // Sensores críticos: al menos batería + 2 ruedas
+        status.criticalSensorsOK = status.batteryMonitorOK && (status.wheelSensorsOK >= 2);
+        
+        // Todos los sensores habilitados están OK
+        bool currentOK = !cfg.currentSensorsEnabled || (status.currentSensorsOK == status.currentSensorsTotal);
+        bool tempOK = !cfg.tempSensorsEnabled || (status.temperatureSensorsOK == status.temperatureSensorsTotal);
+        bool wheelOK = !cfg.wheelSensorsEnabled || (status.wheelSensorsOK == status.wheelSensorsTotal);
+        status.allSensorsHealthy = currentOK && tempOK && wheelOK;
+        
+        return status;
+    }
+    
+    bool getSensorDiagnosticText(uint8_t sensorType, uint8_t sensorIdx, char* buffer, size_t bufSize) {
+        if (buffer == nullptr || bufSize < 32) return false;
+        
+        switch (sensorType) {
+            case 0: // Corriente (INA226)
+                if (sensorIdx >= NUM_CURRENTS) {
+                    snprintf(buffer, bufSize, "INA%d: INVALID", sensorIdx);
+                    return false;
+                }
+                if (!cfg.currentSensorsEnabled) {
+                    snprintf(buffer, bufSize, "INA%d: DISABLED", sensorIdx);
+                    return false;
+                }
+                if (isCurrentSensorOk(sensorIdx)) {
+                    float current = getCurrent(sensorIdx);
+                    float voltage = getVoltage(sensorIdx);
+                    snprintf(buffer, bufSize, "INA%d: %.1fA %.1fV OK", sensorIdx, current, voltage);
+                    return true;
+                } else {
+                    snprintf(buffer, bufSize, "INA%d: FAIL", sensorIdx);
+                    return false;
+                }
+                
+            case 1: // Temperatura (DS18B20)
+                if (sensorIdx >= NUM_TEMPS) {
+                    snprintf(buffer, bufSize, "TEMP%d: INVALID", sensorIdx);
+                    return false;
+                }
+                if (!cfg.tempSensorsEnabled) {
+                    snprintf(buffer, bufSize, "TEMP%d: DISABLED", sensorIdx);
+                    return false;
+                }
+                if (isTemperatureSensorOk(sensorIdx)) {
+                    float temp = getTemperature(sensorIdx);
+                    const char* status = temp > TEMP_CRITICAL_CELSIUS ? "CRIT" : "OK";
+                    snprintf(buffer, bufSize, "TEMP%d: %.1fC %s", sensorIdx, temp, status);
+                    return true;
+                } else {
+                    snprintf(buffer, bufSize, "TEMP%d: FAIL", sensorIdx);
+                    return false;
+                }
+                
+            case 2: // Rueda
+                if (sensorIdx >= NUM_WHEELS) {
+                    snprintf(buffer, bufSize, "WHL%d: INVALID", sensorIdx);
+                    return false;
+                }
+                if (!cfg.wheelSensorsEnabled) {
+                    snprintf(buffer, bufSize, "WHL%d: DISABLED", sensorIdx);
+                    return false;
+                }
+                if (isWheelSensorOk(sensorIdx)) {
+                    float speed = getWheelSpeed(sensorIdx);
+                    snprintf(buffer, bufSize, "WHL%d: %.1fkm/h OK", sensorIdx, speed);
+                    return true;
+                } else {
+                    snprintf(buffer, bufSize, "WHL%d: FAIL", sensorIdx);
+                    return false;
+                }
+                
+            default:
+                snprintf(buffer, bufSize, "UNKNOWN SENSOR");
+                return false;
+        }
     }
 }
