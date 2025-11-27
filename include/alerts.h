@@ -2,8 +2,13 @@
 #include "queue.h"
 
 namespace Audio {
-    // Definición completa de los 38 tracks de audio disponibles
+    // Definición completa de los 68 tracks de audio disponibles
+    // Ver docs/AUDIO_TRACKS_GUIDE.md para textos sugeridos e instrucciones de grabación
     enum Track : uint16_t {
+        // ============================================
+        // TRACKS BÁSICOS (1-38)
+        // ============================================
+        
         // Sistema principal
         AUDIO_INICIO = 1,                    // Bienvenido Marcos. El sistema está listo para comenzar.
         AUDIO_APAGADO = 2,                   // Cerrando sistemas. Hasta pronto.
@@ -73,6 +78,54 @@ namespace Audio {
         // Tracción 4x4/4x2
         AUDIO_TRACCION_4X4 = 37,             // Tracción 4x4 inteligente activada.
         AUDIO_TRACCION_4X2 = 38,             // Tracción 4x2 inteligente activada.
+        
+        // ============================================
+        // TRACKS AVANZADOS (39-68) - v2.8.0
+        // ============================================
+        
+        // Sistemas de seguridad avanzados (39-44)
+        AUDIO_ABS_ACTIVADO = 39,             // Sistema antibloqueo de frenos activado.
+        AUDIO_ABS_DESACTIVADO = 40,          // Sistema antibloqueo de frenos desactivado.
+        AUDIO_TCS_ACTIVADO = 41,             // Control de tracción activado.
+        AUDIO_TCS_DESACTIVADO = 42,          // Control de tracción desactivado.
+        AUDIO_REGEN_ON = 43,                 // Frenado regenerativo activado.
+        AUDIO_REGEN_OFF = 44,                // Frenado regenerativo desactivado.
+        
+        // WiFi y conectividad (45-48)
+        AUDIO_WIFI_CONECTADO = 45,           // Conexión WiFi establecida.
+        AUDIO_WIFI_DESCONECTADO = 46,        // Conexión WiFi perdida.
+        AUDIO_OTA_INICIADO = 47,             // Actualización remota iniciada. No desconecte el vehículo.
+        AUDIO_OTA_COMPLETADO = 48,           // Actualización completada. Reiniciando sistema.
+        
+        // Bluetooth (49-51)
+        AUDIO_BT_CONECTADO = 49,             // Mando Bluetooth conectado.
+        AUDIO_BT_DESCONECTADO = 50,          // Mando Bluetooth desconectado.
+        AUDIO_BT_EMPAREJANDO = 51,           // Buscando mando Bluetooth. Mantenga pulsado el botón de emparejamiento.
+        
+        // Estados del vehículo (52-56)
+        AUDIO_VELOCIDAD_MAXIMA = 52,         // Velocidad máxima alcanzada.
+        AUDIO_SOBRECORRIENTE = 53,           // Advertencia. Corriente excesiva detectada.
+        AUDIO_OBSTACULO = 54,                // Atención. Obstáculo detectado.
+        AUDIO_ESTACIONANDO = 55,             // Modo asistencia de estacionamiento activado.
+        AUDIO_ARRANQUE_SUAVE = 56,           // Iniciando arranque suave de motores.
+        
+        // Información de telemetría (57-60)
+        AUDIO_BATERIA_50 = 57,               // Nivel de batería al 50 por ciento.
+        AUDIO_BATERIA_25 = 58,               // Nivel de batería al 25 por ciento. Considere recargar.
+        AUDIO_DISTANCIA_1KM = 59,            // Ha recorrido un kilómetro en esta sesión.
+        AUDIO_AHORRO_ENERGIA = 60,           // Modo ahorro de energía activado.
+        
+        // Modos de conducción (61-63)
+        AUDIO_MODO_ECO = 61,                 // Modo eco activado. Máxima eficiencia.
+        AUDIO_MODO_NORMAL = 62,              // Modo normal activado.
+        AUDIO_MODO_SPORT = 63,               // Modo deportivo activado. Máxima potencia.
+        
+        // Feedback de configuración (64-68)
+        AUDIO_CONFIG_GUARDADA = 64,          // Configuración guardada correctamente.
+        AUDIO_CONFIG_RESTAURADA = 65,        // Configuración de fábrica restaurada.
+        AUDIO_ERRORES_BORRADOS = 66,         // Registro de errores borrado.
+        AUDIO_REGEN_AJUSTADO = 67,           // Nivel de regeneración ajustado.
+        AUDIO_BEEP = 68,                     // (Sonido corto de confirmación)
     };
 }
 
