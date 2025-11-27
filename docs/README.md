@@ -35,23 +35,12 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 | Archivo | Descripción |
 |---------|-------------|
-| [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | Referencia completa del hardware: componentes, especificaciones y arquitectura |
-| [HARDWARE_WIRING_GUIDE.md](HARDWARE_WIRING_GUIDE.md) | Guía completa de cableado y conexiones físicas |
+| [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | **📌 Referencia principal del hardware** - Componentes, especificaciones, arquitectura y conexiones GPIO actualizadas (v2.8.0) |
+| [PIN_MAPPING_DEVKITC1.md](PIN_MAPPING_DEVKITC1.md) | **📌 Mapeo oficial de pines GPIO** - Asignación completa de pines para ESP32-S3-DevKitC-1 (v2.4.0) |
 | [HARDWARE_CONFIGURACION_COMPLETA.md](HARDWARE_CONFIGURACION_COMPLETA.md) | Configuración completa del hardware del sistema |
-| [PIN_MAPPING_DEVKITC1.md](PIN_MAPPING_DEVKITC1.md) | Mapeo completo de pines GPIO para ESP32-S3-DevKitC-1 |
 | [HY-M158_MAPPING.md](HY-M158_MAPPING.md) | Mapeo de canales de los módulos optoacopladores HY-M158 |
 
----
-
-## 📖 Manuales de Conexiones
-
-| Archivo | Descripción |
-|---------|-------------|
-| [MANUAL_TECNICO_CONEXIONES.md](MANUAL_TECNICO_CONEXIONES.md) | Manual técnico completo de conexiones |
-| [MANUAL_CONEXIONES_COMPLETO_DEVKITC1.md](MANUAL_CONEXIONES_COMPLETO_DEVKITC1.md) | Manual completo de conexiones para DevKitC-1 |
-| [MANUAL_CONEXIONES_DETALLADO_DEVKITC1.md](MANUAL_CONEXIONES_DETALLADO_DEVKITC1.md) | Manual detallado de conexiones para DevKitC-1 |
-| [MANUAL_CONEXIONES_DEVKITC1.md](MANUAL_CONEXIONES_DEVKITC1.md) | Manual de conexiones para DevKitC-1 |
-| [CONEXIONES_HARDWARE_DEVKITC1.md](CONEXIONES_HARDWARE_DEVKITC1.md) | Conexiones hardware específicas para DevKitC-1 |
+> ⚠️ **IMPORTANTE**: Para conexiones de hardware, consultar siempre `REFERENCIA_HARDWARE.md` y `PIN_MAPPING_DEVKITC1.md` ya que contienen las asignaciones GPIO actualizadas y verificadas con el firmware.
 
 ---
 
