@@ -12,8 +12,8 @@ permissions:
 
 jobs:
   # ============================================
-  # Job 1: Build all firmware environments
-  # ============================================
+permissions:
+  contents: read   # Only read access needed for checkout and build
   build:
     runs-on: ubuntu-latest
     strategy:
