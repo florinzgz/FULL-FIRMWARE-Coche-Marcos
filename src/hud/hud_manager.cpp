@@ -50,16 +50,10 @@ void HUDManager::init() {
     // Rotation 3 provides landscape mode (480x320) for ST7796S display.
     tft.setRotation(3);  // Landscape mode: 480x320
     
-    // 🔒 v2.8.1: Mostrar mensaje de diagnóstico inmediatamente
-    // Esto ayuda a diagnosticar si el display funciona
-    // Usamos color distintivo para confirmar que tft.init() funcionó
-    tft.fillScreen(BOOT_SCREEN_BG_COLOR);
-    tft.setTextColor(BOOT_SCREEN_TEXT_COLOR, BOOT_SCREEN_BG_COLOR);
-    tft.setTextSize(2);
-    tft.setCursor(10, 10);
-    tft.println("ESP32-S3 Booting...");
-    tft.println("v2.8.2");
-    Serial.println("[HUD] Boot screen displayed");
+    // 🔒 v2.8.3: Eliminada pantalla azul de boot - directo a dashboard
+    // El boot screen anterior era innecesario y causaba parpadeo visual
+    tft.fillScreen(TFT_BLACK);
+    Serial.println("[HUD] Display cleared, skipping boot screen");
     
     // 🔒 v2.8.2: REMOVED early return - continue initialization even if dimensions seem wrong
     // The early return was blocking full HUD initialization, causing the display to stay stuck
