@@ -250,7 +250,7 @@ static void drawSteeringAngle(float angleDeg) {
         color = TFT_GREEN;      // Centrado
     } else if (absAngle < 20.0f) {
         color = TFT_CYAN;       // Ligeramente girado
-    } else if (absAngle < 35.0f) {
+    } else if (absAngle <= 35.0f) {
         color = TFT_YELLOW;     // Girado moderadamente
     } else {
         color = TFT_ORANGE;     // Muy girado
