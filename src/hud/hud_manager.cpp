@@ -21,8 +21,8 @@ uint8_t HUDManager::longPressButtonId = 0;
 // 🔒 v2.5.0: Flag de inicialización
 static bool initialized = false;
 
-// TFT singleton
-static TFT_eSPI tft = TFT_eSPI();
+// ✅ ÚNICA instancia global de TFT_eSPI - compartida con HUD y otros módulos
+TFT_eSPI tft = TFT_eSPI();
 
 void HUDManager::init() {
     // 🔒 v2.4.2: Hardware reset con tiempos mínimos necesarios

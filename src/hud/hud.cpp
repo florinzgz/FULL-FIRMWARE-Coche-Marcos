@@ -26,7 +26,9 @@
 #include "alerts.h"
 #include "pins.h"
 
-static TFT_eSPI tft;
+// ✅ Usar la instancia global de TFT_eSPI definida en hud_manager.cpp
+extern TFT_eSPI tft;
+
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
 // Touch calibration constants (matching menu_hidden.cpp)
@@ -84,10 +86,10 @@ static bool carBodyDrawn = false;       // Track if car body needs redraw
 extern Storage::Config cfg;   // acceso a flags
 
 void HUD::init() {
-    // NOTE: tft.init() and tft.setRotation(3) are already called by HUDManager::init()
-    // Do NOT call tft.init() again - it causes display issues
+    // ✅ NO llamar a tft.init() aquí - ya está inicializado en HUDManager::init()
+    // Usamos la instancia global compartida de TFT_eSPI
     
-    // Clear screen and prepare for dashboard (no visual test - goes directly to dashboard)
+    // Clear screen and prepare for dashboard
     tft.fillScreen(TFT_BLACK);
 
     // Initialize dashboard components
