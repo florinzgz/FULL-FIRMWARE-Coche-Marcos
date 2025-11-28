@@ -37,13 +37,10 @@ void HUDManager::init() {
     
     Serial.println("[HUD] Starting HUDManager initialization...");
     
-    // 🔒 v2.8.1: Verificar que backlight ya está encendido (desde main.cpp)
-    // Si por alguna razón no lo está, encenderlo ahora como respaldo
-    if (digitalRead(PIN_TFT_BL) != HIGH) {
-        Serial.println("[HUD] Backlight was OFF - enabling now");
-        pinMode(PIN_TFT_BL, OUTPUT);
-        digitalWrite(PIN_TFT_BL, HIGH);
-    }
+    // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en main.cpp)
+    // Configuramos como OUTPUT y HIGH como respaldo de seguridad
+    pinMode(PIN_TFT_BL, OUTPUT);
+    digitalWrite(PIN_TFT_BL, HIGH);
     
     // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT
     Serial.println("[HUD] Initializing TFT_eSPI...");
@@ -94,10 +91,13 @@ void HUDManager::init() {
         Logger::infof("HUD: Brightness cargado de config: %d", brightness);
     }
     
-    // Configurar backlight PWM (GPIO 42) - optional for dimming control
+    // 🔒 v2.8.1: Configurar backlight PWM para control de brillo
+    // Usamos LEDC PWM en lugar de digital GPIO para permitir dimming
+    // Esto sobrescribe la configuración digital anterior con PWM
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
     ledcAttachPin(PIN_TFT_BL, 0);
     ledcWrite(0, brightness);
+    Serial.printf("[HUD] Backlight PWM configured, brightness: %d\n", brightness);
     
     // Inicializar HUD básico (will show color test and initialize components)
     // Display is now ready with rotation=3 (480x320 landscape, ST7796S)

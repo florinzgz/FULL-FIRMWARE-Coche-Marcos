@@ -178,14 +178,17 @@ En modo standalone, puedes acceder al **Menú Oculto** de forma sencilla:
 **Causa:** Problema de comunicación SPI
 
 **Solución:**
-1. Verifica conexiones SPI (según pins.h):
-   - CS → GPIO 16
-   - DC → GPIO 13
-   - RST → GPIO 14
+1. Verifica conexiones SPI del display TFT ST7796S (según pins.h):
+   - TFT_CS (Chip Select TFT) → GPIO 16
+   - TFT_DC (Data/Command) → GPIO 13
+   - TFT_RST (Reset) → GPIO 14
    - MOSI → GPIO 11
    - SCK → GPIO 10
    - MISO → GPIO 12
-   - BL → GPIO 42
+   - BL (Backlight) → GPIO 42
+   
+   Nota: El touch XPT2046 usa TOUCH_CS → GPIO 21 (diferente al TFT_CS)
+   
 2. Confirma que usas HSPI (no VSPI)
 3. Revisa que VDD de pantalla = 3.3V (NO 5V)
 
