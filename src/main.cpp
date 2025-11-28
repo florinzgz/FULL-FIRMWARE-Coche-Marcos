@@ -147,13 +147,14 @@ void setup() {
     Serial.println("[BOOT] Backlight enabled on GPIO42");
     
     // 5. Initialize TFT reset to ensure display is ready
-    // ST7796S datasheet requires min 10µs reset pulse, 5ms recovery
+    // ST7796S datasheet requires min 10µs reset pulse, 5ms recovery.
+    // We intentionally use millisecond delays (10ms pulse, 50ms recovery) for extra safety margin and robustness.
     Serial.println("[BOOT] Resetting TFT display...");
     pinMode(PIN_TFT_RST, OUTPUT);
     digitalWrite(PIN_TFT_RST, LOW);
-    delay(TFT_RESET_PULSE_MS);  // Reset pulse
+    delay(TFT_RESET_PULSE_MS);  // Reset pulse (intentional extra margin)
     digitalWrite(PIN_TFT_RST, HIGH);
-    delay(TFT_RESET_RECOVERY_MS);  // Wait for display to initialize
+    delay(TFT_RESET_RECOVERY_MS);  // Wait for display to initialize (intentional extra margin)
     Serial.println("[BOOT] TFT reset complete");
     
     // 🔒 v2.4.2: Serial no es crítico - continuar sin espera bloqueante
