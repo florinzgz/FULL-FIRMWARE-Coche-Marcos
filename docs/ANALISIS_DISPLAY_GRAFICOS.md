@@ -4,7 +4,11 @@
 
 - **Pantalla**: ST7796S 4" TFT LCD
 - **Resolución**: 480x320 píxeles (landscape)
-- **Rotación**: 3 (modo horizontal)
+- **Rotación**: 3 (modo horizontal - paisaje invertido)
+  - El valor de rotación 3 en TFT_eSPI orienta el display en modo paisaje con:
+    - X=0 en el borde izquierdo, X=480 en el borde derecho
+    - Y=0 en el borde superior, Y=320 en el borde inferior
+    - El conector USB del ESP32 queda en el lado derecho
 - **Touch Controller**: XPT2046
 
 ---
@@ -436,11 +440,16 @@ Colores de opciones:
 | Línea | Elemento | Posición | Color | Descripción |
 |-------|----------|----------|-------|-------------|
 | 394-395 | Cabecera | (10, 150) | TFT_YELLOW | "-- ESTADO GENERAL --" |
-| 403-404 | Sensores | (10, 165) | Variable | "Sensores: TODOS OK/PARCIAL/FALLO" |
-| 409-410 | Entradas | (10, 180) | Variable | "Entradas: TODOS OK/FALLO" |
-| 419-420 | Sistema | (10, 200) | Variable | "SISTEMA: OK/WARN/FAIL" - Size 2 |
+| 403-404 | Sensores | (10, 165) | TFT_GREEN/TFT_YELLOW/TFT_RED* | "Sensores: TODOS OK/PARCIAL/FALLO" |
+| 409-410 | Entradas | (10, 180) | TFT_GREEN/TFT_RED* | "Entradas: TODOS OK/FALLO" |
+| 419-420 | Sistema | (10, 200) | TFT_GREEN/TFT_YELLOW/TFT_RED* | "SISTEMA: OK/WARN/FAIL" - Size 2 |
 | 429 | Cal pedal | (250, 165) | TFT_MAGENTA | "Pedal cal: XXX-XXXX" |
 | 431 | Curva | (250, 180) | TFT_MAGENTA | "Curva: Lineal/Suave/Agresiva" |
+
+*Colores de estado:
+- TFT_GREEN: Todos los componentes funcionan correctamente (OK/TODOS OK)
+- TFT_YELLOW: Funcionamiento parcial o advertencia (WARN/PARCIAL)
+- TFT_RED: Fallo crítico o error (FAIL/FALLO)
 
 ### 7.5 Monitor INA226 (renderINA226Monitor)
 
@@ -607,8 +616,8 @@ Colores por nivel de proximidad:
 |                               240                        |
 |           FL -----  CUERPO  ----- FR                     |
 |               |               |                          |
-|               |   [LINEA]     |                          |
-|               |     EJE       |                          |
+|               |   [LINEA     |                          |
+|               |  CENTRAL]    |                          |
 |               |               |                          |
 |           RL -----  CUERPO  ----- RR                     |
 |                                                          |
