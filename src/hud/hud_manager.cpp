@@ -58,7 +58,7 @@ void HUDManager::init() {
     tft.setTextSize(2);
     tft.setCursor(10, 10);
     tft.println("ESP32-S3 Booting...");
-    tft.println("v2.8.1");
+    tft.println("v2.8.2");
     Serial.println("[HUD] Boot screen displayed");
     
     // 🔒 v2.8.2: REMOVED early return - continue initialization even if dimensions seem wrong
