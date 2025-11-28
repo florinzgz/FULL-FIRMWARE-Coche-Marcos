@@ -1,5 +1,53 @@
 # Cambios Recientes en el Firmware
 
+## Versión: 2.8.1
+**Fecha:** 2025-11-28  
+
+---
+
+## 🆕 Novedades v2.8.1
+
+### 1. Diagnósticos de Arranque Mejorados ✅
+
+**Problema resuelto:** Pantalla en blanco y LED verde apagado después de flashear el firmware.
+
+**Solución implementada:**
+- ✅ Mensajes de diagnóstico por Serial desde el primer momento del boot
+- ✅ Backlight del TFT habilitado INMEDIATAMENTE al iniciar
+- ✅ Pantalla azul con "ESP32-S3 Booting..." visible durante la inicialización
+- ✅ Cada módulo imprime su estado de inicialización
+
+**Output esperado en Serial Monitor (115200 baud):**
+```
+========================================
+ESP32-S3 Car Control System v2.8.1
+========================================
+CPU Freq: 240 MHz
+Free heap: XXXXX bytes
+Boot sequence starting...
+[BOOT] Enabling TFT backlight...
+[BOOT] Backlight enabled on GPIO42
+[BOOT] Resetting TFT display...
+[BOOT] TFT reset complete
+[BOOT] Initializing System...
+[BOOT] Initializing Storage...
+[BOOT] Initializing Logger...
+...
+[BOOT] Setup complete! Entering main loop...
+```
+
+### 2. Documentación de Solución de Problemas ✅
+
+**Archivo actualizado:** `docs/STANDALONE_MODE.md`
+
+**Nuevas secciones:**
+- Solución para "pantalla negra y LED verde apagado"
+- Guía para recuperar ESP32-S3 que no responde
+- Instrucciones para borrar flash completamente
+- Pines SPI corregidos según pins.h
+
+---
+
 ## Versión: 2.8.0
 **Fecha:** 2025-11-27  
 

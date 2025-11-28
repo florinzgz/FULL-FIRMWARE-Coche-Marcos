@@ -103,26 +103,85 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 #include "filters.h"
 #include "math_utils.h"
 
+// ============================================================================
+// Boot Timing Constants (Hardware requirements)
+// ============================================================================
+// These values are required by the ST7796S display controller
+static constexpr uint32_t SERIAL_WAIT_MAX_MS = 1000;        // Max wait for Serial connection
+static constexpr uint32_t SERIAL_POLL_INTERVAL_MS = 50;     // Poll interval for Serial ready
+static constexpr uint32_t TFT_RESET_PULSE_MS = 10;          // Reset pulse width (hardware minimum 10µs, using 10ms for safety margin)
+static constexpr uint32_t TFT_RESET_RECOVERY_MS = 50;       // Post-reset recovery time (min 5ms, using 50ms for margin)
+
 void setup() {
+    // ========================================================================
+    // 🔒 v2.8.1: CRITICAL EARLY BOOT DIAGNOSTICS
+    // These must run FIRST to diagnose blank screen / no boot issues
+    // ========================================================================
+    
+    // 1. Initialize Serial IMMEDIATELY for debugging
     Serial.begin(115200);
+    
+    // 2. Wait briefly for Serial to stabilize (but don't block forever)
+    // This helps capture boot messages on freshly flashed devices
+    uint32_t serialStart = millis();
+    while (!Serial && (millis() - serialStart < SERIAL_WAIT_MAX_MS)) {
+        delay(SERIAL_POLL_INTERVAL_MS);
+    }
+    
+    // 3. First sign of life - print boot message
+    Serial.println();
+    Serial.println("========================================");
+    Serial.println("ESP32-S3 Car Control System v2.8.1");
+    Serial.println("========================================");
+    Serial.printf("CPU Freq: %d MHz\n", getCpuFrequencyMhz());
+    Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.println("Boot sequence starting...");
+    Serial.flush();
+    
+    // 4. CRITICAL: Enable TFT backlight IMMEDIATELY
+    // This ensures the screen is not blank even if other init fails
+    // User can see that the ESP32 is at least starting
+    Serial.println("[BOOT] Enabling TFT backlight...");
+    pinMode(PIN_TFT_BL, OUTPUT);
+    digitalWrite(PIN_TFT_BL, HIGH);  // Backlight ON
+    Serial.println("[BOOT] Backlight enabled on GPIO42");
+    
+    // 5. Initialize TFT reset to ensure display is ready
+    // ST7796S datasheet requires min 10µs reset pulse, 5ms recovery.
+    // We intentionally use millisecond delays (10ms pulse, 50ms recovery) for extra safety margin and robustness.
+    Serial.println("[BOOT] Resetting TFT display...");
+    pinMode(PIN_TFT_RST, OUTPUT);
+    digitalWrite(PIN_TFT_RST, LOW);
+    delay(TFT_RESET_PULSE_MS);  // Reset pulse (intentional extra margin)
+    digitalWrite(PIN_TFT_RST, HIGH);
+    delay(TFT_RESET_RECOVERY_MS);  // Wait for display to initialize (intentional extra margin)
+    Serial.println("[BOOT] TFT reset complete");
+    
     // 🔒 v2.4.2: Serial no es crítico - continuar sin espera bloqueante
     // Si Serial no está listo, los logs simplemente no se mostrarán
     // pero el sistema no se bloqueará
 
     Debug::setLevel(2); // nivel DEBUG
+    Serial.println("[BOOT] Debug level set to 2");
 
     // --- Inicialización básica ---
+    Serial.println("[BOOT] Initializing System...");
     System::init();
+    Serial.println("[BOOT] Initializing Storage...");
     Storage::init();
+    Serial.println("[BOOT] Initializing Logger...");
     Logger::init();
     
 #ifdef STANDALONE_DISPLAY
+    Serial.println("[BOOT] STANDALONE_DISPLAY MODE: Skipping sensor initialization");
     Logger::info("🧪 STANDALONE_DISPLAY MODE: Skipping sensor initialization");
     
     // Initialize only display components
+    Serial.println("[BOOT] Initializing HUD Manager (display only)...");
     HUDManager::init();
     
     // Show logo briefly with non-blocking timing
+    Serial.println("[BOOT] Showing logo...");
     HUDManager::showLogo();
     unsigned long logoStart = millis();
     while (millis() - logoStart < 1500) { 
@@ -172,49 +231,80 @@ void setup() {
     HUDManager::update();  // Render first frame immediately
     
     Logger::info("🧪 STANDALONE MODE: Dashboard active with simulated values");
+    Serial.println("[BOOT] STANDALONE MODE: Setup complete!");
     
 #else
+    // ========================================================================
+    // 🔒 v2.8.1: FULL INITIALIZATION MODE WITH DIAGNOSTIC OUTPUT
+    // Each step prints to Serial so we can identify where hangs occur
+    // ========================================================================
+    
+    Serial.println("[BOOT] FULL MODE: Starting hardware initialization...");
+    
     // CRITICAL: Initialize Watchdog and I²C Recovery FIRST
+    Serial.println("[BOOT] Initializing Watchdog...");
     Watchdog::init();
+    Serial.println("[BOOT] Initializing I2C Recovery...");
     I2CRecovery::init();
     
     // Initialize WiFi and OTA (before sensors for telemetry)
+    Serial.println("[BOOT] Initializing WiFi Manager...");
     WiFiManager::init();
     
+    Serial.println("[BOOT] Initializing Relays...");
     Relays::init();
     
     // Initialize unified sensor reader
+    Serial.println("[BOOT] Initializing Car Sensors...");
     CarSensors::init();
     
     // Initialize advanced HUD manager
+    Serial.println("[BOOT] Initializing HUD Manager...");
     HUDManager::init();
     
+    Serial.println("[BOOT] Initializing DFPlayer Audio...");
     Audio::DFPlayer::init();
     Audio::AudioQueue::init();
 
+    Serial.println("[BOOT] Initializing Current Sensors (INA226)...");
     Sensors::initCurrent();
+    Serial.println("[BOOT] Initializing Temperature Sensors (DS18B20)...");
     Sensors::initTemperature();
+    Serial.println("[BOOT] Initializing Wheel Sensors...");
     Sensors::initWheels();
 
+    Serial.println("[BOOT] Initializing Pedal...");
     Pedal::init();
+    Serial.println("[BOOT] Initializing Steering...");
     Steering::init();
+    Serial.println("[BOOT] Initializing Buttons...");
     Buttons::init();
+    Serial.println("[BOOT] Initializing Shifter...");
     Shifter::init();
 
+    Serial.println("[BOOT] Initializing Traction...");
     Traction::init();
+    Serial.println("[BOOT] Initializing Steering Motor...");
     SteeringMotor::init();
 
     // --- Advanced Safety Systems ---
+    Serial.println("[BOOT] Initializing ABS System...");
     ABSSystem::init();
+    Serial.println("[BOOT] Initializing TCS System...");
     TCSSystem::init();
+    Serial.println("[BOOT] Initializing Regen AI...");
     RegenAI::init();
     
     // --- Telemetry System ---
+    Serial.println("[BOOT] Initializing Telemetry...");
     Telemetry::init();           // 🆕 v2.8.0: Sistema de telemetría
     
     // --- Bluetooth Emergency Override Controller ---
+    Serial.println("[BOOT] Initializing Bluetooth Controller...");
     BluetoothController::init();
 
+    Serial.println("[BOOT] All modules initialized. Starting self-test...");
+    
     // --- Logo de arranque ---
     HUDManager::showLogo();
     Alerts::play(Audio::AUDIO_INICIO);
@@ -224,11 +314,13 @@ void setup() {
     // --- Chequeo rápido ---
     auto health = System::selfTest();
     if (health.ok) {
+        Serial.println("[BOOT] Self-test PASSED!");
         Steering::center();
         HUDManager::showReady();
         Relays::enablePower();
         Alerts::play(Audio::AUDIO_MODULO_OK);
     } else {
+        Serial.println("[BOOT] Self-test FAILED!");
         HUDManager::showError("System check failed");
         Alerts::play(Audio::AUDIO_ERROR_GENERAL);
 
@@ -242,6 +334,7 @@ void setup() {
     
     // Show advanced dashboard
     HUDManager::showMenu(MenuType::DASHBOARD);
+    Serial.println("[BOOT] Setup complete! Entering main loop...");
 #endif
 }
 
