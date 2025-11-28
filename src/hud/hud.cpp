@@ -82,6 +82,7 @@ static const int CAR_CENTER_LINE_MARGIN = 25;    // Margin from body edge for ce
 static const int WHEEL_PLACEHOLDER_RADIUS = 10;
 
 static bool carBodyDrawn = false;       // Track if car body needs redraw
+static float lastSteeringAngle = -999.0f;  // Cache para ángulo del volante
 
 extern Storage::Config cfg;   // acceso a flags
 
@@ -224,6 +225,41 @@ static void drawCarBody() {
     tft.drawLine(X_FR, Y_FR, X_RR, Y_RR, TFT_DARKGREY);
     
     carBodyDrawn = true;
+}
+
+// Mostrar ángulo del volante en el centro del coche
+static void drawSteeringAngle(float angleDeg) {
+    // Posición: centro del coche, justo debajo del centro
+    const int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche (240)
+    const int cy = CAR_BODY_Y + CAR_BODY_H / 2 + 10;  // Centro Y del coche + offset (185)
+    
+    // Solo redibujar si hay cambio significativo (>0.5 grados)
+    if (fabs(angleDeg - lastSteeringAngle) < 0.5f) return;
+    lastSteeringAngle = angleDeg;
+    
+    // Limpiar área (ancho suficiente para el texto)
+    tft.fillRect(cx - 35, cy - 8, 70, 16, TFT_BLACK);
+    
+    // Dibujar texto del ángulo
+    tft.setTextDatum(MC_DATUM);
+    
+    // Color según ángulo: verde si centrado, amarillo si girado, rojo si muy girado
+    uint16_t color;
+    float absAngle = fabs(angleDeg);
+    if (absAngle < 5.0f) {
+        color = TFT_GREEN;      // Centrado
+    } else if (absAngle < 20.0f) {
+        color = TFT_CYAN;       // Ligeramente girado
+    } else if (absAngle < 35.0f) {
+        color = TFT_YELLOW;     // Girado moderadamente
+    } else {
+        color = TFT_ORANGE;     // Muy girado
+    }
+    
+    tft.setTextColor(color, TFT_BLACK);
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%+.0f°", angleDeg);  // Formato: +0° o -15°
+    tft.drawString(buf, cx, cy, 2);
 }
 
 void HUD::drawPedalBar(float pedalPercent) {
@@ -375,6 +411,10 @@ void HUD::update() {
     WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR, wheelEffortFR);
     WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL);
     WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR);
+    
+    // Mostrar ángulo del volante en grados (promedio de FL/FR)
+    float avgSteerAngle = (steerAngleFL + steerAngleFR) / 2.0f;
+    drawSteeringAngle(avgSteerAngle);
 
     // Iconos y estados
     Icons::drawSystemState(sys);

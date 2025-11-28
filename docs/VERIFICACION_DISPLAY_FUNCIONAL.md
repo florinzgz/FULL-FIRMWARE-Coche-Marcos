@@ -16,9 +16,9 @@ Este documento verifica que el código del display está bien organizado y funci
 |------|---------|---------|--------|-------------|
 | 1 | hud_manager.cpp:45 | `tft.init()` | ✅ OK | Inicialización hardware TFT |
 | 2 | hud_manager.cpp:51 | `tft.setRotation(3)` | ✅ OK | Rotación ANTES de dibujar |
-| 3 | hud_manager.cpp:56 | `tft.fillScreen(BOOT_SCREEN_BG_COLOR)` | ✅ OK | Pantalla de arranque azul |
+| 3 | hud_manager.cpp:56 | `tft.fillScreen(TFT_BLACK)` | ✅ OK | Pantalla negra directa (boot eliminado v2.8.3) |
 | 4 | hud_manager.cpp:87 | `tft.fillScreen(TFT_BLACK)` | ✅ OK | Limpieza para dashboard |
-| 5 | hud_manager.cpp:107 | `HUD::init()` | ✅ OK | Inicialización componentes |
+| 5 | hud_manager.cpp:101 | `HUD::init()` | ✅ OK | Inicialización componentes |
 | 6 | hud.cpp:97-100 | `Gauges::init()`, etc. | ✅ OK | Inicialización módulos |
 
 ### 1.2 Protección Contra Punteros Nulos
@@ -238,11 +238,21 @@ Este documento verifica que el código del display está bien organizado y funci
 
 ### ✅ Flujo de Pantalla Verificado
 
-1. **Boot Screen**: Pantalla azul con mensaje "ESP32-S3 Booting..."
-2. **Dashboard**: Gauges, coche, ruedas, iconos - Todo se renderiza correctamente
+1. **Inicio Directo**: Pantalla negra (boot screen azul eliminado en v2.8.3)
+2. **Dashboard**: Gauges, coche, ruedas, iconos, **ángulo del volante en grados** - Todo se renderiza correctamente
 3. **Menú Oculto**: Modal overlay con 8 opciones funcionales
 4. **Calibración**: Pantallas interactivas con timeout y feedback visual
 5. **Otros Menús**: Settings, Hardware Test, Monitor INA226 - Todos funcionales
+
+### ✅ Nuevas Características v2.8.3
+
+1. **Indicador de Ángulo del Volante**: Muestra "+0°" a "±45°" en el centro del coche
+   - Verde: centrado (<5°)
+   - Cian: ligeramente girado (5-20°)
+   - Amarillo: girado moderadamente (20-35°)
+   - Naranja: muy girado (>35°)
+
+2. **Boot Screen Eliminado**: Ya no hay pantalla azul con "ESP32-S3 Booting..."
 
 ### ✅ Resultado Final
 
@@ -388,4 +398,4 @@ El código del display está **bien organizado y funcional**:
 
 ---
 
-*Verificación completa línea por línea - Versión 2.8.2*
+*Verificación completa línea por línea - Versión 2.8.3*

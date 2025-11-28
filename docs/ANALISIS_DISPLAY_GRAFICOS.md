@@ -66,17 +66,32 @@ Vista superior del vehículo dibujada en el centro del dashboard:
 | 223 | Línea lateral izq | (195, 115) a (195, 235) | TFT_DARKGREY | Rail lateral izquierdo |
 | 224 | Línea lateral der | (285, 115) a (285, 235) | TFT_DARKGREY | Rail lateral derecho |
 
-### 1.6 Barra de Pedal (HUD::drawPedalBar)
+### 1.6 Indicador de Ángulo del Volante (drawSteeringAngle) - v2.8.3
+
+Muestra el ángulo del volante en grados en el centro del coche:
+
+| Línea | Elemento | Posición | Color | Descripción |
+|-------|----------|----------|-------|-------------|
+| 230-263 | Área limpieza | (205, 177, 70, 16) | TFT_BLACK | Limpiar zona de texto |
+| - | Texto ángulo | (240, 185) | Variable* | Formato: "+0°" o "-15°" |
+
+*Colores del indicador de ángulo:
+- Verde (TFT_GREEN): < 5° (centrado)
+- Cian (TFT_CYAN): 5-20° (ligeramente girado)
+- Amarillo (TFT_YELLOW): 20-35° (girado moderadamente)
+- Naranja (TFT_ORANGE): > 35° (muy girado)
+
+### 1.7 Barra de Pedal (HUD::drawPedalBar)
 
 Barra horizontal en la parte inferior de la pantalla:
 
 | Línea | Condición | Elemento | Posición | Color | Descripción |
 |-------|-----------|----------|----------|-------|-------------|
-| 236-240 | Pedal inválido | Rectángulo negro | (0, 300, 480, 18) | TFT_BLACK | Fondo vacío |
-| 239 | Pedal inválido | Texto | (240, 309) | TFT_DARKGREY | "-- PEDAL --" |
-| 258 | Pedal válido | Barra progreso | (0, 300, ancho%, 18) | Variable* | Barra de progreso |
-| 262 | Pedal válido | Resto barra | (ancho%, 300, resto, 18) | TFT_DARKGREY | Fondo no rellenado |
-| 270 | Pedal válido | Texto porcentaje | (240, 309) | TFT_WHITE | "XX%" |
+| 270-274 | Pedal inválido | Rectángulo negro | (0, 300, 480, 18) | TFT_BLACK | Fondo vacío |
+| 273 | Pedal inválido | Texto | (240, 309) | TFT_DARKGREY | "-- PEDAL --" |
+| 292 | Pedal válido | Barra progreso | (0, 300, ancho%, 18) | Variable* | Barra de progreso |
+| 296 | Pedal válido | Resto barra | (ancho%, 300, resto, 18) | TFT_DARKGREY | Fondo no rellenado |
+| 304 | Pedal válido | Texto porcentaje | (240, 309) | TFT_WHITE | "XX%" |
 
 *Color de la barra:
 - Verde (TFT_GREEN): 0-80%
@@ -384,12 +399,13 @@ Colores de opciones:
 
 ## 7. PANTALLAS DEL HUD MANAGER
 
-### 7.1 Pantalla de Arranque (Boot Screen)
+### 7.1 Pantalla de Arranque (Boot Screen) - ELIMINADA v2.8.3
 
-| Línea | Elemento | Posición | Color | Descripción |
-|-------|----------|----------|-------|-------------|
-| 56 | Fondo | Pantalla completa | TFT_BLUE | Fondo azul distintivo |
-| 59-61 | Texto boot | (10, 10) | TFT_WHITE | "ESP32-S3 Booting..." y "v2.8.2" |
+> **Nota v2.8.3**: La pantalla azul de boot ha sido eliminada. Ahora el display va directo a negro y luego al dashboard, evitando parpadeo visual innecesario.
+
+| Línea | Elemento | Descripción |
+|-------|----------|-------------|
+| 53-56 | Limpieza directa | `tft.fillScreen(TFT_BLACK)` - Directo a pantalla negra |
 
 ### 7.2 Pantalla de Configuración (renderSettings)
 
@@ -616,8 +632,8 @@ Colores por nivel de proximidad:
 |                               240                        |
 |           FL -----  CUERPO  ----- FR                     |
 |               |               |                          |
-|               |   [LINEA     |                          |
-|               |  CENTRAL]    |                          |
+|               |    [+0°]     |     <- ÁNGULO VOLANTE    |
+|               |   VOLANTE    |        (Y=185, centro)   |
 |               |               |                          |
 |           RL -----  CUERPO  ----- RR                     |
 |                                                          |
@@ -631,4 +647,4 @@ Colores por nivel de proximidad:
 ---
 
 *Documento generado para análisis de gráficos del display del firmware Mercedes AMG GT*
-*Versión: 2.8.2*
+*Versión: 2.8.3*
