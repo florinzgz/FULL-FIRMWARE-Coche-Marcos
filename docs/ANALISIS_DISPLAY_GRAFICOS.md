@@ -72,7 +72,7 @@ Muestra el ángulo del volante en grados en el centro del coche:
 
 | Línea | Elemento | Posición | Color | Descripción |
 |-------|----------|----------|-------|-------------|
-| 230-263 | Área limpieza | (205, 177, 70, 16) | TFT_BLACK | Limpiar zona de texto |
+| 230-263 | Área limpieza | (cx - 35, cy - 8, 70, 16) = (205, 177, 70, 16)<br><sub>*Calculado en código con cx=240, cy=185*</sub> | TFT_BLACK | Limpiar zona de texto |
 | - | Texto ángulo | (240, 185) | Variable* | Formato: "+0°" o "-15°" |
 
 *Colores del indicador de ángulo:
