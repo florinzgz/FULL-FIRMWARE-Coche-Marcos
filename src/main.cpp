@@ -109,7 +109,7 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 // These values are required by the ST7796S display controller
 static constexpr uint32_t SERIAL_WAIT_MAX_MS = 1000;        // Max wait for Serial connection
 static constexpr uint32_t SERIAL_POLL_INTERVAL_MS = 50;     // Poll interval for Serial ready
-static constexpr uint32_t TFT_RESET_PULSE_MS = 10;          // Reset pulse width (min 10µs, using 10ms for margin)
+static constexpr uint32_t TFT_RESET_PULSE_MS = 10;          // Reset pulse width (hardware minimum 10µs, using 10ms for safety margin)
 static constexpr uint32_t TFT_RESET_RECOVERY_MS = 50;       // Post-reset recovery time (min 5ms, using 50ms for margin)
 
 void setup() {
