@@ -84,10 +84,12 @@ static bool carBodyDrawn = false;       // Track if car body needs redraw
 extern Storage::Config cfg;   // acceso a flags
 
 void HUD::init() {
-    // NOTE: tft.init() and tft.setRotation(3) are already called by HUDManager::init()
-    // Do NOT call tft.init() again - it causes display issues
+    // CRITICAL: HUD has its own TFT instance that must be initialized
+    // This is separate from HUDManager's TFT instance
+    tft.init();
+    tft.setRotation(3);  // Landscape mode: 480x320 for ST7796S
     
-    // Clear screen and prepare for dashboard (no visual test - goes directly to dashboard)
+    // Clear screen and prepare for dashboard
     tft.fillScreen(TFT_BLACK);
 
     // Initialize dashboard components
