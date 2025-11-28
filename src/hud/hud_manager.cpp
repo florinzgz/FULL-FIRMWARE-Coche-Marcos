@@ -61,11 +61,14 @@ void HUDManager::init() {
     tft.println("v2.8.1");
     Serial.println("[HUD] Boot screen displayed");
     
+    // 🔒 v2.8.2: REMOVED early return - continue initialization even if dimensions seem wrong
+    // The early return was blocking full HUD initialization, causing the display to stay stuck
+    // on the boot screen without ever showing the dashboard with car data.
     if (tft.width() == 0 || tft.height() == 0) {
-        Logger::error("HUD: TFT init failed - dimensions invalid");
+        Logger::error("HUD: TFT init reported 0 dimensions - continuing anyway");
         System::logError(600);
-        Serial.println("[HUD] ERROR: TFT dimensions are 0!");
-        return;
+        Serial.println("[HUD] WARNING: TFT dimensions are 0, but continuing initialization...");
+        // DO NOT return here - let the initialization continue
     }
     
     // 🔒 CORRECCIÓN CRÍTICA: Verificar dimensiones correctas
