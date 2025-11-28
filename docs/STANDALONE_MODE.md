@@ -131,13 +131,46 @@ En modo standalone, puedes acceder al **Menú Oculto** de forma sencilla:
 
 ## Solución de Problemas
 
-### ❌ Pantalla negra (backlight apagado)
-**Causa:** GPIO42 (backlight) no está conectado o no recibe 3.3V
+### ❌ Pantalla negra (backlight apagado) y LED verde apagado
+**Causa:** El ESP32-S3 no está arrancando correctamente o no hay comunicación.
+
+**Solución (v2.8.1):**
+1. **Conecta un monitor serial** (115200 baud) para ver mensajes de diagnóstico
+2. El firmware v2.8.1 muestra mensajes desde el primer momento del boot:
+   ```
+   ========================================
+   ESP32-S3 Car Control System v2.8.1
+   ========================================
+   CPU Freq: 240 MHz
+   Free heap: XXXXX bytes
+   Boot sequence starting...
+   [BOOT] Enabling TFT backlight...
+   [BOOT] Backlight enabled on GPIO42
+   ```
+3. Si no ves estos mensajes:
+   - Verifica la conexión USB
+   - Mantén presionado BOOT mientras presionas RESET
+   - Intenta re-flashear el firmware
+4. Si ves mensajes pero la pantalla está negra:
+   - Conecta BL de la pantalla → GPIO 42 ESP32-S3
+   - Verifica con multímetro que GPIO42 esté en HIGH (3.3V)
+   - Como prueba temporal, conecta BL directamente a 3.3V
+
+---
+
+### ❌ ESP32-S3 no responde después de flashear
+**Causa:** Posible problema con los strapping pins o configuración de particiones.
 
 **Solución:**
-1. Conecta BL de la pantalla → GPIO 42 ESP32-S3
-2. Verifica con multímetro que GPIO42 esté en HIGH (3.3V)
-3. Como prueba temporal, conecta BL directamente a 3.3V
+1. Mantén presionado el botón **BOOT** mientras presionas **RESET**
+2. Suelta RESET primero, luego BOOT
+3. Esto pone el ESP32-S3 en modo de descarga
+4. Re-flashea el firmware con: `pio run --target upload`
+5. Si persiste, intenta borrar la flash completamente:
+   ```bash
+   esptool.py --chip esp32s3 erase_flash
+   ```
+   Y luego re-flashear.
 
 ---
 
@@ -145,27 +178,28 @@ En modo standalone, puedes acceder al **Menú Oculto** de forma sencilla:
 **Causa:** Problema de comunicación SPI
 
 **Solución:**
-1. Verifica conexiones SPI:
-   - CS → GPIO 8
+1. Verifica conexiones SPI (según pins.h):
+   - CS → GPIO 16
    - DC → GPIO 13
    - RST → GPIO 14
    - MOSI → GPIO 11
    - SCK → GPIO 10
    - MISO → GPIO 12
+   - BL → GPIO 42
 2. Confirma que usas HSPI (no VSPI)
 3. Revisa que VDD de pantalla = 3.3V (NO 5V)
 
 ---
 
 ### ❌ Mitad de pantalla en blanco (half-screen corruption)
-**Causa:** ILI9488 requiere `setRotation(3)` en lugar de `setRotation(1)`
+**Causa:** El driver ST7796S requiere `setRotation(3)` para modo landscape
 
 **Solución:**
-El firmware ya usa `setRotation(3)` en commit `aa8c0d3`. Asegúrate de tener la última versión.
+El firmware ya usa `setRotation(3)`. Asegúrate de tener la última versión.
 
 ---
 
-### ❌ Dashboard no aparece después de "ILI9488 OK"
+### ❌ Dashboard no aparece después de "ESP32-S3 Booting..."
 **Causa:** Problema en HUDManager o coordinación tft.init()
 
 **Solución:**

@@ -25,26 +25,38 @@ static bool initialized = false;
 TFT_eSPI tft = TFT_eSPI();
 
 void HUDManager::init() {
-    // 🔒 v2.4.2: Hardware reset con tiempos mínimos necesarios
-    // NOTA: Los delays de reset TFT son requeridos por hardware y ocurren
-    // solo una vez durante el arranque del sistema. Son inevitables pero
-    // están documentados para claridad.
+    // 🔒 v2.8.1: Hardware reset y backlight ahora se hacen en main.cpp setup()
+    // para asegurar que el display tiene luz incluso si la inicialización falla.
+    // Aquí solo verificamos que ya están configurados y procedemos con TFT init.
     
-    // CRITICAL: Enable backlight and reset display BEFORE tft.init()
-    pinMode(PIN_TFT_BL, OUTPUT);
-    digitalWrite(PIN_TFT_BL, HIGH);  // Turn on backlight
+    Serial.println("[HUD] Starting HUDManager initialization...");
     
-    pinMode(PIN_TFT_RST, OUTPUT);
-    digitalWrite(PIN_TFT_RST, LOW);
-    delayMicroseconds(100);  // 🔒 v2.4.2: Reducido a 100µs (mínimo para ST7796S)
-    digitalWrite(PIN_TFT_RST, HIGH);
-    delayMicroseconds(500);  // 🔒 v2.4.2: Reducido a 500µs post-reset
+    // 🔒 v2.8.1: Verificar que backlight ya está encendido (desde main.cpp)
+    // Si por alguna razón no lo está, encenderlo ahora como respaldo
+    if (digitalRead(PIN_TFT_BL) != HIGH) {
+        Serial.println("[HUD] Backlight was OFF - enabling now");
+        pinMode(PIN_TFT_BL, OUTPUT);
+        digitalWrite(PIN_TFT_BL, HIGH);
+    }
     
     // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT
+    Serial.println("[HUD] Initializing TFT_eSPI...");
     tft.init();
+    
+    // 🔒 v2.8.1: Mostrar mensaje de diagnóstico inmediatamente
+    // Esto ayuda a diagnosticar si el display funciona
+    tft.fillScreen(TFT_BLUE);  // Color distintivo para saber que init funcionó
+    tft.setTextColor(TFT_WHITE, TFT_BLUE);
+    tft.setTextSize(2);
+    tft.setCursor(10, 10);
+    tft.println("ESP32-S3 Booting...");
+    tft.println("v2.8.1");
+    Serial.println("[HUD] Boot screen displayed");
+    
     if (tft.width() == 0 || tft.height() == 0) {
         Logger::error("HUD: TFT init failed - dimensions invalid");
         System::logError(600);
+        Serial.println("[HUD] ERROR: TFT dimensions are 0!");
         return;
     }
     
@@ -56,6 +68,8 @@ void HUDManager::init() {
     // 🔒 CORRECCIÓN CRÍTICA: Verificar dimensiones correctas
     int w = tft.width();
     int h = tft.height();
+    Serial.printf("[HUD] Display dimensions: %dx%d\n", w, h);
+    
     if (w != 480 || h != 320) {
         Logger::warnf("HUD: Dimensiones inesperadas %dx%d (esperado 480x320)", w, h);
         System::logError(601);
@@ -80,6 +94,7 @@ void HUDManager::init() {
     
     // Inicializar HUD básico (will show color test and initialize components)
     // Display is now ready with rotation=3 (480x320 landscape, ST7796S)
+    Serial.println("[HUD] Initializing HUD components...");
     HUD::init();
     
     // Inicializar datos
@@ -91,6 +106,7 @@ void HUDManager::init() {
     
     initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
     Logger::info("HUDManager: Inicialización completada");
+    Serial.println("[HUD] HUDManager initialization complete!");
 }
 
 void HUDManager::update() {
