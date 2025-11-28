@@ -38,9 +38,7 @@ void HUDManager::init() {
     Serial.println("[HUD] Starting HUDManager initialization...");
     
     // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en main.cpp)
-    // Configuramos como OUTPUT y HIGH como respaldo de seguridad
-    pinMode(PIN_TFT_BL, OUTPUT);
-    digitalWrite(PIN_TFT_BL, HIGH);
+    // La configuración de OUTPUT/HIGH se realiza únicamente en main.cpp.
     
     // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT
     Serial.println("[HUD] Initializing TFT_eSPI...");
