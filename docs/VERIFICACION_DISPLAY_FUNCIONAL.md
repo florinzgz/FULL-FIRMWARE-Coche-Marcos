@@ -183,7 +183,7 @@ Este documento verifica que el código del display está bien organizado y funci
 | BATTERY | 420 | 0 | 470 | 40 | Sin conflicto |
 | SPEED_GAUGE | Centro 70, 175 | R=70 | 0-140, 105-245 | Sin conflicto |
 | RPM_GAUGE | Centro 410, 175 | R=70 | 340-480, 105-245 | Sin conflicto |
-| CAR_BODY | 175 | 100 | 305 | 250 | Sin conflicto |
+| CAR_BODY | 175px | 100px | 305px | 250px | Sin conflicto |
 | WHEELS | Varios | - | - | Sin conflicto |
 | MODE4X4 | 0 | 280 | 60 | 320 | Sin conflicto |
 | TEMP_WARNING | 70 | 280 | 130 | 300 | Sin conflicto |
@@ -192,8 +192,8 @@ Este documento verifica que el código del display está bien organizado y funci
 
 ### 8.2 Menú Oculto (Pantalla Modal)
 
-| Elemento | X | Y | Ancho | Alto | Estado |
-|----------|---|---|-------|------|--------|
+| Elemento | X (px) | Y (px) | Ancho (px) | Alto (px) | Estado |
+|----------|--------|--------|------------|-----------|--------|
 | Área menú | 60 | 40 | 360 | 240 | ✅ OK |
 | Título | 80 | 50 | - | - | ✅ OK |
 | Opciones 1-8 | 80 | 80-220 | - | 20 c/u | ✅ OK |
@@ -239,7 +239,7 @@ Este documento verifica que el código del display está bien organizado y funci
 ### ✅ Flujo de Pantalla Verificado
 
 1. **Boot Screen**: Pantalla azul con mensaje "ESP32-S3 Booting..."
-2. **Dashboard**: Gauges, coche, ruedas, iconos - Todo renderiza correctamente
+2. **Dashboard**: Gauges, coche, ruedas, iconos - Todo se renderiza correctamente
 3. **Menú Oculto**: Modal overlay con 8 opciones funcionales
 4. **Calibración**: Pantallas interactivas con timeout y feedback visual
 5. **Otros Menús**: Settings, Hardware Test, Monitor INA226 - Todos funcionales
