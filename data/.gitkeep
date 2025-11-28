@@ -1,0 +1,6 @@
+# This directory is for SPIFFS/LittleFS filesystem data
+# Files placed here will be uploaded to the ESP32's flash filesystem
+# using the "Upload Filesystem Image" command in PlatformIO
+#
+# Currently, all icons are drawn programmatically using TFT_eSPI
+# so no image files are required.
