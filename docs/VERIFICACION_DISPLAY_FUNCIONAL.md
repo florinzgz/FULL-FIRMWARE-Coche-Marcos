@@ -211,16 +211,17 @@ Este documento verifica que el código del display está bien organizado y funci
 | 2 | `Gauges::drawSpeed()` | Izquierda | ✅ OK |
 | 3 | `Gauges::drawRPM()` | Derecha | ✅ OK |
 | 4 | `WheelsDisplay::drawWheel()` x4 | Centro | ✅ OK |
-| 5 | `Icons::drawSystemState()` | Sup-Izq | ✅ OK |
-| 6 | `Icons::drawGear()` | Sup-Der | ✅ OK |
-| 7 | `Icons::drawFeatures()` | Varios | ✅ OK |
-| 8 | `Icons::drawBattery()` | Sup-Der | ✅ OK |
-| 9 | `Icons::drawErrorWarning()` | Sup-Centro | ✅ OK |
-| 10 | `Icons::drawSensorStatus()` | Sup-Der | ✅ OK |
-| 11 | `Icons::drawTempWarning()` | Inf-Izq | ✅ OK |
-| 12 | `drawPedalBar()` | Inferior | ✅ OK |
-| 13 | `drawDemoButton()` (STANDALONE) | Inf-Der | ✅ OK |
-| 14 | `MenuHidden::update()` | Overlay | ✅ OK |
+| 5 | `drawSteeringAngle()` | Centro | ✅ OK |
+| 6 | `Icons::drawSystemState()` | Sup-Izq | ✅ OK |
+| 7 | `Icons::drawGear()` | Sup-Der | ✅ OK |
+| 8 | `Icons::drawFeatures()` | Varios | ✅ OK |
+| 9 | `Icons::drawBattery()` | Sup-Der | ✅ OK |
+| 10 | `Icons::drawErrorWarning()` | Sup-Centro | ✅ OK |
+| 11 | `Icons::drawSensorStatus()` | Sup-Der | ✅ OK |
+| 12 | `Icons::drawTempWarning()` | Inf-Izq | ✅ OK |
+| 13 | `drawPedalBar()` | Inferior | ✅ OK |
+| 14 | `drawDemoButton()` (STANDALONE) | Inf-Der | ✅ OK |
+| 15 | `MenuHidden::update()` | Overlay | ✅ OK |
 
 ---
 
