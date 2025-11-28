@@ -44,6 +44,12 @@ void HUDManager::init() {
     Serial.println("[HUD] Initializing TFT_eSPI...");
     tft.init();
     
+    // 🔒 v2.8.2: CRITICAL FIX - Set rotation IMMEDIATELY after tft.init()
+    // Before v2.8.2, the boot screen was displayed before rotation was set,
+    // causing the screen to appear vertically inverted (half blue/half white).
+    // Rotation 3 provides landscape mode (480x320) for ST7796S display.
+    tft.setRotation(3);  // Landscape mode: 480x320
+    
     // 🔒 v2.8.1: Mostrar mensaje de diagnóstico inmediatamente
     // Esto ayuda a diagnosticar si el display funciona
     // Usamos color distintivo para confirmar que tft.init() funcionó
@@ -52,20 +58,18 @@ void HUDManager::init() {
     tft.setTextSize(2);
     tft.setCursor(10, 10);
     tft.println("ESP32-S3 Booting...");
-    tft.println("v2.8.1");
+    tft.println("v2.8.2");
     Serial.println("[HUD] Boot screen displayed");
     
+    // 🔒 v2.8.2: REMOVED early return - continue initialization even if dimensions seem wrong
+    // The early return was blocking full HUD initialization, causing the display to stay stuck
+    // on the boot screen without ever showing the dashboard with car data.
     if (tft.width() == 0 || tft.height() == 0) {
-        Logger::error("HUD: TFT init failed - dimensions invalid");
+        Logger::error("HUD: TFT init reported 0 dimensions - continuing anyway");
         System::logError(600);
-        Serial.println("[HUD] ERROR: TFT dimensions are 0!");
-        return;
+        Serial.println("[HUD] WARNING: TFT dimensions are 0, but continuing initialization...");
+        // DO NOT return here - let the initialization continue
     }
-    
-    // CRITICAL: ST7796S rotation configuration for full screen rendering
-    // Rotation 3 provides landscape mode (480x320)
-    tft.setRotation(3);  // Landscape mode: 480x320
-    // 🔒 v2.4.2: Eliminado delay(50) - setRotation no requiere espera adicional
     
     // 🔒 CORRECCIÓN CRÍTICA: Verificar dimensiones correctas
     int w = tft.width();
