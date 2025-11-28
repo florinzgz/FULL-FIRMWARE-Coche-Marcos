@@ -24,6 +24,12 @@ static bool initialized = false;
 // ✅ ÚNICA instancia global de TFT_eSPI - compartida con HUD y otros módulos
 TFT_eSPI tft = TFT_eSPI();
 
+// ============================================================================
+// Boot Screen Configuration
+// ============================================================================
+static constexpr uint16_t BOOT_SCREEN_BG_COLOR = TFT_BLUE;    // Background during boot
+static constexpr uint16_t BOOT_SCREEN_TEXT_COLOR = TFT_WHITE; // Text during boot
+
 void HUDManager::init() {
     // 🔒 v2.8.1: Hardware reset y backlight ahora se hacen en main.cpp setup()
     // para asegurar que el display tiene luz incluso si la inicialización falla.
@@ -45,8 +51,9 @@ void HUDManager::init() {
     
     // 🔒 v2.8.1: Mostrar mensaje de diagnóstico inmediatamente
     // Esto ayuda a diagnosticar si el display funciona
-    tft.fillScreen(TFT_BLUE);  // Color distintivo para saber que init funcionó
-    tft.setTextColor(TFT_WHITE, TFT_BLUE);
+    // Usamos color distintivo para confirmar que tft.init() funcionó
+    tft.fillScreen(BOOT_SCREEN_BG_COLOR);
+    tft.setTextColor(BOOT_SCREEN_TEXT_COLOR, BOOT_SCREEN_BG_COLOR);
     tft.setTextSize(2);
     tft.setCursor(10, 10);
     tft.println("ESP32-S3 Booting...");

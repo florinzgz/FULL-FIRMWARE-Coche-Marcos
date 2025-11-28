@@ -103,6 +103,15 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 #include "filters.h"
 #include "math_utils.h"
 
+// ============================================================================
+// Boot Timing Constants (Hardware requirements)
+// ============================================================================
+// These values are required by the ST7796S display controller
+static constexpr uint32_t SERIAL_WAIT_MAX_MS = 1000;        // Max wait for Serial connection
+static constexpr uint32_t SERIAL_POLL_INTERVAL_MS = 50;     // Poll interval for Serial ready
+static constexpr uint32_t TFT_RESET_PULSE_MS = 10;          // Reset pulse width (min 10µs, using 10ms for margin)
+static constexpr uint32_t TFT_RESET_RECOVERY_MS = 50;       // Post-reset recovery time (min 5ms, using 50ms for margin)
+
 void setup() {
     // ========================================================================
     // 🔒 v2.8.1: CRITICAL EARLY BOOT DIAGNOSTICS
@@ -115,8 +124,8 @@ void setup() {
     // 2. Wait briefly for Serial to stabilize (but don't block forever)
     // This helps capture boot messages on freshly flashed devices
     uint32_t serialStart = millis();
-    while (!Serial && (millis() - serialStart < 1000)) {
-        delay(10);  // Short wait, max 1 second
+    while (!Serial && (millis() - serialStart < SERIAL_WAIT_MAX_MS)) {
+        delay(SERIAL_POLL_INTERVAL_MS);
     }
     
     // 3. First sign of life - print boot message
@@ -138,12 +147,13 @@ void setup() {
     Serial.println("[BOOT] Backlight enabled on GPIO42");
     
     // 5. Initialize TFT reset to ensure display is ready
+    // ST7796S datasheet requires min 10µs reset pulse, 5ms recovery
     Serial.println("[BOOT] Resetting TFT display...");
     pinMode(PIN_TFT_RST, OUTPUT);
     digitalWrite(PIN_TFT_RST, LOW);
-    delay(10);  // Reset pulse
+    delay(TFT_RESET_PULSE_MS);  // Reset pulse
     digitalWrite(PIN_TFT_RST, HIGH);
-    delay(50);  // Wait for display to initialize
+    delay(TFT_RESET_RECOVERY_MS);  // Wait for display to initialize
     Serial.println("[BOOT] TFT reset complete");
     
     // 🔒 v2.4.2: Serial no es crítico - continuar sin espera bloqueante
