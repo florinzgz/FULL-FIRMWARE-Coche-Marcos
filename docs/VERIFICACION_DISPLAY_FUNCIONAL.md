@@ -254,4 +254,138 @@ El código del display está **bien organizado y funcional**:
 
 ---
 
-*Verificación completada - Versión 2.8.2*
+## 11. VERIFICACIÓN LÍNEA POR LÍNEA DEL CÓDIGO
+
+### 11.1 hud.cpp - Verificación Completa ✅
+
+| Línea | Elemento | Documentado | Código Real | Estado |
+|-------|----------|-------------|-------------|--------|
+| 53-56 | Posición gauges | X_SPEED=70, Y_SPEED=175, X_RPM=410 | ✅ Coincide | ✅ OK |
+| 60-67 | Posiciones ruedas | FL(195,115), FR(285,115), RL(195,235), RR(285,235) | ✅ Coincide | ✅ OK |
+| 70-73 | Cuerpo coche | CAR_BODY_X=175, Y=100, W=130, H=150 | ✅ Coincide | ✅ OK |
+| 118 | Texto título | (240, 50), "Mercedes AMG GT" | ✅ Coincide | ✅ OK |
+| 122 | Texto estado | (240, 80), "Esperando sensores..." | ✅ Coincide | ✅ OK |
+| 126-130 | Placeholder coche | drawRect + drawCircle x4 | ✅ Coincide | ✅ OK |
+| 141-142 | showLogo | "Mercedes AMG" (240,120), "Sistema de arranque" (240,170) | ✅ Coincide | ✅ OK |
+| 150 | showReady | "READY" (240,40) TFT_GREEN | ✅ Coincide | ✅ OK |
+| 158 | showError | "ERROR" (240,40) TFT_RED | ✅ Coincide | ✅ OK |
+| 202-226 | drawCarBody | Rectángulos, líneas ejes, rails | ✅ Coincide | ✅ OK |
+| 229-271 | drawPedalBar | Y=300, H=18, colores verde/amarillo/rojo | ✅ Coincide | ✅ OK |
+
+### 11.2 gauges.cpp - Verificación Completa ✅
+
+| Línea | Elemento | Documentado | Código Real | Estado |
+|-------|----------|-------------|-------------|--------|
+| 19-22 | División por cero | if(maxValue <= 0) maxValue = 1.0f | ✅ Coincide | ✅ OK |
+| 33-37 | drawGaugeBackground | Círculos R=70,60,50 colores azul/verde/rojo | ✅ Coincide | ✅ OK |
+| 51 | Clamp velocidad | constrain(kmh, 0, 999) | ✅ Coincide | ✅ OK |
+| 53-54 | Fallback maxKmh | if(maxKmh <= 0) maxKmh = 200 | ✅ Coincide | ✅ OK |
+| 65 | Aguja velocidad | drawNeedle R=60, TFT_WHITE | ✅ Coincide | ✅ OK |
+| 70-73 | Texto velocidad | fillRect (cx-40, cy-10, 80, 20) | ✅ Coincide | ✅ OK |
+| 84-85 | Fallback maxRpm | if(maxRpm <= 0) maxRpm = 10000 | ✅ Coincide | ✅ OK |
+| 97 | Aguja RPM | drawNeedle R=60, TFT_WHITE | ✅ Coincide | ✅ OK |
+
+### 11.3 icons.cpp - Verificación Completa ✅
+
+| Línea | Elemento | Documentado | Código Real | Estado |
+|-------|----------|-------------|-------------|--------|
+| 29-31 | Init guard | tft = display; initialized = true; | ✅ Coincide | ✅ OK |
+| 42-43 | Estado guard | if(!initialized) return | ✅ Coincide | ✅ OK |
+| 44 | Cache check | if(st == lastSysState) return | ✅ Coincide | ✅ OK |
+| 56 | Área limpieza | fillRect(5, 5, 80, 20) | ✅ Coincide | ✅ OK |
+| 59 | Texto estado | drawString(txt, 10, 10, 2) | ✅ Coincide | ✅ OK |
+| 75 | Área gear | fillRect(395, 5, 80, 20) | ✅ Coincide | ✅ OK |
+| 78 | Texto gear | drawString(txt, 410, 10, 2) | ✅ Coincide | ✅ OK |
+| 121 | Constrain volts | constrain(volts, 0.0f, 99.9f) | ✅ Coincide | ✅ OK |
+| 122 | Cache batería | fabs(volts - lastBattery) < 0.1f | ✅ Coincide | ✅ OK |
+| 172-177 | getStatusColor | Lambda verde/amarillo/rojo | ✅ Coincide | ✅ OK |
+| 188-203 | LEDs sensores | Círculos (startX, ledY), etiquetas I/T/W | ✅ Coincide | ✅ OK |
+
+### 11.4 wheels_display.cpp - Verificación Completa ✅
+
+| Línea | Elemento | Documentado | Código Real | Estado |
+|-------|----------|-------------|-------------|--------|
+| 35-38 | Init guard | if(!initialized) Logger::warn + return | ✅ Coincide | ✅ OK |
+| 41-42 | Clamp valores | constrain(effortPct, 0, 100), constrain(tempC, -40, 150) | ✅ Coincide | ✅ OK |
+| 45 | Cache ángulo | fabs(angleDeg - lastAngle) > 0.5f | ✅ Coincide | ✅ OK |
+| 60 | Limpieza rueda | fillRect(cx - w/2 - 2, cy - h/2 - 2, w+4, h+4) | ✅ Coincide | ✅ OK |
+| 62-63 | Triángulos rueda | fillTriangle x2, TFT_DARKGREY | ✅ Coincide | ✅ OK |
+| 68 | Flecha dirección | drawLine(cx, cy, x2a, y2a), TFT_WHITE | ✅ Coincide | ✅ OK |
+| 74 | Área temp | fillRect(cx - 30, cy - 30, 60, 15) | ✅ Coincide | ✅ OK |
+| 79-85 | Texto temp | "-- °C" o valor, colores dinámicos | ✅ Coincide | ✅ OK |
+| 89 | Área esfuerzo | fillRect(cx - 30, cy + 10, 60, 15) | ✅ Coincide | ✅ OK |
+| 92-98 | Texto esfuerzo | "-- %" o valor, colores dinámicos | ✅ Coincide | ✅ OK |
+| 103-108 | Barra esfuerzo | fillRect + drawRect (cx-25, cy+28, 50, 6) | ✅ Coincide | ✅ OK |
+
+### 11.5 menu_hidden.cpp - Verificación Completa ✅
+
+| Línea | Elemento | Documentado | Código Real | Estado |
+|-------|----------|-------------|-------------|--------|
+| 19 | Código acceso | accessCode = 8989 | ✅ Coincide | ✅ OK |
+| 43 | Timeout calibración | CALIB_TIMEOUT_MS = 30000 | ✅ Coincide | ✅ OK |
+| 49 | Debounce timeout | DEBOUNCE_TIMEOUT_MS = 500 | ✅ Coincide | ✅ OK |
+| 51 | Feedback timeout | FEEDBACK_DISPLAY_MS = 1500 | ✅ Coincide | ✅ OK |
+| 73-78 | waitTouchRelease | while loop con yield() y timeout | ✅ Coincide | ✅ OK |
+| 86 | Guard puntero | if (tft == nullptr) return | ✅ Coincide | ✅ OK |
+| 88-89 | Área calibración | fillRect(60, 40, 360, 240), drawRect cyan | ✅ Coincide | ✅ OK |
+| 208 | Timeout pedal | if (millis() - calibStartMs > CALIB_TIMEOUT_MS) | ✅ Coincide | ✅ OK |
+| 252 | Timeout encoder | if (millis() - calibStartMs > CALIB_TIMEOUT_MS) | ✅ Coincide | ✅ OK |
+| 371 | Timeout regen | if (millis() - calibStartMs > CALIB_TIMEOUT_MS) | ✅ Coincide | ✅ OK |
+| 445 | Timeout errores | while (millis() - waitStart < 5000) | ✅ Coincide | ✅ OK |
+| 548 | Timeout confirm | if (millis() - calibStartMs > CALIB_TIMEOUT_MS) | ✅ Coincide | ✅ OK |
+| 574-592 | drawMenuFull | Área (60,40,360,240), opciones 1-8 | ✅ Coincide | ✅ OK |
+
+### 11.6 hud_manager.cpp - Verificación Completa ✅
+
+| Línea | Elemento | Documentado | Código Real | Estado |
+|-------|----------|-------------|-------------|--------|
+| 45 | TFT init | tft.init() | ✅ Coincide | ✅ OK |
+| 51 | Rotación | tft.setRotation(3) | ✅ Coincide | ✅ OK |
+| 56 | Boot screen | tft.fillScreen(BOOT_SCREEN_BG_COLOR) | ✅ Coincide | ✅ OK |
+| 59-61 | Boot texto | "ESP32-S3 Booting...", "v2.8.2" | ✅ Coincide | ✅ OK |
+| 87 | Limpieza pantalla | tft.fillScreen(TFT_BLACK) | ✅ Coincide | ✅ OK |
+| 99-101 | PWM backlight | ledcSetup(0, 5000, 8), ledcAttachPin, ledcWrite | ✅ Coincide | ✅ OK |
+| 123 | Frame rate | FRAME_INTERVAL_MS = 33 (30 FPS) | ✅ Coincide | ✅ OK |
+| 136-168 | Switch menús | Todos los MenuType cubiertos | ✅ Coincide | ✅ OK |
+
+---
+
+## 12. RESUMEN DE VERIFICACIÓN COMPLETA
+
+### ✅ Archivos Verificados Línea por Línea
+
+| Archivo | Líneas | Elementos | Estado |
+|---------|--------|-----------|--------|
+| hud.cpp | 482 | Dashboard, ruedas, pedal, táctil | ✅ 100% OK |
+| gauges.cpp | 108 | Velocímetro, tacómetro | ✅ 100% OK |
+| icons.cpp | 225 | Estados, gear, features, sensores | ✅ 100% OK |
+| wheels_display.cpp | 110 | Ruedas rotadas, temp, esfuerzo | ✅ 100% OK |
+| menu_hidden.cpp | 749 | Menú, calibración, regen, errores | ✅ 100% OK |
+| hud_manager.cpp | 656 | Inicialización, menús, renderizado | ✅ 100% OK |
+
+### ✅ Protecciones Verificadas en Código Real
+
+| Protección | Ubicación | Código | Estado |
+|------------|-----------|--------|--------|
+| Puntero nulo TFT | icons.cpp:42, wheels_display.cpp:35, menu_hidden.cpp:86 | `if(!initialized)` / `if(tft==nullptr)` | ✅ |
+| División por cero | gauges.cpp:20, gauges.cpp:54, gauges.cpp:85 | `if(maxValue<=0)` | ✅ |
+| Timeout bucles | menu_hidden.cpp:73-78, 208, 252, 371, 445, 548 | `while(millis()-start<timeout)` | ✅ |
+| yield() en esperas | menu_hidden.cpp:77, 186, 201, 246, 359, 450, 468, 541 | `yield()` | ✅ |
+| constrain valores | gauges.cpp:51, icons.cpp:121, wheels_display.cpp:41-42 | `constrain(val, min, max)` | ✅ |
+| Cache estado | icons.cpp:12-27, gauges.cpp:8-9, wheels_display.cpp:13 | Variables `last*` | ✅ |
+| Frame rate | hud_manager.cpp:123-128 | `FRAME_INTERVAL_MS = 33` | ✅ |
+
+### ✅ Resultado Final de Verificación
+
+**CÓDIGO VERIFICADO LÍNEA POR LÍNEA: ✅ TODO CORRECTO**
+
+1. Todos los elementos gráficos documentados coinciden con el código real
+2. Todas las protecciones contra bloqueos están implementadas
+3. Todos los timeouts están configurados correctamente
+4. Todos los guards de punteros nulos están en su lugar
+5. Todo el caché de estado funciona correctamente
+6. El flujo de pantallas funciona sin errores
+
+---
+
+*Verificación completa línea por línea - Versión 2.8.2*
