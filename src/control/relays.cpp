@@ -151,14 +151,16 @@ void Relays::emergencyStop() {
     seqState = SEQ_IDLE;
 
     // Set flag atomically to avoid race conditions with update()
+    // The critical section ensures the flag is not read by update()
+    // between our check and write operations
 #if defined(ESP32) || defined(ESP_PLATFORM)
     portENTER_CRITICAL_ISR(&emergencyMux);
     emergencyRequested = true;
     portEXIT_CRITICAL_ISR(&emergencyMux);
 #else
-    // For non-ESP32, simple volatile write is sufficient in ISR context
-    // as it's a single atomic operation on most platforms
+    noInterrupts();
     emergencyRequested = true;
+    interrupts();
 #endif
 }
 
