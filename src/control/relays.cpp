@@ -15,7 +15,6 @@ static const unsigned long RELAY_DEBOUNCE_MS = 50;  // Debounce para cambios de 
 
 // Emergency deferred logging flag (ISR-safe)
 static volatile bool emergencyRequested = false;
-static volatile unsigned long emergencyAtMs = 0;
 
 // Constantes configurables
 static const int   BATTERY_CHANNEL             = 4;
@@ -147,7 +146,6 @@ void Relays::emergencyStop() {
     seqState = SEQ_IDLE;
 
     emergencyRequested = true;
-    emergencyAtMs = millis();
 }
 
 void Relays::setLights(bool on) {
