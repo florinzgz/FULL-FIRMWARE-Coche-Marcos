@@ -16,7 +16,7 @@ static const unsigned long RELAY_DEBOUNCE_MS = 50;  // Debounce para cambios de 
 // Emergency deferred logging flag (ISR-safe)
 static volatile bool emergencyRequested = false;
 
-// Critical section spinlock for ISR-safe flag handling (ESP32)
+// Critical section spinlock para ESP32 (acceso seguro al flag en ISR / multitarea)
 #if defined(ESP32) || defined(ESP_PLATFORM)
 static portMUX_TYPE emergencyMux = portMUX_INITIALIZER_UNLOCKED;
 #endif
@@ -150,8 +150,7 @@ void Relays::emergencyStop() {
 
     seqState = SEQ_IDLE;
 
-    // Set flag atomically to avoid race conditions with update()
-    // The critical section protects the flag write from concurrent reads in update()
+    // Acceso atómico al flag de emergencia
 #if defined(ESP32) || defined(ESP_PLATFORM)
     portENTER_CRITICAL(&emergencyMux);
     emergencyRequested = true;
@@ -191,7 +190,7 @@ void Relays::setMedia(bool on) {
 void Relays::update() {
     if(!initialized) return;
 
-    // Handle emergency flag atomically to avoid race condition with ISR
+    // Manejo diferido del flag de emergencia
     bool handleEmergency = false;
 #if defined(ESP32) || defined(ESP_PLATFORM)
     portENTER_CRITICAL(&emergencyMux);
