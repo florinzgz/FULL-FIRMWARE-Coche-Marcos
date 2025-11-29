@@ -253,11 +253,13 @@ bool HUDManager::initOK() {
 
 void HUDManager::renderDashboard() {
     // 🔒 v2.8.4: Diagnóstico visual - confirmar que renderDashboard se ejecuta
+#ifdef DEBUG_RENDER
     tft.drawRect(5, 5, 20, 12, TFT_GREEN);
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextSize(1);
     tft.setCursor(7, 7);
     tft.print("DB");
+#endif
     
     // Use the rich graphics dashboard from HUD::update()
     // This includes car visualization, wheels, gauges, icons, etc.
