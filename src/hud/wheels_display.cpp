@@ -2,7 +2,7 @@
 #include "settings.h"
 #include "logger.h"
 #include <TFT_eSPI.h>
-#include <Arduino.h>   // para constrain()
+#include <Arduino.h>   // para constrain() y DEG_TO_RAD
 #include <math.h>      // para fabs()
 
 // Puntero global a la pantalla
@@ -43,7 +43,7 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC, float
     // 🔒 v2.8.4: Siempre dibujar la rueda (eliminado cache global que bloqueaba otras ruedas)
     // Rueda base: rectángulo rotado
     int w = 40, h = 12;
-    float rad = angleDeg * 0.0174533f;
+    float rad = angleDeg * DEG_TO_RAD;
     int dx = (int)(cosf(rad) * w/2);
     int dy = (int)(sinf(rad) * w/2);
     int ex = (int)(-sinf(rad) * h/2);
