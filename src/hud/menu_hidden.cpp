@@ -10,6 +10,7 @@
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include "pins.h"
+#include "touch_map.h"  // 🔒 v2.8.3: Constantes centralizadas de calibración táctil
 
 static TFT_eSPI *tft = nullptr;
 static XPT2046_Touchscreen *touch = nullptr;
@@ -43,9 +44,7 @@ static uint32_t calibStartMs = 0;
 static const uint32_t CALIB_TIMEOUT_MS = 30000;  // 30 segundos timeout
 static int regenAdjustValue = 0;  // ✅ v2.7.0: Valor temporal para ajuste regen
 
-// Constantes de calibración táctil
-static const int TOUCH_MIN_RAW = 200;   // Valor mínimo raw del touch
-static const int TOUCH_MAX_RAW = 3900;  // Valor máximo raw del touch
+// Constantes de debounce y timing (touch calibration centralizada en touch_map.h)
 static const uint32_t DEBOUNCE_TIMEOUT_MS = 500;  // Timeout para debounce
 static const uint32_t DEBOUNCE_SHORT_MS = 200;    // ✅ v2.7.0: Debounce corto para ajustes rápidos
 static const uint32_t FEEDBACK_DISPLAY_MS = 1500; // ✅ v2.7.0: Tiempo de visualización de feedback
@@ -630,8 +629,8 @@ void MenuHidden::update(bool batteryIconPressed) {
         
         if (touch != nullptr && touch->touched()) {
             TS_Point p = touch->getPoint();
-            touchX = map(p.x, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 480);
-            touchY = map(p.y, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 320);
+            touchX = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
+            touchY = map(p.y, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_HEIGHT);
             touched = true;
             // Debounce con timeout (no para regen que necesita detección continua)
             if (calibState != CalibrationState::REGEN_ADJUST) {
@@ -689,9 +688,9 @@ void MenuHidden::update(bool batteryIconPressed) {
     if (touch != nullptr && touch->touched()) {
         TS_Point p = touch->getPoint();
         
-        // Mapear coordenadas táctiles a pantalla 480x320
-        int touchX = map(p.x, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 480);
-        int touchY = map(p.y, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 320);
+        // Mapear coordenadas táctiles a pantalla usando constantes centralizadas
+        int touchX = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
+        int touchY = map(p.y, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_HEIGHT);
         
         // Detectar opción tocada
         int touchedOption = getTouchedMenuOption(touchX, touchY);
