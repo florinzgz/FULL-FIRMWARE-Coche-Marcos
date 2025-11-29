@@ -400,3 +400,121 @@ El código del display está **bien organizado y funcional**:
 ---
 
 *Verificación completa línea por línea - Versión 2.8.3*
+
+---
+
+## 13. VERIFICACIÓN TOUCH/DISPLAY - NO INTERFERENCIA
+
+### 13.1 Arquitectura SPI Compartido
+
+El sistema utiliza un bus SPI compartido entre el display TFT ST7796S y el controlador táctil XPT2046.
+La separación se logra mediante **Chip Selects (CS) independientes**:
+
+| Dispositivo | Pin CS | Pin IRQ | Frecuencia SPI | Estado |
+|-------------|--------|---------|----------------|--------|
+| TFT ST7796S | GPIO 16 | - | 20 MHz | ✅ OK |
+| XPT2046 Touch | GPIO 21 | GPIO 47 | 2.5 MHz | ✅ OK |
+
+### 13.2 Verificación de Separación de CS
+
+```
+TFT  CS = GPIO 16 (PIN_TFT_CS en pins.h)
+Touch CS = GPIO 21 (PIN_TOUCH_CS en pins.h)
+```
+
+**Conclusión**: Los Chip Selects están en pines diferentes, garantizando que:
+- Solo un dispositivo puede estar activo en el bus SPI a la vez
+- No hay conflictos de comunicación entre TFT y Touch
+
+### 13.3 Frecuencias SPI Configuradas (platformio.ini)
+
+```ini
+-DSPI_FREQUENCY=20000000       ; 20MHz para TFT
+-DSPI_READ_FREQUENCY=10000000  ; 10MHz para lecturas TFT
+-DSPI_TOUCH_FREQUENCY=2500000  ; 2.5MHz para touch (conservador)
+```
+
+**Análisis**:
+- La frecuencia del touch es **8x más lenta** que la del TFT
+- Esto garantiza lecturas estables del ADC del XPT2046
+- No hay problemas de timing entre dispositivos
+
+### 13.4 Rotación Sincronizada
+
+| Componente | Rotación | Archivo | Línea |
+|------------|----------|---------|-------|
+| TFT | 3 | hud_manager.cpp | 51 |
+| Touch | 3 | hud.cpp | 104 |
+
+**Verificación**: Ambos dispositivos usan la misma rotación (3 = landscape 480x320),
+garantizando que las coordenadas táctiles se mapean correctamente a la pantalla.
+
+### 13.5 Inicialización Secuencial Correcta
+
+| Orden | Acción | Archivo | Estado |
+|-------|--------|---------|--------|
+| 1 | TFT Hardware Reset | main.cpp:153-158 | ✅ |
+| 2 | Backlight ON | main.cpp:146 | ✅ |
+| 3 | tft.init() | hud_manager.cpp:45 | ✅ |
+| 4 | tft.setRotation(3) | hud_manager.cpp:51 | ✅ |
+| 5 | touch.begin() | hud.cpp:103 | ✅ |
+| 6 | touch.setRotation(3) | hud.cpp:104 | ✅ |
+
+**Análisis**: El TFT se inicializa completamente **antes** del touch,
+evitando conflictos de inicialización en el bus SPI.
+
+### 13.6 Calibración Táctil Centralizada (v2.8.3)
+
+Las constantes de calibración están centralizadas en `touch_map.h`:
+
+```cpp
+namespace TouchCalibration {
+    constexpr int RAW_MIN = 200;    // Valor mínimo ADC táctil
+    constexpr int RAW_MAX = 3900;   // Valor máximo ADC táctil
+    constexpr int SCREEN_WIDTH = 480;
+    constexpr int SCREEN_HEIGHT = 320;
+    constexpr int ROTATION = 3;
+}
+```
+
+**Uso en código**:
+- `hud.cpp`: Usa `TouchCalibration::RAW_MIN/MAX` para mapeo de coordenadas
+- `menu_hidden.cpp`: Usa las mismas constantes para consistencia
+
+### 13.7 Manejo de Touch sin Bloqueo
+
+| Función | Archivo | Timeout | Uso yield() |
+|---------|---------|---------|-------------|
+| waitTouchRelease() | menu_hidden.cpp:73 | 500ms | ✅ Sí |
+| Touch en calibración | menu_hidden.cpp | 30s | ✅ Sí |
+| Touch en menú | hud.cpp:486 | N/A (no bloqueante) | N/A |
+
+**Conclusión**: Todas las operaciones táctiles tienen timeout o son no bloqueantes.
+
+### 13.8 Zonas Táctiles Verificadas
+
+Las zonas táctiles en `touch_map.h` coinciden con las posiciones de iconos en `icons.h`:
+
+| Zona | Coordenadas | Icono Asociado | Estado |
+|------|-------------|----------------|--------|
+| Battery | 420,0 - 470,40 | Icons::BATTERY_* | ✅ Match |
+| Lights | 0,0 - 50,40 | Icons::LIGHTS_* | ✅ Match |
+| Media | 60,0 - 110,40 | Icons::MEDIA_* | ✅ Match |
+| Mode4x4 | 0,280 - 60,320 | Icons::MODE4X4_* | ✅ Match |
+| Warning | 200,0 - 280,40 | Icons::WARNING_* | ✅ Match |
+
+### 13.9 Resultado de Verificación Touch/Display
+
+**✅ NO HAY INTERFERENCIA ENTRE TOUCH Y DISPLAY**
+
+1. **Bus SPI compartido correctamente**: CS separados (GPIO 16 vs GPIO 21)
+2. **Frecuencias apropiadas**: TFT 20MHz, Touch 2.5MHz (8x más lento)
+3. **Rotación sincronizada**: Ambos usan rotation=3
+4. **Inicialización ordenada**: TFT primero, Touch después
+5. **Calibración centralizada**: Constantes en touch_map.h
+6. **No hay bloqueos**: Timeouts y yield() implementados
+7. **Zonas táctiles correctas**: Coinciden con iconos visuales
+
+---
+
+*Verificación Touch/Display añadida - Versión 2.8.4*

@@ -31,9 +31,8 @@ extern TFT_eSPI tft;
 
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
-// Touch calibration constants (matching menu_hidden.cpp)
-static const int TOUCH_MIN_RAW = 200;   // Minimum raw touch value
-static const int TOUCH_MAX_RAW = 3900;  // Maximum raw touch value
+// Touch calibration: Using constants from touch_map.h (included above)
+// TouchCalibration::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
 
 // Demo mode button detection for STANDALONE_DISPLAY
 #ifdef STANDALONE_DISPLAY
@@ -486,8 +485,8 @@ void HUD::update() {
     if (touch.touched()) {
         TS_Point p = touch.getPoint();
         // Map raw touch coordinates to screen coordinates using calibration constants
-        int x = map(p.x, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 480);
-        int y = map(p.y, TOUCH_MIN_RAW, TOUCH_MAX_RAW, 0, 320);
+        int x = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
+        int y = map(p.y, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_HEIGHT);
 
 #ifdef STANDALONE_DISPLAY
         // Check demo button touch with long press detection
