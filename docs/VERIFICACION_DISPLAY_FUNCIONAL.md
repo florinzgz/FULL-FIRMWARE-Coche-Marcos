@@ -444,7 +444,7 @@ Touch CS = GPIO 21 (PIN_TOUCH_CS en pins.h)
 | Componente | Rotación | Archivo | Línea |
 |------------|----------|---------|-------|
 | TFT | 3 | hud_manager.cpp | 51 |
-| Touch | 3 | hud.cpp | 104 |
+| Touch | 3 | hud.cpp | 103 |
 
 **Verificación**: Ambos dispositivos usan la misma rotación (3 = landscape 480x320),
 garantizando que las coordenadas táctiles se mapean correctamente a la pantalla.
