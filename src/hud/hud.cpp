@@ -307,6 +307,10 @@ void HUD::drawPedalBar(float pedalPercent) {
 }
 
 void HUD::update() {
+    // 🔒 v2.8.4: Diagnóstico visual - píxeles rojos para localizar bloqueos de render
+    // Fase 1: entrada a update()
+    tft.drawPixel(1, 0, TFT_RED);
+    
 #ifdef STANDALONE_DISPLAY
     // STANDALONE MODE: Use static simulated sensor values
     // NOTE: Animation is handled by main.cpp loop() which updates HUDManager with CarData
@@ -398,12 +402,25 @@ void HUD::update() {
     float maxTemp = sensorStatus.maxTemperature;
 #endif
 
+    // 🔒 v2.8.4: Fase 2 - después de obtener datos de sensores
+    tft.drawPixel(2, 0, TFT_RED);
+    
     // Draw car body outline (once, static background)
     drawCarBody();
+    
+    // 🔒 v2.8.4: Fase 3 - después de dibujar carrocería
+    tft.drawPixel(3, 0, TFT_RED);
 
     // Render gauges (ya optimizados internamente)
     Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent);
+    
+    // 🔒 v2.8.4: Fase 4 - después de gauge velocidad
+    tft.drawPixel(4, 0, TFT_RED);
+    
     Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM);
+    
+    // 🔒 v2.8.4: Fase 5 - después de gauge RPM
+    tft.drawPixel(5, 0, TFT_RED);
 
     // Ruedas (optimizado: solo redibuja si cambian ángulo/temp/esfuerzo)
     // Usar -999.0f para temp y -1.0f para effort cuando sensores deshabilitados
@@ -411,6 +428,9 @@ void HUD::update() {
     WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR, wheelEffortFR);
     WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL);
     WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR);
+    
+    // 🔒 v2.8.4: Fase 6 - después de dibujar ruedas
+    tft.drawPixel(6, 0, TFT_RED);
     
     // Mostrar ángulo del volante en grados (promedio de FL/FR)
     float avgSteerAngle = (steerAngleFL + steerAngleFR) / 2.0f;

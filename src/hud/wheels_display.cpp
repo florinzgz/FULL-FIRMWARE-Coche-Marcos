@@ -9,8 +9,8 @@
 static TFT_eSPI *tft = nullptr;
 static bool initialized = false;
 
-// Cache de último ángulo (nota: global, afecta a todas las ruedas)
-static float lastAngle = -999.0f;
+// 🔒 v2.8.4: Eliminado cache global lastAngle que impedía dibujar otras ruedas
+// si compartían el mismo ángulo (p.ej., todas las ruedas con 0°)
 
 // Helpers: colores
 static uint16_t colorByTemp(float t) {
@@ -27,7 +27,6 @@ static uint16_t colorByEffort(float e) {
 void WheelsDisplay::init(TFT_eSPI *display) { 
     tft = display; 
     initialized = true;
-    lastAngle = -999.0f;
     Logger::info("WheelsDisplay init OK");
 }
 
@@ -41,34 +40,30 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC, float
     effortPct = constrain(effortPct, 0.0f, 100.0f);
     tempC = constrain(tempC, -40.0f, 150.0f);
 
-    // Solo redibujar la rueda si cambia el ángulo
-    if (fabs(angleDeg - lastAngle) > 0.5f) {
-        // Rueda base: rectángulo rotado
-        int w = 40, h = 12;
-        float rad = angleDeg * 0.0174533f;
-        int dx = (int)(cosf(rad) * w/2);
-        int dy = (int)(sinf(rad) * w/2);
-        int ex = (int)(-sinf(rad) * h/2);
-        int ey = (int)( cosf(rad) * h/2);
+    // 🔒 v2.8.4: Siempre dibujar la rueda (eliminado cache global que bloqueaba otras ruedas)
+    // Rueda base: rectángulo rotado
+    int w = 40, h = 12;
+    float rad = angleDeg * 0.0174533f;
+    int dx = (int)(cosf(rad) * w/2);
+    int dy = (int)(sinf(rad) * w/2);
+    int ex = (int)(-sinf(rad) * h/2);
+    int ey = (int)( cosf(rad) * h/2);
 
-        int x0 = cx - dx - ex, y0 = cy - dy - ey;
-        int x1 = cx + dx - ex, y1 = cy + dy - ey;
-        int x2 = cx + dx + ex, y2 = cy + dy + ey;
-        int x3 = cx - dx + ex, y3 = cy - dy + ey;
+    int x0 = cx - dx - ex, y0 = cy - dy - ey;
+    int x1 = cx + dx - ex, y1 = cy + dy - ey;
+    int x2 = cx + dx + ex, y2 = cy + dy + ey;
+    int x3 = cx - dx + ex, y3 = cy - dy + ey;
 
-        // Fondo negro para limpiar antes de redibujar
-        tft->fillRect(cx - w/2 - 2, cy - h/2 - 2, w+4, h+4, TFT_BLACK);
+    // Fondo negro para limpiar antes de redibujar
+    tft->fillRect(cx - w/2 - 2, cy - h/2 - 2, w+4, h+4, TFT_BLACK);
 
-        tft->fillTriangle(x0,y0, x1,y1, x2,y2, TFT_DARKGREY);
-        tft->fillTriangle(x0,y0, x2,y2, x3,y3, TFT_DARKGREY);
+    tft->fillTriangle(x0,y0, x1,y1, x2,y2, TFT_DARKGREY);
+    tft->fillTriangle(x0,y0, x2,y2, x3,y3, TFT_DARKGREY);
 
-        // Flecha de dirección
-        int x2a = cx + (int)(cosf(rad) * 20);
-        int y2a = cy + (int)(sinf(rad) * 20);
-        tft->drawLine(cx, cy, x2a, y2a, TFT_WHITE);
-
-        lastAngle = angleDeg;
-    }
+    // Flecha de dirección
+    int x2a = cx + (int)(cosf(rad) * 20);
+    int y2a = cy + (int)(sinf(rad) * 20);
+    tft->drawLine(cx, cy, x2a, y2a, TFT_WHITE);
 
     // Temperatura encima
     tft->fillRect(cx - 30, cy - 30, 60, 15, TFT_BLACK);
