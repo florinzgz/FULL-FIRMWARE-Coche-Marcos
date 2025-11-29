@@ -151,8 +151,7 @@ void Relays::emergencyStop() {
     seqState = SEQ_IDLE;
 
     // Set flag atomically to avoid race conditions with update()
-    // The critical section ensures the flag is not read by update()
-    // between our check and write operations
+    // The critical section protects the flag write from concurrent reads in update()
 #if defined(ESP32) || defined(ESP_PLATFORM)
     portENTER_CRITICAL(&emergencyMux);
     emergencyRequested = true;
