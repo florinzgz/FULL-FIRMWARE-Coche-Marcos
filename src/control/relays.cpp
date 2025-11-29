@@ -154,9 +154,9 @@ void Relays::emergencyStop() {
     // The critical section ensures the flag is not read by update()
     // between our check and write operations
 #if defined(ESP32) || defined(ESP_PLATFORM)
-    portENTER_CRITICAL_ISR(&emergencyMux);
+    portENTER_CRITICAL(&emergencyMux);
     emergencyRequested = true;
-    portEXIT_CRITICAL_ISR(&emergencyMux);
+    portEXIT_CRITICAL(&emergencyMux);
 #else
     noInterrupts();
     emergencyRequested = true;
