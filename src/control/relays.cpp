@@ -153,10 +153,12 @@ void Relays::emergencyStop() {
     // Set flag atomically to avoid race conditions with update()
 #if defined(ESP32) || defined(ESP_PLATFORM)
     portENTER_CRITICAL_ISR(&emergencyMux);
-#endif
     emergencyRequested = true;
-#if defined(ESP32) || defined(ESP_PLATFORM)
     portEXIT_CRITICAL_ISR(&emergencyMux);
+#else
+    // For non-ESP32, simple volatile write is sufficient in ISR context
+    // as it's a single atomic operation on most platforms
+    emergencyRequested = true;
 #endif
 }
 
@@ -197,20 +199,20 @@ void Relays::update() {
         handleEmergency = true;
     }
     portEXIT_CRITICAL(&emergencyMux);
+#else
+    noInterrupts();
+    if (emergencyRequested) {
+        emergencyRequested = false;
+        handleEmergency = true;
+    }
+    interrupts();
+#endif
     
     if (handleEmergency) {
         Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
         System::logError(699);
         lastStateChangeMs = millis();
     }
-#else
-    if (emergencyRequested) {
-        emergencyRequested = false;
-        Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
-        System::logError(699);
-        lastStateChangeMs = millis();
-    }
-#endif
 
     unsigned long now = millis();
     if (seqState != SEQ_IDLE && (now - seqStepStartMs > SEQUENCE_TIMEOUT_MS)) {
