@@ -457,8 +457,8 @@ garantizando que las coordenadas táctiles se mapean correctamente a la pantalla
 | 2 | Backlight ON | main.cpp:146 | ✅ |
 | 3 | tft.init() | hud_manager.cpp:45 | ✅ |
 | 4 | tft.setRotation(3) | hud_manager.cpp:51 | ✅ |
-| 5 | touch.begin() | hud.cpp:103 | ✅ |
-| 6 | touch.setRotation(3) | hud.cpp:104 | ✅ |
+| 5 | touch.begin() | hud.cpp:102 | ✅ |
+| 6 | touch.setRotation(3) | hud.cpp:103 | ✅ |
 
 **Análisis**: El TFT se inicializa completamente **antes** del touch,
 evitando conflictos de inicialización en el bus SPI.
