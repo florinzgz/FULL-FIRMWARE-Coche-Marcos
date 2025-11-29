@@ -29,8 +29,6 @@ namespace TouchCalibration {
     constexpr int SCREEN_WIDTH = 480;
     constexpr int SCREEN_HEIGHT = 320;
     
-    // Rotación del touch (debe coincidir con TFT rotation)
-    constexpr int ROTATION = 3;
 }
 
 // Acciones posibles al tocar la pantalla
