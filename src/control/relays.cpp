@@ -16,6 +16,11 @@ static const unsigned long RELAY_DEBOUNCE_MS = 50;  // Debounce para cambios de 
 // Emergency deferred logging flag (ISR-safe)
 static volatile bool emergencyRequested = false;
 
+// Critical section spinlock para ESP32 (acceso seguro al flag en ISR / multitarea)
+#if defined(ESP32) || defined(ESP_PLATFORM)
+static portMUX_TYPE emergencyMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
+
 // Constantes configurables
 static const int   BATTERY_CHANNEL             = 4;
 static const float BATTERY_OVERCURRENT_LIMIT_A = 120.0f;
@@ -145,7 +150,16 @@ void Relays::emergencyStop() {
 
     seqState = SEQ_IDLE;
 
+    // Acceso atómico al flag de emergencia
+#if defined(ESP32) || defined(ESP_PLATFORM)
+    portENTER_CRITICAL(&emergencyMux);
     emergencyRequested = true;
+    portEXIT_CRITICAL(&emergencyMux);
+#else
+    noInterrupts();
+    emergencyRequested = true;
+    interrupts();
+#endif
 }
 
 void Relays::setLights(bool on) {
@@ -176,17 +190,28 @@ void Relays::setMedia(bool on) {
 void Relays::update() {
     if(!initialized) return;
 
+    // Manejo diferido del flag de emergencia
+    bool handleEmergency = false;
+#if defined(ESP32) || defined(ESP_PLATFORM)
+    portENTER_CRITICAL(&emergencyMux);
     if (emergencyRequested) {
-        bool inIsr = false;
-    #if defined(ESP32) || defined(ESP_PLATFORM)
-        inIsr = xPortInIsrContext();
-    #endif
-        if (!inIsr) {
-            Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
-            System::logError(699);
-            emergencyRequested = false;
-            lastStateChangeMs = millis();
-        }
+        emergencyRequested = false;
+        handleEmergency = true;
+    }
+    portEXIT_CRITICAL(&emergencyMux);
+#else
+    noInterrupts();
+    if (emergencyRequested) {
+        emergencyRequested = false;
+        handleEmergency = true;
+    }
+    interrupts();
+#endif
+    
+    if (handleEmergency) {
+        Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
+        System::logError(699);
+        lastStateChangeMs = millis();
     }
 
     unsigned long now = millis();
