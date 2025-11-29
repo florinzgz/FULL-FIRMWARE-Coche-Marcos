@@ -114,12 +114,19 @@ void HUDManager::init() {
 
 void HUDManager::update() {
     // 🔒 CORRECCIÓN: Control de frame rate con constante
+    // 🔒 v2.8.4: No saltar el primer frame para permitir el primer dibujo
     static constexpr uint32_t FRAME_INTERVAL_MS = 33;  // 30 FPS
     uint32_t now = millis();
-    if (now - lastUpdateMs < FRAME_INTERVAL_MS) {
-        return;  // Saltar frame para mantener 30 FPS
+    if (lastUpdateMs != 0 && (now - lastUpdateMs) < FRAME_INTERVAL_MS) {
+        return;  // Saltar frame para mantener 30 FPS (excepto el primero)
     }
     lastUpdateMs = now;
+    
+    // 🔒 v2.8.4: Diagnóstico visual - confirmar que el bucle de render se ejecuta
+#ifdef DEBUG_RENDER
+    tft.drawPixel(0, 0, TFT_WHITE);
+    tft.drawRect(2, 2, 10, 6, TFT_YELLOW);
+#endif
     
     // Renderizar según menú activo
     if (needsRedraw) {
@@ -247,6 +254,15 @@ bool HUDManager::initOK() {
 // ===== Funciones de renderizado =====
 
 void HUDManager::renderDashboard() {
+    // 🔒 v2.8.4: Diagnóstico visual - confirmar que renderDashboard se ejecuta
+#ifdef DEBUG_RENDER
+    tft.drawRect(5, 5, 20, 12, TFT_GREEN);
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.setTextSize(1);
+    tft.setCursor(7, 7);
+    tft.print("DB");
+#endif
+    
     // Use the rich graphics dashboard from HUD::update()
     // This includes car visualization, wheels, gauges, icons, etc.
     HUD::update();
