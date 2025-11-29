@@ -15,7 +15,11 @@ static const unsigned long RELAY_DEBOUNCE_MS = 50;  // Debounce para cambios de 
 
 // Emergency deferred logging flag (ISR-safe)
 static volatile bool emergencyRequested = false;
-static volatile unsigned long emergencyAtMs = 0;
+
+// Critical section spinlock for ISR-safe flag handling (ESP32)
+#if defined(ESP32) || defined(ESP_PLATFORM)
+static portMUX_TYPE emergencyMux = portMUX_INITIALIZER_UNLOCKED;
+#endif
 
 // Constantes configurables
 static const int   BATTERY_CHANNEL             = 4;
@@ -146,8 +150,14 @@ void Relays::emergencyStop() {
 
     seqState = SEQ_IDLE;
 
+    // Set flag atomically to avoid race conditions with update()
+#if defined(ESP32) || defined(ESP_PLATFORM)
+    portENTER_CRITICAL_ISR(&emergencyMux);
+#endif
     emergencyRequested = true;
-    emergencyAtMs = millis();
+#if defined(ESP32) || defined(ESP_PLATFORM)
+    portEXIT_CRITICAL_ISR(&emergencyMux);
+#endif
 }
 
 void Relays::setLights(bool on) {
@@ -178,18 +188,29 @@ void Relays::setMedia(bool on) {
 void Relays::update() {
     if(!initialized) return;
 
+    // Handle emergency flag atomically to avoid race condition with ISR
+    bool handleEmergency = false;
+#if defined(ESP32) || defined(ESP_PLATFORM)
+    portENTER_CRITICAL(&emergencyMux);
     if (emergencyRequested) {
-        bool inIsr = false;
-    #if defined(ESP32) || defined(ESP_PLATFORM)
-        inIsr = xPortInIsrContext();
-    #endif
-        if (!inIsr) {
-            Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
-            System::logError(699);
-            emergencyRequested = false;
-            lastStateChangeMs = millis();
-        }
+        emergencyRequested = false;
+        handleEmergency = true;
     }
+    portEXIT_CRITICAL(&emergencyMux);
+    
+    if (handleEmergency) {
+        Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
+        System::logError(699);
+        lastStateChangeMs = millis();
+    }
+#else
+    if (emergencyRequested) {
+        emergencyRequested = false;
+        Logger::error("EMERGENCY STOP (deferred) - Todos los relés desactivados");
+        System::logError(699);
+        lastStateChangeMs = millis();
+    }
+#endif
 
     unsigned long now = millis();
     if (seqState != SEQ_IDLE && (now - seqStepStartMs > SEQUENCE_TIMEOUT_MS)) {
