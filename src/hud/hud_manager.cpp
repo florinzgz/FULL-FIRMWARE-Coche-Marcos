@@ -123,8 +123,10 @@ void HUDManager::update() {
     lastUpdateMs = now;
     
     // 🔒 v2.8.4: Diagnóstico visual - confirmar que el bucle de render se ejecuta
+#ifdef DEBUG_RENDER
     tft.drawPixel(0, 0, TFT_WHITE);
     tft.drawRect(2, 2, 10, 6, TFT_YELLOW);
+#endif
     
     // Renderizar según menú activo
     if (needsRedraw) {
