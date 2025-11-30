@@ -1,5 +1,6 @@
 #include "steering_motor.h"
 #include "pins.h"
+#include "pwm_channels.h"  // 🔒 v2.8.5: PWM channel validation
 #include "current.h"
 #include "steering.h"
 #include "logger.h"
@@ -29,6 +30,15 @@ static uint16_t pctToTicks(float pct) {
 void SteeringMotor::init() {
     // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
     // No llamar Wire.begin() aquí para evitar resetear configuración I2C
+    
+    // 🔒 v2.8.5: Validate PWM channels match expected steering configuration
+    if (!pwm_channels_match_steering_config(kChannelFwd, kChannelRev)) {
+        Logger::errorf("SteeringMotor: PWM channel config mismatch FWD=%d REV=%d", kChannelFwd, kChannelRev);
+        System::logError(252);  // Código: PWM channel inválido
+        initialized = false;
+        pcaOK = false;
+        return;
+    }
     
     // 🔒 v2.4.0: Validar inicialización PCA9685 con retry
     pcaOK = pca.begin();

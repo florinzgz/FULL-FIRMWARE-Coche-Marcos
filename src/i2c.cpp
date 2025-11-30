@@ -1,6 +1,6 @@
 // src/i2c.cpp
 #include <Wire.h>
-#include "addresses.h"
+#include "pins.h"   // Use centralized I2C addresses from pins.h
 
 // Implementación segura de helper I2C para TCA9548A y acceso básico a INA226.
 // Este módulo no hace suposiciones sobre Wire.begin(); System::init() debe
@@ -8,7 +8,7 @@
 
 void select_tca9548a_channel(uint8_t channel) {
     if (channel > 7) return;
-    Wire.beginTransmission(I2C_MUX_ADDR);
+    Wire.beginTransmission(I2C_ADDR_TCA9548A);
     Wire.write(static_cast<uint8_t>(1u << channel));
     Wire.endTransmission();
     // Non-blocking: removed 1ms delay - I2C hardware handles timing
