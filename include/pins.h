@@ -401,8 +401,8 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         // Audio
         case PIN_DFPLAYER_TX:
         case PIN_DFPLAYER_RX:
-        // VL53L5X XSHUT: ver obstacle_config.h para definiciones
-        // (18, 19, 45, 46 - no se incluyen aquí porque están en otro namespace)
+        // VL53L5X XSHUT: Listed as raw GPIO numbers (defined in obstacle_config.h)
+        // (GPIOs 18, 19, 45, 46)
         // NOTA: Shifter ahora en MCP23017, no en GPIOs directos
             return true;
         // Incluir GPIOs de VL53L5X XSHUT manualmente
