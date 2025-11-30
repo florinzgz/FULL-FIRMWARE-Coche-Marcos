@@ -126,7 +126,7 @@ static void loopDisplayTest() {
 static void runColorTest() {
     for (size_t i = 0; i < NUM_TEST_COLORS; i++) {
         testTft.fillScreen(TEST_COLORS[i]);
-        delay(TEST_COLOR_DELAY_MS);
+        yield();  // Non-blocking alternative
         yield();  // Keep watchdog happy
     }
     testTft.fillScreen(TFT_BLACK);
