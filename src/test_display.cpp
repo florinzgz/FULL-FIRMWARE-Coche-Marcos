@@ -117,7 +117,7 @@ static void loopDisplayTest() {
         testTft.printf("Loop: %lu  Uptime: %lus", loopCount, now / 1000);
     }
     
-    delay(TEST_LOOP_DELAY_MS);
+    // Use millis()-based timing at top of function instead
 }
 
 /**
