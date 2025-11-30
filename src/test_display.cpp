@@ -76,7 +76,7 @@ static void setupDisplayTest() {
     
     // 5. Clear screen
     testTft.fillScreen(TFT_BLACK);
-    delay(100);
+    yield();
     
     // 6. Run test sequence
     Serial.println("[TEST] Running color test...");
