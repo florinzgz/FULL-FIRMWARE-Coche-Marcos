@@ -71,8 +71,7 @@ float MathUtils::ema(float prev, float x, float alpha) {
     if (!std::isfinite(prev) || !std::isfinite(x) || !std::isfinite(alpha)) {
         return std::isfinite(x) ? x : 0.0f;  // Use current value or 0
     }
-    // Clamp alpha to valid range
-    if (alpha < 0.0f) alpha = 0.0f;
-    if (alpha > 1.0f) alpha = 1.0f;
+    // Clamp alpha to valid range [0,1]
+    alpha = (alpha < 0.0f) ? 0.0f : ((alpha > 1.0f) ? 1.0f : alpha);
     return alpha * x + (1.0f - alpha) * prev;
 }
