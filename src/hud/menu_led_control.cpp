@@ -58,6 +58,29 @@ static const char* PATTERN_NAMES[] = {
 };
 static const int NUM_PATTERNS = 8;
 
+/**
+ * @brief Convert hue (0-255) to RGB565 color
+ * Uses simple HSV-to-RGB conversion with S=V=255
+ * Divides hue into 3 segments of 85 values each for R, G, B transitions
+ */
+static uint16_t hueToRGB565(uint8_t h) {
+    uint8_t r, g, b;
+    if (h < 85) {
+        r = 255 - h * 3;
+        g = h * 3;
+        b = 0;
+    } else if (h < 170) {
+        r = 0;
+        g = 255 - (h - 85) * 3;
+        b = (h - 85) * 3;
+    } else {
+        r = (h - 170) * 3;
+        g = 0;
+        b = 255 - (h - 170) * 3;
+    }
+    return tft.color565(r, g, b);
+}
+
 void MenuLEDControl::init() {
     loadSettings();
     visible = false;
@@ -230,15 +253,10 @@ void MenuLEDControl::drawColorPicker() {
     int barW = SLIDER_W;
     int barH = SLIDER_H;
     
-    // Draw rainbow gradient
+    // Draw rainbow gradient using helper function
     for (int i = 0; i < barW; i++) {
         uint8_t h = (i * 255) / barW;
-        uint16_t color = tft.color565(
-            h < 85 ? 255 - h * 3 : (h < 170 ? 0 : (h - 170) * 3),
-            h < 85 ? h * 3 : (h < 170 ? 255 - (h - 85) * 3 : 0),
-            h < 85 ? 0 : (h < 170 ? (h - 85) * 3 : 255 - (h - 170) * 3)
-        );
-        tft.drawFastVLine(barX + i, COLOR_Y, barH, color);
+        tft.drawFastVLine(barX + i, COLOR_Y, barH, hueToRGB565(h));
     }
     
     // Draw border
@@ -250,12 +268,8 @@ void MenuLEDControl::drawColorPicker() {
                      markerX + 5, COLOR_Y + barH + 2,
                      markerX, COLOR_Y + barH + 8, COLOR_TEXT);
     
-    // Draw current color preview
-    uint16_t currentColor = tft.color565(
-        colorPickerH < 85 ? 255 - colorPickerH * 3 : (colorPickerH < 170 ? 0 : (colorPickerH - 170) * 3),
-        colorPickerH < 85 ? colorPickerH * 3 : (colorPickerH < 170 ? 255 - (colorPickerH - 85) * 3 : 0),
-        colorPickerH < 85 ? 0 : (colorPickerH < 170 ? (colorPickerH - 85) * 3 : 255 - (colorPickerH - 170) * 3)
-    );
+    // Draw current color preview using helper function
+    uint16_t currentColor = hueToRGB565(colorPickerH);
     tft.fillRect(barX + barW + 10, COLOR_Y, 30, barH, currentColor);
     tft.drawRect(barX + barW + 10, COLOR_Y, 30, barH, COLOR_TEXT);
 }
@@ -312,12 +326,10 @@ void MenuLEDControl::drawPreview() {
                     ledColor = tft.color565(brightness, 0, 0);
                 }
                 break;
-            case 3: // Rainbow
+            case 3: // Rainbow - use helper function
                 {
                     uint8_t h = (animFrame + i * 16) % 256;
-                    ledColor = tft.color565(h < 85 ? 255 - h * 3 : (h < 170 ? 0 : (h - 170) * 3),
-                                            h < 85 ? h * 3 : (h < 170 ? 255 - (h - 85) * 3 : 0),
-                                            h < 85 ? 0 : (h < 170 ? (h - 85) * 3 : 255 - (h - 170) * 3));
+                    ledColor = hueToRGB565(h);
                 }
                 break;
             case 4: // Chase
@@ -391,7 +403,7 @@ void MenuLEDControl::handleBrightnessSlider(int16_t x, int16_t y) {
     if (y >= BRIGHTNESS_Y && y <= BRIGHTNESS_Y + SLIDER_H &&
         x >= SLIDER_X && x <= SLIDER_X + SLIDER_W) {
         
-        int newBrightness = ((x - SLIDER_X) * 255) / SLIDER_W;
+        int newBrightness = ((uint32_t)(x - SLIDER_X) * 255) / SLIDER_W;
         newBrightness = constrain(newBrightness, 0, 255);
         
         LEDController::setBrightness(newBrightness);
@@ -412,7 +424,7 @@ void MenuLEDControl::handleColorPicker(int16_t x, int16_t y) {
     if (y >= COLOR_Y && y <= COLOR_Y + SLIDER_H &&
         x >= SLIDER_X && x <= SLIDER_X + SLIDER_W) {
         
-        colorPickerH = ((x - SLIDER_X) * 255) / SLIDER_W;
+        colorPickerH = ((uint32_t)(x - SLIDER_X) * 255) / SLIDER_W;
         colorPickerH = constrain(colorPickerH, 0, 255);
         needsRedraw = true;
     }

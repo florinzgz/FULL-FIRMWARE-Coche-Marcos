@@ -193,7 +193,7 @@ void MenuSensorConfig::resetToDefaults() {
 }
 
 void MenuSensorConfig::drawToggleButton(int16_t x, int16_t y, int16_t w, int16_t h,
-                                          const char* label, bool enabled) {
+                                          const char* /* label - unused, shows ON/OFF */, bool enabled) {
     uint16_t bgColor = enabled ? COLOR_ENABLED : COLOR_DISABLED;
     uint16_t textColor = enabled ? COLOR_BG : COLOR_TEXT;
     
@@ -233,8 +233,9 @@ void MenuSensorConfig::drawStatusBar() {
     char statusStr[48];
     snprintf(statusStr, sizeof(statusStr), "Status: %d/%d sensors enabled", enabledCount, totalCount);
     
+    // Warning thresholds: green=all, yellow=<4, red=<2
     uint16_t statusColor = COLOR_ENABLED;
-    if (enabledCount < totalCount) statusColor = COLOR_WARNING;
+    if (enabledCount < 4) statusColor = COLOR_WARNING;  // Show warning earlier (3 or fewer)
     if (enabledCount < 2) statusColor = COLOR_DISABLED;
     
     tft.setTextDatum(TL_DATUM);

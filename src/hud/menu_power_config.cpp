@@ -97,17 +97,20 @@ void MenuPowerConfig::handleTouch(uint16_t x, uint16_t y) {
         return;
     }
     
-    // Check test buttons
+    // Check test buttons - buttons are drawn at X = 100 + i * 90 (100, 190, 280, 370)
     if (y >= TEST_BTN_Y && y <= TEST_BTN_Y + 45) {
-        if (x >= 20 && x <= 20 + BUTTON_WIDTH) {
-            handleTestButton(1);  // Power Hold test
-        } else if (x >= 100 && x <= 100 + BUTTON_WIDTH) {
-            handleTestButton(2);  // 12V Aux test
-        } else if (x >= 180 && x <= 180 + BUTTON_WIDTH) {
-            handleTestButton(3);  // 24V Traction test
-        } else if (x >= 260 && x <= 260 + BUTTON_WIDTH + 40) {
-            stopAllTests();  // All Off
-            needsRedraw = true;
+        for (int i = 0; i < 4; i++) {
+            int btnX = 100 + i * 90;
+            int btnW = (i == 3) ? 100 : 80;
+            if (x >= btnX && x <= btnX + btnW) {
+                if (i == 3) {
+                    stopAllTests();
+                    needsRedraw = true;
+                } else {
+                    handleTestButton(i + 1);
+                }
+                break;
+            }
         }
     }
     
@@ -185,7 +188,7 @@ void MenuPowerConfig::drawTestButtons() {
     if (activeTest > 0) {
         uint32_t elapsed = (millis() - testStartTime) / 1000;
         char statusStr[32];
-        snprintf(statusStr, sizeof(statusStr), "Testing... %lus", elapsed);
+        snprintf(statusStr, sizeof(statusStr), "Testing... %lus", (unsigned long)elapsed);
         tft.setTextDatum(TL_DATUM);
         tft.setTextColor(COLOR_ACTIVE, COLOR_BG);
         tft.drawString(statusStr, 100, TEST_BTN_Y + 45, 1);
@@ -321,7 +324,7 @@ uint16_t MenuPowerConfig::mapTouchToValue(uint16_t touchX, uint16_t min, uint16_
     // Use 100ms steps for ms values, 10 steps otherwise
     uint16_t range = max - min;
     uint16_t stepSize = (range >= 1000) ? 100 : ((range >= 100) ? 10 : 1);
-    uint16_t halfStep = stepSize / 2;
+    uint16_t halfStep = (stepSize + 1) / 2;  // Ensure at least 1 for proper rounding
     value = ((value + halfStep) / stepSize) * stepSize;
     
     return constrain(value, min, max);

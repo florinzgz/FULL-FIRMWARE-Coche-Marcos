@@ -24,7 +24,7 @@ EEPROMPersistence::PowerConfig EEPROMPersistence::getDefaultPowerConfig() {
 }
 
 EEPROMPersistence::LEDConfig EEPROMPersistence::getDefaultLEDConfig() {
-    return {0, 128, 128, 0xFF0000, true};  // Pattern 0, mid brightness/speed, red, enabled
+    return {1, 128, 128, 0xFF0000, true};  // Pattern 1 (SOLID), mid brightness/speed, red, enabled
 }
 
 EEPROMPersistence::WiFiConfig EEPROMPersistence::getDefaultWiFiConfig() {
@@ -129,6 +129,7 @@ bool EEPROMPersistence::factoryReset() {
         NS_ENCODER, NS_SENSORS, NS_POWER, NS_LEDS, NS_WIFI, NS_GENERAL
     };
     static constexpr size_t NUM_NAMESPACES = sizeof(ALL_NAMESPACES) / sizeof(ALL_NAMESPACES[0]);
+    static_assert(NUM_NAMESPACES == 6, "ALL_NAMESPACES array size must match the number of defined namespaces");
     
     for (size_t i = 0; i < NUM_NAMESPACES; i++) {
         if (prefs.begin(ALL_NAMESPACES[i], false)) {

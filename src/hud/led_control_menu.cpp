@@ -37,10 +37,10 @@ static const int BACK_BTN_Y = 275;
 static const int BACK_BTN_W = 70;
 static const int BACK_BTN_H = 35;
 
-// Pattern names
+// Pattern names - consistent with menu_led_control.cpp
 static const char* PATTERN_NAMES[] = {
-    "OFF", "SOLID", "BREATH", "RAINBOW", 
-    "CHASE", "TWINK", "FIRE", "WAVE"
+    "Off", "Solid", "Breath", "Rainbow", 
+    "Chase", "Twinkle", "Fire", "Wave"
 };
 static const int NUM_PATTERNS = 8;
 
@@ -91,6 +91,14 @@ bool LEDControlMenu::handleTouch(uint16_t x, uint16_t y) {
         y >= BACK_BTN_Y && y <= BACK_BTN_Y + BACK_BTN_H) {
         saveSettings();
         return false;  // Exit menu
+    }
+    
+    // Check SAVE button (10, BACK_BTN_Y, 80, BACK_BTN_H)
+    if (x >= 10 && x <= 10 + 80 &&
+        y >= BACK_BTN_Y && y <= BACK_BTN_Y + BACK_BTN_H) {
+        saveSettings();
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        needsRedraw = true;
     }
     
     // Check pattern buttons
@@ -282,7 +290,7 @@ bool LEDControlMenu::handleBrightnessTouch(uint16_t x, uint16_t y) {
     if (y >= BRIGHTNESS_Y && y <= BRIGHTNESS_Y + SLIDER_H &&
         x >= SLIDER_X && x <= SLIDER_X + SLIDER_W) {
         
-        brightness = ((x - SLIDER_X) * 255) / SLIDER_W;
+        brightness = ((uint32_t)(x - SLIDER_X) * 255) / SLIDER_W;
         brightness = constrain(brightness, 0, 255);
         LEDController::setBrightness(brightness);
         return true;
@@ -294,7 +302,7 @@ bool LEDControlMenu::handleSpeedTouch(uint16_t x, uint16_t y) {
     if (y >= SPEED_Y && y <= SPEED_Y + SLIDER_H &&
         x >= SLIDER_X && x <= SLIDER_X + SLIDER_W) {
         
-        speed = ((x - SLIDER_X) * 255) / SLIDER_W;
+        speed = ((uint32_t)(x - SLIDER_X) * 255) / SLIDER_W;
         speed = constrain(speed, 0, 255);
         return true;
     }
