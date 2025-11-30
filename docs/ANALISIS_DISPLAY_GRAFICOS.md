@@ -647,4 +647,4 @@ Colores por nivel de proximidad:
 ---
 
 *Documento generado para análisis de gráficos del display del firmware Mercedes AMG GT*
-*Versión: 2.8.3*
+*Versión: 2.8.5*

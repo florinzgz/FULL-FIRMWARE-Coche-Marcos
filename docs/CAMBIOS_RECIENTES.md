@@ -1,5 +1,73 @@
 # Cambios Recientes en el Firmware
 
+## Versión: 2.8.5
+**Fecha:** 2025-11-30  
+
+---
+
+## 🆕 Novedades v2.8.5
+
+### 1. Revisión Exhaustiva de Código ✅
+
+**Problema resuelto:** Necesidad de verificar calidad y seguridad en todos los módulos.
+
+**Solución implementada:**
+- ✅ Verificación completa de 57 archivos .cpp y 61 archivos .h
+- ✅ Patrones de seguridad documentados (nullptr guards, NaN validation, ISR-safe)
+- ✅ TODOs identificados y priorizados para mejoras futuras
+- ✅ Estado general confirmado: Listo para producción
+
+### 2. Nuevos Archivos de Utilidades ✅
+
+**Nuevos archivos añadidos:**
+
+| Archivo | Ubicación | Descripción |
+|---------|-----------|-------------|
+| `pin_utils.h` | include/ | Funciones de validación de GPIO (pin_is_reserved, pin_is_valid_gpio, etc.) |
+| `pwm_channels.h` | include/ | Definiciones de canales PWM y funciones de validación |
+| `test_display.h` | include/ | Header para pruebas standalone de display |
+| `test_display.cpp` | src/ | Implementación de pruebas de display (setupDisplayTest, loopDisplayTest) |
+
+### 3. Mejoras en math_utils.cpp ✅
+
+**Correcciones de seguridad:**
+- ✅ Validación NaN/Inf en `mapf()`
+- ✅ Validación NaN/Inf en `clamp()`
+- ✅ Validación NaN/Inf en `kmhToRpm()` y `rpmToKmh()`
+- ✅ Validación NaN/Inf en `ackermannFactors()`
+- ✅ Validación NaN/Inf en `ema()`
+
+### 4. Mejoras en led_controller.cpp ✅
+
+**Correcciones de seguridad:**
+- ✅ Validación de pines LED antes de inicializar FastLED
+- ✅ Verificación de hardware OK antes de update
+- ✅ Timeout de seguridad en emergency flash (10 segundos)
+- ✅ Límite de brillo máximo para prevenir sobrecalentamiento
+
+### 5. CI Workflow para Testing ✅
+
+**Nuevo workflow:** `.github/workflows/build_test.yml`
+
+**Características:**
+- ✅ Build automático del entorno `esp32-s3-devkitc-test`
+- ✅ Caché de PlatformIO para builds más rápidos
+- ✅ Generación de reporte de build
+- ✅ Upload de artefactos de firmware
+
+### 6. Mejoras en Validación de PWM ✅
+
+**Nueva función:** `pwm_channels_match_steering_config()`
+
+**Uso:**
+```cpp
+if (pwm_channels_match_steering_config(fwd_ch, rev_ch)) {
+    // Canales configurados correctamente
+}
+```
+
+---
+
 ## Versión: 2.8.1
 **Fecha:** 2025-11-28  
 
@@ -153,5 +221,5 @@ struct RedundantSensor {
 
 ---
 
-**Documento actualizado:** 2025-11-27  
-**Versión actual:** v2.8.0
+**Documento actualizado:** 2025-11-30  
+**Versión actual:** v2.8.5
