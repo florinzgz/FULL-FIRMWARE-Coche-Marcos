@@ -1,6 +1,6 @@
 # ESP32-S3 Car Control System - Checklist de Verificación
 
-## Versión: 2.8.3
+## Versión: 2.8.4
 ## Fecha: 2025-11-30
 
 ---
@@ -146,12 +146,10 @@
 ### src/logging/ (1 archivo)
 - [x] `obstacle_logger.cpp` - Logger obstáculos
 
-### src/menu/ (2 archivos)
+### src/menu/ (3 archivos) - **[UNIFICADO v2.8.4]**
 - [x] `menu_auto_exit.cpp` - Auto-salida
 - [x] `menu_wifi_ota.cpp` - WiFi/OTA
-
-### src/menus/ (1 archivo)
-- [x] `menu_obstacle_config.cpp` - Config obstáculos
+- [x] `menu_obstacle_config.cpp` - **[NUEVO v2.8.4]** Config obstáculos (movido desde src/menus/)
 
 ### src/safety/ (3 archivos)
 - [x] `abs_system.cpp` - Sistema ABS
@@ -280,6 +278,21 @@
 
 ---
 
+## 📝 Notas de la versión 2.8.4
+
+### Cambios de estructura:
+- **Unificado src/menu/ y src/menus/**: El directorio `src/menus/` ha sido eliminado y su contenido movido a `src/menu/` para evitar confusión
+- `menu_obstacle_config.cpp` - Implementación completa del menú de configuración de obstáculos
+
+### Nuevas funcionalidades en menu_obstacle_config.cpp:
+- Sliders para configurar distancias crítica/warning/caution
+- Toggles para habilitar/deshabilitar sensores individuales (Front, Rear, Left, Right)
+- Configuración de alertas de audio y visuales
+- Botones de Save, Reset y Back
+- Navegación por botones físicos y táctil
+
+---
+
 ## 📝 Notas de la versión 2.8.3
 
 ### Nuevas implementaciones añadidas:
@@ -309,4 +322,5 @@
 - [x] RAM usage dentro de límites (<20%)
 - [x] Flash usage dentro de límites (<80%)
 - [x] Todas las dependencias resueltas
-- [x] platformio.ini actualizado a v2.8.3
+- [x] platformio.ini actualizado a v2.8.4
+- [x] Directorios src/menu y src/menus unificados
