@@ -255,7 +255,18 @@
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (3L + 10C + 3R)
 
 // ============================================================================
-// TABLA RESUMEN DE USO DE PINES v2.3.0
+// SENSORES OBSTÁCULOS - VL53L5X
+// 🔒 v2.4.1: Los pines XSHUT están definidos en obstacle_config.h
+// Asignados a GPIOs 18, 19, 45, 46 (corrige conflicto con 7, 8, 10, 11)
+// ============================================================================
+// NOTA: No definir aquí - ver obstacle_config.h:
+// ObstacleConfig::PIN_XSHUT_FRONT = 18
+// ObstacleConfig::PIN_XSHUT_REAR = 19
+// ObstacleConfig::PIN_XSHUT_LEFT = 45
+// ObstacleConfig::PIN_XSHUT_RIGHT = 46
+
+// ============================================================================
+// TABLA RESUMEN DE USO DE PINES v2.4.1
 // ============================================================================
 /*
 ┌──────┬─────────────────────────┬───────────┬─────────────────────────────────┐
@@ -279,8 +290,8 @@
 │ 15   │ WHEEL_RR                │ Input     │ Sensor rueda trasera derecha    │
 │ 16   │ TFT_CS                  │ Output    │ Chip Select TFT                 │
 │ 17   │ WHEEL_RL                │ Input     │ Sensor rueda trasera izquierda  │
-│ 18   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
-│ 19   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
+│ 18   │ XSHUT_FRONT (VL53L5X)   │ Output    │ Sensor obstáculos frontal       │
+│ 19   │ XSHUT_REAR (VL53L5X)    │ Output    │ Sensor obstáculos trasero       │
 │ 20   │ ONEWIRE                 │ I/O       │ 4x DS18B20 temperatura          │
 │ 21   │ TOUCH_CS                │ Output    │ ✅ CS Touch (seguro)             │
 │ 35   │ PEDAL (ADC)             │ Analog In │ Sensor Hall pedal               │
@@ -293,8 +304,8 @@
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
 │ 43   │ DFPLAYER_TX             │ Output    │ ⚠️ UART0 nativo                  │
 │ 44   │ DFPLAYER_RX             │ Input     │ ⚠️ UART0 nativo                  │
-│ 45   │ 🆓 LIBRE                │ -         │ ⚠️ Strapping, disponible         │
-│ 46   │ 🆓 LIBRE                │ -         │ ⚠️ Strapping, disponible         │
+│ 45   │ XSHUT_LEFT (VL53L5X)    │ Output    │ ⚠️ Strapping, sensor obstáculos  │
+│ 46   │ XSHUT_RIGHT (VL53L5X)   │ Output    │ ⚠️ Strapping, sensor obstáculos  │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
@@ -327,8 +338,11 @@ MEJORAS v2.3.0:
 ✅ TOUCH_IRQ: GPIO 46 → GPIO 47 (evita strapping pin)
 ✅ SHIFTER COMPLETO: GPIOs dispersos → MCP23017 GPIOB0-B4 (pines consecutivos)
 
-GPIOs LIBERADOS: 18, 19, 45, 46 (4 pines disponibles para futuras expansiones)
-TOTAL ESP32: 30/36 GPIOs utilizados (83% eficiencia)
+MEJORAS v2.4.1:
+✅ VL53L5X XSHUT: Asignados a GPIO 18, 19, 45, 46 (antes libres)
+✅ Corrección conflicto: GPIO 7,8,10,11 ya estaban en uso
+
+TOTAL ESP32: 34/36 GPIOs utilizados (94% eficiencia)
 TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
 */
 
@@ -387,7 +401,15 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         // Audio
         case PIN_DFPLAYER_TX:
         case PIN_DFPLAYER_RX:
+        // VL53L5X XSHUT: Listed as raw GPIO numbers (defined in obstacle_config.h)
+        // (GPIOs 18, 19, 45, 46)
         // NOTA: Shifter ahora en MCP23017, no en GPIOs directos
+            return true;
+        // Incluir GPIOs de VL53L5X XSHUT manualmente
+        case 18:  // ObstacleConfig::PIN_XSHUT_FRONT
+        case 19:  // ObstacleConfig::PIN_XSHUT_REAR
+        case 45:  // ObstacleConfig::PIN_XSHUT_LEFT
+        case 46:  // ObstacleConfig::PIN_XSHUT_RIGHT
             return true;
         default:
             return false;
