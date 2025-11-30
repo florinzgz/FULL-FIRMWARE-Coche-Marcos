@@ -1,5 +1,4 @@
 #include "math_utils.h"
-#include <math.h>
 #include <cmath>  // 🔒 v2.4.1: For std::isfinite()
 
 using namespace MathUtils;
