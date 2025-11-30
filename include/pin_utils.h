@@ -4,8 +4,12 @@
 // ============================================================================
 // pin_utils.h - Utility functions for ESP32-S3 GPIO validation
 // ============================================================================
-// This header provides safe pin validation helpers that exclude reserved,
-// strapping, and JTAG pins from general use on ESP32-S3.
+// This header provides safe pin validation helpers for ESP32-S3, including:
+//   - pin_is_reserved(): checks if a pin is reserved/strapping/JTAG
+//   - pin_is_valid_gpio(): checks if a pin is within valid GPIO range
+//   - pin_is_safe_input(): checks if a pin is safe for general input use
+//   - pin_is_safe_output(): checks if a pin is safe for general output use
+// These functions help avoid reserved, strapping, and JTAG pins for general use.
 // ============================================================================
 
 /**
