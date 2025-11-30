@@ -69,6 +69,7 @@ jobs:
         echo "" >> BUILD_REPORT.md
         echo "## ✅ Features Tested" >> BUILD_REPORT.md
         echo "" >> BUILD_REPORT.md
+        # NOTE: This list should be manually updated when platformio.ini build flags change
         echo "- [x] STANDALONE_DISPLAY mode enabled" >> BUILD_REPORT.md
         echo "- [x] TEST_MODE enabled" >> BUILD_REPORT.md
         echo "- [x] TEST_ALL_LEDS enabled" >> BUILD_REPORT.md

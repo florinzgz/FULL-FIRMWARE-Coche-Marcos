@@ -17,6 +17,7 @@
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+#include <esp_task_wdt.h>  // For explicit watchdog reset
 #include "pins.h"
 
 // Create a local TFT instance for standalone testing
@@ -108,7 +109,8 @@ void loopDisplayTest() {
     // Feed watchdog periodically
     if (now - lastWatchdogFeed >= WATCHDOG_FEED_INTERVAL_MS) {
         lastWatchdogFeed = now;
-        // ESP32 watchdog is fed automatically in Arduino framework
+        // Explicitly reset task watchdog for robust handling during long-running tests
+        esp_task_wdt_reset();
         yield();
     }
     
