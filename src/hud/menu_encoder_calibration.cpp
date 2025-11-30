@@ -279,12 +279,16 @@ void MenuEncoderCalibration::drawVisualIndicator() {
     
     // Calculate position indicator
     int32_t range = tempRightLimit - tempLeftLimit;
-    if (range <= 0) range = 1200;  // Default range
+    
+    // Guard against division by zero - use safe default range
+    if (range <= 0) {
+        range = 1200;  // Default range
+    }
     
     int32_t pos = liveEncoderValue - tempLeftLimit;
     int32_t centerOffset = tempCenter - tempLeftLimit;
     
-    // Map to bar width
+    // Map to bar width (range is guaranteed to be > 0 here)
     int markerX = barX + 5 + (int)((pos * (barW - 10)) / range);
     int centerX = barX + 5 + (int)((centerOffset * (barW - 10)) / range);
     

@@ -123,10 +123,15 @@ bool EEPROMPersistence::factoryReset() {
     
     bool success = true;
     
-    // Clear all namespaces
-    const char* namespaces[] = {NS_ENCODER, NS_SENSORS, NS_POWER, NS_LEDS, NS_WIFI, NS_GENERAL};
-    for (const char* ns : namespaces) {
-        if (prefs.begin(ns, false)) {
+    // Clear all namespaces - uses the static constexpr constants defined in the header
+    // to ensure consistency with the save/load functions
+    static const char* const ALL_NAMESPACES[] = {
+        NS_ENCODER, NS_SENSORS, NS_POWER, NS_LEDS, NS_WIFI, NS_GENERAL
+    };
+    static constexpr size_t NUM_NAMESPACES = sizeof(ALL_NAMESPACES) / sizeof(ALL_NAMESPACES[0]);
+    
+    for (size_t i = 0; i < NUM_NAMESPACES; i++) {
+        if (prefs.begin(ALL_NAMESPACES[i], false)) {
             prefs.clear();
             prefs.end();
         }

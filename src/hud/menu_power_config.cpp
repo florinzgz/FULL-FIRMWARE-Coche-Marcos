@@ -317,8 +317,12 @@ uint16_t MenuPowerConfig::mapTouchToValue(uint16_t touchX, uint16_t min, uint16_
     
     uint32_t value = ((uint32_t)(touchX - SLIDER_X) * (max - min)) / SLIDER_WIDTH + min;
     
-    // Round to nearest 100ms for cleaner values
-    value = ((value + 50) / 100) * 100;
+    // Round to nearest step size based on range for cleaner values
+    // Use 100ms steps for ms values, 10 steps otherwise
+    uint16_t range = max - min;
+    uint16_t stepSize = (range >= 1000) ? 100 : ((range >= 100) ? 10 : 1);
+    uint16_t halfStep = stepSize / 2;
+    value = ((value + halfStep) / stepSize) * stepSize;
     
     return constrain(value, min, max);
 }
