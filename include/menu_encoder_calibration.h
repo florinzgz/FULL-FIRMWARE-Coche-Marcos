@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include "config_storage.h"
-#include "encoder.h"
+#include "steering.h"
 
 /**
  * Encoder Calibration Menu
