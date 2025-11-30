@@ -4,7 +4,7 @@
 // This file provides a standalone test routine for the TFT display (ST7796S)
 // to verify basic functionality without depending on other system components.
 //
-// Enable by defining STANDALONE_DISPLAY in platformio.ini build_flags.
+// Enable by defining TEST_DISPLAY_STANDALONE in platformio.ini build_flags.
 // This test runs during boot to confirm display communication works.
 // ============================================================================
 
@@ -31,7 +31,7 @@ static const uint16_t TEST_COLORS[] = {
 };
 static constexpr size_t NUM_TEST_COLORS = sizeof(TEST_COLORS) / sizeof(TEST_COLORS[0]);
 
-// Forward declarations
+// Forward declarations for internal test functions
 static void runColorTest();
 static void runCircleTest();
 static void runTextTest();
@@ -39,8 +39,9 @@ static void runTextTest();
 /**
  * @brief Initialize and run display tests
  * Call this from setup() when TEST_DISPLAY_STANDALONE is defined
+ * Note: This function is only accessible when TEST_DISPLAY_STANDALONE is defined
  */
-void setupDisplayTest() {
+static void setupDisplayTest() {
     // 1. Initialize Serial for debug output
     Serial.begin(115200);
     delay(100);
@@ -90,8 +91,9 @@ void setupDisplayTest() {
 
 /**
  * @brief Main loop for display test mode
+ * Note: This function is only accessible when TEST_DISPLAY_STANDALONE is defined
  */
-void loopDisplayTest() {
+static void loopDisplayTest() {
     static uint32_t lastWatchdogFeed = 0;
     static uint32_t loopCount = 0;
     uint32_t now = millis();
@@ -137,7 +139,7 @@ static void runCircleTest() {
         int16_t x = random(20, testTft.width() - 20);
         int16_t y = random(20, testTft.height() - 20);
         int16_t r = random(10, 50);
-        uint16_t color = TEST_COLORS[random(0, NUM_TEST_COLORS - 1)];  // Exclude black
+        uint16_t color = TEST_COLORS[random(0, NUM_TEST_COLORS)];  // random(min, max) returns min to max-1
         
         testTft.fillCircle(x, y, r, color);
         delay(100);
