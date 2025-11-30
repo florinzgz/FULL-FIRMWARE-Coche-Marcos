@@ -145,7 +145,7 @@ static void runCircleTest() {
         uint16_t color = TEST_COLORS[random(0, NUM_TEST_COLORS)];  // random(min, max) returns min to max-1
         
         testTft.fillCircle(x, y, r, color);
-        delay(100);
+        yield();
         yield();
     }
     
