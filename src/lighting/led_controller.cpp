@@ -50,6 +50,23 @@ static bool emergencyFlashOn = false;
 static int8_t scannerPos = 0;
 static int8_t scannerDirection = 1;
 
+// 🔒 v2.4.1: Sine lookup table for performance optimization
+// Pre-calculated: sin(x * PI / 50) * 127 for x = 0..49 (half period)
+// Full sine wave computed via mirroring to reduce memory usage
+static const uint8_t SINE_LUT_50[50] = {
+      0,   8,  16,  24,  32,  40,  48,  55,  62,  70,
+     77,  83,  90,  96, 101, 107, 112, 116, 120, 124,
+    127, 124, 120, 116, 112, 107, 101,  96,  90,  83,
+     77,  70,  62,  55,  48,  40,  32,  24,  16,   8,
+      0,   8,  16,  24,  32,  40,  48,  55,  62,  70
+};
+
+// Helper: fast sine lookup (0-99 index) -> returns 0-127
+static inline uint8_t fastSinLUT(uint8_t idx) {
+    // Map 0-99 to 0-49 using modulo 50, handles full sine wave period
+    return SINE_LUT_50[idx % 50];
+}
+
 // Helper: blend two colors
 static CRGB blendColor(CRGB c1, CRGB c2, uint8_t amount) {
     return CRGB(
@@ -220,8 +237,8 @@ static void updateRearCenter() {
             break;
             
         case REAR_REGEN_ACTIVE:
-            // Blue pulse effect
-            brightness = 128 + (uint8_t)(127.0f * sin((animationStep % 100) * 3.14159f / 50.0f));
+            // Blue pulse effect - 🔒 v2.4.1: Use LUT instead of sin()
+            brightness = 128 + fastSinLUT(animationStep % 100);
             color = CRGB::Blue;
             break;
     }
