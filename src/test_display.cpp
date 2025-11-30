@@ -44,7 +44,7 @@ static void runTextTest();
 static void setupDisplayTest() {
     // 1. Initialize Serial for debug output
     Serial.begin(115200);
-    delay(100);
+    yield();  // Non-blocking yield instead of delay
     Serial.println();
     Serial.println("========================================");
     Serial.println("TFT Display Test - ST7796S");
