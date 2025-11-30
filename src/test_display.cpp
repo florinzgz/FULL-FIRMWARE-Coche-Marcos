@@ -60,9 +60,12 @@ static void setupDisplayTest() {
     Serial.println("[TEST] Performing hardware reset...");
     pinMode(PIN_TFT_RST, OUTPUT);
     digitalWrite(PIN_TFT_RST, LOW);
-    delay(10);  // Reset pulse
+    digitalWrite(PIN_TFT_RST, LOW);
+    uint32_t resetStart = millis();
+    while (millis() - resetStart < 10) yield();  // 10ms reset pulse
     digitalWrite(PIN_TFT_RST, HIGH);
-    delay(50);  // Recovery time
+    resetStart = millis();
+    while (millis() - resetStart < 50) yield();  // 50ms recovery time
     Serial.println("[TEST] Reset complete");
     
     // 4. Initialize TFT
