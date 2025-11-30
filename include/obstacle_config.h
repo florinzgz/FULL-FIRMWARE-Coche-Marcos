@@ -14,10 +14,17 @@ namespace ObstacleConfig {
     constexpr uint8_t VL53L5X_DEFAULT_ADDR = 0x29;  // VL53L5X default I2C address
     
     // GPIO pins for XSHUT (power control)
-    constexpr uint8_t PIN_XSHUT_FRONT = 7;          // Front sensor
-    constexpr uint8_t PIN_XSHUT_REAR = 8;           // Rear sensor
-    constexpr uint8_t PIN_XSHUT_LEFT = 10;          // Left sensor
-    constexpr uint8_t PIN_XSHUT_RIGHT = 11;         // Right sensor
+    // 🔒 v2.4.1: CORRECCIÓN CRÍTICA - Pines reubicados a GPIOs libres
+    // Los pines anteriores (7,8,10,11) tenían conflicto con:
+    // - GPIO 7: PIN_RELAY_SPARE (relé auxiliar)
+    // - GPIO 8: PIN_I2C_SDA (bus I2C)
+    // - GPIO 10: PIN_TFT_SCK (SPI pantalla)
+    // - GPIO 11: PIN_TFT_MOSI (SPI pantalla)
+    // Ahora usan GPIOs libres según pins.h: 18, 19, 45, 46
+    constexpr uint8_t PIN_XSHUT_FRONT = 18;         // Front sensor (GPIO libre)
+    constexpr uint8_t PIN_XSHUT_REAR = 19;          // Rear sensor (GPIO libre)
+    constexpr uint8_t PIN_XSHUT_LEFT = 45;          // Left sensor (GPIO libre, strapping)
+    constexpr uint8_t PIN_XSHUT_RIGHT = 46;         // Right sensor (GPIO libre, strapping)
     
     // PCA9548A multiplexer channels
     constexpr uint8_t MUX_CHANNEL_FRONT = 0;        // Front sensor
