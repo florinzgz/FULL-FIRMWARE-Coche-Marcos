@@ -66,31 +66,43 @@ static inline bool pwm_channel_valid(uint8_t channel) {
 }
 
 /**
- * @brief Validate a front motor PWM channel
+ * @brief Check if a channel is within the range used by front motors
  * 
- * @param channel Channel number to validate
- * @return true if channel is used by front motors
+ * @param channel Channel number to check
+ * @return true if channel is within front motor channel range (0-3)
  */
-static inline bool pwm_channel_valid_front(uint8_t channel) {
+static inline bool pwm_channel_in_front_range(uint8_t channel) {
     return channel <= PWMChannels::Front::MAX_USED;
 }
 
 /**
- * @brief Validate a rear motor PWM channel
+ * @brief Check if a channel is within the range used by rear motors
  * 
- * @param channel Channel number to validate
- * @return true if channel is used by rear motors
+ * @param channel Channel number to check
+ * @return true if channel is within rear motor channel range (0-3)
  */
-static inline bool pwm_channel_valid_rear(uint8_t channel) {
+static inline bool pwm_channel_in_rear_range(uint8_t channel) {
     return channel <= PWMChannels::Rear::MAX_USED;
 }
 
 /**
- * @brief Validate a steering motor PWM channel
+ * @brief Check if a channel is within the range used by steering motor
  * 
- * @param channel Channel number to validate
- * @return true if channel is used by steering motor
+ * @param channel Channel number to check
+ * @return true if channel is within steering motor channel range (0-1)
  */
-static inline bool pwm_channel_valid_steering(uint8_t channel) {
+static inline bool pwm_channel_in_steering_range(uint8_t channel) {
     return channel <= PWMChannels::Steering::MAX_USED;
+}
+
+/**
+ * @brief Check if a channel matches the expected steering motor channels
+ * 
+ * @param fwd_channel Forward PWM channel
+ * @param rev_channel Reverse PWM channel
+ * @return true if channels match the expected steering configuration
+ */
+static inline bool pwm_channels_match_steering_config(uint8_t fwd_channel, uint8_t rev_channel) {
+    return fwd_channel == PWMChannels::Steering::PWM_FORWARD &&
+           rev_channel == PWMChannels::Steering::PWM_REVERSE;
 }

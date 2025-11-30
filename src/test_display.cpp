@@ -6,6 +6,11 @@
 //
 // Enable by defining TEST_DISPLAY_STANDALONE in platformio.ini build_flags.
 // This test runs during boot to confirm display communication works.
+//
+// Integration: When TEST_DISPLAY_STANDALONE is defined, call these functions
+// from main.cpp:
+//   - setupDisplayTest() in setup()
+//   - loopDisplayTest() in loop()
 // ============================================================================
 
 #ifdef TEST_DISPLAY_STANDALONE
@@ -38,10 +43,9 @@ static void runTextTest();
 
 /**
  * @brief Initialize and run display tests
- * Call this from setup() when TEST_DISPLAY_STANDALONE is defined
- * Note: This function is only accessible when TEST_DISPLAY_STANDALONE is defined
+ * Call this from setup() in main.cpp when TEST_DISPLAY_STANDALONE is defined
  */
-static void setupDisplayTest() {
+void setupDisplayTest() {
     // 1. Initialize Serial for debug output
     Serial.begin(115200);
     yield();  // Non-blocking yield instead of delay
@@ -94,9 +98,9 @@ static void setupDisplayTest() {
 
 /**
  * @brief Main loop for display test mode
- * Note: This function is only accessible when TEST_DISPLAY_STANDALONE is defined
+ * Call this from loop() in main.cpp when TEST_DISPLAY_STANDALONE is defined
  */
-static void loopDisplayTest() {
+void loopDisplayTest() {
     static uint32_t lastWatchdogFeed = 0;
     static uint32_t loopCount = 0;
     uint32_t now = millis();

@@ -31,9 +31,9 @@ void SteeringMotor::init() {
     // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
     // No llamar Wire.begin() aquí para evitar resetear configuración I2C
     
-    // 🔒 v2.8.5: Validate PWM channels before init
-    if (!pwm_channel_valid_steering(kChannelFwd) || !pwm_channel_valid_steering(kChannelRev)) {
-        Logger::errorf("SteeringMotor: Invalid PWM channels FWD=%d REV=%d", kChannelFwd, kChannelRev);
+    // 🔒 v2.8.5: Validate PWM channels match expected steering configuration
+    if (!pwm_channels_match_steering_config(kChannelFwd, kChannelRev)) {
+        Logger::errorf("SteeringMotor: PWM channel config mismatch FWD=%d REV=%d", kChannelFwd, kChannelRev);
         System::logError(252);  // Código: PWM channel inválido
         initialized = false;
         pcaOK = false;
