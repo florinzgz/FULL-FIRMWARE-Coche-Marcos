@@ -70,7 +70,7 @@ static inline bool pin_is_safe_input(uint8_t gpio) {
 /**
  * @brief Check if a GPIO is safe for general output use
  * 
- * Excludes input-only pins (34-39 on ESP32, but ESP32-S3 has different constraints)
+ * Same as pin_is_safe_input() since ESP32-S3 has no input-only GPIO restrictions.
  * and reserved/strapping pins.
  * 
  * @param gpio GPIO number to check
