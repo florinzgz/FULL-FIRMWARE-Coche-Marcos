@@ -89,6 +89,8 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 #include "abs_system.h"
 #include "tcs_system.h"
 #include "regen_ai.h"
+#include "obstacle_detection.h"
+#include "obstacle_safety.h"
 
 // HUD y Audio
 #include "hud.h"
@@ -295,6 +297,12 @@ void setup() {
     Serial.println("[BOOT] Initializing Regen AI...");
     RegenAI::init();
     
+    // --- Obstacle Detection System ---
+    Serial.println("[BOOT] Initializing Obstacle Detection...");
+    ObstacleDetection::init();
+    Serial.println("[BOOT] Initializing Obstacle Safety...");
+    ObstacleSafety::init();
+    
     // --- Telemetry System ---
     Serial.println("[BOOT] Initializing Telemetry...");
     Telemetry::init();           // 🆕 v2.8.0: Sistema de telemetría
@@ -425,6 +433,10 @@ void loop() {
     ABSSystem::update();
     TCSSystem::update();
     RegenAI::update();
+    
+    // Obstacle Detection and Safety
+    ObstacleDetection::update();
+    ObstacleSafety::update();
     
     // Telemetry
     Telemetry::update();         // 🆕 v2.8.0: Sistema de telemetría

@@ -213,6 +213,18 @@ namespace ObstacleDetection {
      * @return True if all enabled sensors passed
      */
     bool runDiagnostics();
+    
+    /**
+     * Check if running in placeholder/simulation mode
+     * @return True if no real sensor hardware detected
+     */
+    bool isPlaceholderMode();
+    
+    /**
+     * Check if any real sensor hardware is present
+     * @return True if at least one VL53L5CX sensor was detected
+     */
+    bool isHardwarePresent();
 }
 
 #endif // OBSTACLE_DETECTION_H
