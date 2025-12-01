@@ -1,6 +1,7 @@
 #include "hud.h"
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>   // Librería táctil
+#include <math.h>                   // Para cosf, sinf
 
 #include "gauges.h"
 #include "wheels_display.h"
@@ -180,33 +181,49 @@ void HUD::showError() {
 }
 
 #ifdef STANDALONE_DISPLAY
+// Estado de progreso para visualización del botón DEMO
+static float demoButtonProgress = 0.0f;
+
 // Draw demo mode button for easy hidden menu access
+// Muestra progreso visual durante la pulsación larga
 static void drawDemoButton() {
     // Only draw if hidden menu is not active
     if (MenuHidden::isActive()) return;
     
-    // Draw button background
-    tft.fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, 
-                      DEMO_BTN_X2 - DEMO_BTN_X1, DEMO_BTN_Y2 - DEMO_BTN_Y1, 
-                      5, TFT_NAVY);
-    tft.drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, 
-                      DEMO_BTN_X2 - DEMO_BTN_X1, DEMO_BTN_Y2 - DEMO_BTN_Y1, 
-                      5, TFT_CYAN);
+    int btnW = DEMO_BTN_X2 - DEMO_BTN_X1;
+    int btnH = DEMO_BTN_Y2 - DEMO_BTN_Y1;
+    int centerX = (DEMO_BTN_X1 + DEMO_BTN_X2) / 2;
+    int centerY = (DEMO_BTN_Y1 + DEMO_BTN_Y2) / 2;
+    
+    // Draw button background (más brillante para mayor visibilidad)
+    uint16_t bgColor = demoButtonWasPressed ? 0x001F : TFT_NAVY;  // Azul más claro si pulsado
+    tft.fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, bgColor);
+    
+    // Borde con efecto 3D
+    uint16_t borderColor = demoButtonWasPressed ? TFT_WHITE : TFT_CYAN;
+    tft.drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, borderColor);
+    tft.drawRoundRect(DEMO_BTN_X1 + 1, DEMO_BTN_Y1 + 1, btnW - 2, btnH - 2, 4, borderColor);
+    
+    // Barra de progreso si está siendo pulsado
+    if (demoButtonWasPressed && demoButtonProgress > 0.0f) {
+        int progressW = (int)(btnW * demoButtonProgress);
+        tft.fillRect(DEMO_BTN_X1 + 2, DEMO_BTN_Y2 - 6, progressW - 4, 4, TFT_GREEN);
+    }
     
     // Draw button text
     tft.setTextDatum(MC_DATUM);
-    tft.setTextColor(TFT_CYAN, TFT_NAVY);
-    int centerX = (DEMO_BTN_X1 + DEMO_BTN_X2) / 2;
-    int centerY = (DEMO_BTN_Y1 + DEMO_BTN_Y2) / 2;
-    tft.drawString("DEMO", centerX, centerY - 6, 2);
-    tft.setTextColor(TFT_WHITE, TFT_NAVY);
-    tft.drawString("MENU", centerX, centerY + 8, 1);
+    tft.setTextColor(TFT_WHITE, bgColor);
+    tft.drawString("MENU", centerX, centerY - 4, 2);
+    tft.setTextColor(TFT_CYAN, bgColor);
+    tft.drawString("Pulsar 1.5s", centerX, centerY + 10, 1);
 }
 
-// Check if touch is in demo button area
+// Check if touch is in demo button area (con margen extra para facilitar el toque)
 static bool isTouchInDemoButton(int x, int y) {
-    return (x >= DEMO_BTN_X1 && x <= DEMO_BTN_X2 && 
-            y >= DEMO_BTN_Y1 && y <= DEMO_BTN_Y2);
+    // Añadir margen de 10px para facilitar el toque
+    const int MARGIN = 10;
+    return (x >= DEMO_BTN_X1 - MARGIN && x <= DEMO_BTN_X2 + MARGIN && 
+            y >= DEMO_BTN_Y1 - MARGIN && y <= DEMO_BTN_Y2 + MARGIN);
 }
 #endif
 
@@ -317,39 +334,99 @@ static void drawCarBody() {
     carBodyDrawn = true;
 }
 
-// Mostrar ángulo del volante en el centro del coche
-static void drawSteeringAngle(float angleDeg) {
-    // Posición: centro del coche, justo debajo del centro
+// Colores para el volante
+static const uint16_t COLOR_WHEEL_RIM = 0x8410;      // Gris oscuro para el aro
+static const uint16_t COLOR_WHEEL_SPOKE = 0xA514;    // Gris medio para los radios
+static const uint16_t COLOR_WHEEL_CENTER = 0x4A49;   // Gris para el centro
+static const uint16_t COLOR_WHEEL_HIGHLIGHT = 0xC618; // Highlight 3D
+
+// Dibujar volante gráfico con rotación y mostrar ángulo en grados
+static void drawSteeringWheel(float angleDeg) {
+    // Posición: centro del coche
     const int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche (240)
-    const int cy = CAR_BODY_Y + CAR_BODY_H / 2 + 10;  // Centro Y del coche + offset (185)
+    const int cy = CAR_BODY_Y + CAR_BODY_H / 2;  // Centro Y del coche (175)
+    const int wheelRadius = 25;   // Radio del volante
+    const int innerRadius = 18;   // Radio interior (entre aro y centro)
+    const int centerRadius = 8;   // Radio del centro del volante
     
     // Solo redibujar si hay cambio significativo (>0.5 grados)
     if (fabs(angleDeg - lastSteeringAngle) < 0.5f) return;
     lastSteeringAngle = angleDeg;
     
-    // Limpiar área (ancho suficiente para el texto)
-    tft.fillRect(cx - 35, cy - 8, 70, 16, TFT_BLACK);
+    // Limpiar área del volante
+    tft.fillCircle(cx, cy, wheelRadius + 5, TFT_BLACK);
     
-    // Dibujar texto del ángulo
-    tft.setTextDatum(MC_DATUM);
+    // Convertir ángulo a radianes
+    float rad = angleDeg * DEG_TO_RAD;
     
     // Color según ángulo: verde si centrado, amarillo si girado, rojo si muy girado
-    uint16_t color;
+    uint16_t rimColor;
     float absAngle = fabs(angleDeg);
     if (absAngle < 5.0f) {
-        color = TFT_GREEN;      // Centrado
+        rimColor = TFT_GREEN;       // Centrado
     } else if (absAngle < 20.0f) {
-        color = TFT_CYAN;       // Ligeramente girado
+        rimColor = TFT_CYAN;        // Ligeramente girado
     } else if (absAngle <= 35.0f) {
-        color = TFT_YELLOW;     // Girado moderadamente
+        rimColor = TFT_YELLOW;      // Girado moderadamente
     } else {
-        color = TFT_ORANGE;     // Muy girado
+        rimColor = TFT_ORANGE;      // Muy girado
     }
     
-    tft.setTextColor(color, TFT_BLACK);
+    // === Dibujar aro exterior del volante ===
+    // Sombra del aro
+    tft.drawCircle(cx + 1, cy + 1, wheelRadius, 0x2104);
+    tft.drawCircle(cx + 1, cy + 1, wheelRadius - 1, 0x2104);
+    // Aro principal
+    tft.drawCircle(cx, cy, wheelRadius, rimColor);
+    tft.drawCircle(cx, cy, wheelRadius - 1, rimColor);
+    tft.drawCircle(cx, cy, wheelRadius - 2, COLOR_WHEEL_RIM);
+    
+    // === Dibujar 3 radios del volante (rotados según ángulo) ===
+    for (int i = 0; i < 3; i++) {
+        // Ángulos de los radios: 0°, 120°, 240° + rotación del volante
+        float spokeAngle = rad + (i * 120.0f * DEG_TO_RAD);
+        
+        // Puntos inicio (cerca del centro) y fin (en el aro)
+        int x1 = cx + (int)(cosf(spokeAngle) * centerRadius);
+        int y1 = cy + (int)(sinf(spokeAngle) * centerRadius);
+        int x2 = cx + (int)(cosf(spokeAngle) * innerRadius);
+        int y2 = cy + (int)(sinf(spokeAngle) * innerRadius);
+        
+        // Dibujar radio con grosor
+        tft.drawLine(x1, y1, x2, y2, COLOR_WHEEL_SPOKE);
+        tft.drawLine(x1 - 1, y1, x2 - 1, y2, COLOR_WHEEL_SPOKE);
+        tft.drawLine(x1 + 1, y1, x2 + 1, y2, COLOR_WHEEL_RIM);
+    }
+    
+    // === Dibujar centro del volante (hub) ===
+    // Sombra 3D
+    tft.fillCircle(cx + 1, cy + 1, centerRadius, 0x2104);
+    // Centro principal
+    tft.fillCircle(cx, cy, centerRadius, COLOR_WHEEL_CENTER);
+    tft.drawCircle(cx, cy, centerRadius, COLOR_WHEEL_RIM);
+    // Highlight 3D
+    tft.fillCircle(cx - 2, cy - 2, 2, COLOR_WHEEL_HIGHLIGHT);
+    
+    // === Indicador de posición 12 en punto (para referencia visual) ===
+    // Línea que marca el "arriba" del volante rotado
+    float topAngle = rad - (90.0f * DEG_TO_RAD);  // -90° es arriba en coords de pantalla
+    int topX = cx + (int)(cosf(topAngle) * (wheelRadius - 5));
+    int topY = cy + (int)(sinf(topAngle) * (wheelRadius - 5));
+    tft.fillCircle(topX, topY, 3, rimColor);
+    
+    // === Mostrar grados debajo del volante ===
+    const int textY = cy + wheelRadius + 12;
+    tft.fillRect(cx - 25, textY - 6, 50, 14, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(rimColor, TFT_BLACK);
     char buf[16];
-    snprintf(buf, sizeof(buf), "%+.0f°", angleDeg);  // Formato: +0° o -15°
-    tft.drawString(buf, cx, cy, 2);
+    snprintf(buf, sizeof(buf), "%+.0f", angleDeg);  // Formato: +0° o -15°
+    tft.drawString(buf, cx, textY, 2);
+}
+
+// Mantener compatibilidad con nombre anterior
+static void drawSteeringAngle(float angleDeg) {
+    drawSteeringWheel(angleDeg);
 }
 
 void HUD::drawPedalBar(float pedalPercent) {
@@ -619,16 +696,27 @@ void HUD::update() {
             if (!demoButtonWasPressed) {
                 demoButtonPressStart = now;
                 demoButtonWasPressed = true;
+                demoButtonProgress = 0.0f;
                 Logger::info("Demo button touched - hold 1.5s for menu");
-            } else if (now - demoButtonPressStart >= DEMO_BUTTON_LONG_PRESS_MS) {
-                // Long press detected - activate hidden menu directly
-                demoButtonTouched = true;
-                hiddenMenuJustActivated = true;
-                Logger::info("Demo button long press - activating hidden menu");
+            } else {
+                // Actualizar progreso visual
+                uint32_t elapsed = now - demoButtonPressStart;
+                demoButtonProgress = (float)elapsed / (float)DEMO_BUTTON_LONG_PRESS_MS;
+                if (demoButtonProgress > 1.0f) demoButtonProgress = 1.0f;
+                
+                if (elapsed >= DEMO_BUTTON_LONG_PRESS_MS) {
+                    // Long press detected - activate hidden menu directly
+                    demoButtonTouched = true;
+                    hiddenMenuJustActivated = true;
+                    demoButtonWasPressed = false;
+                    demoButtonProgress = 0.0f;
+                    Logger::info("Demo button long press - activating hidden menu");
+                }
             }
         } else {
             // Reset if touch moved outside button area
             demoButtonWasPressed = false;
+            demoButtonProgress = 0.0f;
         }
 #endif
 
@@ -655,6 +743,7 @@ void HUD::update() {
     } else {
 #ifdef STANDALONE_DISPLAY
         demoButtonWasPressed = false;
+        demoButtonProgress = 0.0f;
 #endif
     }
 #endif  // DISABLE_TOUCH
