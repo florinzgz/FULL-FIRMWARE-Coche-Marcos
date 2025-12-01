@@ -122,12 +122,55 @@ void Icons::drawBattery(float volts) {
     if(fabs(volts - lastBattery) < 0.1f) return; // no cambio significativo
     lastBattery = volts;
 
-    tft->fillRect(BATTERY_X1, BATTERY_Y1, BATTERY_X2 - BATTERY_X1, BATTERY_Y2 - BATTERY_Y1, TFT_BLACK);
+    int x = BATTERY_X1;
+    int y = BATTERY_Y1;
+    int w = BATTERY_X2 - BATTERY_X1;
+    int h = BATTERY_Y2 - BATTERY_Y1;
+    
+    // Limpiar área
+    tft->fillRect(x, y, w, h, TFT_BLACK);
+    
+    // Calcular porcentaje de batería (asumiendo 20V-28V como rango)
+    float percent = constrain((volts - 20.0f) / 8.0f * 100.0f, 0.0f, 100.0f);
+    
+    // Dibujar icono de batería 3D
+    int battX = x + 5;
+    int battY = y + 5;
+    int battW = 35;
+    int battH = 20;
+    int capW = 4;
+    int capH = 10;
+    
+    // Cuerpo de la batería con efecto 3D
+    tft->fillRoundRect(battX, battY, battW, battH, 3, 0x2104);
+    tft->drawRoundRect(battX, battY, battW, battH, 3, 0x6B6D);
+    
+    // Terminal positivo
+    tft->fillRect(battX + battW, battY + (battH - capH) / 2, capW, capH, 0x6B6D);
+    
+    // Relleno según nivel
+    int fillW = (int)((battW - 6) * percent / 100.0f);
+    uint16_t fillColor;
+    if (percent < 20.0f) {
+        fillColor = TFT_RED;
+    } else if (percent < 50.0f) {
+        fillColor = TFT_YELLOW;
+    } else {
+        fillColor = TFT_GREEN;
+    }
+    
+    if (fillW > 0) {
+        tft->fillRoundRect(battX + 3, battY + 3, fillW, battH - 6, 1, fillColor);
+        // Highlight 3D
+        tft->drawFastHLine(battX + 3, battY + 3, fillW, 0xFFFF);
+    }
+    
+    // Voltaje debajo del icono
     tft->setTextDatum(TL_DATUM);
-    tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    char buf[16];
-    snprintf(buf, sizeof(buf), "%.1f V", volts);
-    tft->drawString(buf, BATTERY_X1 + 5, BATTERY_Y1 + 10, 2);
+    tft->setTextColor(fillColor, TFT_BLACK);
+    char buf[10];
+    snprintf(buf, sizeof(buf), "%.1fV", volts);
+    tft->drawString(buf, battX, battY + battH + 3, 1);
 }
 
 void Icons::drawErrorWarning() {
@@ -138,9 +181,21 @@ void Icons::drawErrorWarning() {
 
     if(count > 0) {
         int midX = (WARNING_X1 + WARNING_X2) / 2;
-        int topY = WARNING_Y1 + 5;
+        int topY = WARNING_Y1 + 8;
         int botY = WARNING_Y2 - 5;
+        
+        // Sombra del triángulo
+        tft->fillTriangle(WARNING_X1 + 2, botY + 2, WARNING_X2 + 2, botY + 2, midX + 2, topY + 2, 0x8400);
+        
+        // Triángulo de warning con borde
         tft->fillTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY, TFT_YELLOW);
+        tft->drawTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY, 0x8400);
+        
+        // Signo de exclamación
+        tft->fillRect(midX - 1, topY + 8, 3, 10, TFT_BLACK);
+        tft->fillCircle(midX, botY - 5, 2, TFT_BLACK);
+        
+        // Contador de errores
         tft->setTextColor(TFT_YELLOW, TFT_BLACK);
         char buf[8];
         snprintf(buf, sizeof(buf), "%d", count);
@@ -176,29 +231,53 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
         return TFT_YELLOW;                     // Parcial
     };
     
-    // Posiciones para los 3 indicadores LED
-    const int ledRadius = 6;
-    const int startX = SENSOR_STATUS_X1 + 15;
-    const int ledY = SENSOR_STATUS_Y1 + 12;
-    const int textY = SENSOR_STATUS_Y1 + 25;
-    const int spacing = 40;
+    // Helper para color más oscuro (sombra LED)
+    auto getDarkColor = [](uint16_t color) -> uint16_t {
+        if (color == TFT_GREEN) return 0x03E0;
+        if (color == TFT_RED) return 0x8000;
+        if (color == TFT_YELLOW) return 0x8400;
+        return 0x2104;
+    };
     
-    // LED 1: Corriente (INA226)
+    // Posiciones para los 3 indicadores LED
+    const int ledRadius = 7;
+    const int startX = SENSOR_STATUS_X1 + 20;
+    const int ledY = SENSOR_STATUS_Y1 + 14;
+    const int textY = SENSOR_STATUS_Y1 + 28;
+    const int spacing = 38;
+    
+    // LED 1: Corriente (INA226) con efecto 3D
     uint16_t colorCurrent = getStatusColor(currentOK, currentTotal);
+    // Sombra del LED
+    tft->fillCircle(startX + 1, ledY + 1, ledRadius, getDarkColor(colorCurrent));
+    // LED principal
     tft->fillCircle(startX, ledY, ledRadius, colorCurrent);
+    // Highlight 3D (brillo)
+    tft->fillCircle(startX - 2, ledY - 2, 2, 0xFFFF);
+    // Borde
+    tft->drawCircle(startX, ledY, ledRadius, getDarkColor(colorCurrent));
+    
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(colorCurrent, TFT_BLACK);
     tft->drawString("I", startX, textY, 1);
     
-    // LED 2: Temperatura (DS18B20)
+    // LED 2: Temperatura (DS18B20) con efecto 3D
     uint16_t colorTemp = getStatusColor(tempOK, tempTotal);
+    tft->fillCircle(startX + spacing + 1, ledY + 1, ledRadius, getDarkColor(colorTemp));
     tft->fillCircle(startX + spacing, ledY, ledRadius, colorTemp);
+    tft->fillCircle(startX + spacing - 2, ledY - 2, 2, 0xFFFF);
+    tft->drawCircle(startX + spacing, ledY, ledRadius, getDarkColor(colorTemp));
+    
     tft->setTextColor(colorTemp, TFT_BLACK);
     tft->drawString("T", startX + spacing, textY, 1);
     
-    // LED 3: Ruedas
+    // LED 3: Ruedas con efecto 3D
     uint16_t colorWheel = getStatusColor(wheelOK, wheelTotal);
+    tft->fillCircle(startX + 2*spacing + 1, ledY + 1, ledRadius, getDarkColor(colorWheel));
     tft->fillCircle(startX + 2*spacing, ledY, ledRadius, colorWheel);
+    tft->fillCircle(startX + 2*spacing - 2, ledY - 2, 2, 0xFFFF);
+    tft->drawCircle(startX + 2*spacing, ledY, ledRadius, getDarkColor(colorWheel));
+    
     tft->setTextColor(colorWheel, TFT_BLACK);
     tft->drawString("W", startX + 2*spacing, textY, 1);
 }
