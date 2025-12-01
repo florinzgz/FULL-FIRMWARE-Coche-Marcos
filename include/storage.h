@@ -4,7 +4,7 @@
 namespace Storage {
 
     // Versión de estructura de datos guardada
-    const uint16_t kConfigVersion = 5;   // ⚠️ v5: added odometer and maintenance tracking
+    const uint16_t kConfigVersion = 6;   // ⚠️ v6: added touch_enabled flag for SPI bus stability
 
     struct ErrorLog {
         uint16_t code;       // código de error
@@ -51,6 +51,9 @@ namespace Storage {
         bool tempSensorsEnabled;
         bool currentSensorsEnabled;
         bool steeringEnabled;
+        
+        // 🔒 v2.8.6: Touch screen configuration
+        bool touchEnabled;            // Enable/disable touchscreen functionality
         
         // 🔒 v2.4.2: Odómetro y mantenimiento
         OdometerData odometer;
