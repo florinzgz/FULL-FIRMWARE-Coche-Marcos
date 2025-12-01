@@ -760,9 +760,18 @@ Cálculo: Vout = 5V × (4.7 / (2.7 + 4.7)) = 3.18V máximo ✅
 
 ### 12.1 Descripción
 
-Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía MCP23017.
+Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía optoacoplador HY-M158 al expansor MCP23017 I²C.
 
-### 12.2 Asignación de Posiciones
+### 12.2 Especificaciones de Voltaje
+
+| Parámetro | Valor | Notas |
+|-----------|-------|-------|
+| **Voltaje de entrada palanca** | **12V DC** | Común del coche |
+| Voltaje salida optoacoplador | 3.3V | Compatible con MCP23017 |
+| Corriente por canal HY-M158 | ~10mA | LED interno PC817 |
+| Consumo total shifter | ~50mA | 5 canales activos max |
+
+### 12.3 Asignación de Posiciones
 
 | Posición | Función | Pin MCP23017 | Color Cable |
 |----------|---------|--------------|-------------|
@@ -772,26 +781,50 @@ Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía MCP23017.
 | D1 | Drive 1 (lento) | GPIOB3 (pin 11) | Azul |
 | D2 | Drive 2 (rápido) | GPIOB4 (pin 12) | Amarillo |
 
-### 12.3 Diagrama de Conexión (vía HY-M158 #2)
+### 12.4 Diagrama de Conexión Completo (vía HY-M158 #2)
 
 ```
-     PALANCA SHIFTER (12V)       HY-M158 #2            MCP23017
-┌─────────────────────────┐  ┌──────────────┐    ┌──────────────┐
-│ P  ●──── Rojo ──────────┼──┤ IN1 → OUT1 ──┼────┤ GPIOB0       │
-│ R  ●──── Blanco ────────┼──┤ IN2 → OUT2 ──┼────┤ GPIOB1       │
-│ N  ●──── Verde ─────────┼──┤ IN3 → OUT3 ──┼────┤ GPIOB2       │
-│ D1 ●──── Azul ──────────┼──┤ IN4 → OUT4 ──┼────┤ GPIOB3       │
-│ D2 ●──── Amarillo ──────┼──┤ IN5 → OUT5 ──┼────┤ GPIOB4       │
-│                         │  │              │    │              │
-│ Común ●──── +12V ───────┼──┤ VCC          │    │              │
-└─────────────────────────┘  └──────────────┘    └──────────────┘
+     PALANCA SHIFTER                HY-M158 #2            MCP23017 (I²C 0x20)
+     (Opera a 12V DC)               (Optoacoplador)       (Expansor GPIO)
+┌─────────────────────────┐    ┌───────────────────┐    ┌──────────────────┐
+│                         │    │  LADO     LADO    │    │                  │
+│                         │    │  ENTRADA  SALIDA  │    │                  │
+│                         │    │  (12V)    (3.3V)  │    │                  │
+│ P  ●──── Rojo ──────────┼────┤ IN1  →→→  OUT1 ───┼────┤ GPIOB0 (pin 8)   │
+│ R  ●──── Blanco ────────┼────┤ IN2  →→→  OUT2 ───┼────┤ GPIOB1 (pin 9)   │
+│ N  ●──── Verde ─────────┼────┤ IN3  →→→  OUT3 ───┼────┤ GPIOB2 (pin 10)  │
+│ D1 ●──── Azul ──────────┼────┤ IN4  →→→  OUT4 ───┼────┤ GPIOB3 (pin 11)  │
+│ D2 ●──── Amarillo ──────┼────┤ IN5  →→→  OUT5 ───┼────┤ GPIOB4 (pin 12)  │
+│                         │    │                   │    │                  │
+│ Común ●──── +12V ───────┼────┤ VCC (12V lado in) │    │ VCC ── 3.3V      │
+│ GND   ●──── GND ────────┼────┤ GND ──────────────┼────┤ GND              │
+└─────────────────────────┘    │     GND común     │    │                  │
+                               │                   │    │ SDA ── GPIO 8    │
+                               │ VCC (3.3V salida) ┼────┤ SCL ── GPIO 9    │
+                               └───────────────────┘    └──────────────────┘
 ```
 
-### 12.4 ⚠️ Notas Importantes
+### 12.5 Funcionamiento del Circuito
 
-- **Lógica invertida**: Posición activa = LOW (por optoacoplador)
-- **Pull-up**: MCP23017 tiene pull-up interno activado
-- **Exclusiva**: Solo una posición activa a la vez
+1. **Al seleccionar una posición** (ej: D1):
+   - El contacto conecta +12V al canal correspondiente (IN4)
+   - El LED interno del optoacoplador PC817 se enciende
+   - El fototransistor conduce y conecta OUT4 a GND
+   - MCP23017 GPIOB3 lee LOW (0)
+
+2. **Cuando no está seleccionada**:
+   - No hay 12V en la entrada
+   - LED del optoacoplador apagado
+   - El pull-up del MCP23017 mantiene la salida en HIGH (1)
+
+### 12.6 ⚠️ Notas Importantes
+
+- **Voltaje de entrada: 12V DC** - Es el voltaje estándar del sistema auxiliar del coche
+- **Lógica invertida**: Posición activa = LOW (por inversión del optoacoplador)
+- **Pull-up**: MCP23017 tiene pull-up interno activado en el firmware
+- **Exclusiva**: Solo una posición puede estar activa a la vez
+- **Debounce**: El firmware implementa debounce de 50ms para evitar rebotes
+- **Prioridad**: En caso de múltiples lecturas activas: P > R > N > D1 > D2
 
 ---
 
