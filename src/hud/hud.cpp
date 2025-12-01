@@ -2,6 +2,7 @@
 #include <Arduino.h>                // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>   // Librería táctil
+#include <SPI.h>                    // Para SPIClass HSPI
 #include <math.h>                   // Para cosf, sinf
 
 #include "gauges.h"
@@ -30,6 +31,15 @@
 
 // ✅ Usar la instancia global de TFT_eSPI definida en hud_manager.cpp
 extern TFT_eSPI tft;
+
+// 🔒 v2.8.7: HSPI bus compartido entre TFT y Touch
+// El XPT2046 debe usar el mismo bus SPI que el TFT (HSPI) para evitar conflictos
+// que causan pantalla blanca al arrancar cuando touch está habilitado
+#ifdef USE_HSPI_PORT
+static SPIClass touchSpi = SPIClass(HSPI);
+#else
+static SPIClass& touchSpi = SPI;
+#endif
 
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
@@ -110,11 +120,13 @@ void HUD::init() {
     
 #ifndef DISABLE_TOUCH
     if (cfg.touchEnabled) {
-        if (touch.begin()) {
+        // 🔒 v2.8.7: Usar HSPI para el touch (mismo bus que TFT)
+        // Esto evita conflictos de bus SPI que causan pantalla blanca
+        if (touch.begin(touchSpi)) {
             touch.setRotation(3);  // Match TFT rotation for proper touch mapping
             MenuHidden::initTouch(&touch);  // Pasar puntero táctil al menú oculto
             touchInitialized = true;
-            Logger::info("Touchscreen XPT2046 inicializado OK");
+            Logger::info("Touchscreen XPT2046 inicializado OK (HSPI compartido)");
         } else {
             Logger::error("Touchscreen XPT2046 no detectado - deshabilitando touch para esta sesión");
             // NOTE: We don't persist this change to storage intentionally.
