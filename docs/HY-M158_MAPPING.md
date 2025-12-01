@@ -179,6 +179,35 @@
 
 ---
 
+## ⚠️ Componentes que NO Usan HY-M158
+
+Los siguientes componentes se conectan **DIRECTAMENTE** a los GPIOs del ESP32-S3 (sin optoacoplador):
+
+### Botones de Control (LIGHTS, MEDIA, 4X4)
+- **Voltaje: 3.3V** (directo a GPIO)
+- NO requieren optoacoplador
+- Pull-up interno activado en firmware
+- Lógica: LOW = pulsado
+
+| Botón | GPIO | Función |
+|-------|------|---------|
+| LIGHTS | GPIO 2 | Luces ON/OFF |
+| MEDIA | GPIO 40 | Multimedia |
+| 4X4 | GPIO 41 | Switch 4x4/4x2 |
+
+### Llave de Contacto (KEY_SYSTEM)
+- **Voltaje: 3.3V** (directo a GPIO)
+- NO requiere optoacoplador
+- ⚠️ GPIO 0 es strapping pin - requiere pull-up EXTERNO de 10kΩ
+
+### Pedal Acelerador (A1324LUA-T)
+- **Voltaje sensor: 5V** (alimentación)
+- NO requiere optoacoplador
+- ⚠️ Requiere DIVISOR RESISTIVO (2.7kΩ + 4.7kΩ) para reducir 5V → 3.3V
+- Conectado a GPIO 35 (ADC)
+
+---
+
 ## Conexión Física HY-M158
 
 ### Lado de Entrada (12V/5V)
