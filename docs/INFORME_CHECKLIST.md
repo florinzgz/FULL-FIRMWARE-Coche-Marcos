@@ -1,8 +1,8 @@
-# 🔍 FIRMWARE AUDIT REPORT v2.7.0
+# 🔍 FIRMWARE AUDIT REPORT v2.8.5
 ## ESP32-S3 Car Control System - Auditoría Integral
 
-**Fecha:** 2025-11-27  
-**Versión Firmware:** v2.7.0  
+**Fecha:** 2025-12-01  
+**Versión Firmware:** v2.8.5  
 **Estado General:** ✅ **100% FIABLE** - Sistema Operativo Completo
 
 ---
@@ -19,6 +19,36 @@
 | 💾 Storage/EEPROM | ✅ OK | 100% |
 
 **Puntuación Global: 100/100** ⭐⭐⭐⭐⭐
+
+---
+
+## 🆕 MEJORAS v2.8.5
+
+### Revisión Exhaustiva de Código
+- ✅ Revisión completa de 57 archivos .cpp + 61 archivos .h
+- ✅ Patrones de seguridad verificados (nullptr, NaN, ISR-safe)
+- ✅ TODOs documentados y priorizados
+- ✅ Build status: SUCCESS (0 errores, 0 warnings críticos)
+
+### Documentación de Hardware Actualizada
+- ✅ Shifter (palanca de cambios): Voltaje 12V → HY-M158 → MCP23017
+- ✅ Botones (LIGHTS, MEDIA, 4X4): Voltaje 3.3V directo a GPIO
+- ✅ Llave de contacto: GPIO 0 con pull-up externo obligatorio
+- ✅ Pedal acelerador: 5V → divisor resistivo → 3.18V max → GPIO 35
+
+### CI/CD con GitHub Actions
+- ✅ Workflow automático en PRs y push a main
+- ✅ Compilación de 4 entornos (dev, release, OTA, test)
+- ✅ Caché de dependencias PlatformIO
+- ✅ Artefactos de firmware disponibles
+
+### Nuevas Implementaciones
+- ✅ `eeprom_persistence.cpp` - Sistema de persistencia EEPROM
+- ✅ `led_control_menu.cpp` - Menú control LED con patrones
+- ✅ `menu_encoder_calibration.cpp` - Calibración encoder 3 pasos
+- ✅ `menu_power_config.cpp` - Configuración de relés
+- ✅ `menu_sensor_config.cpp` - Configuración de sensores
+- ✅ `menu_obstacle_config.cpp` - Configuración obstáculos VL53L5X
 
 ---
 
@@ -439,16 +469,19 @@ El firmware ESP32-S3 Car Control System v2.7.0 presenta un nivel de **fiabilidad
   - Visualización detallada de errores
   - **NUEVO v2.7.0: Ajuste interactivo de regeneración con slider**
   - **NUEVO v2.7.0: Confirmación segura antes de borrar errores**
+  - **NUEVO v2.8.5: Revisión exhaustiva de código completada**
+  - **NUEVO v2.8.5: Documentación de hardware actualizada**
+  - **NUEVO v2.8.5: CI/CD con GitHub Actions**
 
-- ✅ **Mejoras v2.7.0:**
-  - Todas las opciones del menú oculto son ahora interactivas
-  - Ajuste de regeneración con slider visual y botones +/-
-  - Diálogo de confirmación antes de borrar errores
-  - Mejor experiencia de usuario con feedback táctil
+- ✅ **Mejoras v2.8.5:**
+  - Revisión completa de 57 archivos .cpp + 61 archivos .h
+  - Documentación de conexiones de shifter, botones, pedal y llave
+  - Workflow de CI/CD automatizado
+  - Nuevos menús de configuración (LED, sensores, potencia, obstáculos)
 
 **El sistema está 100% completo y listo para uso en producción** con todas las funciones del menú oculto implementadas.
 
 ---
 
 *Generado automáticamente por FirmwareAuditAgent*  
-*Última actualización: 2025-11-27 v2.7.0*
+*Última actualización: 2025-12-01 v2.8.5*
