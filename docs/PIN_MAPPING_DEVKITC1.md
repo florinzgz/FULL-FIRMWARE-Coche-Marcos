@@ -1,7 +1,7 @@
 # Mapeo de Pines para ESP32-S3-DevKitC-1 (44 pines)
 
-## 📌 Versión: 2.4.0
-## 📅 Fecha: 2025-11-25
+## 📌 Versión: 2.8.5
+## 📅 Fecha: 2025-12-01
 
 Este documento refleja la configuración actual del firmware según `include/pins.h`.
 
@@ -260,7 +260,7 @@ pio device monitor           # Monitor serie
 
 ---
 
-**Fecha de actualización**: 2025-11-25  
+**Fecha de actualización**: 2025-12-01  
 **Hardware objetivo**: ESP32-S3-DevKitC-1 (44 pines)  
-**Firmware compatible**: Coche Inteligente Marcos v2.4.0
+**Firmware compatible**: Coche Inteligente Marcos v2.8.5
 

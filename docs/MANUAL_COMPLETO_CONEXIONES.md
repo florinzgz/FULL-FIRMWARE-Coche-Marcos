@@ -719,40 +719,85 @@ Encoder incremental de **1200 pulsos/revolución** con 3 señales: A, B (cuadrat
 
 ### 11.1 Descripción
 
-Sensor Hall analógico que detecta posición del pedal acelerador.
+Sensor Hall analógico lineal que detecta la posición del pedal acelerador mediante un imán.
 
-### 11.2 Cables
+### 11.2 Especificaciones de Voltaje
+
+| Parámetro | Valor | Notas |
+|-----------|-------|-------|
+| **Voltaje alimentación sensor** | **5V DC** | Alimentación del A1324LUA-T |
+| Salida del sensor | 0-5V analógica | Proporcional a posición del imán |
+| Voltaje entrada ESP32 | 0-3.3V | ⚠️ Requiere divisor resistivo |
+| GPIO asignado | GPIO 35 | ADC1_CH4 |
+
+### 11.3 Cables del Sensor
 
 | Cable | Color | Función | Destino |
 |-------|-------|---------|---------|
 | 1 | Rojo | VCC | +5V |
-| 2 | Negro | GND | GND |
-| 3 | Blanco | Señal | GPIO 35 (vía divisor) |
+| 2 | Negro | GND | GND común |
+| 3 | Blanco | Señal analógica | GPIO 35 (vía divisor) |
 
-### 11.3 Conexión con Divisor de Tensión
+### 11.4 Conexión con Divisor de Tensión (OBLIGATORIO)
 
-El sensor entrega 0-5V, pero ESP32 acepta máximo 3.3V. Se necesita **divisor resistivo**.
+El sensor A1324LUA-T entrega 0-5V, pero el ESP32-S3 acepta máximo **3.3V** en sus ADC. Se necesita un **divisor resistivo**.
 
 ```
-      SENSOR A1324LUA-T         DIVISOR TENSIÓN         ESP32-S3
-┌─────────────────────────┐  ┌───────────────────┐  ┌──────────────┐
-│ VCC (Rojo) ●────────────┼──┤ → +5V             │  │              │
-│ GND (Negro) ●───────────┼──┤ → GND ────────────┼──┤ GND          │
-│                         │  │                   │  │              │
-│ Señal (Blanco) ●────────┼──┤ → R1 (2.7kΩ) ──┬──┼──┤ GPIO 35      │
-└─────────────────────────┘  │                │  │  │              │
-                             │             [4.7kΩ] R2│              │
-                             │                │  │  │              │
-                             │              GND  │  │              │
-                             └───────────────────┘  └──────────────┘
+      SENSOR A1324LUA-T          DIVISOR TENSIÓN          ESP32-S3
+┌─────────────────────────┐   ┌───────────────────┐   ┌──────────────┐
+│                         │   │                   │   │              │
+│ VCC (Rojo) ●────────────┼───┤──► +5V            │   │              │
+│                         │   │                   │   │              │
+│ GND (Negro) ●───────────┼───┤──► GND ───────────┼───┤ GND          │
+│                         │   │                   │   │              │
+│                         │   │   ┌──────────┐    │   │              │
+│ Señal (Blanco) ●────────┼───┤──►│ R1 2.7kΩ │    │   │              │
+│                         │   │   └────┬─────┘    │   │              │
+│                         │   │        │          │   │              │
+│                         │   │        ●──────────┼───┤ GPIO 35 (ADC)│
+│                         │   │        │          │   │              │
+│                         │   │   ┌────┴─────┐    │   │              │
+│                         │   │   │ R2 4.7kΩ │    │   │              │
+│                         │   │   └────┬─────┘    │   │              │
+│                         │   │        │          │   │              │
+│                         │   │       GND         │   │              │
+└─────────────────────────┘   └───────────────────┘   └──────────────┘
 
 Cálculo: Vout = 5V × (4.7 / (2.7 + 4.7)) = 3.18V máximo ✅
 ```
 
-### 11.4 ⚠️ Notas Importantes
+### 11.5 Configuración del Firmware
 
-- **Divisor OBLIGATORIO**: Sin él, se daña GPIO 35
-- **Calibración software**: Ajustar valores min/max en código
+| Parámetro | Valor Por Defecto | Descripción |
+|-----------|-------------------|-------------|
+| ADC Min | 200 | Lectura ADC con pedal sin presionar |
+| ADC Max | 3800 | Lectura ADC con pedal totalmente presionado |
+| Deadband | 3% | Zona muerta inicial (evita movimiento involuntario) |
+| Curva | Lineal (0) | Modos: 0=Lineal, 1=Suave, 2=Agresiva |
+| Filtro EMA | α=0.15 | Suavizado de lecturas para reducir ruido |
+
+### 11.6 Funcionamiento del Circuito
+
+1. **Sensor Hall A1324LUA-T**:
+   - Detecta campo magnético del imán en el pedal
+   - Salida proporcional: más presión = más voltaje
+   - Rango de salida: ~0.5V (reposo) a ~4.5V (máximo)
+
+2. **Divisor Resistivo**:
+   - Reduce voltaje de 5V a 3.18V máximo
+   - Protege GPIO 35 del ESP32-S3
+
+3. **Lectura ADC**:
+   - ESP32-S3 lee valor entre 0-4095 (12 bits)
+   - Filtro EMA suaviza lecturas ruidosas
+   - Normalización a porcentaje 0-100%
+
+### 11.7 ⚠️ Notas Importantes
+
+- **Divisor OBLIGATORIO**: Sin él, se daña GPIO 35 (máx 3.3V)
+- **Resistencias**: Usar resistencias de precisión (1% tolerancia)
+- **Calibración**: Ajustar adcMin/adcMax según tu sensor específico
+- **Ubicación sensor**: Debe estar alineado con el imán del pedal
 
 ---
 
@@ -760,9 +805,18 @@ Cálculo: Vout = 5V × (4.7 / (2.7 + 4.7)) = 3.18V máximo ✅
 
 ### 12.1 Descripción
 
-Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía MCP23017.
+Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía optoacoplador HY-M158 al expansor MCP23017 I²C.
 
-### 12.2 Asignación de Posiciones
+### 12.2 Especificaciones de Voltaje
+
+| Parámetro | Valor | Notas |
+|-----------|-------|-------|
+| **Voltaje de entrada palanca** | **12V DC** | Común del coche |
+| Voltaje salida optoacoplador | 3.3V | Compatible con MCP23017 |
+| Corriente por canal HY-M158 | ~10mA | LED interno PC817 |
+| Consumo total shifter | ~50mA | 5 canales activos max |
+
+### 12.3 Asignación de Posiciones
 
 | Posición | Función | Pin MCP23017 | Color Cable |
 |----------|---------|--------------|-------------|
@@ -772,26 +826,50 @@ Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía MCP23017.
 | D1 | Drive 1 (lento) | GPIOB3 (pin 11) | Azul |
 | D2 | Drive 2 (rápido) | GPIOB4 (pin 12) | Amarillo |
 
-### 12.3 Diagrama de Conexión (vía HY-M158 #2)
+### 12.4 Diagrama de Conexión Completo (vía HY-M158 #2)
 
 ```
-     PALANCA SHIFTER (12V)       HY-M158 #2            MCP23017
-┌─────────────────────────┐  ┌──────────────┐    ┌──────────────┐
-│ P  ●──── Rojo ──────────┼──┤ IN1 → OUT1 ──┼────┤ GPIOB0       │
-│ R  ●──── Blanco ────────┼──┤ IN2 → OUT2 ──┼────┤ GPIOB1       │
-│ N  ●──── Verde ─────────┼──┤ IN3 → OUT3 ──┼────┤ GPIOB2       │
-│ D1 ●──── Azul ──────────┼──┤ IN4 → OUT4 ──┼────┤ GPIOB3       │
-│ D2 ●──── Amarillo ──────┼──┤ IN5 → OUT5 ──┼────┤ GPIOB4       │
-│                         │  │              │    │              │
-│ Común ●──── +12V ───────┼──┤ VCC          │    │              │
-└─────────────────────────┘  └──────────────┘    └──────────────┘
+     PALANCA SHIFTER                HY-M158 #2            MCP23017 (I²C 0x20)
+     (Opera a 12V DC)               (Optoacoplador)       (Expansor GPIO)
+┌─────────────────────────┐    ┌───────────────────┐    ┌──────────────────┐
+│                         │    │  LADO     LADO    │    │                  │
+│                         │    │  ENTRADA  SALIDA  │    │                  │
+│                         │    │  (12V)    (3.3V)  │    │                  │
+│ P  ●──── Rojo ──────────┼────┤ IN1  →→→  OUT1 ───┼────┤ GPIOB0 (pin 8)   │
+│ R  ●──── Blanco ────────┼────┤ IN2  →→→  OUT2 ───┼────┤ GPIOB1 (pin 9)   │
+│ N  ●──── Verde ─────────┼────┤ IN3  →→→  OUT3 ───┼────┤ GPIOB2 (pin 10)  │
+│ D1 ●──── Azul ──────────┼────┤ IN4  →→→  OUT4 ───┼────┤ GPIOB3 (pin 11)  │
+│ D2 ●──── Amarillo ──────┼────┤ IN5  →→→  OUT5 ───┼────┤ GPIOB4 (pin 12)  │
+│                         │    │                   │    │                  │
+│ Común ●──── +12V ───────┼────┤ VCC (12V lado in) │    │ VCC ── 3.3V      │
+│ GND   ●──── GND ────────┼────┤ GND ──────────────┼────┤ GND              │
+└─────────────────────────┘    │     GND común     │    │                  │
+                               │                   │    │ SDA ── GPIO 8    │
+                               │ VCC (3.3V salida) ┼────┤ SCL ── GPIO 9    │
+                               └───────────────────┘    └──────────────────┘
 ```
 
-### 12.4 ⚠️ Notas Importantes
+### 12.5 Funcionamiento del Circuito
 
-- **Lógica invertida**: Posición activa = LOW (por optoacoplador)
-- **Pull-up**: MCP23017 tiene pull-up interno activado
-- **Exclusiva**: Solo una posición activa a la vez
+1. **Al seleccionar una posición** (ej: D1):
+   - El contacto conecta +12V al canal correspondiente (IN4)
+   - El LED interno del optoacoplador PC817 se enciende
+   - El fototransistor conduce y tira OUT4 hacia GND (nivel bajo)
+   - MCP23017 GPIOB3 lee LOW (0)
+
+2. **Cuando no está seleccionada**:
+   - No hay 12V en la entrada
+   - LED del optoacoplador apagado
+   - El pull-up del MCP23017 mantiene la salida en HIGH (1)
+
+### 12.6 ⚠️ Notas Importantes
+
+- **Voltaje de entrada: 12V DC** - Es el voltaje estándar del sistema auxiliar del coche
+- **Lógica invertida**: Posición activa = LOW (por inversión del optoacoplador)
+- **Pull-up**: MCP23017 tiene pull-up interno activado en el firmware
+- **Exclusiva**: Solo una posición puede estar activa a la vez
+- **Debounce**: El firmware implementa debounce de 50ms para evitar rebotes
+- **Prioridad**: En caso de múltiples lecturas activas: P > R > N > D1 > D2
 
 ---
 
@@ -934,31 +1012,118 @@ SD Card (FAT32)/
 
 ### 16.1 Descripción
 
-3 botones físicos para funciones de control.
+3 botones físicos para funciones de control, conectados directamente a GPIOs del ESP32-S3 con pull-up interno.
 
-### 16.2 Conexiones
+### 16.2 Especificaciones de Voltaje
 
-| Botón | GPIO | Color Cable | Función |
-|-------|------|-------------|---------|
-| LIGHTS | 2 | Amarillo | Luces ON/OFF |
-| MEDIA | 40 | Naranja | Multimedia |
-| 4X4 | 41 | Rojo | Switch 4x4/4x2 |
+| Parámetro | Valor | Notas |
+|-----------|-------|-------|
+| **Voltaje de operación** | **3.3V** | Directo a GPIO ESP32-S3 |
+| Voltaje máximo entrada | 3.3V | No requiere optoacoplador |
+| Tipo de conexión | Pull-up interno | Lógica activo bajo (LOW = pulsado) |
+| Debounce | 30ms | Implementado en firmware |
+| Long-press | 2000ms | Detectado en firmware |
 
-### 16.3 Diagrama de Conexión
+### 16.3 Asignación de Pines
+
+| Botón | GPIO | Color Cable | Función | Comportamiento |
+|-------|------|-------------|---------|----------------|
+| LIGHTS | 2 | Amarillo | Luces ON/OFF | Toggle (press) / Luces especiales (long-press) |
+| MEDIA | 40 | Naranja | Multimedia | Toggle (press) / Acción especial (long-press) |
+| 4X4 | 41 | Rojo | Switch 4x4/4x2 | Toggle tracción 4 ruedas / 2 ruedas |
+
+### 16.4 Diagrama de Conexión Detallado
 
 ```
-       BOTÓN                       ESP32-S3
-┌─────────────────────────┐    ┌──────────────┐
-│ Pin 1 ●─────────────────┼────┤ GPIO X       │
-│ Pin 2 ●─────────────────┼────┤ GND          │
-└─────────────────────────┘    └──────────────┘
-
-(Pull-up interno activado en firmware)
+     BOTONES FÍSICOS                                    ESP32-S3
+     (Operan a 3.3V)                                    
+                                                        
+     BOTÓN LUCES                                        
+┌─────────────────────────┐                        ┌──────────────┐
+│ ┌───┐                   │                        │              │
+│ │ ○ │── Terminal 1 ─────┼── Cable Amarillo ──────┤ GPIO 2       │
+│ │   │── Terminal 2 ─────┼── Cable Negro ─────────┤ GND          │
+│ └───┘                   │                        │              │
+└─────────────────────────┘                        │              │
+                                                   │              │
+     BOTÓN MULTIMEDIA                              │              │
+┌─────────────────────────┐                        │              │
+│ ┌───┐                   │                        │              │
+│ │ ○ │── Terminal 1 ─────┼── Cable Naranja ───────┤ GPIO 40      │
+│ │   │── Terminal 2 ─────┼── Cable Negro ─────────┤ GND          │
+│ └───┘                   │                        │              │
+└─────────────────────────┘                        │              │
+                                                   │              │
+     BOTÓN 4X4/4X2                                 │              │
+┌─────────────────────────┐                        │              │
+│ ┌───┐                   │                        │              │
+│ │ ○ │── Terminal 1 ─────┼── Cable Rojo ──────────┤ GPIO 41      │
+│ │   │── Terminal 2 ─────┼── Cable Negro ─────────┤ GND          │
+│ └───┘                   │                        │              │
+└─────────────────────────┘                        └──────────────┘
 ```
+
+### 16.5 Funcionamiento del Firmware
+
+1. **Press Normal (< 2 segundos)**:
+   - Al soltar el botón, se hace toggle del estado
+   - Se reproduce sonido de confirmación
+
+2. **Long Press (≥ 2 segundos)**:
+   - Se activa acción especial (configurable)
+   - Se reproduce sonido de confirmación con prioridad alta
+   - El toggle NO se ejecuta al soltar
+
+### 16.6 ⚠️ Notas Importantes
+
+- **Voltaje 3.3V**: Los botones operan directamente a 3.3V del ESP32
+- **NO usar 12V/5V**: Conectar voltaje mayor dañará los GPIOs
+- **Pull-up interno**: Activado en firmware, no requiere resistencia externa
+- **Lógica activo bajo**: LOW = pulsado, HIGH = no pulsado
 
 ---
 
-## 17. MÓDULO 16: OPTOACOPLADORES HY-M158
+## 17. MÓDULO 16: LLAVE DE CONTACTO (KEY SYSTEM)
+
+### 17.1 Descripción
+
+La llave de contacto controla el encendido/apagado del sistema. Está conectada a GPIO 0 que es un strapping pin del ESP32-S3.
+
+### 17.2 Especificaciones de Voltaje
+
+| Parámetro | Valor | Notas |
+|-----------|-------|-------|
+| **Voltaje de operación** | **3.3V** | Requiere pull-up EXTERNO |
+| GPIO asignado | GPIO 0 | ⚠️ Strapping pin (Boot mode) |
+| Tipo de conexión | Pull-up externo | Obligatorio por ser strapping pin |
+
+### 17.3 Conexión
+
+```
+     LLAVE DE CONTACTO              ESP32-S3
+     (Interruptor 3.3V)             
+┌─────────────────────────┐    ┌──────────────────┐
+│                         │    │                  │
+│ Terminal 1 ●────────────┼────┤ GPIO 0           │
+│                         │    │    │             │
+│                         │    │   [10kΩ]         │ ← Pull-up EXTERNO
+│                         │    │    │             │     OBLIGATORIO
+│                         │    │   3.3V           │
+│                         │    │                  │
+│ Terminal 2 ●────────────┼────┤ GND              │
+└─────────────────────────┘    └──────────────────┘
+```
+
+### 17.4 ⚠️ Notas Críticas
+
+- **GPIO 0 es strapping pin**: Afecta el modo de arranque del ESP32
+- **Pull-up EXTERNO obligatorio**: Resistencia de 10kΩ a 3.3V
+- **Estado en arranque**: Debe estar HIGH durante el boot
+- **Lógica**: HIGH = llave en ON, LOW = llave en OFF
+
+---
+
+## 18. MÓDULO 17: OPTOACOPLADORES HY-M158
 
 ### 17.1 Descripción
 
