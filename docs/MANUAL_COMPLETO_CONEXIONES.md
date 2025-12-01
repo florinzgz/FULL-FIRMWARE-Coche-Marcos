@@ -809,7 +809,7 @@ Palanca con 5 posiciones (P, R, N, D1, D2) conectada vía optoacoplador HY-M158 
 1. **Al seleccionar una posición** (ej: D1):
    - El contacto conecta +12V al canal correspondiente (IN4)
    - El LED interno del optoacoplador PC817 se enciende
-   - El fototransistor conduce y conecta OUT4 a GND
+   - El fototransistor conduce y tira OUT4 hacia GND (nivel bajo)
    - MCP23017 GPIOB3 lee LOW (0)
 
 2. **Cuando no está seleccionada**:
