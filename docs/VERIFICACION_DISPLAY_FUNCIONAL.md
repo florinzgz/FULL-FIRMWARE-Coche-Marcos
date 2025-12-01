@@ -399,7 +399,7 @@ El código del display está **bien organizado y funcional**:
 
 ---
 
-*Verificación completa línea por línea - Versión 2.8.3*
+*Verificación completa línea por línea - Versión 2.8.5*
 
 ---
 
@@ -517,4 +517,4 @@ Las zonas táctiles en `touch_map.h` coinciden con las posiciones de iconos en `
 
 ---
 
-*Verificación Touch/Display añadida - Versión 2.8.4*
+*Verificación Touch/Display añadida - Versión 2.8.5*

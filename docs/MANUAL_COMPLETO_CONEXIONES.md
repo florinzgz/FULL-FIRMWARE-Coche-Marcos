@@ -1,9 +1,9 @@
 # 📘 MANUAL COMPLETO DE CONEXIONES
 ## ESP32-S3 Car Control System - Coche Inteligente Marcos
 
-**Versión Firmware:** 2.8.0  
+**Versión Firmware:** 2.8.5  
 **Placa:** ESP32-S3-DevKitC-1 (44 pines)  
-**Fecha:** 2025-11-27
+**Fecha:** 2025-11-30
 
 ---
 
@@ -1118,7 +1118,7 @@ SD Card (FAT32)/
 
 ---
 
-**Versión:** 1.0  
-**Fecha:** 2025-11-27  
-**Firmware:** v2.8.0  
+**Versión:** 1.1  
+**Fecha:** 2025-11-30  
+**Firmware:** v2.8.5  
 **Placa:** ESP32-S3-DevKitC-1 (44 pines)

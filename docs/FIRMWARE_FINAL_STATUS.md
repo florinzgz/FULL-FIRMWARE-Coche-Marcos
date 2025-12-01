@@ -2,8 +2,8 @@
 
 ## ✅ FIRMWARE 100% FUNCIONAL Y VERIFICADO
 
-Fecha: 2025-11-27
-Versión: 2.8.0 - Final Release
+Fecha: 2025-11-30
+Versión: 2.8.5 - Final Release
 ESP32: S3-DevKitC-1 (44 pines)
 
 ---
@@ -11,6 +11,16 @@ ESP32: S3-DevKitC-1 (44 pines)
 ## 📋 RESUMEN EJECUTIVO
 
 **Estado:** ✅ **COMPLETO Y LISTO PARA PRODUCCIÓN**
+
+**Novedades v2.8.5:**
+- ✅ Revisión exhaustiva de código: 57 .cpp + 61 .h archivos verificados
+- ✅ Nuevo archivo pin_utils.h con funciones de validación de GPIO
+- ✅ Nuevo archivo pwm_channels.h con definiciones de canales PWM
+- ✅ Nuevo archivo test_display.h/cpp para pruebas standalone de display
+- ✅ Mejoras en math_utils.cpp: validación NaN/Inf en todas las funciones
+- ✅ Mejoras en led_controller.cpp: validaciones de seguridad y hardware
+- ✅ Nuevo CI workflow build_test.yml para entorno de test
+- ✅ Patrones de seguridad documentados (nullptr guards, NaN validation, ISR-safe)
 
 **Novedades v2.8.0:**
 - ✅ Sistema de Telemetría avanzada con checksum FNV-1a
@@ -190,11 +200,14 @@ platformio device monitor
 - [x] ABS/TCS/RegenAI implementados
 - [x] **v2.8.0: Telemetría con checksum**
 - [x] **v2.8.0: RedundantSensor**
+- [x] **v2.8.5: Code review exhaustivo**
+- [x] **v2.8.5: Nuevos archivos de utilidades (pin_utils.h, pwm_channels.h)**
+- [x] **v2.8.5: CI workflow para testing**
 - [x] Documentación actualizada
 
 ---
 
 **FIRMWARE 100% LISTO PARA PRODUCCIÓN**
 
-*Actualizado: 2025-11-27*  
-*Versión: v2.8.0*
+*Actualizado: 2025-11-30*  
+*Versión: v2.8.5*

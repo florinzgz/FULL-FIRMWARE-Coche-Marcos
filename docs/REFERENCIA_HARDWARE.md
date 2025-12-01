@@ -1,7 +1,7 @@
 # 🚗 HARDWARE REFERENCE - ESP32-S3 Car Control System
 
-## Versión Firmware: 2.8.0
-## Fecha: 2025-11-27
+## Versión Firmware: 2.8.5
+## Fecha: 2025-11-30
 ## Placa: ESP32-S3-DevKitC-1 (44 pines)
 
 ---
@@ -356,7 +356,19 @@ lib_deps =
 | **Flash Usage** | ~36% |
 | **RAM Usage** | ~9% |
 
-### 6.2 Cambios v2.8.0
+### 6.2 Cambios v2.8.5
+
+| Cambio | Descripción | Motivo |
+|--------|-------------|--------|
+| Code Review | Revisión exhaustiva de 57 .cpp + 61 .h | Calidad de código |
+| pin_utils.h | Funciones de validación GPIO | Seguridad pines |
+| pwm_channels.h | Definiciones de canales PWM | Organización |
+| test_display.h/cpp | Pruebas standalone de display | Testing aislado |
+| math_utils.cpp | Validación NaN/Inf en todas las funciones | Robustez |
+| led_controller.cpp | Validaciones de seguridad y hardware | Seguridad LEDs |
+| build_test.yml | CI workflow para testing | Automatización |
+
+### 6.3 Cambios v2.8.0
 
 | Cambio | Descripción | Motivo |
 |--------|-------------|--------|
@@ -364,7 +376,7 @@ lib_deps =
 | RedundantSensor | Estructura para sensores redundantes | Tolerancia a fallos |
 | Documentación | Todos los manuales en directorio docs/ | Organización |
 
-### 6.3 Cambios v2.4.0
+### 6.4 Cambios v2.4.0
 
 | Cambio | Descripción | Motivo |
 |--------|-------------|--------|
@@ -376,7 +388,7 @@ lib_deps =
 | Serial init | Eliminado bucle while bloqueante | Evitar watchdog reset |
 | HUD init delays | Reducidos de 70ms a 0.6ms | Arranque más rápido |
 
-### 6.4 Cambios v2.3.0
+### 6.5 Cambios v2.3.0
 
 | Cambio | Antes | Después | Motivo |
 |--------|-------|---------|--------|
@@ -425,6 +437,7 @@ lib_deps =
 
 | Versión | Fecha | Cambios Principales |
 |---------|-------|---------------------|
+| 2.8.5 | 2025-11-30 | Code review exhaustivo, nuevos utilities (pin_utils, pwm_channels), CI workflow |
 | 2.8.0 | 2025-11-27 | Sistema telemetría, RedundantSensor, documentación actualizada |
 | 2.4.0 | 2025-11-25 | Fix race conditions, SteeringMotor::get(), emergencyStop, hysteresis seguridad |
 | 2.3.0 | 2025-11-25 | Reorganización GPIO, resolución conflictos pines, TOUCH_CS seguro |
@@ -435,4 +448,4 @@ lib_deps =
 ---
 
 *Documento generado automáticamente - ESP32-S3 Car Control System*
-*Última actualización: 2025-11-27 v2.8.0*
+*Última actualización: 2025-11-30 v2.8.5*

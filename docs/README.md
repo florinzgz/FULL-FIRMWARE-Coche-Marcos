@@ -1,8 +1,8 @@
 # 📚 Documentación del Firmware - ESP32-S3 Car Control System
 
-**Versión Firmware:** 2.8.0  
+**Versión Firmware:** 2.8.5  
 **Placa:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2025-11-27
+**Última actualización:** 2025-11-30
 
 ---
 
@@ -24,7 +24,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 | Archivo | Descripción |
 |---------|-------------|
-| [FIRMWARE_FINAL_STATUS.md](FIRMWARE_FINAL_STATUS.md) | Estado final del firmware v2.8.0 - Sistema 100% operativo |
+| [FIRMWARE_FINAL_STATUS.md](FIRMWARE_FINAL_STATUS.md) | Estado final del firmware v2.8.5 - Sistema 100% operativo |
 | [INFORME_AUDITORIA.md](INFORME_AUDITORIA.md) | Auditoría completa del firmware con verificación de todos los módulos |
 | [INFORME_CHECKLIST.md](INFORME_CHECKLIST.md) | Checklist de verificación del sistema completo |
 | [CAMBIOS_RECIENTES.md](CAMBIOS_RECIENTES.md) | Historial de cambios y novedades del firmware |
@@ -36,7 +36,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 | Archivo | Descripción |
 |---------|-------------|
 | [MANUAL_COMPLETO_CONEXIONES.md](MANUAL_COMPLETO_CONEXIONES.md) | **📘 MANUAL COMPLETO** - Guía detallada de conexiones cable por cable, organizada por módulos y componentes |
-| [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | **📌 Referencia principal del hardware** - Componentes, especificaciones, arquitectura y conexiones GPIO actualizadas (v2.8.0) |
+| [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | **📌 Referencia principal del hardware** - Componentes, especificaciones, arquitectura y conexiones GPIO actualizadas (v2.8.5) |
 | [PIN_MAPPING_DEVKITC1.md](PIN_MAPPING_DEVKITC1.md) | **📌 Mapeo oficial de pines GPIO** - Asignación completa de pines para ESP32-S3-DevKitC-1 (v2.4.0) |
 | [HARDWARE_CONFIGURACION_COMPLETA.md](HARDWARE_CONFIGURACION_COMPLETA.md) | Configuración completa del hardware del sistema |
 | [HY-M158_MAPPING.md](HY-M158_MAPPING.md) | Mapeo de canales de los módulos optoacopladores HY-M158 |
@@ -215,4 +215,4 @@ pio device monitor
 
 **Firmware 100% Operativo y Listo para Producción** ✅
 
-*Documentación actualizada: 2025-11-27*
+*Documentación actualizada: 2025-11-30*
