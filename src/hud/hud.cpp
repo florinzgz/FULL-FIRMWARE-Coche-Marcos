@@ -200,6 +200,11 @@ static const uint16_t COLOR_CAR_GRILLE = 0x2104;     // Parrilla frontal
 static const uint16_t COLOR_HEADLIGHT = 0xFFE0;      // Faros (amarillo brillante)
 static const uint16_t COLOR_TAILLIGHT = 0xF800;      // Luces traseras (rojo)
 
+// Colores para barra de aceleración
+static const uint16_t COLOR_BAR_BG = 0x1082;         // Fondo barra (oscuro)
+static const uint16_t COLOR_BAR_BORDER = 0x2104;     // Borde barra
+static const uint16_t COLOR_REF_MARKS = 0x4208;      // Marcas de referencia
+
 // Draw car body outline connecting the four wheels
 // This creates a visual representation of the vehicle in the center
 static void drawCarBody() {
@@ -334,10 +339,10 @@ void HUD::drawPedalBar(float pedalPercent) {
 
     if (pedalPercent < 0.0f) {
         // Pedal inválido → barra vacía con "--"
-        tft.fillRoundRect(0, y, width, height, radius, 0x1082);
+        tft.fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
         tft.drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
         tft.setTextDatum(MC_DATUM);
-        tft.setTextColor(TFT_DARKGREY, 0x1082);
+        tft.setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
         tft.drawString("-- PEDAL --", 240, y + height/2, 2);
         return;
     }
@@ -363,8 +368,8 @@ void HUD::drawPedalBar(float pedalPercent) {
     }
 
     // Fondo de barra con efecto 3D (hundido)
-    tft.fillRoundRect(0, y, width, height, radius, 0x1082);
-    tft.drawRoundRect(0, y, width, height, radius, 0x2104);
+    tft.fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+    tft.drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
     
     // Barra de progreso principal
     if (barWidth > 0) {
@@ -394,9 +399,9 @@ void HUD::drawPedalBar(float pedalPercent) {
     tft.drawString(txt, 240, y + height/2, 2);
     
     // Marcas de referencia (25%, 50%, 75%)
-    tft.drawFastVLine(width / 4, y + 2, height - 4, 0x4208);
-    tft.drawFastVLine(width / 2, y + 2, height - 4, 0x4208);
-    tft.drawFastVLine(width * 3 / 4, y + 2, height - 4, 0x4208);
+    tft.drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
+    tft.drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
+    tft.drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
 }
 
 void HUD::update() {

@@ -8,6 +8,13 @@ static TFT_eSPI *tft;
 static float lastSpeed = -1;
 static float lastRpm   = -1;
 
+// Constantes matemáticas
+static const float DEG_TO_RAD_CONST = 0.0174533f;  // π/180 para conversión grados a radianes
+
+// Constantes de configuración por defecto
+static const int DEFAULT_MAX_KMH = 35;    // Velocidad máxima por defecto
+static const int DEFAULT_MAX_RPM = 400;   // RPM máxima por defecto
+
 // Colores 3D para efectos de profundidad
 static const uint16_t COLOR_GAUGE_OUTER = 0x4A69;    // Gris oscuro metálico
 static const uint16_t COLOR_GAUGE_INNER = 0x2124;    // Negro profundo
@@ -28,7 +35,7 @@ static const uint16_t COLOR_SCALE_DANGER = 0xF800;   // Rojo
 static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color, float startAngle, float endAngle) {
     for (int i = 0; i < thickness; i++) {
         for (float angle = startAngle; angle <= endAngle; angle += 2.0f) {
-            float rad = angle * 0.0174533f;
+            float rad = angle * DEG_TO_RAD_CONST;
             int x = cx + (int)(cosf(rad) * (r - i));
             int y = cy + (int)(sinf(rad) * (r - i));
             tft->drawPixel(x, y, color);
@@ -42,7 +49,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step, bool s
     for (int i = 0; i <= numMarks; i++) {
         float value = i * step;
         float angle = -135.0f + (value / (float)maxValue) * 270.0f;
-        float rad = angle * 0.0174533f;
+        float rad = angle * DEG_TO_RAD_CONST;
         
         // Determinar color según zona
         uint16_t color;
@@ -80,7 +87,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step, bool s
         if (i % 2 == 1) {  // Solo marcas intermedias
             float value = i * step / 2.0f;
             float angle = -135.0f + (value / (float)maxValue) * 270.0f;
-            float rad = angle * 0.0174533f;
+            float rad = angle * DEG_TO_RAD_CONST;
             
             int x1 = cx + (int)(cosf(rad) * (r - 5));
             int y1 = cy + (int)(sinf(rad) * (r - 5));
@@ -99,7 +106,7 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r, boo
     }
     
     float angle = -135.0f + (value / maxValue) * 270.0f;
-    float rad = angle * 0.0174533f;
+    float rad = angle * DEG_TO_RAD_CONST;
     
     // Puntos de la aguja (forma triangular)
     int tipX = cx + (int)(cosf(rad) * r);
@@ -187,7 +194,7 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
     kmh = constrain(kmh, 0.0f, min((float)maxKmh, 999.0f));  // Prevenir overflow visual
     
     // 🔒 Validar maxKmh para prevenir división por cero
-    if (maxKmh <= 0) maxKmh = 35;  // Fallback seguro
+    if (maxKmh <= 0) maxKmh = DEFAULT_MAX_KMH;
     
     // Calcular step de escala según maxKmh
     int step = (maxKmh <= 50) ? 5 : 10;
@@ -228,7 +235,7 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
 
 void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm) {
     // 🔒 CORRECCIÓN ALTA: Validar maxRpm para prevenir división por cero
-    if (maxRpm <= 0) maxRpm = 400;  // Fallback seguro
+    if (maxRpm <= 0) maxRpm = DEFAULT_MAX_RPM;
     
     rpm = constrain(rpm, 0.0f, (float)maxRpm);
     

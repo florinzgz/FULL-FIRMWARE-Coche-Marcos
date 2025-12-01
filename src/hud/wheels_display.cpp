@@ -17,6 +17,8 @@ static const uint16_t COLOR_WHEEL_HIGHLIGHT = 0x6B4D;  // Highlight 3D
 static const uint16_t COLOR_WHEEL_SHADOW = 0x1082;    // Sombra 3D
 static const uint16_t COLOR_HUB_CENTER = 0x9CF3;      // Centro plateado
 static const uint16_t COLOR_HUB_BOLT = 0xC618;        // Tornillos brillantes
+static const uint16_t COLOR_INFO_BG = 0x2104;         // Fondo de info (temperatura/esfuerzo)
+static const uint16_t COLOR_BAR_BG = 0x1082;          // Fondo de barras de progreso
 
 // 🔒 v2.8.4: Cache por rueda para evitar redibujos innecesarios
 // Cada posición tiene su propio estado para no bloquear otras ruedas
@@ -175,31 +177,31 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC, float
     drawWheel3D(cx, cy, angleDeg);
 
     // Temperatura encima con fondo semitransparente
-    tft->fillRoundRect(cx - 26, cy - 36, 52, 16, 3, 0x2104);
+    tft->fillRoundRect(cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
     tft->drawRoundRect(cx - 26, cy - 36, 52, 16, 3, TFT_DARKGREY);
     tft->setTextDatum(MC_DATUM);
     char buf[16];
     
     // Si temperatura es -999, mostrar "--" (sensor deshabilitado)
     if (tempC < -998.0f) {
-        tft->setTextColor(TFT_DARKGREY, 0x2104);
+        tft->setTextColor(TFT_DARKGREY, COLOR_INFO_BG);
         snprintf(buf, sizeof(buf), "-- C");
     } else {
-        tft->setTextColor(colorByTemp(tempC), 0x2104);
+        tft->setTextColor(colorByTemp(tempC), COLOR_INFO_BG);
         snprintf(buf, sizeof(buf), "%d C", (int)tempC);
     }
     tft->drawString(buf, cx, cy - 28, 2);
 
     // Esfuerzo debajo con fondo semitransparente
-    tft->fillRoundRect(cx - 26, cy + 18, 52, 16, 3, 0x2104);
+    tft->fillRoundRect(cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
     tft->drawRoundRect(cx - 26, cy + 18, 52, 16, 3, TFT_DARKGREY);
     
     // Si esfuerzo es -1, mostrar "--" (sensor deshabilitado)
     if (effortPct < 0.0f) {
-        tft->setTextColor(TFT_DARKGREY, 0x2104);
+        tft->setTextColor(TFT_DARKGREY, COLOR_INFO_BG);
         snprintf(buf, sizeof(buf), "-- %%");
     } else {
-        tft->setTextColor(colorByEffort(effortPct), 0x2104);
+        tft->setTextColor(colorByEffort(effortPct), COLOR_INFO_BG);
         snprintf(buf, sizeof(buf), "%d%%", (int)effortPct);
     }
     tft->drawString(buf, cx, cy + 26, 2);
@@ -210,7 +212,7 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC, float
     int barY = cy + 36;
     
     // Fondo de barra con efecto 3D
-    tft->fillRoundRect(barX, barY, barW, barH, 2, 0x1082);
+    tft->fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
     tft->drawRoundRect(barX, barY, barW, barH, 2, TFT_DARKGREY);
     
     if (effortPct >= 0.0f) {
