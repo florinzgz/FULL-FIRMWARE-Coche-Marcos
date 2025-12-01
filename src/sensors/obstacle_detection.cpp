@@ -24,9 +24,7 @@ static ObstacleSettings config;
 static bool initialized = false;
 static uint32_t lastUpdateMs = 0;
 static bool hardwarePresent = false;
-
-// I2C mutex for thread-safe access
-static SemaphoreHandle_t i2cMutex = nullptr;
+static bool placeholderMode = true;  // True when sensors not detected
 
 // XSHUT pins for sensors
 static const uint8_t OBSTACLE_XSHUT_PINS[::ObstacleConfig::NUM_SENSORS] = {
@@ -61,19 +59,15 @@ static bool selectMuxChannel(uint8_t channel) {
     return I2CRecovery::tcaSelectSafe(channel, ::ObstacleConfig::PCA9548A_ADDR);
 }
 
-// Verify PCA9548A multiplexer is present
+// Verify PCA9548A multiplexer is present using I2CRecovery
 static bool verifyMultiplexer() {
-    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        Wire.beginTransmission(::ObstacleConfig::PCA9548A_ADDR);
-        bool success = (Wire.endTransmission() == 0);
-        xSemaphoreGive(i2cMutex);
-        
-        if (!success) {
-            Logger::errorf("Obstacle: PCA9548A (0x%02X) not found", ::ObstacleConfig::PCA9548A_ADDR);
-        }
-        return success;
+    // Try to select channel 0 - if it works, multiplexer is present
+    bool success = I2CRecovery::tcaSelectSafe(0, ::ObstacleConfig::PCA9548A_ADDR);
+    
+    if (!success) {
+        Logger::errorf("Obstacle: PCA9548A (0x%02X) not found", ::ObstacleConfig::PCA9548A_ADDR);
     }
-    return false;
+    return success;
 }
 
 // Reset all sensors via XSHUT pins
@@ -113,13 +107,12 @@ static bool initSensor(uint8_t idx) {
         return false;
     }
     
-    // Check for sensor presence on I2C bus
-    bool sensorFound = false;
-    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        Wire.beginTransmission(::ObstacleConfig::VL53L5X_DEFAULT_ADDR);
-        sensorFound = (Wire.endTransmission() == 0);
-        xSemaphoreGive(i2cMutex);
-    }
+    // Check for sensor presence on I2C bus using I2CRecovery
+    // Device ID for VL53L5X sensors: use base 8 + sensor index
+    const uint8_t deviceId = 8 + idx;
+    uint8_t dummy;
+    bool sensorFound = I2CRecovery::readBytesWithRetry(
+        ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, 0x00, &dummy, 1, deviceId);
     
     // Configure sensor state
     sensorData[idx].enabled = config.sensorsEnabled[idx];
@@ -130,6 +123,7 @@ static bool initSensor(uint8_t idx) {
     
     if (sensorFound) {
         hardwarePresent = true;
+        placeholderMode = false;
         Logger::infof("Obstacle: Sensor %s detected at 0x%02X", 
                      SENSOR_NAMES[idx], ::ObstacleConfig::VL53L5X_DEFAULT_ADDR);
     } else {
@@ -147,16 +141,7 @@ void init() {
                  ::ObstacleConfig::PIN_XSHUT_LEFT, ::ObstacleConfig::PIN_XSHUT_RIGHT);
     
     hardwarePresent = false;
-    
-    // 0. Create I2C mutex for thread-safe access
-    if (i2cMutex == nullptr) {
-        i2cMutex = xSemaphoreCreateMutex();
-        if (i2cMutex == nullptr) {
-            Logger::error("Obstacle: Failed to create I2C mutex");
-            initialized = false;
-            return;
-        }
-    }
+    placeholderMode = true;
     
     // 1. Test I2C bus health
     if (!testI2CBus()) {
@@ -175,19 +160,20 @@ void init() {
     }
     
     // 4. Initialize each sensor sequentially
-    bool allOk = true;
     for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
         if (!initSensor(i)) {
-            allOk = false;
             sensorData[i].healthy = false;
         }
     }
     
-    initialized = true;  // Always set initialized to allow placeholder mode
+    // Set initialized based on I2C bus availability (placeholder mode is OK)
+    initialized = true;
     
     if (hardwarePresent) {
+        placeholderMode = false;
         Logger::info("Obstacle detection system ready (hardware detected)");
     } else {
+        placeholderMode = true;
         Logger::info("Obstacle detection system ready (placeholder/simulation mode)");
     }
 }
@@ -199,8 +185,8 @@ void update() {
     if (now - lastUpdateMs < ::ObstacleConfig::UPDATE_INTERVAL_MS) return;
     lastUpdateMs = now;
     
-    // Placeholder: actual sensor reading would go here
-    // For now, just update timestamps
+    // In placeholder mode, just update timestamps
+    // When hardware is present, actual sensor reading would go here
     for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
         if (!sensorData[i].enabled) continue;
         sensorData[i].lastUpdateMs = now;
