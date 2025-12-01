@@ -114,9 +114,12 @@ void HUD::init() {
             touchInitialized = true;
             Logger::info("Touchscreen XPT2046 inicializado OK");
         } else {
-            Logger::error("Touchscreen XPT2046 no detectado - deshabilitando touch");
-            // Disable touch in config if hardware fails to avoid SPI bus issues
-            cfg.touchEnabled = false;
+            Logger::error("Touchscreen XPT2046 no detectado - deshabilitando touch para esta sesión");
+            // NOTE: We don't persist this change to storage intentionally.
+            // This allows touch to be retried on next boot in case it was a 
+            // temporary issue (e.g., loose connection). If the user wants to
+            // permanently disable touch, they can do so via the hidden menu
+            // or by using the DISABLE_TOUCH compile flag.
             System::logError(760); // código reservado: fallo táctil
         }
     } else {
