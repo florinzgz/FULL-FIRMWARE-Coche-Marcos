@@ -24,7 +24,17 @@ static ObstacleSettings config;
 static bool initialized = false;
 static uint32_t lastUpdateMs = 0;
 static bool hardwarePresent = false;
-static bool placeholderMode = true;  // True when sensors not detected
+static bool placeholderMode = true;  // True when sensors not detected, used for simulation
+
+// I2CRecovery device ID allocation:
+// - Devices 0-7: Reserved for other I2C devices (INA226, etc.)
+// - Devices 8-11: Obstacle detection sensors (FRONT, REAR, LEFT, RIGHT)
+// - Devices 12-15: Available for future use
+constexpr uint8_t OBSTACLE_SENSOR_DEVICE_ID_BASE = 8;
+
+// VL53L5CX device identification
+constexpr uint16_t VL53L5CX_DEVICE_ID_REG = 0x0000;  // Device ID register address
+constexpr uint8_t VL53L5CX_EXPECTED_ID = 0xF0;       // Expected device ID for VL53L5CX
 
 // XSHUT pins for sensors
 static const uint8_t OBSTACLE_XSHUT_PINS[::ObstacleConfig::NUM_SENSORS] = {
@@ -107,12 +117,13 @@ static bool initSensor(uint8_t idx) {
         return false;
     }
     
-    // Check for sensor presence on I2C bus using I2CRecovery
-    // Device ID for VL53L5X sensors: use base 8 + sensor index
-    const uint8_t deviceId = 8 + idx;
-    uint8_t dummy;
-    bool sensorFound = I2CRecovery::readBytesWithRetry(
-        ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, 0x00, &dummy, 1, deviceId);
+    // Check for VL53L5CX sensor presence by reading device ID register
+    // Use defined base ID + sensor index for I2CRecovery device tracking
+    const uint8_t deviceId = OBSTACLE_SENSOR_DEVICE_ID_BASE + idx;
+    uint8_t deviceIdValue = 0;
+    bool readOk = I2CRecovery::readBytesWithRetry(
+        ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, VL53L5CX_DEVICE_ID_REG, &deviceIdValue, 1, deviceId);
+    bool sensorFound = readOk && (deviceIdValue == VL53L5CX_EXPECTED_ID);
     
     // Configure sensor state
     sensorData[idx].enabled = config.sensorsEnabled[idx];
@@ -124,10 +135,15 @@ static bool initSensor(uint8_t idx) {
     if (sensorFound) {
         hardwarePresent = true;
         placeholderMode = false;
-        Logger::infof("Obstacle: Sensor %s detected at 0x%02X", 
-                     SENSOR_NAMES[idx], ::ObstacleConfig::VL53L5X_DEFAULT_ADDR);
+        Logger::infof("Obstacle: Sensor %s detected at 0x%02X (ID: 0x%02X)", 
+                     SENSOR_NAMES[idx], ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, deviceIdValue);
     } else {
-        Logger::warnf("Obstacle: Sensor %s not detected (placeholder mode)", SENSOR_NAMES[idx]);
+        if (readOk) {
+            Logger::warnf("Obstacle: Sensor %s ID mismatch (got 0x%02X, expected 0x%02X)", 
+                         SENSOR_NAMES[idx], deviceIdValue, VL53L5CX_EXPECTED_ID);
+        } else {
+            Logger::warnf("Obstacle: Sensor %s not detected (placeholder mode)", SENSOR_NAMES[idx]);
+        }
     }
     
     return true;  // Return true even if sensor not found (placeholder mode)
@@ -323,6 +339,14 @@ bool runDiagnostics() {
     }
     
     return allPassed;
+}
+
+bool isPlaceholderMode() {
+    return placeholderMode;
+}
+
+bool isHardwarePresent() {
+    return hardwarePresent;
 }
 
 } // namespace ObstacleDetection
