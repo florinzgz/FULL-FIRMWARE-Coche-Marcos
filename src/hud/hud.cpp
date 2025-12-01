@@ -31,6 +31,9 @@ extern TFT_eSPI tft;
 
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
+// 🔒 v2.8.6: Track touch initialization state for runtime checks
+static bool touchInitialized = false;
+
 // Touch calibration: Using constants from touch_map.h (included above)
 // TouchCalibration::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
 
@@ -99,14 +102,32 @@ void HUD::init() {
     Icons::init(&tft);
     MenuHidden::init(&tft);  // MenuHidden stores tft pointer, must be non-null
 
-    if (touch.begin()) {
-        touch.setRotation(3);  // Match TFT rotation for proper touch mapping
-        MenuHidden::initTouch(&touch);  // Pasar puntero táctil al menú oculto
-        Logger::info("Touchscreen XPT2046 inicializado OK");
+    // 🔒 v2.8.6: TOUCH INITIALIZATION - Conditional based on config flag
+    // Initialize touchInitialized to false before attempting
+    touchInitialized = false;
+    
+#ifndef DISABLE_TOUCH
+    if (cfg.touchEnabled) {
+        if (touch.begin()) {
+            touch.setRotation(3);  // Match TFT rotation for proper touch mapping
+            MenuHidden::initTouch(&touch);  // Pasar puntero táctil al menú oculto
+            touchInitialized = true;
+            Logger::info("Touchscreen XPT2046 inicializado OK");
+        } else {
+            Logger::error("Touchscreen XPT2046 no detectado - deshabilitando touch para esta sesión");
+            // NOTE: We don't persist this change to storage intentionally.
+            // This allows touch to be retried on next boot in case it was a 
+            // temporary issue (e.g., loose connection). If the user wants to
+            // permanently disable touch, they can do so via the hidden menu
+            // or by using the DISABLE_TOUCH compile flag.
+            System::logError(760); // código reservado: fallo táctil
+        }
     } else {
-        Logger::error("Touchscreen XPT2046 no detectado");
-        System::logError(760); // código reservado: fallo táctil
+        Logger::info("Touchscreen deshabilitado en configuración");
     }
+#else
+    Logger::info("Touch deshabilitado por compilación (DISABLE_TOUCH)");
+#endif
 
     Logger::info("HUD init OK - Display ST7796S ready");
     
@@ -575,13 +596,15 @@ void HUD::update() {
 #endif
 
     // --- Lectura táctil usando touch_map ---
+    // 🔒 v2.8.6: Solo leer touch si está habilitado e inicializado
     bool batteryTouch = false;
 #ifdef STANDALONE_DISPLAY
     bool demoButtonTouched = false;
     static bool hiddenMenuJustActivated = false;
 #endif
 
-    if (touch.touched()) {
+#ifndef DISABLE_TOUCH
+    if (touchInitialized && cfg.touchEnabled && touch.touched()) {
         TS_Point p = touch.getPoint();
         // Map raw touch coordinates to screen coordinates using calibration constants
         int x = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
@@ -634,6 +657,7 @@ void HUD::update() {
         demoButtonWasPressed = false;
 #endif
     }
+#endif  // DISABLE_TOUCH
 
 #ifdef STANDALONE_DISPLAY
     // In demo mode, activate hidden menu directly on demo button long press

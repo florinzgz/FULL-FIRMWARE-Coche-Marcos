@@ -62,6 +62,9 @@ void Storage::defaults(Config &cfg) {
     cfg.currentSensorsEnabled  = false;
     cfg.steeringEnabled        = false;
     
+    // 🔒 v2.8.6: Touch screen configuration
+    cfg.touchEnabled           = true;   // Touch habilitado por defecto
+    
     // 🔒 v2.4.2: Odómetro y mantenimiento
     cfg.odometer.totalKm = 0.0f;
     cfg.odometer.tripKm = 0.0f;
@@ -111,6 +114,9 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
     mix((uint8_t*)&cfg.tempSensorsEnabled, sizeof(cfg.tempSensorsEnabled));
     mix((uint8_t*)&cfg.currentSensorsEnabled, sizeof(cfg.currentSensorsEnabled));
     mix((uint8_t*)&cfg.steeringEnabled, sizeof(cfg.steeringEnabled));
+    
+    // 🔒 v2.8.6: Touch screen configuration
+    mix((uint8_t*)&cfg.touchEnabled, sizeof(cfg.touchEnabled));
     
     // 🔒 v2.4.2: Odómetro y mantenimiento
     mix((uint8_t*)&cfg.odometer, sizeof(cfg.odometer));
