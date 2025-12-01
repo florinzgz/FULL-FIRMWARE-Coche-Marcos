@@ -454,7 +454,7 @@
 
 ## 10. 📝 CONCLUSIÓN
 
-El firmware ESP32-S3 Car Control System v2.7.0 presenta un nivel de **fiabilidad del 100%**, con todas las funciones del menú oculto completamente implementadas:
+El firmware ESP32-S3 Car Control System v2.8.5 presenta un nivel de **fiabilidad del 100%**, con todas las funciones del menú oculto completamente implementadas:
 
 - ✅ **Fortalezas:**
   - Excelente protección contra lecturas inválidas
