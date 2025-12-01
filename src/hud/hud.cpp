@@ -1,4 +1,5 @@
 #include "hud.h"
+#include <Arduino.h>                // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>   // Librería táctil
 #include <math.h>                   // Para cosf, sinf
@@ -184,10 +185,10 @@ void HUD::showError() {
 // Estado de progreso para visualización del botón DEMO
 static float demoButtonProgress = 0.0f;
 
-// Draw demo mode button for easy hidden menu access
+// Dibujar botón DEMO para acceso fácil al menú oculto
 // Muestra progreso visual durante la pulsación larga
 static void drawDemoButton() {
-    // Only draw if hidden menu is not active
+    // Solo dibujar si el menú oculto no está activo
     if (MenuHidden::isActive()) return;
     
     int btnW = DEMO_BTN_X2 - DEMO_BTN_X1;
@@ -218,7 +219,7 @@ static void drawDemoButton() {
     tft.drawString("Pulsar 1.5s", centerX, centerY + 10, 1);
 }
 
-// Check if touch is in demo button area (con margen extra para facilitar el toque)
+// Verificar si el toque está en el área del botón DEMO (con margen extra para facilitar el toque)
 static bool isTouchInDemoButton(int x, int y) {
     // Añadir margen de 10px para facilitar el toque
     const int MARGIN = 10;
@@ -420,11 +421,12 @@ static void drawSteeringWheel(float angleDeg) {
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(rimColor, TFT_BLACK);
     char buf[16];
-    snprintf(buf, sizeof(buf), "%+.0f", angleDeg);  // Formato: +0° o -15°
+    snprintf(buf, sizeof(buf), "%+.0f\xB0", angleDeg);  // Formato: +0° o -15° (0xB0 = símbolo grado)
     tft.drawString(buf, cx, textY, 2);
 }
 
-// Mantener compatibilidad con nombre anterior
+// DEPRECATED: Mantener compatibilidad con nombre anterior
+// TODO: Eliminar en próxima versión mayor, usar drawSteeringWheel() directamente
 static void drawSteeringAngle(float angleDeg) {
     drawSteeringWheel(angleDeg);
 }
