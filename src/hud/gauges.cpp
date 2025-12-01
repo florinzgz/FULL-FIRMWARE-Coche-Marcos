@@ -33,13 +33,10 @@ static const uint16_t COLOR_SCALE_DANGER = 0xF800;   // Rojo
 
 // Dibujar arco grueso con efecto 3D
 static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color, float startAngle, float endAngle) {
+    // Use TFT_eSPI's optimized drawArc() method for better performance
     for (int i = 0; i < thickness; i++) {
-        for (float angle = startAngle; angle <= endAngle; angle += 2.0f) {
-            float rad = angle * DEG_TO_RAD_CONST;
-            int x = cx + (int)(cosf(rad) * (r - i));
-            int y = cy + (int)(sinf(rad) * (r - i));
-            tft->drawPixel(x, y, color);
-        }
+        // drawArc expects angles in degrees, and draws a ring segment with given thickness
+        tft->drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle, color, color, true);
     }
 }
 
