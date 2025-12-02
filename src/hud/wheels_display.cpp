@@ -120,8 +120,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
         // Dibujar marca con efecto 3D (línea oscura + highlight perpendicular)
         tft->drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
         // Small perpendicular offset for highlight
-        int offset_x = (int)(sinf(rad) * 1);  // perpendicular to wheel axis
-        int offset_y = -(int)(cosf(rad) * 1);
+        int offset_x = (int)roundf(sinf(rad));  // perpendicular to wheel axis
+        int offset_y = (int)roundf(-cosf(rad));
         tft->drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x, ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
     }
     
