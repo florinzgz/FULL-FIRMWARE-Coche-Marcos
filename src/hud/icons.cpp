@@ -129,6 +129,7 @@ void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
         uint16_t textColor = active ? TFT_WHITE : TFT_DARKGREY;
         tft->setTextColor(textColor, bgColor);
         tft->drawString(text, cx, cy, 2);
+        tft->setTextDatum(TL_DATUM);
     };
 
     // 4x4 / 4x2 - Siempre muestra el estado activo con color diferente
