@@ -412,7 +412,7 @@ La separación se logra mediante **Chip Selects (CS) independientes**:
 
 | Dispositivo | Pin CS | Pin IRQ | Frecuencia SPI | Estado |
 |-------------|--------|---------|----------------|--------|
-| TFT ST7796S | GPIO 16 | - | 20 MHz | ✅ OK |
+| TFT ST7796S | GPIO 16 | - | 40 MHz | ✅ OK |
 | XPT2046 Touch | GPIO 21 | GPIO 47 | 2.5 MHz | ✅ OK |
 
 ### 13.2 Verificación de Separación de CS
@@ -429,14 +429,16 @@ Touch CS = GPIO 21 (PIN_TOUCH_CS en pins.h)
 ### 13.3 Frecuencias SPI Configuradas (platformio.ini)
 
 ```ini
--DSPI_FREQUENCY=20000000       ; 20MHz para TFT
--DSPI_READ_FREQUENCY=10000000  ; 10MHz para lecturas TFT
--DSPI_TOUCH_FREQUENCY=2500000  ; 2.5MHz para touch (conservador)
+-DSPI_FREQUENCY=40000000       ; 40MHz para TFT (optimizado v2.8.9)
+-DSPI_READ_FREQUENCY=20000000  ; 20MHz para lecturas TFT
+-DSPI_TOUCH_FREQUENCY=2500000  ; 2.5MHz para touch (requisito XPT2046)
 ```
 
 **Análisis**:
-- La frecuencia del touch es **8x más lenta** que la del TFT
-- Esto garantiza lecturas estables del ADC del XPT2046
+- La frecuencia del touch es **16x más lenta** que la del TFT
+- 40MHz es la frecuencia recomendada para ST7796S según TFT_eSPI
+- ESP32-S3 puede manejar hasta 80MHz, 40MHz es seguro y rápido
+- XPT2046 requiere máximo 2.5MHz para lecturas estables del ADC
 - No hay problemas de timing entre dispositivos
 
 ### 13.4 Rotación Sincronizada
@@ -508,7 +510,7 @@ Las zonas táctiles en `touch_map.h` coinciden con las posiciones de iconos en `
 **✅ NO HAY INTERFERENCIA ENTRE TOUCH Y DISPLAY**
 
 1. **Bus SPI compartido correctamente**: CS separados (GPIO 16 vs GPIO 21)
-2. **Frecuencias apropiadas**: TFT 20MHz, Touch 2.5MHz (8x más lento)
+2. **Frecuencias apropiadas**: TFT 40MHz, Touch 2.5MHz (16x más lento)
 3. **Rotación sincronizada**: Ambos usan rotation=3
 4. **Inicialización ordenada**: TFT primero, Touch después
 5. **Calibración centralizada**: Constantes en touch_map.h
