@@ -258,91 +258,248 @@ static const uint16_t COLOR_REF_MARKS = 0x4208;      // Marcas de referencia
 
 // Draw car body outline connecting the four wheels
 // This creates a visual representation of the vehicle in the center
+// 🔒 v2.8.8: Diseño mejorado - Vista cenital más realista de un coche
 static void drawCarBody() {
     // Only draw once (static background)
     if (carBodyDrawn) return;
     
-    int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche
-    int cy = CAR_BODY_Y + CAR_BODY_H / 2;  // Centro Y del coche
+    int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche (240)
+    int cy = CAR_BODY_Y + CAR_BODY_H / 2;  // Centro Y del coche (175)
     
-    // === Sombra del coche (proyección 3D) ===
-    tft.fillRoundRect(CAR_BODY_X + 3, CAR_BODY_Y + 3, CAR_BODY_W, CAR_BODY_H, 8, 0x1082);
+    // Dimensiones del coche (proporciones más realistas)
+    int bodyW = CAR_BODY_W - 10;      // 120px ancho
+    int bodyH = CAR_BODY_H;           // 150px largo
+    int frontTaper = 25;               // Estrechamiento frontal
+    int rearTaper = 15;                // Estrechamiento trasero
     
-    // === Carrocería principal con esquinas redondeadas ===
-    tft.fillRoundRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, 8, COLOR_CAR_BODY);
+    // === SOMBRA GENERAL DEL COCHE ===
+    // Sombra proyectada (offset 4px)
+    int sx = 4, sy = 4;
     
-    // Gradiente de profundidad 3D
-    // Highlight superior
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + 2, CAR_BODY_W - 20, COLOR_CAR_HIGHLIGHT);
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + 3, CAR_BODY_W - 20, COLOR_CAR_HIGHLIGHT);
-    // Sombra inferior
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + CAR_BODY_H - 3, CAR_BODY_W - 20, COLOR_CAR_SHADOW);
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + CAR_BODY_H - 2, CAR_BODY_W - 20, COLOR_CAR_SHADOW);
+    // Forma aerodinámica del coche (polígono de 8 puntos)
+    // Puntos del coche (sentido horario desde frontal izquierdo)
+    int carPoints[16] = {
+        // Frente (más estrecho - capó aerodinámico)
+        cx - bodyW/2 + frontTaper, CAR_BODY_Y + 5,           // 0: Frontal izquierdo
+        cx + bodyW/2 - frontTaper, CAR_BODY_Y + 5,           // 1: Frontal derecho
+        // Lateral derecho
+        cx + bodyW/2, CAR_BODY_Y + 35,                        // 2: Ensanchamiento delantero derecho
+        cx + bodyW/2, CAR_BODY_Y + bodyH - 35,                // 3: Ensanchamiento trasero derecho
+        // Trasera (un poco más estrecha)
+        cx + bodyW/2 - rearTaper, CAR_BODY_Y + bodyH - 5,    // 4: Trasero derecho
+        cx - bodyW/2 + rearTaper, CAR_BODY_Y + bodyH - 5,    // 5: Trasero izquierdo
+        // Lateral izquierdo
+        cx - bodyW/2, CAR_BODY_Y + bodyH - 35,                // 6: Ensanchamiento trasero izquierdo
+        cx - bodyW/2, CAR_BODY_Y + 35                         // 7: Ensanchamiento delantero izquierdo
+    };
     
-    // Borde exterior con efecto metálico
-    tft.drawRoundRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, 8, COLOR_CAR_OUTLINE);
-    tft.drawRoundRect(CAR_BODY_X + 1, CAR_BODY_Y + 1, CAR_BODY_W - 2, CAR_BODY_H - 2, 7, 0x4A49);
+    // Dibujar sombra del coche
+    for (int i = 0; i < 7; i++) {
+        tft.fillTriangle(
+            cx + sx, cy + sy,
+            carPoints[i*2] + sx, carPoints[i*2+1] + sy,
+            carPoints[(i+1)*2] + sx, carPoints[(i+1)*2+1] + sy,
+            0x1082
+        );
+    }
+    tft.fillTriangle(cx + sx, cy + sy, carPoints[14] + sx, carPoints[15] + sy, carPoints[0] + sx, carPoints[1] + sy, 0x1082);
     
-    // === Capó frontal (parte superior del coche - vista cenital) ===
-    int hoodX = CAR_BODY_X + 20;
-    int hoodW = CAR_BODY_W - 40;
-    int hoodY = CAR_BODY_Y + 5;
-    int hoodH = 25;
+    // === CARROCERÍA PRINCIPAL ===
+    // Dibujar cuerpo del coche (relleno con triángulos desde el centro)
+    for (int i = 0; i < 7; i++) {
+        tft.fillTriangle(
+            cx, cy,
+            carPoints[i*2], carPoints[i*2+1],
+            carPoints[(i+1)*2], carPoints[(i+1)*2+1],
+            COLOR_CAR_BODY
+        );
+    }
+    tft.fillTriangle(cx, cy, carPoints[14], carPoints[15], carPoints[0], carPoints[1], COLOR_CAR_BODY);
     
-    // Área del capó
-    tft.fillRoundRect(hoodX, hoodY, hoodW, hoodH, 4, COLOR_CAR_GRILLE);
-    tft.drawRoundRect(hoodX, hoodY, hoodW, hoodH, 4, COLOR_CAR_OUTLINE);
+    // Borde exterior del coche
+    for (int i = 0; i < 7; i++) {
+        tft.drawLine(carPoints[i*2], carPoints[i*2+1], carPoints[(i+1)*2], carPoints[(i+1)*2+1], COLOR_CAR_OUTLINE);
+    }
+    tft.drawLine(carPoints[14], carPoints[15], carPoints[0], carPoints[1], COLOR_CAR_OUTLINE);
     
-    // Faros delanteros
-    tft.fillRoundRect(hoodX + 5, hoodY + 5, 15, 10, 2, COLOR_HEADLIGHT);
-    tft.fillRoundRect(hoodX + hoodW - 20, hoodY + 5, 15, 10, 2, COLOR_HEADLIGHT);
+    // Highlights laterales (efecto 3D)
+    tft.drawLine(carPoints[0], carPoints[1], carPoints[2], carPoints[3], COLOR_CAR_HIGHLIGHT);  // Lateral delantero derecho
+    tft.drawLine(carPoints[14], carPoints[15], carPoints[12], carPoints[13], COLOR_CAR_HIGHLIGHT);  // Lateral delantero izquierdo
     
-    // Parrilla central
-    tft.fillRect(hoodX + 25, hoodY + 8, hoodW - 50, 8, 0x1082);
-    // Líneas de parrilla
-    for (int i = 0; i < 4; i++) {
-        tft.drawFastVLine(hoodX + 30 + i * 12, hoodY + 8, 8, COLOR_CAR_OUTLINE);
+    // === CAPÓ FRONTAL ===
+    int hoodX = cx - 30;
+    int hoodY = CAR_BODY_Y + 8;
+    int hoodW = 60;
+    int hoodH = 28;
+    
+    // Forma del capó (trapezoidal)
+    tft.fillTriangle(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, hoodX + hoodW, hoodY + hoodH, COLOR_CAR_GRILLE);
+    tft.fillTriangle(hoodX + 5, hoodY, hoodX + hoodW, hoodY + hoodH, hoodX, hoodY + hoodH, COLOR_CAR_GRILLE);
+    tft.drawLine(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, COLOR_CAR_OUTLINE);
+    
+    // Faros delanteros (forma de gota más realista)
+    tft.fillRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+    tft.drawRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, 0x8410);
+    tft.fillRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+    tft.drawRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, 0x8410);
+    
+    // Parrilla central con detalle
+    tft.fillRoundRect(hoodX + 15, hoodY + 15, hoodW - 30, 10, 2, 0x1082);
+    tft.drawRoundRect(hoodX + 15, hoodY + 15, hoodW - 30, 10, 2, 0x4A69);
+    // Barras de parrilla
+    for (int i = 0; i < 5; i++) {
+        tft.drawFastVLine(hoodX + 20 + i * 5, hoodY + 17, 6, 0x6B6D);
     }
     
-    // === Maletero trasero ===
-    int trunkY = CAR_BODY_Y + CAR_BODY_H - 30;
+    // === PARABRISAS Y TECHO ===
+    int windshieldY = CAR_BODY_Y + 40;
+    int windshieldH = 25;
+    int roofY = windshieldY + windshieldH;
+    int roofH = 35;
+    int rearWindowY = roofY + roofH;
+    int rearWindowH = 20;
+    
+    // Parabrisas (cristal frontal)
+    int wsX1 = cx - 35, wsX2 = cx + 35;
+    int wsY1 = windshieldY, wsY2 = windshieldY + windshieldH;
+    tft.fillRect(wsX1, wsY1, wsX2 - wsX1, wsY2 - wsY1, 0x2945);  // Cristal oscuro
+    tft.drawRect(wsX1, wsY1, wsX2 - wsX1, wsY2 - wsY1, 0x5ACB);
+    // Reflejo del parabrisas
+    tft.drawLine(wsX1 + 5, wsY1 + 3, wsX1 + 20, wsY1 + 3, 0x7BEF);
+    tft.drawLine(wsX1 + 5, wsY1 + 4, wsX1 + 15, wsY1 + 4, 0x6B6D);
+    
+    // Techo (zona central)
+    tft.fillRect(cx - 40, roofY, 80, roofH, COLOR_CAR_BODY);
+    tft.drawRect(cx - 40, roofY, 80, roofH, 0x4A69);
+    // Línea central del techo
+    tft.drawFastVLine(cx, roofY + 5, roofH - 10, 0x5ACB);
+    // Techo solar (opcional - pequeño rectángulo oscuro)
+    tft.fillRect(cx - 15, roofY + 8, 30, 18, 0x2104);
+    tft.drawRect(cx - 15, roofY + 8, 30, 18, 0x4A69);
+    
+    // Luneta trasera
+    tft.fillRect(cx - 32, rearWindowY, 64, rearWindowH, 0x2945);
+    tft.drawRect(cx - 32, rearWindowY, 64, rearWindowH, 0x5ACB);
+    // Reflejo
+    tft.drawLine(cx - 27, rearWindowY + 3, cx - 12, rearWindowY + 3, 0x7BEF);
+    
+    // === MALETERO TRASERO ===
+    int trunkY = CAR_BODY_Y + bodyH - 32;
     int trunkH = 25;
     
-    tft.fillRoundRect(hoodX, trunkY, hoodW, trunkH, 4, COLOR_CAR_GRILLE);
-    tft.drawRoundRect(hoodX, trunkY, hoodW, trunkH, 4, COLOR_CAR_OUTLINE);
+    tft.fillRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_GRILLE);
+    tft.drawRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_OUTLINE);
     
-    // Luces traseras
-    tft.fillRoundRect(hoodX + 5, trunkY + 10, 18, 8, 2, COLOR_TAILLIGHT);
-    tft.fillRoundRect(hoodX + hoodW - 23, trunkY + 10, 18, 8, 2, COLOR_TAILLIGHT);
+    // Luces traseras (más detalladas)
+    tft.fillRoundRect(cx - 48, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
+    tft.drawRoundRect(cx - 48, trunkY + 5, 20, 14, 3, 0x8000);
+    tft.fillRoundRect(cx + 28, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
+    tft.drawRoundRect(cx + 28, trunkY + 5, 20, 14, 3, 0x8000);
     
-    // === Zona de ventanas/techo ===
-    int windowX = CAR_BODY_X + 25;
-    int windowY = CAR_BODY_Y + 35;
-    int windowW = CAR_BODY_W - 50;
-    int windowH = CAR_BODY_H - 75;
+    // Placa de matrícula
+    tft.fillRect(cx - 12, trunkY + 12, 24, 8, TFT_WHITE);
+    tft.drawRect(cx - 12, trunkY + 12, 24, 8, TFT_DARKGREY);
     
-    tft.fillRoundRect(windowX, windowY, windowW, windowH, 5, COLOR_CAR_WINDOW);
-    tft.drawRoundRect(windowX, windowY, windowW, windowH, 5, COLOR_CAR_WINDOW_EDGE);
+    // === RETROVISORES LATERALES ===
+    // Retrovisor izquierdo
+    tft.fillRoundRect(cx - bodyW/2 - 12, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_BODY);
+    tft.drawRoundRect(cx - bodyW/2 - 12, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_OUTLINE);
+    tft.fillRect(cx - bodyW/2 - 10, CAR_BODY_Y + 47, 8, 4, 0x2945);  // Espejo
     
-    // Pilares A y C (laterales de las ventanas)
-    tft.drawFastVLine(windowX + 3, windowY + 5, windowH - 10, COLOR_CAR_OUTLINE);
-    tft.drawFastVLine(windowX + windowW - 4, windowY + 5, windowH - 10, COLOR_CAR_OUTLINE);
+    // Retrovisor derecho
+    tft.fillRoundRect(cx + bodyW/2 - 3, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_BODY);
+    tft.drawRoundRect(cx + bodyW/2 - 3, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_OUTLINE);
+    tft.fillRect(cx + bodyW/2 + 2, CAR_BODY_Y + 47, 8, 4, 0x2945);  // Espejo
     
-    // Línea central del techo (eje del coche)
-    tft.drawLine(cx, windowY + 10, cx, windowY + windowH - 10, 0x5ACB);
+    // === PUERTAS (líneas sutiles) ===
+    // Puerta delantera izquierda
+    tft.drawLine(cx - 38, windshieldY + 5, cx - 38, rearWindowY - 5, 0x4A69);
+    // Puerta trasera izquierda  
+    tft.drawLine(cx - 38, roofY + 5, cx - 38, rearWindowY + 15, 0x4A69);
+    // Puerta delantera derecha
+    tft.drawLine(cx + 38, windshieldY + 5, cx + 38, rearWindowY - 5, 0x4A69);
+    // Puerta trasera derecha
+    tft.drawLine(cx + 38, roofY + 5, cx + 38, rearWindowY + 15, 0x4A69);
     
-    // === Ejes de ruedas (estilo técnico) ===
-    // Eje delantero
-    tft.drawLine(X_FL, Y_FL, X_FR, Y_FR, 0x4A69);
-    tft.drawLine(X_FL, Y_FL - 1, X_FR, Y_FR - 1, 0x3186);
+    // Manijas de puertas
+    tft.fillRect(cx - 45, roofY + 2, 6, 3, 0x8410);
+    tft.fillRect(cx - 45, roofY + roofH - 8, 6, 3, 0x8410);
+    tft.fillRect(cx + 39, roofY + 2, 6, 3, 0x8410);
+    tft.fillRect(cx + 39, roofY + roofH - 8, 6, 3, 0x8410);
     
-    // Eje trasero
-    tft.drawLine(X_RL, Y_RL, X_RR, Y_RR, 0x4A69);
-    tft.drawLine(X_RL, Y_RL + 1, X_RR, Y_RR + 1, 0x3186);
+    // === SISTEMA DE TRACCIÓN - CARDANES Y EJES ===
+    // Colores para el sistema de transmisión
+    const uint16_t COLOR_AXLE = 0x6B6D;        // Gris medio para ejes
+    const uint16_t COLOR_AXLE_DARK = 0x4208;   // Gris oscuro para sombras
+    const uint16_t COLOR_CARDAN = 0x8410;      // Gris claro para cardanes
+    const uint16_t COLOR_DIFF = 0x7BEF;        // Gris brillante para diferenciales
     
-    // Conexiones laterales (suspensión)
-    tft.drawLine(X_FL, Y_FL, X_RL, Y_RL, 0x3186);
-    tft.drawLine(X_FR, Y_FR, X_RR, Y_RR, 0x3186);
+    // Posición del diferencial central (debajo del techo)
+    int diffCenterY = cy + 5;
+    
+    // === DIFERENCIAL CENTRAL (caja de transferencia) ===
+    tft.fillRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_DIFF);
+    tft.drawRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_AXLE_DARK);
+    tft.fillCircle(cx, diffCenterY, 3, COLOR_AXLE_DARK);
+    
+    // === EJE DELANTERO (conecta ruedas FL y FR) ===
+    // Diferencial delantero
+    int diffFrontY = Y_FL;
+    tft.fillRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_DIFF);
+    tft.drawRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_AXLE_DARK);
+    
+    // Semi-ejes delanteros (del diferencial a las ruedas)
+    // Eje izquierdo
+    tft.drawLine(cx - 6, diffFrontY, X_FL + 18, Y_FL, COLOR_AXLE);
+    tft.drawLine(cx - 6, diffFrontY + 1, X_FL + 18, Y_FL + 1, COLOR_AXLE_DARK);
+    // Eje derecho
+    tft.drawLine(cx + 6, diffFrontY, X_FR - 18, Y_FR, COLOR_AXLE);
+    tft.drawLine(cx + 6, diffFrontY + 1, X_FR - 18, Y_FR + 1, COLOR_AXLE_DARK);
+    
+    // Juntas homocinéticas delanteras (círculos pequeños en las ruedas)
+    tft.fillCircle(X_FL + 18, Y_FL, 4, COLOR_CARDAN);
+    tft.drawCircle(X_FL + 18, Y_FL, 4, COLOR_AXLE_DARK);
+    tft.fillCircle(X_FR - 18, Y_FR, 4, COLOR_CARDAN);
+    tft.drawCircle(X_FR - 18, Y_FR, 4, COLOR_AXLE_DARK);
+    
+    // === EJE TRASERO (conecta ruedas RL y RR) ===
+    // Diferencial trasero
+    int diffRearY = Y_RL;
+    tft.fillRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_DIFF);
+    tft.drawRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_AXLE_DARK);
+    
+    // Semi-ejes traseros
+    // Eje izquierdo
+    tft.drawLine(cx - 6, diffRearY, X_RL + 18, Y_RL, COLOR_AXLE);
+    tft.drawLine(cx - 6, diffRearY - 1, X_RL + 18, Y_RL - 1, COLOR_AXLE_DARK);
+    // Eje derecho
+    tft.drawLine(cx + 6, diffRearY, X_RR - 18, Y_RR, COLOR_AXLE);
+    tft.drawLine(cx + 6, diffRearY - 1, X_RR - 18, Y_RR - 1, COLOR_AXLE_DARK);
+    
+    // Juntas homocinéticas traseras
+    tft.fillCircle(X_RL + 18, Y_RL, 4, COLOR_CARDAN);
+    tft.drawCircle(X_RL + 18, Y_RL, 4, COLOR_AXLE_DARK);
+    tft.fillCircle(X_RR - 18, Y_RR, 4, COLOR_CARDAN);
+    tft.drawCircle(X_RR - 18, Y_RR, 4, COLOR_AXLE_DARK);
+    
+    // === ÁRBOL DE TRANSMISIÓN (cardán central) ===
+    // Conecta diferencial central con delantero
+    tft.drawLine(cx, diffCenterY - 6, cx, diffFrontY + 5, COLOR_AXLE);
+    tft.drawLine(cx - 1, diffCenterY - 6, cx - 1, diffFrontY + 5, COLOR_AXLE_DARK);
+    tft.drawLine(cx + 1, diffCenterY - 6, cx + 1, diffFrontY + 5, COLOR_AXLE);
+    
+    // Junta cardán frontal
+    tft.fillCircle(cx, diffFrontY + 5, 3, COLOR_CARDAN);
+    tft.drawCircle(cx, diffFrontY + 5, 3, COLOR_AXLE_DARK);
+    
+    // Conecta diferencial central con trasero
+    tft.drawLine(cx, diffCenterY + 6, cx, diffRearY - 5, COLOR_AXLE);
+    tft.drawLine(cx - 1, diffCenterY + 6, cx - 1, diffRearY - 5, COLOR_AXLE_DARK);
+    tft.drawLine(cx + 1, diffCenterY + 6, cx + 1, diffRearY - 5, COLOR_AXLE);
+    
+    // Junta cardán trasera
+    tft.fillCircle(cx, diffRearY - 5, 3, COLOR_CARDAN);
+    tft.drawCircle(cx, diffRearY - 5, 3, COLOR_AXLE_DARK);
     
     carBodyDrawn = true;
 }
