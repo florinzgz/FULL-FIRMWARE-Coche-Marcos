@@ -73,8 +73,10 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
     int x2 = cx + dx + ex, y2 = cy + dy + ey;
     int x3 = cx - dx + ex, y3 = cy - dy + ey;
 
-    // Fondo negro para limpiar (ajustado para orientación vertical)
-    tft->fillRect(cx - h/2 - 4, cy - h/2 - 4, h + 8, h + 8, TFT_BLACK);
+    // Fondo negro para limpiar (cuadrado que cubre la rueda rotada)
+    // Usar max(w,h) para asegurar que cubre cualquier rotación
+    int clearSize = h + 8;  // h es la dimensión más larga
+    tft->fillRect(cx - clearSize/2, cy - clearSize/2, clearSize, clearSize, TFT_BLACK);
 
     // Sombra de la rueda (desplazada 2px abajo-derecha)
     tft->fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2, COLOR_WHEEL_SHADOW);
@@ -93,8 +95,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
     // 🔒 v2.8.9: Marcas de neumático (líneas transversales simulando banda de rodadura)
     // Dibujar 5 marcas equidistantes a lo largo de la rueda
     const int NUM_TREADS = 5;
-    const uint16_t COLOR_TREAD_MARK = 0x1082;  // Líneas más oscuras que el neumático
-    const uint16_t COLOR_TREAD_HIGHLIGHT = 0x3186;  // Líneas sutiles más claras
+    // Reutilizar COLOR_WHEEL_SHADOW para las marcas oscuras (consistencia)
+    const uint16_t COLOR_TREAD_HIGHLIGHT = COLOR_WHEEL_OUTER;  // Highlight sutil
     
     for (int i = 1; i <= NUM_TREADS; i++) {
         // Calcular posición proporcional a lo largo de la rueda
@@ -112,7 +114,7 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
         int ty2 = mcy + (int)(sinf(rad) * treadHalf);
         
         // Dibujar marca con efecto 3D (línea oscura + highlight)
-        tft->drawLine(tx1, ty1, tx2, ty2, COLOR_TREAD_MARK);
+        tft->drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
         tft->drawLine(tx1, ty1 + 1, tx2, ty2 + 1, COLOR_TREAD_HIGHLIGHT);
     }
     
