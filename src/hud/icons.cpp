@@ -82,36 +82,85 @@ void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
     if(!initialized) return;
     if(lights==lastLights && media==lastMedia && mode4x4==lastMode4x4 && regenOn==lastRegen) return;
 
-    // Luces
-    if(lights != lastLights) {
-        tft->fillRect(LIGHTS_X1, LIGHTS_Y1, LIGHTS_X2 - LIGHTS_X1, LIGHTS_Y2 - LIGHTS_Y1, TFT_BLACK);
+    // Colores para efectos 3D
+    const uint16_t COLOR_BOX_BG = 0x2104;        // Fondo oscuro
+    const uint16_t COLOR_BOX_BORDER = 0x4A49;    // Borde gris
+    const uint16_t COLOR_BOX_HIGHLIGHT = 0x6B6D; // Highlight superior
+    const uint16_t COLOR_BOX_SHADOW = 0x1082;    // Sombra inferior
+    
+    // Colores para cada icono cuando activo
+    const uint16_t COLOR_4X4_ACTIVE = 0x0410;    // Cian oscuro (4x4 activo)
+    const uint16_t COLOR_4X2_ACTIVE = 0x4100;    // Naranja oscuro (4x2 activo)
+    const uint16_t COLOR_LIGHTS_ACTIVE = 0x4200; // Amarillo oscuro
+    const uint16_t COLOR_MEDIA_ACTIVE = 0x0320;  // Verde oscuro
+    const uint16_t COLOR_REGEN_ACTIVE = 0x0015;  // Azul oscuro
+    
+    // Helper para dibujar cuadrado 3D con texto
+    auto draw3DBox = [&](int x1, int y1, int x2, int y2, const char* text, bool active, uint16_t activeColor) {
+        int w = x2 - x1;
+        int h = y2 - y1;
+        int cx = (x1 + x2) / 2;
+        int cy = (y1 + y2) / 2;
+        
+        // Sombra del cuadrado (offset 2px)
+        tft->fillRoundRect(x1 + 2, y1 + 2, w, h, 5, COLOR_BOX_SHADOW);
+        
+        // Fondo del cuadrado
+        uint16_t bgColor = active ? activeColor : COLOR_BOX_BG;
+        tft->fillRoundRect(x1, y1, w, h, 5, bgColor);
+        
+        // Borde exterior
+        tft->drawRoundRect(x1, y1, w, h, 5, COLOR_BOX_BORDER);
+        
+        // Efecto 3D: highlight superior
+        tft->drawFastHLine(x1 + 5, y1 + 2, w - 10, COLOR_BOX_HIGHLIGHT);
+        tft->drawFastHLine(x1 + 5, y1 + 3, w - 10, COLOR_BOX_HIGHLIGHT);
+        
+        // Efecto 3D: sombra inferior interna
+        tft->drawFastHLine(x1 + 5, y2 - 3, w - 10, COLOR_BOX_SHADOW);
+        tft->drawFastHLine(x1 + 5, y2 - 2, w - 10, COLOR_BOX_SHADOW);
+        
+        // Texto centrado con sombra
+        tft->setTextDatum(MC_DATUM);
+        // Sombra del texto
+        tft->setTextColor(TFT_BLACK, bgColor);
+        tft->drawString(text, cx + 1, cy + 1, 2);
+        // Texto principal
+        uint16_t textColor = active ? TFT_WHITE : TFT_DARKGREY;
+        tft->setTextColor(textColor, bgColor);
+        tft->drawString(text, cx, cy, 2);
         tft->setTextDatum(TL_DATUM);
-        tft->setTextColor(lights ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
-        tft->drawString("LUCES", LIGHTS_X1 + 5, LIGHTS_Y1 + 20, 2);
-        lastLights = lights;
-    }
+    };
 
-    // Multimedia
-    if(media != lastMedia) {
-        tft->fillRect(MEDIA_X1, MEDIA_Y1, MEDIA_X2 - MEDIA_X1, MEDIA_Y2 - MEDIA_Y1, TFT_BLACK);
-        tft->setTextColor(media ? TFT_GREEN : TFT_DARKGREY, TFT_BLACK);
-        tft->drawString("MEDIA", MEDIA_X1 + 5, MEDIA_Y1 + 20, 2);
-        lastMedia = media;
-    }
-
-    // 4x4 / 4x2
+    // 4x4 / 4x2 - Siempre muestra el estado activo con color diferente
+    // 4x4 = cian, 4x2 = naranja (ambos siempre "activos" visualmente)
     if(mode4x4 != lastMode4x4) {
-        tft->fillRect(MODE4X4_X1, MODE4X4_Y1, MODE4X4_X2 - MODE4X4_X1, MODE4X4_Y2 - MODE4X4_Y1, TFT_BLACK);
-        tft->setTextColor(mode4x4 ? TFT_CYAN : TFT_ORANGE, TFT_BLACK);
-        tft->drawString(mode4x4 ? "4x4" : "4x2", MODE4X4_X1 + 5, MODE4X4_Y1 + 10, 2);
+        uint16_t mode4x4Color = mode4x4 ? COLOR_4X4_ACTIVE : COLOR_4X2_ACTIVE;
+        draw3DBox(MODE4X4_X1, MODE4X4_Y1, MODE4X4_X2, MODE4X4_Y2, 
+                  mode4x4 ? "4x4" : "4x2", true, mode4x4Color);
         lastMode4x4 = mode4x4;
     }
 
-    // Regenerativo
+    // Luces - Amarillo cuando activo
+    if(lights != lastLights) {
+        draw3DBox(LIGHTS_X1, LIGHTS_Y1, LIGHTS_X2, LIGHTS_Y2, 
+                  "LUCES", lights, COLOR_LIGHTS_ACTIVE);
+        lastLights = lights;
+    }
+
+    // Multimedia - Verde cuando activo
+    if(media != lastMedia) {
+        draw3DBox(MEDIA_X1, MEDIA_Y1, MEDIA_X2, MEDIA_Y2, 
+                  "MEDIA", media, COLOR_MEDIA_ACTIVE);
+        lastMedia = media;
+    }
+
+    // Regenerativo - Usar helper draw3DBox
     if(regenOn != lastRegen) {
-        tft->fillRect(310, 285, 100, 30, TFT_BLACK);
-        tft->setTextColor(regenOn ? TFT_BLUE : TFT_DARKGREY, TFT_BLACK);
-        tft->drawString("REGEN", 315, 290, 2);
+        // Limpiar área primero
+        tft->fillRect(400, 250, 75, 45, TFT_BLACK);
+        // Usar helper con posiciones fijas para REGEN
+        draw3DBox(400, 250, 471, 291, "REGEN", regenOn, COLOR_REGEN_ACTIVE);
         lastRegen = regenOn;
     }
 }
@@ -301,4 +350,51 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
         snprintf(buf, sizeof(buf), "%.0fC!", maxTemp);
         tft->drawString(buf, TEMP_WARNING_X + 5, TEMP_WARNING_Y + TEMP_WARNING_H/2, 2);
     }
+}
+
+// Cache para temperatura ambiente
+static float lastAmbientTemp = -999.0f;
+
+void Icons::drawAmbientTemp(float ambientTemp) {
+    if(!initialized) return;
+    
+    // Solo redibujar si hay cambio significativo (>0.5°C)
+    if(fabs(ambientTemp - lastAmbientTemp) < 0.5f) return;
+    lastAmbientTemp = ambientTemp;
+    
+    // Limpiar área
+    tft->fillRect(AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W, AMBIENT_TEMP_H, TFT_BLACK);
+    
+    // Dibujar icono de termómetro pequeño
+    int iconX = AMBIENT_TEMP_X + 2;
+    int iconY = AMBIENT_TEMP_Y + 3;
+    
+    // Cuerpo del termómetro (vertical)
+    tft->fillRoundRect(iconX, iconY, 6, 12, 2, TFT_CYAN);
+    tft->drawRoundRect(iconX, iconY, 6, 12, 2, TFT_DARKGREY);
+    
+    // Bulbo del termómetro
+    tft->fillCircle(iconX + 3, iconY + 13, 4, TFT_CYAN);
+    tft->drawCircle(iconX + 3, iconY + 13, 4, TFT_DARKGREY);
+    
+    // Texto de temperatura
+    tft->setTextDatum(ML_DATUM);
+    
+    // Color según temperatura
+    uint16_t tempColor;
+    if (ambientTemp < 10.0f) {
+        tempColor = TFT_CYAN;       // Frío
+    } else if (ambientTemp < 25.0f) {
+        tempColor = TFT_GREEN;      // Confortable
+    } else if (ambientTemp < 35.0f) {
+        tempColor = TFT_YELLOW;     // Cálido
+    } else {
+        tempColor = TFT_RED;        // Caliente
+    }
+    
+    tft->setTextColor(tempColor, TFT_BLACK);
+    char buf[10];
+    snprintf(buf, sizeof(buf), "%.0fC", ambientTemp);
+    tft->drawString(buf, AMBIENT_TEMP_X + 14, AMBIENT_TEMP_Y + AMBIENT_TEMP_H/2, 2);
+    tft->setTextDatum(TL_DATUM);
 }

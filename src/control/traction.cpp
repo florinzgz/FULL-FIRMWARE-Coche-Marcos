@@ -57,9 +57,11 @@ void Traction::init() {
         s.w[i].currentA = 0.0f;
         s.w[i].speedKmh = 0.0f;
         s.w[i].tempC = 0.0f;
+        s.w[i].reverse = false;
     }
     s.enabled4x4 = false;
     s.demandPct = 0.0f;
+    s.axisRotation = false;
     Logger::info("Traction init");
     initialized = true;
 }
@@ -68,6 +70,24 @@ void Traction::setMode4x4(bool on) {
     s.enabled4x4 = on;
     Logger::infof("Traction mode set: %s", on ? "4x4" : "4x2");
     // Si hay acciones hardware (p. ej. activar relés), se deberían llamar aquí.
+}
+
+// Establecer modo de giro sobre eje (tank turn)
+// SEGURIDAD: La velocidad de giro es controlada por el pedal
+// El parámetro speedPct se mantiene por compatibilidad pero no se usa
+void Traction::setAxisRotation(bool enabled, float speedPct) {
+    (void)speedPct;  // No se usa, velocidad controlada por pedal
+    s.axisRotation = enabled;
+    
+    if (enabled) {
+        Logger::info("Traction: AXIS ROTATION ON (velocidad controlada por pedal)");
+    } else {
+        Logger::info("Traction: AXIS ROTATION OFF");
+        // Reset wheel directions when turning off axis rotation
+        for (int i = 0; i < 4; ++i) {
+            s.w[i].reverse = false;
+        }
+    }
 }
 
 void Traction::setDemand(float pedalPct) {
@@ -96,9 +116,68 @@ void Traction::update() {
             s.w[i].effortPct = 0.0f;
             s.w[i].currentA = 0.0f;
             s.w[i].tempC = 0.0f;
+            s.w[i].reverse = false;
         }
         s.enabled4x4 = false;
+        s.axisRotation = false;
         return;
+    }
+
+    // ============================================================
+    // MODO GIRO SOBRE EJE (AXIS ROTATION / TANK TURN)
+    // ============================================================
+    // Ruedas izquierdas (FL, RL) giran hacia adelante
+    // Ruedas derechas (FR, RR) giran hacia atrás (o viceversa)
+    // Esto crea una rotación sobre el eje vertical del vehículo
+    // 
+    // SEGURIDAD: La velocidad de giro es controlada por el pedal
+    // Si se suelta el pedal, el giro se detiene inmediatamente
+    if (s.axisRotation) {
+        // Usar demanda del pedal como velocidad de rotación (seguridad)
+        // Si el pedal se suelta, demandPct = 0 y el giro para
+        float rotSpeed = s.demandPct;
+        
+        // Lado izquierdo: adelante
+        s.w[FL].demandPct = rotSpeed;
+        s.w[FL].reverse = false;
+        s.w[RL].demandPct = rotSpeed;
+        s.w[RL].reverse = false;
+        
+        // Lado derecho: atrás (giro en sentido antihorario visto desde arriba)
+        s.w[FR].demandPct = rotSpeed;
+        s.w[FR].reverse = true;
+        s.w[RR].demandPct = rotSpeed;
+        s.w[RR].reverse = true;
+        
+        Logger::debugf("Traction AXIS ROTATION: pedal=%.1f%%, L=FWD, R=REV", rotSpeed);
+        
+        // Calcular PWM y leer sensores
+        for (int i = 0; i < 4; ++i) {
+            s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+            
+            // Leer corriente
+            if (cfg.currentSensorsEnabled) {
+                float currentA = Sensors::getCurrent(i);
+                if (!std::isfinite(currentA)) currentA = 0.0f;
+                s.w[i].currentA = currentA;
+                float maxA = getMaxCurrentA(i);
+                s.w[i].effortPct = clampf((currentA / maxA) * 100.0f, 0.0f, 100.0f);
+            }
+            
+            // Leer temperatura
+            if (cfg.tempSensorsEnabled) {
+                float tempC = Sensors::getTemperature(i);
+                if (!std::isfinite(tempC)) tempC = -999.0f;
+                s.w[i].tempC = tempC;
+            }
+        }
+        
+        return;  // Salir del update, no procesar modo normal
+    }
+    
+    // Reset reverse flags in normal mode
+    for (int i = 0; i < 4; ++i) {
+        s.w[i].reverse = false;
     }
 
     // 🔒 CORRECCIÓN 2.3: Reparto básico 50/50 entre ejes en 4x4

@@ -43,6 +43,12 @@ namespace Icons {
      * @param maxTemp Temperatura máxima actual
      */
     void drawTempWarning(bool tempWarning, float maxTemp);
+    
+    /**
+     * @brief Dibuja temperatura ambiente en esquina superior derecha
+     * @param ambientTemp Temperatura ambiente en grados Celsius
+     */
+    void drawAmbientTemp(float ambientTemp);
 
     // ============================================================
     // Constantes de layout (480x320, rotación 1)
@@ -53,24 +59,36 @@ namespace Icons {
     constexpr int BATTERY_Y1 = 0;
     constexpr int BATTERY_X2 = 470;
     constexpr int BATTERY_Y2 = 40;
+    
+    // Temperatura ambiente (arriba derecha, debajo de batería)
+    constexpr int AMBIENT_TEMP_X = 420;
+    constexpr int AMBIENT_TEMP_Y = 42;
+    constexpr int AMBIENT_TEMP_W = 55;
+    constexpr int AMBIENT_TEMP_H = 20;
 
-    // Icono luces (arriba izquierda, 50x40 px)
-    constexpr int LIGHTS_X1 = 0;
-    constexpr int LIGHTS_Y1 = 0;
-    constexpr int LIGHTS_X2 = 50;
-    constexpr int LIGHTS_Y2 = 40;
+    // ============================================================
+    // Iconos de características (LUCES, MEDIA, 4x4) - Cuadrados 3D
+    // Posicionados encima de la barra de acelerador (y=300)
+    // Tamaño uniforme: 70x45 px cada uno
+    // ============================================================
+    
+    // Icono 4x4/4x2 (izquierda, encima de barra acelerador)
+    constexpr int MODE4X4_X1 = 5;
+    constexpr int MODE4X4_Y1 = 250;
+    constexpr int MODE4X4_X2 = 75;
+    constexpr int MODE4X4_Y2 = 295;
+    
+    // Icono LUCES (centro-izquierda, encima de barra acelerador)
+    constexpr int LIGHTS_X1 = 85;
+    constexpr int LIGHTS_Y1 = 250;
+    constexpr int LIGHTS_X2 = 155;
+    constexpr int LIGHTS_Y2 = 295;
 
-    // Icono multimedia (junto a luces, 50x40 px)
-    constexpr int MEDIA_X1 = 60;
-    constexpr int MEDIA_Y1 = 0;
-    constexpr int MEDIA_X2 = 110;
-    constexpr int MEDIA_Y2 = 40;
-
-    // Icono 4x4 (abajo izquierda, 60x40 px)
-    constexpr int MODE4X4_X1 = 0;
-    constexpr int MODE4X4_Y1 = 280;
-    constexpr int MODE4X4_X2 = 60;
-    constexpr int MODE4X4_Y2 = 320;
+    // Icono MEDIA (centro-derecha, encima de barra acelerador)
+    constexpr int MEDIA_X1 = 165;
+    constexpr int MEDIA_Y1 = 250;
+    constexpr int MEDIA_X2 = 235;
+    constexpr int MEDIA_Y2 = 295;
 
     // Icono warning (arriba centro, 80x40 px)
     constexpr int WARNING_X1 = 200;
@@ -85,9 +103,9 @@ namespace Icons {
     constexpr int SENSOR_STATUS_X2 = 410;
     constexpr int SENSOR_STATUS_Y2 = 40;
     
-    // Indicador de temperatura crítica (abajo izquierda, junto a 4x4)
-    constexpr int TEMP_WARNING_X = 70;
-    constexpr int TEMP_WARNING_Y = 280;
-    constexpr int TEMP_WARNING_W = 60;
-    constexpr int TEMP_WARNING_H = 20;
+    // Indicador de temperatura crítica (derecha, entre REGEN e iconos)
+    constexpr int TEMP_WARNING_X = 320;
+    constexpr int TEMP_WARNING_Y = 260;
+    constexpr int TEMP_WARNING_W = 70;
+    constexpr int TEMP_WARNING_H = 25;
 }

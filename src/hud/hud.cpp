@@ -1,6 +1,9 @@
 #include "hud.h"
+#include <Arduino.h>                // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>   // Librería táctil
+#include <SPI.h>                    // Para SPIClass HSPI
+#include <math.h>                   // Para cosf, sinf
 
 #include "gauges.h"
 #include "wheels_display.h"
@@ -29,6 +32,15 @@
 // ✅ Usar la instancia global de TFT_eSPI definida en hud_manager.cpp
 extern TFT_eSPI tft;
 
+// 🔒 v2.8.7: HSPI bus compartido entre TFT y Touch
+// El XPT2046 debe usar el mismo bus SPI que el TFT (HSPI) para evitar conflictos
+// que causan pantalla blanca al arrancar cuando touch está habilitado
+#ifdef USE_HSPI_PORT
+static SPIClass touchSpi = SPIClass(HSPI);
+#else
+static SPIClass& touchSpi = SPI;
+#endif
+
 static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
 
 // 🔒 v2.8.6: Track touch initialization state for runtime checks
@@ -49,6 +61,14 @@ static const int DEMO_BTN_Y1 = 260;
 static const int DEMO_BTN_X2 = 475;
 static const int DEMO_BTN_Y2 = 295;
 #endif
+
+// Botón virtual para giro sobre eje (axis rotation toggle)
+static bool axisRotationEnabled = false;
+static bool lastAxisRotationState = false;
+static const int AXIS_BTN_X1 = 245;
+static const int AXIS_BTN_Y1 = 250;
+static const int AXIS_BTN_X2 = 315;
+static const int AXIS_BTN_Y2 = 295;
 
 // Layout 480x320 (rotación 3 → 480x320 landscape)
 // Note: Rotation 3 used for ST7796S 4-inch display in horizontal orientation
@@ -108,11 +128,13 @@ void HUD::init() {
     
 #ifndef DISABLE_TOUCH
     if (cfg.touchEnabled) {
-        if (touch.begin()) {
+        // 🔒 v2.8.7: Usar HSPI para el touch (mismo bus que TFT)
+        // Esto evita conflictos de bus SPI que causan pantalla blanca
+        if (touch.begin(touchSpi)) {
             touch.setRotation(3);  // Match TFT rotation for proper touch mapping
             MenuHidden::initTouch(&touch);  // Pasar puntero táctil al menú oculto
             touchInitialized = true;
-            Logger::info("Touchscreen XPT2046 inicializado OK");
+            Logger::info("Touchscreen XPT2046 inicializado OK (HSPI compartido)");
         } else {
             Logger::error("Touchscreen XPT2046 no detectado - deshabilitando touch para esta sesión");
             // NOTE: We don't persist this change to storage intentionally.
@@ -180,35 +202,134 @@ void HUD::showError() {
 }
 
 #ifdef STANDALONE_DISPLAY
-// Draw demo mode button for easy hidden menu access
+// Estado de progreso para visualización del botón DEMO
+static float demoButtonProgress = 0.0f;
+
+// Dibujar botón DEMO para acceso fácil al menú oculto
+// Muestra progreso visual durante la pulsación larga
 static void drawDemoButton() {
-    // Only draw if hidden menu is not active
+    // Solo dibujar si el menú oculto no está activo
     if (MenuHidden::isActive()) return;
     
-    // Draw button background
-    tft.fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, 
-                      DEMO_BTN_X2 - DEMO_BTN_X1, DEMO_BTN_Y2 - DEMO_BTN_Y1, 
-                      5, TFT_NAVY);
-    tft.drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, 
-                      DEMO_BTN_X2 - DEMO_BTN_X1, DEMO_BTN_Y2 - DEMO_BTN_Y1, 
-                      5, TFT_CYAN);
+    int btnW = DEMO_BTN_X2 - DEMO_BTN_X1;
+    int btnH = DEMO_BTN_Y2 - DEMO_BTN_Y1;
+    int centerX = (DEMO_BTN_X1 + DEMO_BTN_X2) / 2;
+    int centerY = (DEMO_BTN_Y1 + DEMO_BTN_Y2) / 2;
+    
+    // Draw button background (más brillante para mayor visibilidad)
+    uint16_t bgColor = demoButtonWasPressed ? 0x001F : TFT_NAVY;  // Azul más claro si pulsado
+    tft.fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, bgColor);
+    
+    // Borde con efecto 3D
+    uint16_t borderColor = demoButtonWasPressed ? TFT_WHITE : TFT_CYAN;
+    tft.drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, borderColor);
+    tft.drawRoundRect(DEMO_BTN_X1 + 1, DEMO_BTN_Y1 + 1, btnW - 2, btnH - 2, 4, borderColor);
+    
+    // Barra de progreso si está siendo pulsado
+    if (demoButtonWasPressed && demoButtonProgress > 0.0f) {
+        int progressW = (int)(btnW * demoButtonProgress);
+        tft.fillRect(DEMO_BTN_X1 + 2, DEMO_BTN_Y2 - 6, progressW - 4, 4, TFT_GREEN);
+    }
     
     // Draw button text
     tft.setTextDatum(MC_DATUM);
-    tft.setTextColor(TFT_CYAN, TFT_NAVY);
-    int centerX = (DEMO_BTN_X1 + DEMO_BTN_X2) / 2;
-    int centerY = (DEMO_BTN_Y1 + DEMO_BTN_Y2) / 2;
-    tft.drawString("DEMO", centerX, centerY - 6, 2);
-    tft.setTextColor(TFT_WHITE, TFT_NAVY);
-    tft.drawString("MENU", centerX, centerY + 8, 1);
+    tft.setTextColor(TFT_WHITE, bgColor);
+    tft.drawString("MENU", centerX, centerY - 4, 2);
+    tft.setTextColor(TFT_CYAN, bgColor);
+    tft.drawString("Pulsar 1.5s", centerX, centerY + 10, 1);
 }
 
-// Check if touch is in demo button area
+// Verificar si el toque está en el área del botón DEMO (con margen extra para facilitar el toque)
 static bool isTouchInDemoButton(int x, int y) {
-    return (x >= DEMO_BTN_X1 && x <= DEMO_BTN_X2 && 
-            y >= DEMO_BTN_Y1 && y <= DEMO_BTN_Y2);
+    // Añadir margen de 10px para facilitar el toque
+    const int MARGIN = 10;
+    return (x >= DEMO_BTN_X1 - MARGIN && x <= DEMO_BTN_X2 + MARGIN && 
+            y >= DEMO_BTN_Y1 - MARGIN && y <= DEMO_BTN_Y2 + MARGIN);
 }
 #endif
+
+// Dibujar botón de giro sobre eje (axis rotation toggle)
+static void drawAxisRotationButton() {
+    // Solo redibujar si hay cambio de estado
+    if (axisRotationEnabled == lastAxisRotationState) return;
+    lastAxisRotationState = axisRotationEnabled;
+    
+    int btnW = AXIS_BTN_X2 - AXIS_BTN_X1;
+    int btnH = AXIS_BTN_Y2 - AXIS_BTN_Y1;
+    int centerX = (AXIS_BTN_X1 + AXIS_BTN_X2) / 2;
+    int centerY = (AXIS_BTN_Y1 + AXIS_BTN_Y2) / 2;
+    
+    // Colores del botón
+    const uint16_t COLOR_BOX_BG = 0x2104;
+    const uint16_t COLOR_BOX_HIGHLIGHT = 0x6B6D;
+    const uint16_t COLOR_BOX_SHADOW = 0x1082;
+    const uint16_t COLOR_ACTIVE = 0x07E0;    // Verde brillante cuando activo
+    
+    // Sombra 3D
+    tft.fillRoundRect(AXIS_BTN_X1 + 2, AXIS_BTN_Y1 + 2, btnW, btnH, 5, COLOR_BOX_SHADOW);
+    
+    // Fondo del botón
+    uint16_t bgColor = axisRotationEnabled ? 0x0320 : COLOR_BOX_BG;  // Verde oscuro cuando activo
+    tft.fillRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, bgColor);
+    
+    // Borde con efecto 3D
+    tft.drawRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, 0x4A49);
+    
+    // Highlight superior
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 2, btnW - 10, COLOR_BOX_HIGHLIGHT);
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 3, btnW - 10, COLOR_BOX_HIGHLIGHT);
+    
+    // Sombra inferior
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 3, btnW - 10, COLOR_BOX_SHADOW);
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 2, btnW - 10, COLOR_BOX_SHADOW);
+    
+    // Icono de rotación (flechas circulares)
+    int iconCx = centerX;
+    int iconCy = centerY - 6;
+    int iconR = 8;
+    
+    uint16_t arrowColor = axisRotationEnabled ? TFT_WHITE : TFT_DARKGREY;
+    
+    // Dibujar arco con flechas (simulando rotación)
+    tft.drawCircle(iconCx, iconCy, iconR, arrowColor);
+    tft.drawCircle(iconCx, iconCy, iconR - 1, arrowColor);
+    
+    // Flechas de dirección
+    tft.fillTriangle(iconCx + iconR - 2, iconCy - 4, 
+                     iconCx + iconR + 4, iconCy, 
+                     iconCx + iconR - 2, iconCy + 4, arrowColor);
+    tft.fillTriangle(iconCx - iconR + 2, iconCy - 4, 
+                     iconCx - iconR - 4, iconCy, 
+                     iconCx - iconR + 2, iconCy + 4, arrowColor);
+    
+    // Texto "GIRO" debajo
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(arrowColor, bgColor);
+    tft.drawString("GIRO", centerX, centerY + 12, 1);
+    tft.setTextDatum(TL_DATUM);
+}
+
+// Verificar si el toque está en el área del botón de giro
+static bool isTouchInAxisButton(int x, int y) {
+    return (x >= AXIS_BTN_X1 && x <= AXIS_BTN_X2 && 
+            y >= AXIS_BTN_Y1 && y <= AXIS_BTN_Y2);
+}
+
+// Toggle axis rotation state and update traction system
+void HUD::toggleAxisRotation() {
+    axisRotationEnabled = !axisRotationEnabled;
+    lastAxisRotationState = !axisRotationEnabled;  // Force redraw
+    
+    // Actualizar sistema de tracción con el nuevo estado
+    Traction::setAxisRotation(axisRotationEnabled, 30.0f);  // 30% velocidad por defecto
+    
+    Logger::info(axisRotationEnabled ? "Axis rotation enabled" : "Axis rotation disabled");
+}
+
+// Get axis rotation state
+bool HUD::isAxisRotationEnabled() {
+    return axisRotationEnabled;
+}
 
 // Colores 3D para carrocería del coche
 static const uint16_t COLOR_CAR_BODY = 0x2945;       // Gris azulado oscuro
@@ -228,128 +349,346 @@ static const uint16_t COLOR_REF_MARKS = 0x4208;      // Marcas de referencia
 
 // Draw car body outline connecting the four wheels
 // This creates a visual representation of the vehicle in the center
+// 🔒 v2.8.8: Diseño mejorado - Vista cenital más realista de un coche
 static void drawCarBody() {
     // Only draw once (static background)
     if (carBodyDrawn) return;
     
-    int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche
-    int cy = CAR_BODY_Y + CAR_BODY_H / 2;  // Centro Y del coche
+    int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche (240)
+    int cy = CAR_BODY_Y + CAR_BODY_H / 2;  // Centro Y del coche (175)
     
-    // === Sombra del coche (proyección 3D) ===
-    tft.fillRoundRect(CAR_BODY_X + 3, CAR_BODY_Y + 3, CAR_BODY_W, CAR_BODY_H, 8, 0x1082);
+    // Dimensiones del coche (proporciones más realistas)
+    int bodyW = CAR_BODY_W - 10;      // 120px ancho
+    int bodyH = CAR_BODY_H;           // 150px largo
+    int frontTaper = 25;               // Estrechamiento frontal
+    int rearTaper = 15;                // Estrechamiento trasero
     
-    // === Carrocería principal con esquinas redondeadas ===
-    tft.fillRoundRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, 8, COLOR_CAR_BODY);
+    // === SOMBRA GENERAL DEL COCHE ===
+    // Sombra proyectada (offset 4px)
+    int sx = 4, sy = 4;
     
-    // Gradiente de profundidad 3D
-    // Highlight superior
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + 2, CAR_BODY_W - 20, COLOR_CAR_HIGHLIGHT);
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + 3, CAR_BODY_W - 20, COLOR_CAR_HIGHLIGHT);
-    // Sombra inferior
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + CAR_BODY_H - 3, CAR_BODY_W - 20, COLOR_CAR_SHADOW);
-    tft.drawFastHLine(CAR_BODY_X + 10, CAR_BODY_Y + CAR_BODY_H - 2, CAR_BODY_W - 20, COLOR_CAR_SHADOW);
+    // Forma aerodinámica del coche (polígono de 8 puntos)
+    // Puntos del coche (sentido horario desde frontal izquierdo)
+    int carPoints[16] = {
+        // Frente (más estrecho - capó aerodinámico)
+        cx - bodyW/2 + frontTaper, CAR_BODY_Y + 5,           // 0: Frontal izquierdo
+        cx + bodyW/2 - frontTaper, CAR_BODY_Y + 5,           // 1: Frontal derecho
+        // Lateral derecho
+        cx + bodyW/2, CAR_BODY_Y + 35,                        // 2: Ensanchamiento delantero derecho
+        cx + bodyW/2, CAR_BODY_Y + bodyH - 35,                // 3: Ensanchamiento trasero derecho
+        // Trasera (un poco más estrecha)
+        cx + bodyW/2 - rearTaper, CAR_BODY_Y + bodyH - 5,    // 4: Trasero derecho
+        cx - bodyW/2 + rearTaper, CAR_BODY_Y + bodyH - 5,    // 5: Trasero izquierdo
+        // Lateral izquierdo
+        cx - bodyW/2, CAR_BODY_Y + bodyH - 35,                // 6: Ensanchamiento trasero izquierdo
+        cx - bodyW/2, CAR_BODY_Y + 35                         // 7: Ensanchamiento delantero izquierdo
+    };
     
-    // Borde exterior con efecto metálico
-    tft.drawRoundRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, 8, COLOR_CAR_OUTLINE);
-    tft.drawRoundRect(CAR_BODY_X + 1, CAR_BODY_Y + 1, CAR_BODY_W - 2, CAR_BODY_H - 2, 7, 0x4A49);
+    // Dibujar sombra del coche
+    for (int i = 0; i < 7; i++) {
+        tft.fillTriangle(
+            cx + sx, cy + sy,
+            carPoints[i*2] + sx, carPoints[i*2+1] + sy,
+            carPoints[(i+1)*2] + sx, carPoints[(i+1)*2+1] + sy,
+            0x1082
+        );
+    }
+    tft.fillTriangle(cx + sx, cy + sy, carPoints[14] + sx, carPoints[15] + sy, carPoints[0] + sx, carPoints[1] + sy, 0x1082);
     
-    // === Capó frontal (parte superior del coche - vista cenital) ===
-    int hoodX = CAR_BODY_X + 20;
-    int hoodW = CAR_BODY_W - 40;
-    int hoodY = CAR_BODY_Y + 5;
-    int hoodH = 25;
+    // === CARROCERÍA PRINCIPAL ===
+    // Dibujar cuerpo del coche (relleno con triángulos desde el centro)
+    for (int i = 0; i < 7; i++) {
+        tft.fillTriangle(
+            cx, cy,
+            carPoints[i*2], carPoints[i*2+1],
+            carPoints[(i+1)*2], carPoints[(i+1)*2+1],
+            COLOR_CAR_BODY
+        );
+    }
+    tft.fillTriangle(cx, cy, carPoints[14], carPoints[15], carPoints[0], carPoints[1], COLOR_CAR_BODY);
     
-    // Área del capó
-    tft.fillRoundRect(hoodX, hoodY, hoodW, hoodH, 4, COLOR_CAR_GRILLE);
-    tft.drawRoundRect(hoodX, hoodY, hoodW, hoodH, 4, COLOR_CAR_OUTLINE);
+    // Borde exterior del coche
+    for (int i = 0; i < 7; i++) {
+        tft.drawLine(carPoints[i*2], carPoints[i*2+1], carPoints[(i+1)*2], carPoints[(i+1)*2+1], COLOR_CAR_OUTLINE);
+    }
+    tft.drawLine(carPoints[14], carPoints[15], carPoints[0], carPoints[1], COLOR_CAR_OUTLINE);
     
-    // Faros delanteros
-    tft.fillRoundRect(hoodX + 5, hoodY + 5, 15, 10, 2, COLOR_HEADLIGHT);
-    tft.fillRoundRect(hoodX + hoodW - 20, hoodY + 5, 15, 10, 2, COLOR_HEADLIGHT);
+    // Highlights laterales (efecto 3D)
+    tft.drawLine(carPoints[0], carPoints[1], carPoints[2], carPoints[3], COLOR_CAR_HIGHLIGHT);  // Lateral delantero derecho
+    tft.drawLine(carPoints[14], carPoints[15], carPoints[12], carPoints[13], COLOR_CAR_HIGHLIGHT);  // Lateral delantero izquierdo
     
-    // Parrilla central
-    tft.fillRect(hoodX + 25, hoodY + 8, hoodW - 50, 8, 0x1082);
-    // Líneas de parrilla
-    for (int i = 0; i < 4; i++) {
-        tft.drawFastVLine(hoodX + 30 + i * 12, hoodY + 8, 8, COLOR_CAR_OUTLINE);
+    // === CAPÓ FRONTAL ===
+    int hoodX = cx - 30;
+    int hoodY = CAR_BODY_Y + 8;
+    int hoodW = 60;
+    int hoodH = 28;
+    
+    // Forma del capó (trapezoidal)
+    tft.fillTriangle(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, hoodX + hoodW, hoodY + hoodH, COLOR_CAR_GRILLE);
+    tft.fillTriangle(hoodX + 5, hoodY, hoodX + hoodW, hoodY + hoodH, hoodX, hoodY + hoodH, COLOR_CAR_GRILLE);
+    tft.drawLine(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, COLOR_CAR_OUTLINE);
+    
+    // Faros delanteros (forma de gota más realista)
+    tft.fillRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+    tft.drawRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, 0x8410);
+    tft.fillRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+    tft.drawRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, 0x8410);
+    
+    // Parrilla central con detalle
+    tft.fillRoundRect(hoodX + 15, hoodY + 15, hoodW - 30, 10, 2, 0x1082);
+    tft.drawRoundRect(hoodX + 15, hoodY + 15, hoodW - 30, 10, 2, 0x4A69);
+    // Barras de parrilla
+    for (int i = 0; i < 5; i++) {
+        tft.drawFastVLine(hoodX + 20 + i * 5, hoodY + 17, 6, 0x6B6D);
     }
     
-    // === Maletero trasero ===
-    int trunkY = CAR_BODY_Y + CAR_BODY_H - 30;
+    // === PARABRISAS Y TECHO ===
+    int windshieldY = CAR_BODY_Y + 40;
+    int windshieldH = 25;
+    int roofY = windshieldY + windshieldH;
+    int roofH = 35;
+    int rearWindowY = roofY + roofH;
+    int rearWindowH = 20;
+    
+    // Parabrisas (cristal frontal)
+    int wsX1 = cx - 35, wsX2 = cx + 35;
+    int wsY1 = windshieldY, wsY2 = windshieldY + windshieldH;
+    tft.fillRect(wsX1, wsY1, wsX2 - wsX1, wsY2 - wsY1, 0x2945);  // Cristal oscuro
+    tft.drawRect(wsX1, wsY1, wsX2 - wsX1, wsY2 - wsY1, 0x5ACB);
+    // Reflejo del parabrisas
+    tft.drawLine(wsX1 + 5, wsY1 + 3, wsX1 + 20, wsY1 + 3, 0x7BEF);
+    tft.drawLine(wsX1 + 5, wsY1 + 4, wsX1 + 15, wsY1 + 4, 0x6B6D);
+    
+    // Techo (zona central)
+    tft.fillRect(cx - 40, roofY, 80, roofH, COLOR_CAR_BODY);
+    tft.drawRect(cx - 40, roofY, 80, roofH, 0x4A69);
+    // Línea central del techo
+    tft.drawFastVLine(cx, roofY + 5, roofH - 10, 0x5ACB);
+    // Techo solar (opcional - pequeño rectángulo oscuro)
+    tft.fillRect(cx - 15, roofY + 8, 30, 18, 0x2104);
+    tft.drawRect(cx - 15, roofY + 8, 30, 18, 0x4A69);
+    
+    // Luneta trasera
+    tft.fillRect(cx - 32, rearWindowY, 64, rearWindowH, 0x2945);
+    tft.drawRect(cx - 32, rearWindowY, 64, rearWindowH, 0x5ACB);
+    // Reflejo
+    tft.drawLine(cx - 27, rearWindowY + 3, cx - 12, rearWindowY + 3, 0x7BEF);
+    
+    // === MALETERO TRASERO ===
+    int trunkY = CAR_BODY_Y + bodyH - 32;
     int trunkH = 25;
     
-    tft.fillRoundRect(hoodX, trunkY, hoodW, trunkH, 4, COLOR_CAR_GRILLE);
-    tft.drawRoundRect(hoodX, trunkY, hoodW, trunkH, 4, COLOR_CAR_OUTLINE);
+    tft.fillRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_GRILLE);
+    tft.drawRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_OUTLINE);
     
-    // Luces traseras
-    tft.fillRoundRect(hoodX + 5, trunkY + 10, 18, 8, 2, COLOR_TAILLIGHT);
-    tft.fillRoundRect(hoodX + hoodW - 23, trunkY + 10, 18, 8, 2, COLOR_TAILLIGHT);
+    // Luces traseras (más detalladas)
+    tft.fillRoundRect(cx - 48, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
+    tft.drawRoundRect(cx - 48, trunkY + 5, 20, 14, 3, 0x8000);
+    tft.fillRoundRect(cx + 28, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
+    tft.drawRoundRect(cx + 28, trunkY + 5, 20, 14, 3, 0x8000);
     
-    // === Zona de ventanas/techo ===
-    int windowX = CAR_BODY_X + 25;
-    int windowY = CAR_BODY_Y + 35;
-    int windowW = CAR_BODY_W - 50;
-    int windowH = CAR_BODY_H - 75;
+    // Placa de matrícula
+    tft.fillRect(cx - 12, trunkY + 12, 24, 8, TFT_WHITE);
+    tft.drawRect(cx - 12, trunkY + 12, 24, 8, TFT_DARKGREY);
     
-    tft.fillRoundRect(windowX, windowY, windowW, windowH, 5, COLOR_CAR_WINDOW);
-    tft.drawRoundRect(windowX, windowY, windowW, windowH, 5, COLOR_CAR_WINDOW_EDGE);
+    // === RETROVISORES LATERALES ===
+    // Retrovisor izquierdo
+    tft.fillRoundRect(cx - bodyW/2 - 12, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_BODY);
+    tft.drawRoundRect(cx - bodyW/2 - 12, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_OUTLINE);
+    tft.fillRect(cx - bodyW/2 - 10, CAR_BODY_Y + 47, 8, 4, 0x2945);  // Espejo
     
-    // Pilares A y C (laterales de las ventanas)
-    tft.drawFastVLine(windowX + 3, windowY + 5, windowH - 10, COLOR_CAR_OUTLINE);
-    tft.drawFastVLine(windowX + windowW - 4, windowY + 5, windowH - 10, COLOR_CAR_OUTLINE);
+    // Retrovisor derecho
+    tft.fillRoundRect(cx + bodyW/2 - 3, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_BODY);
+    tft.drawRoundRect(cx + bodyW/2 - 3, CAR_BODY_Y + 45, 15, 8, 2, COLOR_CAR_OUTLINE);
+    tft.fillRect(cx + bodyW/2 + 2, CAR_BODY_Y + 47, 8, 4, 0x2945);  // Espejo
     
-    // Línea central del techo (eje del coche)
-    tft.drawLine(cx, windowY + 10, cx, windowY + windowH - 10, 0x5ACB);
+    // === PUERTAS (líneas sutiles) ===
+    // Puerta delantera izquierda
+    tft.drawLine(cx - 38, windshieldY + 5, cx - 38, rearWindowY - 5, 0x4A69);
+    // Puerta trasera izquierda  
+    tft.drawLine(cx - 38, roofY + 5, cx - 38, rearWindowY + 15, 0x4A69);
+    // Puerta delantera derecha
+    tft.drawLine(cx + 38, windshieldY + 5, cx + 38, rearWindowY - 5, 0x4A69);
+    // Puerta trasera derecha
+    tft.drawLine(cx + 38, roofY + 5, cx + 38, rearWindowY + 15, 0x4A69);
     
-    // === Ejes de ruedas (estilo técnico) ===
-    // Eje delantero
-    tft.drawLine(X_FL, Y_FL, X_FR, Y_FR, 0x4A69);
-    tft.drawLine(X_FL, Y_FL - 1, X_FR, Y_FR - 1, 0x3186);
+    // Manijas de puertas
+    tft.fillRect(cx - 45, roofY + 2, 6, 3, 0x8410);
+    tft.fillRect(cx - 45, roofY + roofH - 8, 6, 3, 0x8410);
+    tft.fillRect(cx + 39, roofY + 2, 6, 3, 0x8410);
+    tft.fillRect(cx + 39, roofY + roofH - 8, 6, 3, 0x8410);
     
-    // Eje trasero
-    tft.drawLine(X_RL, Y_RL, X_RR, Y_RR, 0x4A69);
-    tft.drawLine(X_RL, Y_RL + 1, X_RR, Y_RR + 1, 0x3186);
+    // === SISTEMA DE TRACCIÓN - CARDANES Y EJES ===
+    // Colores para el sistema de transmisión
+    const uint16_t COLOR_AXLE = 0x6B6D;        // Gris medio para ejes
+    const uint16_t COLOR_AXLE_DARK = 0x4208;   // Gris oscuro para sombras
+    const uint16_t COLOR_CARDAN = 0x8410;      // Gris claro para cardanes
+    const uint16_t COLOR_DIFF = 0x7BEF;        // Gris brillante para diferenciales
     
-    // Conexiones laterales (suspensión)
-    tft.drawLine(X_FL, Y_FL, X_RL, Y_RL, 0x3186);
-    tft.drawLine(X_FR, Y_FR, X_RR, Y_RR, 0x3186);
+    // Posición del diferencial central (debajo del techo)
+    int diffCenterY = cy + 5;
+    
+    // === DIFERENCIAL CENTRAL (caja de transferencia) ===
+    tft.fillRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_DIFF);
+    tft.drawRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_AXLE_DARK);
+    tft.fillCircle(cx, diffCenterY, 3, COLOR_AXLE_DARK);
+    
+    // === EJE DELANTERO (conecta ruedas FL y FR) ===
+    // Diferencial delantero
+    int diffFrontY = Y_FL;
+    tft.fillRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_DIFF);
+    tft.drawRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_AXLE_DARK);
+    
+    // Semi-ejes delanteros (del diferencial a las ruedas)
+    // Eje izquierdo
+    tft.drawLine(cx - 6, diffFrontY, X_FL + 18, Y_FL, COLOR_AXLE);
+    tft.drawLine(cx - 6, diffFrontY + 1, X_FL + 18, Y_FL + 1, COLOR_AXLE_DARK);
+    // Eje derecho
+    tft.drawLine(cx + 6, diffFrontY, X_FR - 18, Y_FR, COLOR_AXLE);
+    tft.drawLine(cx + 6, diffFrontY + 1, X_FR - 18, Y_FR + 1, COLOR_AXLE_DARK);
+    
+    // Juntas homocinéticas delanteras (círculos pequeños en las ruedas)
+    tft.fillCircle(X_FL + 18, Y_FL, 4, COLOR_CARDAN);
+    tft.drawCircle(X_FL + 18, Y_FL, 4, COLOR_AXLE_DARK);
+    tft.fillCircle(X_FR - 18, Y_FR, 4, COLOR_CARDAN);
+    tft.drawCircle(X_FR - 18, Y_FR, 4, COLOR_AXLE_DARK);
+    
+    // === EJE TRASERO (conecta ruedas RL y RR) ===
+    // Diferencial trasero
+    int diffRearY = Y_RL;
+    tft.fillRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_DIFF);
+    tft.drawRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_AXLE_DARK);
+    
+    // Semi-ejes traseros
+    // Eje izquierdo
+    tft.drawLine(cx - 6, diffRearY, X_RL + 18, Y_RL, COLOR_AXLE);
+    tft.drawLine(cx - 6, diffRearY - 1, X_RL + 18, Y_RL - 1, COLOR_AXLE_DARK);
+    // Eje derecho
+    tft.drawLine(cx + 6, diffRearY, X_RR - 18, Y_RR, COLOR_AXLE);
+    tft.drawLine(cx + 6, diffRearY - 1, X_RR - 18, Y_RR - 1, COLOR_AXLE_DARK);
+    
+    // Juntas homocinéticas traseras
+    tft.fillCircle(X_RL + 18, Y_RL, 4, COLOR_CARDAN);
+    tft.drawCircle(X_RL + 18, Y_RL, 4, COLOR_AXLE_DARK);
+    tft.fillCircle(X_RR - 18, Y_RR, 4, COLOR_CARDAN);
+    tft.drawCircle(X_RR - 18, Y_RR, 4, COLOR_AXLE_DARK);
+    
+    // === ÁRBOL DE TRANSMISIÓN (cardán central) ===
+    // Conecta diferencial central con delantero
+    tft.drawLine(cx, diffCenterY - 6, cx, diffFrontY + 5, COLOR_AXLE);
+    tft.drawLine(cx - 1, diffCenterY - 6, cx - 1, diffFrontY + 5, COLOR_AXLE_DARK);
+    tft.drawLine(cx + 1, diffCenterY - 6, cx + 1, diffFrontY + 5, COLOR_AXLE);
+    
+    // Junta cardán frontal
+    tft.fillCircle(cx, diffFrontY + 5, 3, COLOR_CARDAN);
+    tft.drawCircle(cx, diffFrontY + 5, 3, COLOR_AXLE_DARK);
+    
+    // Conecta diferencial central con trasero
+    tft.drawLine(cx, diffCenterY + 6, cx, diffRearY - 5, COLOR_AXLE);
+    tft.drawLine(cx - 1, diffCenterY + 6, cx - 1, diffRearY - 5, COLOR_AXLE_DARK);
+    tft.drawLine(cx + 1, diffCenterY + 6, cx + 1, diffRearY - 5, COLOR_AXLE);
+    
+    // Junta cardán trasera
+    tft.fillCircle(cx, diffRearY - 5, 3, COLOR_CARDAN);
+    tft.drawCircle(cx, diffRearY - 5, 3, COLOR_AXLE_DARK);
     
     carBodyDrawn = true;
 }
 
-// Mostrar ángulo del volante en el centro del coche
-static void drawSteeringAngle(float angleDeg) {
-    // Posición: centro del coche, justo debajo del centro
+// Colores para el volante
+static const uint16_t COLOR_WHEEL_RIM = 0x8410;      // Gris oscuro para el aro
+static const uint16_t COLOR_WHEEL_SPOKE = 0xA514;    // Gris medio para los radios
+static const uint16_t COLOR_WHEEL_CENTER = 0x4A49;   // Gris para el centro
+static const uint16_t COLOR_WHEEL_HIGHLIGHT = 0xC618; // Highlight 3D
+
+// Dibujar volante gráfico con rotación y mostrar ángulo en grados
+static void drawSteeringWheel(float angleDeg) {
+    // Posición: centro del coche
     const int cx = CAR_BODY_X + CAR_BODY_W / 2;  // Centro X del coche (240)
-    const int cy = CAR_BODY_Y + CAR_BODY_H / 2 + 10;  // Centro Y del coche + offset (185)
+    const int cy = CAR_BODY_Y + CAR_BODY_H / 2;  // Centro Y del coche (175)
+    const int wheelRadius = 25;   // Radio del volante
+    const int innerRadius = 18;   // Radio interior (entre aro y centro)
+    const int centerRadius = 8;   // Radio del centro del volante
     
     // Solo redibujar si hay cambio significativo (>0.5 grados)
     if (fabs(angleDeg - lastSteeringAngle) < 0.5f) return;
     lastSteeringAngle = angleDeg;
     
-    // Limpiar área (ancho suficiente para el texto)
-    tft.fillRect(cx - 35, cy - 8, 70, 16, TFT_BLACK);
+    // Limpiar área del volante
+    tft.fillCircle(cx, cy, wheelRadius + 5, TFT_BLACK);
     
-    // Dibujar texto del ángulo
-    tft.setTextDatum(MC_DATUM);
+    // Convertir ángulo a radianes
+    float rad = angleDeg * DEG_TO_RAD;
     
     // Color según ángulo: verde si centrado, amarillo si girado, rojo si muy girado
-    uint16_t color;
+    uint16_t rimColor;
     float absAngle = fabs(angleDeg);
     if (absAngle < 5.0f) {
-        color = TFT_GREEN;      // Centrado
+        rimColor = TFT_GREEN;       // Centrado
     } else if (absAngle < 20.0f) {
-        color = TFT_CYAN;       // Ligeramente girado
+        rimColor = TFT_CYAN;        // Ligeramente girado
     } else if (absAngle <= 35.0f) {
-        color = TFT_YELLOW;     // Girado moderadamente
+        rimColor = TFT_YELLOW;      // Girado moderadamente
     } else {
-        color = TFT_ORANGE;     // Muy girado
+        rimColor = TFT_ORANGE;      // Muy girado
     }
     
-    tft.setTextColor(color, TFT_BLACK);
+    // === Dibujar aro exterior del volante ===
+    // Sombra del aro
+    tft.drawCircle(cx + 1, cy + 1, wheelRadius, 0x2104);
+    tft.drawCircle(cx + 1, cy + 1, wheelRadius - 1, 0x2104);
+    // Aro principal
+    tft.drawCircle(cx, cy, wheelRadius, rimColor);
+    tft.drawCircle(cx, cy, wheelRadius - 1, rimColor);
+    tft.drawCircle(cx, cy, wheelRadius - 2, COLOR_WHEEL_RIM);
+    
+    // === Dibujar 3 radios del volante (rotados según ángulo) ===
+    for (int i = 0; i < 3; i++) {
+        // Ángulos de los radios: 0°, 120°, 240° + rotación del volante
+        float spokeAngle = rad + (i * 120.0f * DEG_TO_RAD);
+        
+        // Puntos inicio (cerca del centro) y fin (en el aro)
+        int x1 = cx + (int)(cosf(spokeAngle) * centerRadius);
+        int y1 = cy + (int)(sinf(spokeAngle) * centerRadius);
+        int x2 = cx + (int)(cosf(spokeAngle) * innerRadius);
+        int y2 = cy + (int)(sinf(spokeAngle) * innerRadius);
+        
+        // Dibujar radio con grosor
+        tft.drawLine(x1, y1, x2, y2, COLOR_WHEEL_SPOKE);
+        tft.drawLine(x1 - 1, y1, x2 - 1, y2, COLOR_WHEEL_SPOKE);
+        tft.drawLine(x1 + 1, y1, x2 + 1, y2, COLOR_WHEEL_RIM);
+    }
+    
+    // === Dibujar centro del volante (hub) ===
+    // Sombra 3D
+    tft.fillCircle(cx + 1, cy + 1, centerRadius, 0x2104);
+    // Centro principal
+    tft.fillCircle(cx, cy, centerRadius, COLOR_WHEEL_CENTER);
+    tft.drawCircle(cx, cy, centerRadius, COLOR_WHEEL_RIM);
+    // Highlight 3D
+    tft.fillCircle(cx - 2, cy - 2, 2, COLOR_WHEEL_HIGHLIGHT);
+    
+    // === Indicador de posición 12 en punto (para referencia visual) ===
+    // Línea que marca el "arriba" del volante rotado
+    float topAngle = rad - (90.0f * DEG_TO_RAD);  // -90° es arriba en coords de pantalla
+    int topX = cx + (int)(cosf(topAngle) * (wheelRadius - 5));
+    int topY = cy + (int)(sinf(topAngle) * (wheelRadius - 5));
+    tft.fillCircle(topX, topY, 3, rimColor);
+    
+    // === Mostrar grados debajo del volante ===
+    const int textY = cy + wheelRadius + 12;
+    tft.fillRect(cx - 25, textY - 6, 50, 14, TFT_BLACK);
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(rimColor, TFT_BLACK);
     char buf[16];
-    snprintf(buf, sizeof(buf), "%+.0f°", angleDeg);  // Formato: +0° o -15°
-    tft.drawString(buf, cx, cy, 2);
+    snprintf(buf, sizeof(buf), "%+.0f\xB0", angleDeg);  // Formato: +0° o -15° (0xB0 = símbolo grado)
+    tft.drawString(buf, cx, textY, 2);
+}
+
+// DEPRECATED: Mantener compatibilidad con nombre anterior
+// TODO: Eliminar en próxima versión mayor, usar drawSteeringWheel() directamente
+static void drawSteeringAngle(float angleDeg) {
+    drawSteeringWheel(angleDeg);
 }
 
 void HUD::drawPedalBar(float pedalPercent) {
@@ -477,6 +816,9 @@ void HUD::update() {
     bool tempWarning = false;
     float maxTemp = 42.0f;
     
+    // Simulated ambient temperature
+    float ambientTemp = 22.0f;
+    
 #else
     auto pedal = Pedal::get();
     auto steer = Steering::get();
@@ -521,6 +863,9 @@ void HUD::update() {
     uint8_t sensorWheelOK = sensorStatus.wheelSensorsOK;
     bool tempWarning = sensorStatus.temperatureWarning;
     float maxTemp = sensorStatus.maxTemperature;
+    
+    // Temperatura ambiente desde sensor DS18B20 #4
+    float ambientTemp = cfg.tempSensorsEnabled ? Sensors::getTemperature(4) : 22.0f;
 #endif
 
 #ifdef DEBUG_RENDER
@@ -577,6 +922,9 @@ void HUD::update() {
     Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f);
 #endif
 
+    // Temperatura ambiente (esquina superior derecha, debajo de batería)
+    Icons::drawAmbientTemp(ambientTemp);
+
     // Icono de advertencia si hay errores almacenados
     Icons::drawErrorWarning();
     
@@ -589,6 +937,9 @@ void HUD::update() {
 
     // Barra de pedal en la parte inferior
     drawPedalBar(pedalPercent);
+    
+    // Botón de giro sobre eje (axis rotation)
+    drawAxisRotationButton();
     
 #ifdef STANDALONE_DISPLAY
     // Draw demo button for easy hidden menu access
@@ -619,18 +970,40 @@ void HUD::update() {
             if (!demoButtonWasPressed) {
                 demoButtonPressStart = now;
                 demoButtonWasPressed = true;
+                demoButtonProgress = 0.0f;
                 Logger::info("Demo button touched - hold 1.5s for menu");
-            } else if (now - demoButtonPressStart >= DEMO_BUTTON_LONG_PRESS_MS) {
-                // Long press detected - activate hidden menu directly
-                demoButtonTouched = true;
-                hiddenMenuJustActivated = true;
-                Logger::info("Demo button long press - activating hidden menu");
+            } else {
+                // Actualizar progreso visual
+                uint32_t elapsed = now - demoButtonPressStart;
+                demoButtonProgress = (float)elapsed / (float)DEMO_BUTTON_LONG_PRESS_MS;
+                if (demoButtonProgress > 1.0f) demoButtonProgress = 1.0f;
+                
+                if (elapsed >= DEMO_BUTTON_LONG_PRESS_MS) {
+                    // Long press detected - activate hidden menu directly
+                    demoButtonTouched = true;
+                    hiddenMenuJustActivated = true;
+                    demoButtonWasPressed = false;
+                    demoButtonProgress = 0.0f;
+                    Logger::info("Demo button long press - activating hidden menu");
+                }
             }
         } else {
             // Reset if touch moved outside button area
             demoButtonWasPressed = false;
+            demoButtonProgress = 0.0f;
         }
 #endif
+
+        // Check axis rotation button touch (simple toggle on touch)
+        static bool axisButtonWasPressed = false;
+        if (isTouchInAxisButton(x, y)) {
+            if (!axisButtonWasPressed) {
+                axisButtonWasPressed = true;
+                toggleAxisRotation();
+            }
+        } else {
+            axisButtonWasPressed = false;
+        }
 
         TouchAction act = getTouchedZone(x, y);
         switch (act) {
@@ -655,6 +1028,7 @@ void HUD::update() {
     } else {
 #ifdef STANDALONE_DISPLAY
         demoButtonWasPressed = false;
+        demoButtonProgress = 0.0f;
 #endif
     }
 #endif  // DISABLE_TOUCH
