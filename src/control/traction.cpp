@@ -62,7 +62,6 @@ void Traction::init() {
     s.enabled4x4 = false;
     s.demandPct = 0.0f;
     s.axisRotation = false;
-    s.axisRotationPct = 30.0f;  // Default 30% speed for axis rotation
     Logger::info("Traction init");
     initialized = true;
 }
@@ -74,12 +73,14 @@ void Traction::setMode4x4(bool on) {
 }
 
 // Establecer modo de giro sobre eje (tank turn)
+// SEGURIDAD: La velocidad de giro es controlada por el pedal
+// El parámetro speedPct se mantiene por compatibilidad pero no se usa
 void Traction::setAxisRotation(bool enabled, float speedPct) {
+    (void)speedPct;  // No se usa, velocidad controlada por pedal
     s.axisRotation = enabled;
-    s.axisRotationPct = clampf(speedPct, 0.0f, 100.0f);
     
     if (enabled) {
-        Logger::infof("Traction: AXIS ROTATION ON at %.1f%%", s.axisRotationPct);
+        Logger::info("Traction: AXIS ROTATION ON (velocidad controlada por pedal)");
     } else {
         Logger::info("Traction: AXIS ROTATION OFF");
         // Reset wheel directions when turning off axis rotation
@@ -128,8 +129,13 @@ void Traction::update() {
     // Ruedas izquierdas (FL, RL) giran hacia adelante
     // Ruedas derechas (FR, RR) giran hacia atrás (o viceversa)
     // Esto crea una rotación sobre el eje vertical del vehículo
+    // 
+    // SEGURIDAD: La velocidad de giro es controlada por el pedal
+    // Si se suelta el pedal, el giro se detiene inmediatamente
     if (s.axisRotation) {
-        float rotSpeed = s.axisRotationPct;
+        // Usar demanda del pedal como velocidad de rotación (seguridad)
+        // Si el pedal se suelta, demandPct = 0 y el giro para
+        float rotSpeed = s.demandPct;
         
         // Lado izquierdo: adelante
         s.w[FL].demandPct = rotSpeed;
@@ -143,7 +149,7 @@ void Traction::update() {
         s.w[RR].demandPct = rotSpeed;
         s.w[RR].reverse = true;
         
-        Logger::debugf("Traction AXIS ROTATION: speed=%.1f%%, L=FWD, R=REV", rotSpeed);
+        Logger::debugf("Traction AXIS ROTATION: pedal=%.1f%%, L=FWD, R=REV", rotSpeed);
         
         // Calcular PWM y leer sensores
         for (int i = 0; i < 4; ++i) {

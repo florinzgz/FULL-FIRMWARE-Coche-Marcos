@@ -26,8 +26,7 @@ namespace Traction {
     struct State {
         bool enabled4x4;       // true = 4x4, false = 4x2 (solo eje delantero)
         float demandPct;       // Demanda global desde pedal (0–100 %)
-        bool axisRotation;     // true = modo giro sobre eje activo
-        float axisRotationPct; // Velocidad de giro sobre eje (0–100 %)
+        bool axisRotation;     // true = modo giro sobre eje activo (velocidad = pedal)
         WheelState w[4];       // Estado de cada rueda
     };
 
