@@ -39,7 +39,28 @@
 -DTOUCH_DRIVER=0x2046
 ```
 
-### 3. Limpieza de Configuración ✅
+### 3. Optimizaciones de Performance ✅
+
+**Actualizaciones de librerías:**
+- ✅ TFT_eSPI: 2.5.43 → 2.5.50 (últimas características y correcciones)
+- ✅ INA226: 0.6.4 → 0.7.0 (mejor sensado de corriente)
+- ✅ FastLED: 3.6.0 → 3.7.0 (mejor rendimiento de LEDs)
+- ✅ Añadido ESP Async WebServer 1.2.4 (soporte para dashboard web)
+
+**Optimizaciones del compilador (release):**
+```ini
+-O3                              ; Máxima optimización de performance
+-DCONFIG_ARDUHAL_ESP_LOG=0       ; Desactivar logs Arduino HAL
+-DCONFIG_ESP_CONSOLE_UART_NONE=1 ; Sin console UART en producción
+```
+
+**Beneficios:**
+- Mejora significativa en velocidad de ejecución
+- Reducción del tamaño del binario
+- Menor consumo de recursos en producción
+- Base preparada para dashboard web futuro
+
+### 4. Limpieza de Configuración ✅
 
 **Mejoras en platformio.ini:**
 - ✅ Eliminadas referencias a versiones antiguas (v2.8.3, v2.8.4, v2.8.6, v2.8.7, v2.8.8)

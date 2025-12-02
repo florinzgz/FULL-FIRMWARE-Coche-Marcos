@@ -19,6 +19,9 @@ ESP32: S3-DevKitC-1 (44 pines)
 - ✅ Eliminados conflictos de bus SPI compartido
 - ✅ Configuración optimizada basada en TFT_eSPI mySetup27_ST7796_ESP32.h
 - ✅ Limpieza y consolidación de changelog en platformio.ini y project_config.ini
+- ✅ Librerías actualizadas: TFT_eSPI 2.5.50, INA226 0.7.0, FastLED 3.7.0
+- ✅ Añadido ESP Async WebServer 1.2.4 para dashboard web
+- ✅ Optimizaciones de compilador: -O3, sin logs HAL, sin UART console en producción
 
 **Novedades v2.8.5:**
 - ✅ Revisión exhaustiva de código: 57 .cpp + 61 .h archivos verificados
