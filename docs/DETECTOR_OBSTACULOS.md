@@ -175,7 +175,7 @@ minCruiseSpeed = 10.0f;  // 10 km/h
    ├── XSHUT → HIGH (power up)
    ├── Espera 50ms estabilización
    ├── Selecciona canal MUX
-   ├── Lee ID del dispositivo (0x0000 → 0xF0 esperado)
+   ├── Lee ID del dispositivo desde registro 0x0000 (valor esperado: 0xF0)
    └── Marca sensor como healthy/unhealthy
 ```
 

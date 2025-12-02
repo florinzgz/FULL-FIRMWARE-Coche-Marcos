@@ -69,7 +69,7 @@ void Icons::drawGear(Shifter::Gear g) {
 
     // ========================================
     // NUEVA POSICIÓN: Centro de pantalla, entre warning y coche
-    // Centrado horizontalmente, Y = 50 (debajo del warning que termina en Y=40)
+    // Centrado horizontalmente, Y = 48 (debajo del warning que termina en Y=40)
     // ========================================
     const int GEAR_PANEL_X = 140;   // Posición X del panel (centrado ~140-340 = 200px ancho)
     const int GEAR_PANEL_Y = 48;    // Debajo del triángulo warning
