@@ -102,10 +102,10 @@
 
 // ============================================================================
 // RELÉS DE POTENCIA (4x SRD-05VDC-SL-C)
-// Ordenados en pines consecutivos 4-7
+// ✅ v2.9.1: RELAY_MAIN movido de GPIO 4 → GPIO 35 (GPIO 4 ahora es ADC para pedal)
 // ============================================================================
 
-#define PIN_RELAY_MAIN    4   // GPIO 4  - Relé principal (Power Hold)
+#define PIN_RELAY_MAIN    35  // GPIO 35 - Relé principal (Power Hold) ✅ Movido de GPIO 4
 #define PIN_RELAY_TRAC    5   // GPIO 5  - Relé tracción 24V
 #define PIN_RELAY_DIR     6   // GPIO 6  - Relé dirección 12V
 #define PIN_RELAY_SPARE   7   // GPIO 7  - Relé auxiliar (luces/media)
@@ -185,8 +185,10 @@
 // -----------------------
 // Pedal acelerador (Sensor Hall A1324LUA-T)
 // Salida analógica 5V → divisor resistivo → 3.3V
+// ✅ v2.9.1: Cambiado de GPIO 35 → GPIO 4 (pin ADC válido en ESP32-S3)
+// ESP32-S3 ADC válidos: GPIO 1-10 (ADC1), GPIO 11-20 (ADC2)
 // -----------------------
-#define PIN_PEDAL         35  // GPIO 35 - ADC1_CH4 (entrada analógica 0-3.3V)
+#define PIN_PEDAL         4   // GPIO 4 - ADC1_CH3 (entrada analógica 0-3.3V) ✅ Corregido
 
 // -----------------------
 // Sensores inductivos ruedas (4x LJ12A3-4-Z/BX)
@@ -276,7 +278,7 @@
 │  1   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
 │  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
 │  3   │ WHEEL_FL                │ Input     │ Sensor rueda delantera izq      │
-│  4   │ RELAY_MAIN              │ Output    │ Relé principal (Power Hold)     │
+│  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
 │  5   │ RELAY_TRAC              │ Output    │ Relé tracción 24V               │
 │  6   │ RELAY_DIR               │ Output    │ Relé dirección 12V              │
 │  7   │ RELAY_SPARE             │ Output    │ Relé auxiliar                   │
@@ -294,7 +296,7 @@
 │ 19   │ XSHUT_REAR (VL53L5X)    │ Output    │ Sensor obstáculos trasero       │
 │ 20   │ ONEWIRE                 │ I/O       │ 4x DS18B20 temperatura          │
 │ 21   │ TOUCH_CS                │ Output    │ ✅ CS Touch (seguro)             │
-│ 35   │ PEDAL (ADC)             │ Analog In │ Sensor Hall pedal               │
+│ 35   │ RELAY_MAIN              │ Output    │ ✅ v2.9.1: Relé principal        │
 │ 36   │ WHEEL_FR                │ Input     │ Sensor rueda delantera derecha  │
 │ 37   │ ENCODER_A               │ Input     │ Encoder dirección A             │
 │ 38   │ ENCODER_B               │ Input     │ Encoder dirección B             │
@@ -341,6 +343,10 @@ MEJORAS v2.3.0:
 MEJORAS v2.4.1:
 ✅ VL53L5X XSHUT: Asignados a GPIO 18, 19, 45, 46 (antes libres)
 ✅ Corrección conflicto: GPIO 7,8,10,11 ya estaban en uso
+
+MEJORAS v2.9.1:
+✅ PIN_PEDAL: GPIO 35 → GPIO 4 (GPIO 35 no es ADC en ESP32-S3)
+✅ PIN_RELAY_MAIN: GPIO 4 → GPIO 35 (intercambiado con pedal)
 
 TOTAL ESP32: 34/36 GPIOs utilizados (94% eficiencia)
 TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
