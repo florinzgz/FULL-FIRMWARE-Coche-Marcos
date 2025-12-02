@@ -429,14 +429,16 @@ Touch CS = GPIO 21 (PIN_TOUCH_CS en pins.h)
 ### 13.3 Frecuencias SPI Configuradas (platformio.ini)
 
 ```ini
--DSPI_FREQUENCY=20000000       ; 20MHz para TFT
--DSPI_READ_FREQUENCY=10000000  ; 10MHz para lecturas TFT
--DSPI_TOUCH_FREQUENCY=2500000  ; 2.5MHz para touch (conservador)
+-DSPI_FREQUENCY=40000000       ; 40MHz para TFT (optimizado v2.8.9)
+-DSPI_READ_FREQUENCY=20000000  ; 20MHz para lecturas TFT
+-DSPI_TOUCH_FREQUENCY=2500000  ; 2.5MHz para touch (requisito XPT2046)
 ```
 
 **Análisis**:
-- La frecuencia del touch es **8x más lenta** que la del TFT
-- Esto garantiza lecturas estables del ADC del XPT2046
+- La frecuencia del touch es **16x más lenta** que la del TFT
+- 40MHz es la frecuencia recomendada para ST7796S según TFT_eSPI
+- ESP32-S3 puede manejar hasta 80MHz, 40MHz es seguro y rápido
+- XPT2046 requiere máximo 2.5MHz para lecturas estables del ADC
 - No hay problemas de timing entre dispositivos
 
 ### 13.4 Rotación Sincronizada
