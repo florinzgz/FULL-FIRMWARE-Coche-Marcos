@@ -1,6 +1,7 @@
 #pragma once
 #include <TFT_eSPI.h>
-#include <XPT2046_Touchscreen.h>
+// 🔒 v2.8.8: Eliminada dependencia de XPT2046_Touchscreen
+// Ahora usamos el touch integrado de TFT_eSPI
 
 namespace MenuHidden {
 
@@ -9,8 +10,9 @@ namespace MenuHidden {
     void init(TFT_eSPI *display);
     
     // --- Inicialización táctil ---
-    // Recibe el puntero al controlador táctil para navegación interactiva.
-    void initTouch(XPT2046_Touchscreen *touchScreen);
+    // 🔒 v2.8.8: Mantenida por compatibilidad pero ya no es necesaria
+    // El touch se maneja internamente a través de TFT_eSPI
+    void initTouch(void *touchScreen);
 
     // --- Actualización del menú ---
     // Se invoca en cada ciclo principal.
