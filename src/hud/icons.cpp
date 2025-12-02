@@ -351,3 +351,50 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
         tft->drawString(buf, TEMP_WARNING_X + 5, TEMP_WARNING_Y + TEMP_WARNING_H/2, 2);
     }
 }
+
+// Cache para temperatura ambiente
+static float lastAmbientTemp = -999.0f;
+
+void Icons::drawAmbientTemp(float ambientTemp) {
+    if(!initialized) return;
+    
+    // Solo redibujar si hay cambio significativo (>0.5°C)
+    if(fabs(ambientTemp - lastAmbientTemp) < 0.5f) return;
+    lastAmbientTemp = ambientTemp;
+    
+    // Limpiar área
+    tft->fillRect(AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W, AMBIENT_TEMP_H, TFT_BLACK);
+    
+    // Dibujar icono de termómetro pequeño
+    int iconX = AMBIENT_TEMP_X + 2;
+    int iconY = AMBIENT_TEMP_Y + 3;
+    
+    // Cuerpo del termómetro (vertical)
+    tft->fillRoundRect(iconX, iconY, 6, 12, 2, TFT_CYAN);
+    tft->drawRoundRect(iconX, iconY, 6, 12, 2, TFT_DARKGREY);
+    
+    // Bulbo del termómetro
+    tft->fillCircle(iconX + 3, iconY + 13, 4, TFT_CYAN);
+    tft->drawCircle(iconX + 3, iconY + 13, 4, TFT_DARKGREY);
+    
+    // Texto de temperatura
+    tft->setTextDatum(ML_DATUM);
+    
+    // Color según temperatura
+    uint16_t tempColor;
+    if (ambientTemp < 10.0f) {
+        tempColor = TFT_CYAN;       // Frío
+    } else if (ambientTemp < 25.0f) {
+        tempColor = TFT_GREEN;      // Confortable
+    } else if (ambientTemp < 35.0f) {
+        tempColor = TFT_YELLOW;     // Cálido
+    } else {
+        tempColor = TFT_RED;        // Caliente
+    }
+    
+    tft->setTextColor(tempColor, TFT_BLACK);
+    char buf[10];
+    snprintf(buf, sizeof(buf), "%.0fC", ambientTemp);
+    tft->drawString(buf, AMBIENT_TEMP_X + 14, AMBIENT_TEMP_Y + AMBIENT_TEMP_H/2, 2);
+    tft->setTextDatum(TL_DATUM);
+}

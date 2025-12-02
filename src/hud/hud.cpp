@@ -62,6 +62,14 @@ static const int DEMO_BTN_X2 = 475;
 static const int DEMO_BTN_Y2 = 295;
 #endif
 
+// Botón virtual para giro sobre eje (axis rotation toggle)
+static bool axisRotationEnabled = false;
+static bool lastAxisRotationState = false;
+static const int AXIS_BTN_X1 = 245;
+static const int AXIS_BTN_Y1 = 250;
+static const int AXIS_BTN_X2 = 315;
+static const int AXIS_BTN_Y2 = 295;
+
 // Layout 480x320 (rotación 3 → 480x320 landscape)
 // Note: Rotation 3 used for ST7796S 4-inch display in horizontal orientation
 static const int X_SPEED = 70;   // Left gauge - moved left for car visualization
@@ -239,6 +247,85 @@ static bool isTouchInDemoButton(int x, int y) {
             y >= DEMO_BTN_Y1 - MARGIN && y <= DEMO_BTN_Y2 + MARGIN);
 }
 #endif
+
+// Dibujar botón de giro sobre eje (axis rotation toggle)
+static void drawAxisRotationButton() {
+    // Solo redibujar si hay cambio de estado
+    if (axisRotationEnabled == lastAxisRotationState) return;
+    lastAxisRotationState = axisRotationEnabled;
+    
+    int btnW = AXIS_BTN_X2 - AXIS_BTN_X1;
+    int btnH = AXIS_BTN_Y2 - AXIS_BTN_Y1;
+    int centerX = (AXIS_BTN_X1 + AXIS_BTN_X2) / 2;
+    int centerY = (AXIS_BTN_Y1 + AXIS_BTN_Y2) / 2;
+    
+    // Colores del botón
+    const uint16_t COLOR_BOX_BG = 0x2104;
+    const uint16_t COLOR_BOX_HIGHLIGHT = 0x6B6D;
+    const uint16_t COLOR_BOX_SHADOW = 0x1082;
+    const uint16_t COLOR_ACTIVE = 0x07E0;    // Verde brillante cuando activo
+    
+    // Sombra 3D
+    tft.fillRoundRect(AXIS_BTN_X1 + 2, AXIS_BTN_Y1 + 2, btnW, btnH, 5, COLOR_BOX_SHADOW);
+    
+    // Fondo del botón
+    uint16_t bgColor = axisRotationEnabled ? 0x0320 : COLOR_BOX_BG;  // Verde oscuro cuando activo
+    tft.fillRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, bgColor);
+    
+    // Borde con efecto 3D
+    tft.drawRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, 0x4A49);
+    
+    // Highlight superior
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 2, btnW - 10, COLOR_BOX_HIGHLIGHT);
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 3, btnW - 10, COLOR_BOX_HIGHLIGHT);
+    
+    // Sombra inferior
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 3, btnW - 10, COLOR_BOX_SHADOW);
+    tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 2, btnW - 10, COLOR_BOX_SHADOW);
+    
+    // Icono de rotación (flechas circulares)
+    int iconCx = centerX;
+    int iconCy = centerY - 6;
+    int iconR = 8;
+    
+    uint16_t arrowColor = axisRotationEnabled ? TFT_WHITE : TFT_DARKGREY;
+    
+    // Dibujar arco con flechas (simulando rotación)
+    tft.drawCircle(iconCx, iconCy, iconR, arrowColor);
+    tft.drawCircle(iconCx, iconCy, iconR - 1, arrowColor);
+    
+    // Flechas de dirección
+    tft.fillTriangle(iconCx + iconR - 2, iconCy - 4, 
+                     iconCx + iconR + 4, iconCy, 
+                     iconCx + iconR - 2, iconCy + 4, arrowColor);
+    tft.fillTriangle(iconCx - iconR + 2, iconCy - 4, 
+                     iconCx - iconR - 4, iconCy, 
+                     iconCx - iconR + 2, iconCy + 4, arrowColor);
+    
+    // Texto "GIRO" debajo
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextColor(arrowColor, bgColor);
+    tft.drawString("GIRO", centerX, centerY + 12, 1);
+    tft.setTextDatum(TL_DATUM);
+}
+
+// Verificar si el toque está en el área del botón de giro
+static bool isTouchInAxisButton(int x, int y) {
+    return (x >= AXIS_BTN_X1 && x <= AXIS_BTN_X2 && 
+            y >= AXIS_BTN_Y1 && y <= AXIS_BTN_Y2);
+}
+
+// Toggle axis rotation state
+void HUD::toggleAxisRotation() {
+    axisRotationEnabled = !axisRotationEnabled;
+    lastAxisRotationState = !axisRotationEnabled;  // Force redraw
+    Logger::info(axisRotationEnabled ? "Axis rotation enabled" : "Axis rotation disabled");
+}
+
+// Get axis rotation state
+bool HUD::isAxisRotationEnabled() {
+    return axisRotationEnabled;
+}
 
 // Colores 3D para carrocería del coche
 static const uint16_t COLOR_CAR_BODY = 0x2945;       // Gris azulado oscuro
@@ -725,6 +812,9 @@ void HUD::update() {
     bool tempWarning = false;
     float maxTemp = 42.0f;
     
+    // Simulated ambient temperature
+    float ambientTemp = 22.0f;
+    
 #else
     auto pedal = Pedal::get();
     auto steer = Steering::get();
@@ -769,6 +859,9 @@ void HUD::update() {
     uint8_t sensorWheelOK = sensorStatus.wheelSensorsOK;
     bool tempWarning = sensorStatus.temperatureWarning;
     float maxTemp = sensorStatus.maxTemperature;
+    
+    // Temperatura ambiente desde sensor DS18B20 #4
+    float ambientTemp = cfg.tempSensorsEnabled ? Sensors::getTemperature(4) : 22.0f;
 #endif
 
 #ifdef DEBUG_RENDER
@@ -825,6 +918,9 @@ void HUD::update() {
     Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f);
 #endif
 
+    // Temperatura ambiente (esquina superior derecha, debajo de batería)
+    Icons::drawAmbientTemp(ambientTemp);
+
     // Icono de advertencia si hay errores almacenados
     Icons::drawErrorWarning();
     
@@ -837,6 +933,9 @@ void HUD::update() {
 
     // Barra de pedal en la parte inferior
     drawPedalBar(pedalPercent);
+    
+    // Botón de giro sobre eje (axis rotation)
+    drawAxisRotationButton();
     
 #ifdef STANDALONE_DISPLAY
     // Draw demo button for easy hidden menu access
@@ -890,6 +989,17 @@ void HUD::update() {
             demoButtonProgress = 0.0f;
         }
 #endif
+
+        // Check axis rotation button touch (simple toggle on touch)
+        static bool axisButtonWasPressed = false;
+        if (isTouchInAxisButton(x, y)) {
+            if (!axisButtonWasPressed) {
+                axisButtonWasPressed = true;
+                toggleAxisRotation();
+            }
+        } else {
+            axisButtonWasPressed = false;
+        }
 
         TouchAction act = getTouchedZone(x, y);
         switch (act) {

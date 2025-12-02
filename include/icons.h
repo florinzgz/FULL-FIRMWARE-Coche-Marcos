@@ -43,6 +43,12 @@ namespace Icons {
      * @param maxTemp Temperatura máxima actual
      */
     void drawTempWarning(bool tempWarning, float maxTemp);
+    
+    /**
+     * @brief Dibuja temperatura ambiente en esquina superior derecha
+     * @param ambientTemp Temperatura ambiente en grados Celsius
+     */
+    void drawAmbientTemp(float ambientTemp);
 
     // ============================================================
     // Constantes de layout (480x320, rotación 1)
@@ -53,6 +59,12 @@ namespace Icons {
     constexpr int BATTERY_Y1 = 0;
     constexpr int BATTERY_X2 = 470;
     constexpr int BATTERY_Y2 = 40;
+    
+    // Temperatura ambiente (arriba derecha, debajo de batería)
+    constexpr int AMBIENT_TEMP_X = 420;
+    constexpr int AMBIENT_TEMP_Y = 42;
+    constexpr int AMBIENT_TEMP_W = 55;
+    constexpr int AMBIENT_TEMP_H = 20;
 
     // ============================================================
     // Iconos de características (LUCES, MEDIA, 4x4) - Cuadrados 3D
