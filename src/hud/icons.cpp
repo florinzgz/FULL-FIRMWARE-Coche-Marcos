@@ -59,50 +59,118 @@ void Icons::drawSystemState(System::State st) {
     tft->drawString(txt, 10, 10, 2);
 }
 
-// 🔒 v2.8.8: Indicador de marcha mejorado - muestra todas las posiciones con la actual resaltada
+// 🔒 v2.9.0: Indicador de marcha REUBICADO Y MEJORADO
+// Posición: Centro de pantalla, debajo del triángulo warning (entre warning y coche)
+// Diseño: 3D con efecto de profundidad y tamaño más grande
 void Icons::drawGear(Shifter::Gear g) {
     if(!initialized) return;
     if(g == lastGear) return;
     lastGear = g;
 
-    // Posición del indicador de marcha (esquina superior derecha)
-    const int GEAR_X = 390;  // Posición X inicial
-    const int GEAR_Y = 8;    // Posición Y
-    const int GEAR_SPACING = 18;  // Espacio entre letras
+    // ========================================
+    // NUEVA POSICIÓN: Centro de pantalla, entre warning y coche
+    // Centrado horizontalmente, Y = 50 (debajo del warning que termina en Y=40)
+    // ========================================
+    const int GEAR_PANEL_X = 140;   // Posición X del panel (centrado ~140-340 = 200px ancho)
+    const int GEAR_PANEL_Y = 48;    // Debajo del triángulo warning
+    const int GEAR_PANEL_W = 200;   // Ancho total del panel
+    const int GEAR_PANEL_H = 36;    // Alto del panel
+    const int GEAR_ITEM_W = 36;     // Ancho de cada celda de marcha
+    const int GEAR_ITEM_H = 28;     // Alto de cada celda
+    const int GEAR_SPACING = 4;     // Espacio entre celdas
     
-    // Colores
-    const uint16_t COLOR_INACTIVE = 0x4208;   // Gris oscuro para marchas no seleccionadas
-    const uint16_t COLOR_ACTIVE = TFT_WHITE;  // Blanco brillante para marcha activa
-    const uint16_t COLOR_ACTIVE_BG = 0x001F;  // Fondo azul para resaltar marcha activa (rojo para R)
-    const uint16_t COLOR_REVERSE_BG = 0xF800; // Fondo rojo para reversa
+    // Colores 3D mejorados
+    const uint16_t COLOR_PANEL_BG = 0x1082;       // Fondo del panel (gris muy oscuro)
+    const uint16_t COLOR_PANEL_BORDER = 0x4A49;   // Borde del panel
+    const uint16_t COLOR_PANEL_HIGHLIGHT = 0x6B6D; // Highlight 3D superior
+    const uint16_t COLOR_PANEL_SHADOW = 0x0841;   // Sombra 3D inferior
     
-    // Limpiar área del indicador
-    tft->fillRect(GEAR_X - 2, GEAR_Y - 2, 90, 20, TFT_BLACK);
+    const uint16_t COLOR_INACTIVE_BG = 0x2104;    // Fondo celda inactiva
+    const uint16_t COLOR_INACTIVE_TEXT = 0x630C;  // Texto gris para inactivas
+    const uint16_t COLOR_INACTIVE_BORDER = 0x3186; // Borde celda inactiva
     
-    // Array de marchas en orden: P R N D1 D2
+    const uint16_t COLOR_ACTIVE_BG = 0x03EF;      // Fondo azul brillante para activa
+    const uint16_t COLOR_ACTIVE_TEXT = TFT_WHITE; // Texto blanco brillante
+    const uint16_t COLOR_ACTIVE_BORDER = TFT_CYAN; // Borde cyan para activa
+    const uint16_t COLOR_ACTIVE_GLOW = 0x04FF;    // Efecto brillo
+    
+    const uint16_t COLOR_REVERSE_BG = 0xF800;     // Fondo rojo para Reversa
+    const uint16_t COLOR_REVERSE_GLOW = 0xFBE0;   // Brillo naranja para reversa
+    
+    // ========================================
+    // Dibujar panel de fondo con efecto 3D
+    // ========================================
+    
+    // Sombra exterior (efecto profundidad)
+    tft->fillRoundRect(GEAR_PANEL_X + 3, GEAR_PANEL_Y + 3, GEAR_PANEL_W, GEAR_PANEL_H, 6, COLOR_PANEL_SHADOW);
+    
+    // Fondo principal del panel
+    tft->fillRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W, GEAR_PANEL_H, 6, COLOR_PANEL_BG);
+    
+    // Borde del panel
+    tft->drawRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W, GEAR_PANEL_H, 6, COLOR_PANEL_BORDER);
+    
+    // Highlight superior (efecto 3D)
+    tft->drawFastHLine(GEAR_PANEL_X + 8, GEAR_PANEL_Y + 2, GEAR_PANEL_W - 16, COLOR_PANEL_HIGHLIGHT);
+    tft->drawFastHLine(GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3, GEAR_PANEL_W - 20, COLOR_PANEL_HIGHLIGHT);
+    
+    // ========================================
+    // Dibujar las 5 marchas: P R N D1 D2
+    // ========================================
     const char* gears[] = {"P", "R", "N", "D1", "D2"};
     const Shifter::Gear gearValues[] = {Shifter::P, Shifter::R, Shifter::N, Shifter::D1, Shifter::D2};
     
-    tft->setTextDatum(TL_DATUM);
+    // Calcular posición inicial para centrar las 5 celdas
+    int totalWidth = 5 * GEAR_ITEM_W + 4 * GEAR_SPACING;
+    int startX = GEAR_PANEL_X + (GEAR_PANEL_W - totalWidth) / 2;
+    int cellY = GEAR_PANEL_Y + (GEAR_PANEL_H - GEAR_ITEM_H) / 2;
     
-    int xPos = GEAR_X;
+    tft->setTextDatum(MC_DATUM);  // Centro para el texto
+    
     for(int i = 0; i < 5; i++) {
+        int cellX = startX + i * (GEAR_ITEM_W + GEAR_SPACING);
         bool isActive = (gearValues[i] == g);
         
+        uint16_t bgColor, textColor, borderColor;
+        
         if(isActive) {
-            // Dibujar fondo resaltado para marcha activa
-            int textWidth = (i >= 3) ? 20 : 12;  // D1/D2 son más anchos
-            uint16_t bgColor = (g == Shifter::R) ? COLOR_REVERSE_BG : COLOR_ACTIVE_BG;
-            tft->fillRoundRect(xPos - 2, GEAR_Y - 1, textWidth + 4, 14, 2, bgColor);
-            tft->setTextColor(COLOR_ACTIVE, bgColor);
+            // Marcha activa - efecto brillante
+            if(g == Shifter::R) {
+                bgColor = COLOR_REVERSE_BG;
+                borderColor = COLOR_REVERSE_GLOW;
+            } else {
+                bgColor = COLOR_ACTIVE_BG;
+                borderColor = COLOR_ACTIVE_BORDER;
+            }
+            textColor = COLOR_ACTIVE_TEXT;
+            
+            // Efecto glow exterior para marcha activa
+            tft->drawRoundRect(cellX - 1, cellY - 1, GEAR_ITEM_W + 2, GEAR_ITEM_H + 2, 5, 
+                              (g == Shifter::R) ? COLOR_REVERSE_GLOW : COLOR_ACTIVE_GLOW);
         } else {
-            tft->setTextColor(COLOR_INACTIVE, TFT_BLACK);
+            bgColor = COLOR_INACTIVE_BG;
+            textColor = COLOR_INACTIVE_TEXT;
+            borderColor = COLOR_INACTIVE_BORDER;
         }
         
-        tft->drawString(gears[i], xPos, GEAR_Y, 2);
+        // Fondo de la celda con esquinas redondeadas
+        tft->fillRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4, bgColor);
         
-        // Ajustar posición para siguiente letra (D1/D2 necesitan más espacio)
-        xPos += (i >= 3) ? GEAR_SPACING + 4 : GEAR_SPACING;
+        // Borde de la celda
+        tft->drawRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4, borderColor);
+        
+        // Efecto 3D interno: highlight superior
+        if(isActive) {
+            tft->drawFastHLine(cellX + 4, cellY + 2, GEAR_ITEM_W - 8, 
+                              (g == Shifter::R) ? 0xFC10 : 0x07FF);
+        }
+        
+        // Dibujar texto de la marcha (tamaño grande: font 4)
+        int textX = cellX + GEAR_ITEM_W / 2;
+        int textY = cellY + GEAR_ITEM_H / 2;
+        
+        tft->setTextColor(textColor, bgColor);
+        tft->drawString(gears[i], textX, textY, 4);  // Font 4 = más grande
     }
 }
 
