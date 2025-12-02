@@ -19,13 +19,16 @@ namespace Traction {
         float currentA;    // Corriente instantánea (A)
         float speedKmh;    // Velocidad de rueda (km/h)
         float tempC;       // Temperatura motor (°C, DS18B20)
+        bool reverse;      // Dirección: false=adelante, true=atrás
     };
 
     // Estado global de tracción
     struct State {
-        bool enabled4x4;   // true = 4x4, false = 4x2 (solo eje delantero)
-        float demandPct;   // Demanda global desde pedal (0–100 %)
-        WheelState w[4];   // Estado de cada rueda
+        bool enabled4x4;       // true = 4x4, false = 4x2 (solo eje delantero)
+        float demandPct;       // Demanda global desde pedal (0–100 %)
+        bool axisRotation;     // true = modo giro sobre eje activo
+        float axisRotationPct; // Velocidad de giro sobre eje (0–100 %)
+        WheelState w[4];       // Estado de cada rueda
     };
 
     // Inicialización de módulo de tracción
@@ -36,6 +39,11 @@ namespace Traction {
 
     // Establecer demanda global (desde pedal)
     void setDemand(float percent);
+    
+    // Establecer modo de giro sobre eje (tank turn)
+    // Las ruedas del lado izquierdo giran en un sentido
+    // Las ruedas del lado derecho giran en sentido contrario
+    void setAxisRotation(bool enabled, float speedPct = 30.0f);
 
     // Actualizar control de tracción:
     // - Lee sensores (corriente, temperatura, velocidad)

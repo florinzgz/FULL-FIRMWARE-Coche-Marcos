@@ -315,10 +315,14 @@ static bool isTouchInAxisButton(int x, int y) {
             y >= AXIS_BTN_Y1 && y <= AXIS_BTN_Y2);
 }
 
-// Toggle axis rotation state
+// Toggle axis rotation state and update traction system
 void HUD::toggleAxisRotation() {
     axisRotationEnabled = !axisRotationEnabled;
     lastAxisRotationState = !axisRotationEnabled;  // Force redraw
+    
+    // Actualizar sistema de tracción con el nuevo estado
+    Traction::setAxisRotation(axisRotationEnabled, 30.0f);  // 30% velocidad por defecto
+    
     Logger::info(axisRotationEnabled ? "Axis rotation enabled" : "Axis rotation disabled");
 }
 
