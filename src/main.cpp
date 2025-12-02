@@ -425,8 +425,15 @@ void loop() {
     // Control
     Traction::setDemand(Pedal::get().percent);
     Traction::update();
-    SteeringMotor::setDemandAngle(Steering::get().angleDeg);
-    SteeringMotor::update();
+    
+    // 🔒 v2.9.1: Solo actualizar SteeringMotor si está inicializado correctamente
+    // Evita el warning "[WARN] SteeringMotor update llamado sin init" cuando
+    // el PCA9685 de dirección no está conectado o falló la inicialización
+    if (SteeringMotor::initOK()) {
+        SteeringMotor::setDemandAngle(Steering::get().angleDeg);
+        SteeringMotor::update();
+    }
+    
     Relays::update();
 
     // Advanced Safety Systems
