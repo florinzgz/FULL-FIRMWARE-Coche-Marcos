@@ -1,5 +1,60 @@
 # Cambios Recientes en el Firmware
 
+## Versión: 2.8.9
+**Fecha:** 2025-12-02  
+
+---
+
+## 🆕 Novedades v2.8.9
+
+### 1. Optimización de Rendimiento del Display ✅
+
+**Problema resuelto:** Display ST7796S funcionando a frecuencia SPI subóptima.
+
+**Solución implementada:**
+- ✅ Frecuencia SPI aumentada de 20MHz a 40MHz para mejor rendimiento
+- ✅ Basado en configuración TFT_eSPI mySetup27_ST7796_ESP32.h
+- ✅ ESP32-S3 soporta frecuencias altas mejor que ESP32-C3
+- ✅ SPI_READ_FREQUENCY aumentada a 20MHz para lecturas más rápidas
+- ✅ Touch mantiene 2.5MHz (requisito del controlador XPT2046)
+
+**Resultados:**
+- Mejor fluidez en animaciones y actualizaciones de pantalla
+- Reducción de tiempo de refresco del HUD
+- Sin efectos adversos en estabilidad
+
+### 2. Integración de Touch Optimizada ✅
+
+**Problema resuelto:** Librería XPT2046_Touchscreen separada causaba conflictos SPI.
+
+**Solución implementada:**
+- ✅ Eliminada dependencia de librería XPT2046_Touchscreen separada
+- ✅ Uso del driver de touch integrado en TFT_eSPI
+- ✅ Eliminados conflictos de bus SPI compartido
+- ✅ Pantalla blanca al activar touch completamente resuelta
+
+**Configuración:**
+```cpp
+-DXPT2046_DRIVER
+-DTOUCH_DRIVER=0x2046
+```
+
+### 3. Limpieza de Configuración ✅
+
+**Mejoras en platformio.ini:**
+- ✅ Eliminadas referencias a versiones antiguas (v2.8.3, v2.8.4, v2.8.6, v2.8.7, v2.8.8)
+- ✅ Changelog consolidado con solo versiones relevantes
+- ✅ Comentarios inline simplificados
+- ✅ Mejor legibilidad y mantenimiento
+
+**Mejoras en project_config.ini:**
+- ✅ Actualizado a versión 2.8.9
+- ✅ Frecuencias SPI actualizadas en documentación
+- ✅ Changelog consolidado y organizado
+- ✅ Sincronizado con docs/PROJECT_CONFIG.ini
+
+---
+
 ## Versión: 2.8.5
 **Fecha:** 2025-11-30  
 
@@ -221,5 +276,5 @@ struct RedundantSensor {
 
 ---
 
-**Documento actualizado:** 2025-11-30  
-**Versión actual:** v2.8.5
+**Documento actualizado:** 2025-12-02  
+**Versión actual:** v2.8.9
