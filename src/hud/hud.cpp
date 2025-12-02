@@ -122,8 +122,15 @@ void HUD::init() {
     if (cfg.touchEnabled) {
         // 🔒 v2.8.8: Touch integrado de TFT_eSPI no requiere begin() separado
         // TFT_eSPI inicializa el touch automáticamente cuando se define TOUCH_CS
-        // Establecer calibración del touch (valores específicos para ST7796S 480x320)
-        uint16_t calData[5] = { 300, 3600, 300, 3600, 3 };  // min_x, max_x, min_y, max_y, rotation
+        // Establecer calibración del touch usando constantes centralizadas (touch_map.h)
+        // Formato: { min_x, max_x, min_y, max_y, rotation }
+        uint16_t calData[5] = { 
+            (uint16_t)TouchCalibration::RAW_MIN,   // 200
+            (uint16_t)TouchCalibration::RAW_MAX,   // 3900
+            (uint16_t)TouchCalibration::RAW_MIN,   // 200
+            (uint16_t)TouchCalibration::RAW_MAX,   // 3900
+            3  // Rotation para coincidir con tft.setRotation(3)
+        };
         tft.setTouch(calData);
         touchInitialized = true;
         Logger::info("Touchscreen XPT2046 integrado TFT_eSPI inicializado OK");
