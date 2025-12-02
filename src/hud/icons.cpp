@@ -59,23 +59,51 @@ void Icons::drawSystemState(System::State st) {
     tft->drawString(txt, 10, 10, 2);
 }
 
+// 🔒 v2.8.8: Indicador de marcha mejorado - muestra todas las posiciones con la actual resaltada
 void Icons::drawGear(Shifter::Gear g) {
     if(!initialized) return;
     if(g == lastGear) return;
     lastGear = g;
 
-    const char* txt = "P";
-    switch(g){
-        case Shifter::D2: txt="D2"; break;
-        case Shifter::D1: txt="D1"; break;
-        case Shifter::N:  txt="N";  break;
-        case Shifter::R:  txt="R";  break;
-        default: txt="P"; break;
-    }
-    tft->fillRect(395, 5, 80, 20, TFT_BLACK);
+    // Posición del indicador de marcha (esquina superior derecha)
+    const int GEAR_X = 390;  // Posición X inicial
+    const int GEAR_Y = 8;    // Posición Y
+    const int GEAR_SPACING = 18;  // Espacio entre letras
+    
+    // Colores
+    const uint16_t COLOR_INACTIVE = 0x4208;   // Gris oscuro para marchas no seleccionadas
+    const uint16_t COLOR_ACTIVE = TFT_WHITE;  // Blanco brillante para marcha activa
+    const uint16_t COLOR_ACTIVE_BG = 0x001F;  // Fondo azul para resaltar marcha activa (rojo para R)
+    const uint16_t COLOR_REVERSE_BG = 0xF800; // Fondo rojo para reversa
+    
+    // Limpiar área del indicador
+    tft->fillRect(GEAR_X - 2, GEAR_Y - 2, 90, 20, TFT_BLACK);
+    
+    // Array de marchas en orden: P R N D1 D2
+    const char* gears[] = {"P", "R", "N", "D1", "D2"};
+    const Shifter::Gear gearValues[] = {Shifter::P, Shifter::R, Shifter::N, Shifter::D1, Shifter::D2};
+    
     tft->setTextDatum(TL_DATUM);
-    tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    tft->drawString(txt, 410, 10, 2);
+    
+    int xPos = GEAR_X;
+    for(int i = 0; i < 5; i++) {
+        bool isActive = (gearValues[i] == g);
+        
+        if(isActive) {
+            // Dibujar fondo resaltado para marcha activa
+            int textWidth = (i >= 3) ? 20 : 12;  // D1/D2 son más anchos
+            uint16_t bgColor = (g == Shifter::R) ? COLOR_REVERSE_BG : COLOR_ACTIVE_BG;
+            tft->fillRoundRect(xPos - 2, GEAR_Y - 1, textWidth + 4, 14, 2, bgColor);
+            tft->setTextColor(COLOR_ACTIVE, bgColor);
+        } else {
+            tft->setTextColor(COLOR_INACTIVE, TFT_BLACK);
+        }
+        
+        tft->drawString(gears[i], xPos, GEAR_Y, 2);
+        
+        // Ajustar posición para siguiente letra (D1/D2 necesitan más espacio)
+        xPos += (i >= 3) ? GEAR_SPACING + 4 : GEAR_SPACING;
+    }
 }
 
 void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {

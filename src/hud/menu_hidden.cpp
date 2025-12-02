@@ -8,12 +8,13 @@
 #include "settings.h"
 #include "system.h"
 #include <TFT_eSPI.h>
-#include <XPT2046_Touchscreen.h>
+// 🔒 v2.8.8: Eliminada librería XPT2046_Touchscreen separada
+// Ahora usamos el touch integrado de TFT_eSPI
 #include "pins.h"
 #include "touch_map.h"  // 🔒 v2.8.3: Constantes centralizadas de calibración táctil
 
 static TFT_eSPI *tft = nullptr;
-static XPT2046_Touchscreen *touch = nullptr;
+// 🔒 v2.8.8: Ya no necesitamos puntero separado al touch
 
 static bool menuActive = false;
 static uint16_t codeBuffer = 0;
@@ -68,11 +69,12 @@ static const char* const MENU_ITEMS[NUM_MENU_ITEMS] = {
     "8) Borrar errores"
 };
 
-// Helper para debounce con timeout
+// 🔒 v2.8.8: Helper para debounce con timeout (usando touch integrado TFT_eSPI)
 static void waitTouchRelease(uint32_t maxWaitMs = DEBOUNCE_TIMEOUT_MS) {
-    if (touch == nullptr) return;
+    if (tft == nullptr) return;
     uint32_t startMs = millis();
-    while (touch->touched() && (millis() - startMs < maxWaitMs)) {
+    uint16_t tx, ty;
+    while (tft->getTouch(&tx, &ty) && (millis() - startMs < maxWaitMs)) {
         yield();
     }
 }
@@ -439,10 +441,11 @@ static void showErrors() {
     
     Logger::infof("Mostrando %d errores persistentes", count);
     
-    // Esperar toque para volver (máximo 5 segundos para evitar bloqueo)
+    // 🔒 v2.8.8: Esperar toque para volver usando touch integrado TFT_eSPI
     uint32_t waitStart = millis();
+    uint16_t tx, ty;
     while (millis() - waitStart < 5000) {
-        if (touch != nullptr && touch->touched()) {
+        if (tft != nullptr && tft->getTouch(&tx, &ty)) {
             waitTouchRelease();  // Debounce antes de salir
             break;
         }
@@ -616,21 +619,17 @@ void MenuHidden::init(TFT_eSPI *display) {
     Logger::info("MenuHidden init OK");
 }
 
-void MenuHidden::initTouch(XPT2046_Touchscreen *touchScreen) {
-    touch = touchScreen;
-    Logger::info("MenuHidden touch init OK");
-}
-
 void MenuHidden::update(bool batteryIconPressed) {
     // Si hay calibración en proceso, manejarla
     if (calibState != CalibrationState::NONE) {
         bool touched = false;
         int touchX = 0, touchY = 0;
         
-        if (touch != nullptr && touch->touched()) {
-            TS_Point p = touch->getPoint();
-            touchX = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
-            touchY = map(p.y, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_HEIGHT);
+        // 🔒 v2.8.8: Usar touch integrado de TFT_eSPI
+        uint16_t tx, ty;
+        if (tft != nullptr && tft->getTouch(&tx, &ty)) {
+            touchX = (int)tx;
+            touchY = (int)ty;
             touched = true;
             // Debounce con timeout (no para regen que necesita detección continua)
             if (calibState != CalibrationState::REGEN_ADJUST) {
@@ -685,12 +684,11 @@ void MenuHidden::update(bool batteryIconPressed) {
     }
 
     // ====== NAVEGACIÓN TÁCTIL DEL MENÚ ======
-    if (touch != nullptr && touch->touched()) {
-        TS_Point p = touch->getPoint();
-        
-        // Mapear coordenadas táctiles a pantalla usando constantes centralizadas
-        int touchX = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
-        int touchY = map(p.y, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_HEIGHT);
+    // 🔒 v2.8.8: Usar touch integrado de TFT_eSPI
+    uint16_t tx, ty;
+    if (tft != nullptr && tft->getTouch(&tx, &ty)) {
+        int touchX = (int)tx;
+        int touchY = (int)ty;
         
         // Detectar opción tocada
         int touchedOption = getTouchedMenuOption(touchX, touchY);

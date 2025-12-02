@@ -1,7 +1,8 @@
 #include "hud.h"
 #include <Arduino.h>                // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
-#include <XPT2046_Touchscreen.h>   // Librería táctil
+// 🔒 v2.8.8: Eliminada librería XPT2046_Touchscreen separada
+// Ahora usamos el touch integrado de TFT_eSPI para evitar conflictos SPI
 #include <SPI.h>                    // Para SPIClass HSPI
 #include <math.h>                   // Para cosf, sinf
 
@@ -32,18 +33,9 @@
 // ✅ Usar la instancia global de TFT_eSPI definida en hud_manager.cpp
 extern TFT_eSPI tft;
 
-// 🔒 v2.8.7: HSPI bus compartido entre TFT y Touch
-// El XPT2046 debe usar el mismo bus SPI que el TFT (HSPI) para evitar conflictos
-// que causan pantalla blanca al arrancar cuando touch está habilitado
-#ifdef USE_HSPI_PORT
-static SPIClass touchSpi = SPIClass(HSPI);
-#else
-static SPIClass& touchSpi = SPI;
-#endif
-
-static XPT2046_Touchscreen touch(PIN_TOUCH_CS, PIN_TOUCH_IRQ);
-
-// 🔒 v2.8.6: Track touch initialization state for runtime checks
+// 🔒 v2.8.8: Touch integrado de TFT_eSPI
+// Usamos tft.getTouch() en lugar de librería XPT2046_Touchscreen separada
+// Esto evita conflictos de bus SPI que causaban pantalla blanca
 static bool touchInitialized = false;
 
 // Touch calibration: Using constants from touch_map.h (included above)
@@ -122,28 +114,26 @@ void HUD::init() {
     Icons::init(&tft);
     MenuHidden::init(&tft);  // MenuHidden stores tft pointer, must be non-null
 
-    // 🔒 v2.8.6: TOUCH INITIALIZATION - Conditional based on config flag
-    // Initialize touchInitialized to false before attempting
+    // 🔒 v2.8.8: TOUCH INITIALIZATION - Usando touch integrado de TFT_eSPI
+    // Ya no necesitamos inicializar touch por separado porque TFT_eSPI lo maneja
     touchInitialized = false;
     
 #ifndef DISABLE_TOUCH
     if (cfg.touchEnabled) {
-        // 🔒 v2.8.7: Usar HSPI para el touch (mismo bus que TFT)
-        // Esto evita conflictos de bus SPI que causan pantalla blanca
-        if (touch.begin(touchSpi)) {
-            touch.setRotation(3);  // Match TFT rotation for proper touch mapping
-            MenuHidden::initTouch(&touch);  // Pasar puntero táctil al menú oculto
-            touchInitialized = true;
-            Logger::info("Touchscreen XPT2046 inicializado OK (HSPI compartido)");
-        } else {
-            Logger::error("Touchscreen XPT2046 no detectado - deshabilitando touch para esta sesión");
-            // NOTE: We don't persist this change to storage intentionally.
-            // This allows touch to be retried on next boot in case it was a 
-            // temporary issue (e.g., loose connection). If the user wants to
-            // permanently disable touch, they can do so via the hidden menu
-            // or by using the DISABLE_TOUCH compile flag.
-            System::logError(760); // código reservado: fallo táctil
-        }
+        // 🔒 v2.8.8: Touch integrado de TFT_eSPI no requiere begin() separado
+        // TFT_eSPI inicializa el touch automáticamente cuando se define TOUCH_CS
+        // Establecer calibración del touch usando constantes centralizadas (touch_map.h)
+        // Formato: { min_x, max_x, min_y, max_y, rotation }
+        uint16_t calData[5] = { 
+            (uint16_t)TouchCalibration::RAW_MIN,   // 200
+            (uint16_t)TouchCalibration::RAW_MAX,   // 3900
+            (uint16_t)TouchCalibration::RAW_MIN,   // 200
+            (uint16_t)TouchCalibration::RAW_MAX,   // 3900
+            3  // Rotation para coincidir con tft.setRotation(3)
+        };
+        tft.setTouch(calData);
+        touchInitialized = true;
+        Logger::info("Touchscreen XPT2046 integrado TFT_eSPI inicializado OK");
     } else {
         Logger::info("Touchscreen deshabilitado en configuración");
     }
@@ -947,7 +937,7 @@ void HUD::update() {
 #endif
 
     // --- Lectura táctil usando touch_map ---
-    // 🔒 v2.8.6: Solo leer touch si está habilitado e inicializado
+    // 🔒 v2.8.8: Solo leer touch si está habilitado e inicializado (usando TFT_eSPI integrado)
     bool batteryTouch = false;
 #ifdef STANDALONE_DISPLAY
     bool demoButtonTouched = false;
@@ -955,11 +945,11 @@ void HUD::update() {
 #endif
 
 #ifndef DISABLE_TOUCH
-    if (touchInitialized && cfg.touchEnabled && touch.touched()) {
-        TS_Point p = touch.getPoint();
-        // Map raw touch coordinates to screen coordinates using calibration constants
-        int x = map(p.x, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_WIDTH);
-        int y = map(p.y, TouchCalibration::RAW_MIN, TouchCalibration::RAW_MAX, 0, TouchCalibration::SCREEN_HEIGHT);
+    uint16_t touchX = 0, touchY = 0;
+    // 🔒 v2.8.8: Usar tft.getTouch() del touch integrado de TFT_eSPI
+    if (touchInitialized && cfg.touchEnabled && tft.getTouch(&touchX, &touchY)) {
+        int x = (int)touchX;
+        int y = (int)touchY;
 
 #ifdef STANDALONE_DISPLAY
         // Check demo button touch with long press detection
