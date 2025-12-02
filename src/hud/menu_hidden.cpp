@@ -619,13 +619,6 @@ void MenuHidden::init(TFT_eSPI *display) {
     Logger::info("MenuHidden init OK");
 }
 
-// 🔒 v2.8.8: initTouch ya no es necesario porque usamos touch integrado de TFT_eSPI
-// Se mantiene por compatibilidad pero no hace nada
-void MenuHidden::initTouch(void *touchScreen) {
-    (void)touchScreen;  // Suprimir warning de parámetro no usado
-    Logger::info("MenuHidden touch (integrado TFT_eSPI) OK");
-}
-
 void MenuHidden::update(bool batteryIconPressed) {
     // Si hay calibración en proceso, manejarla
     if (calibState != CalibrationState::NONE) {

@@ -56,7 +56,7 @@ static uint16_t colorByEffort(float e) {
 }
 
 // Dibujar rueda 3D con efecto de profundidad
-// 🔒 v2.8.9: Ruedas en orientación vertical con marcas de neumático realistas
+// 🔒 v2.8.8: Ruedas en orientación vertical con marcas de neumático realistas
 static void drawWheel3D(int cx, int cy, float angleDeg) {
     int w = 18, h = 40;  // Dimensiones: rueda vertical (ancho < alto)
     float rad = angleDeg * DEG_TO_RAD;
@@ -92,7 +92,7 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
     tft->drawLine(x2, y2, x3, y3, COLOR_WHEEL_OUTER);
     tft->drawLine(x3, y3, x0, y0, COLOR_WHEEL_OUTER);
     
-    // 🔒 v2.8.9: Marcas de neumático (líneas transversales simulando banda de rodadura)
+    // 🔒 v2.8.8: Marcas de neumático (líneas transversales simulando banda de rodadura)
     // Dibujar 5 marcas equidistantes a lo largo de la rueda
     const int NUM_TREADS = 5;
     // Reutilizar COLOR_WHEEL_SHADOW para las marcas oscuras (consistencia)
@@ -102,9 +102,13 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
         // Calcular posición proporcional a lo largo de la rueda
         float t = (float)i / (NUM_TREADS + 1);
         
-        // Punto central de esta marca (interpolando entre extremos)
-        int mcx = (int)(x0 + t * (x3 - x0) + x1 + t * (x2 - x1)) / 2;
-        int mcy = (int)(y0 + t * (y3 - y0) + y1 + t * (y2 - y1)) / 2;
+        // Punto central de esta marca (interpolando entre extremos de cada borde)
+        float left_x = x0 + t * (x3 - x0);
+        float right_x = x1 + t * (x2 - x1);
+        int mcx = (int)((left_x + right_x) / 2);
+        float left_y = y0 + t * (y3 - y0);
+        float right_y = y1 + t * (y2 - y1);
+        int mcy = (int)((left_y + right_y) / 2);
         
         // Puntos de la línea transversal (perpendicular al eje de la rueda)
         int treadHalf = w / 2 - 2;  // Un poco más corto que el ancho total
@@ -113,9 +117,12 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
         int tx2 = mcx + (int)(cosf(rad) * treadHalf);
         int ty2 = mcy + (int)(sinf(rad) * treadHalf);
         
-        // Dibujar marca con efecto 3D (línea oscura + highlight)
+        // Dibujar marca con efecto 3D (línea oscura + highlight perpendicular)
         tft->drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
-        tft->drawLine(tx1, ty1 + 1, tx2, ty2 + 1, COLOR_TREAD_HIGHLIGHT);
+        // Small perpendicular offset for highlight
+        int offset_x = (int)(sinf(rad) * 1);  // perpendicular to wheel axis
+        int offset_y = -(int)(cosf(rad) * 1);
+        tft->drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x, ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
     }
     
     // Llanta interior (más clara)

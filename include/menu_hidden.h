@@ -8,11 +8,6 @@ namespace MenuHidden {
     // --- Inicialización del menú oculto ---
     // Recibe el puntero a la pantalla TFT y carga la configuración desde Storage.
     void init(TFT_eSPI *display);
-    
-    // --- Inicialización táctil ---
-    // 🔒 v2.8.8: Mantenida por compatibilidad pero ya no es necesaria
-    // El touch se maneja internamente a través de TFT_eSPI
-    void initTouch(void *touchScreen);
 
     // --- Actualización del menú ---
     // Se invoca en cada ciclo principal.
