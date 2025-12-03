@@ -23,20 +23,20 @@
 - Reducción de tiempo de refresco del HUD
 - Sin efectos adversos en estabilidad
 
-### 2. Integración de Touch Optimizada ✅
+### 2. Touch XPT2046 - Librería Separada ✅
 
-**Problema resuelto:** Librería XPT2046_Touchscreen separada causaba conflictos SPI.
+**Configuración actualizada:** Se utiliza librería XPT2046_Touchscreen separada para mejor fiabilidad.
 
 **Solución implementada:**
-- ✅ Eliminada dependencia de librería XPT2046_Touchscreen separada
-- ✅ Uso del driver de touch integrado en TFT_eSPI
-- ✅ Eliminados conflictos de bus SPI compartido
-- ✅ Pantalla blanca al activar touch completamente resuelta
+- ✅ Añadida librería PaulStoffregen/XPT2046_Touchscreen @ ^1.4
+- ✅ Configuración mediante pines GPIO (CS=21, IRQ=47)
+- ✅ SPI compartido con display (MOSI=11, MISO=12, SCK=10)
+- ✅ Mayor estabilidad que el driver integrado de TFT_eSPI
 
-**Configuración:**
+**Pines configurados:**
 ```cpp
--DXPT2046_DRIVER
--DTOUCH_DRIVER=0x2046
+TOUCH_CS = GPIO 21
+TOUCH_IRQ = GPIO 47
 ```
 
 ### 3. Optimizaciones de Performance ✅
@@ -45,6 +45,7 @@
 - ✅ TFT_eSPI: 2.5.43 → 2.5.50 (últimas características y correcciones)
 - ✅ INA226: 0.6.4 → 0.7.0 (mejor sensado de corriente)
 - ✅ FastLED: 3.6.0 → 3.7.0 (mejor rendimiento de LEDs)
+- ✅ XPT2046_Touchscreen: 1.4 (librería separada para touch - mayor estabilidad)
 - ✅ Añadido ESP Async WebServer 1.2.4 (soporte para dashboard web)
 
 **Optimizaciones del compilador (release):**

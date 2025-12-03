@@ -15,11 +15,10 @@ ESP32: S3-DevKitC-1 (44 pines)
 **Novedades v2.8.9:**
 - ✅ Frecuencia SPI aumentada de 20MHz a 40MHz para mejor rendimiento del display
 - ✅ SPI_READ_FREQUENCY aumentada a 20MHz para lecturas más rápidas
-- ✅ Touch integrado de TFT_eSPI (eliminada librería XPT2046_Touchscreen separada)
-- ✅ Eliminados conflictos de bus SPI compartido
+- ✅ Touch XPT2046 con librería separada PaulStoffregen para mayor estabilidad
 - ✅ Configuración optimizada basada en TFT_eSPI mySetup27_ST7796_ESP32.h
 - ✅ Limpieza y consolidación de changelog en platformio.ini y project_config.ini
-- ✅ Librerías actualizadas: TFT_eSPI 2.5.50, INA226 0.7.0, FastLED 3.7.0
+- ✅ Librerías actualizadas: TFT_eSPI 2.5.50, INA226 0.7.0, FastLED 3.7.0, XPT2046_Touchscreen 1.4
 - ✅ Añadido ESP Async WebServer 1.2.4 para dashboard web
 - ✅ Optimizaciones de compilador: -O3, sin logs HAL, sin UART console en producción
 
