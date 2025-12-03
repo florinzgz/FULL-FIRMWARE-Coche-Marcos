@@ -44,7 +44,7 @@ TOUCH_IRQ = GPIO 47
 **Actualizaciones de librerías:**
 - ✅ TFT_eSPI: 2.5.43 → 2.5.50 (últimas características y correcciones)
 - ✅ INA226: 0.6.4 → 0.7.0 (mejor sensado de corriente)
-- ✅ FastLED: 3.6.0 → 3.7.0 (mejor rendimiento de LEDs)
+- ✅ FastLED: mantenida en 3.6.0 (versión 3.7.0 presenta errores de compatibilidad)
 - ✅ XPT2046_Touchscreen: 1.4 (librería separada para touch - mayor estabilidad)
 - ✅ Añadido ESP Async WebServer 1.2.4 (soporte para dashboard web)
 
