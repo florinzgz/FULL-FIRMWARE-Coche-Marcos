@@ -1,5 +1,82 @@
 # Cambios Recientes en el Firmware
 
+## Versión: 2.8.9
+**Fecha:** 2025-12-02  
+
+---
+
+## 🆕 Novedades v2.8.9
+
+### 1. Optimización de Rendimiento del Display ✅
+
+**Problema resuelto:** Display ST7796S funcionando a frecuencia SPI subóptima.
+
+**Solución implementada:**
+- ✅ Frecuencia SPI aumentada de 20MHz a 40MHz para mejor rendimiento
+- ✅ Basado en configuración TFT_eSPI mySetup27_ST7796_ESP32.h
+- ✅ ESP32-S3 soporta frecuencias altas mejor que ESP32-C3
+- ✅ SPI_READ_FREQUENCY aumentada a 20MHz para lecturas más rápidas
+- ✅ Touch mantiene 2.5MHz (requisito del controlador XPT2046)
+
+**Resultados:**
+- Mejor fluidez en animaciones y actualizaciones de pantalla
+- Reducción de tiempo de refresco del HUD
+- Sin efectos adversos en estabilidad
+
+### 2. Touch XPT2046 - Librería Separada ✅
+
+**Configuración actualizada:** Se utiliza librería XPT2046_Touchscreen separada para mejor fiabilidad.
+
+**Solución implementada:**
+- ✅ Añadida librería PaulStoffregen/XPT2046_Touchscreen @ ^1.4
+- ✅ Configuración mediante pines GPIO (CS=21, IRQ=47)
+- ✅ SPI compartido con display (MOSI=11, MISO=12, SCK=10)
+- ✅ Mayor estabilidad que el driver integrado de TFT_eSPI
+
+**Pines configurados:**
+```cpp
+TOUCH_CS = GPIO 21
+TOUCH_IRQ = GPIO 47
+```
+
+### 3. Optimizaciones de Performance ✅
+
+**Actualizaciones de librerías:**
+- ✅ TFT_eSPI: mantenida en 2.5.43 (versión 2.5.50 presenta errores de compatibilidad)
+- ✅ INA226: usando repositorio GitHub directamente (problema con registro PlatformIO)
+- ✅ FastLED: mantenida en 3.6.0 (versión 3.7.0 presenta errores de compatibilidad)
+- ✅ XPT2046_Touchscreen: usando repositorio GitHub directamente (problema con registro PlatformIO)
+- ✅ Añadido ESP Async WebServer 1.2.4 (soporte para dashboard web)
+
+**Optimizaciones del compilador (release):**
+```ini
+-O3                              ; Máxima optimización de performance
+-DCONFIG_ARDUHAL_ESP_LOG=0       ; Desactivar logs Arduino HAL
+-DCONFIG_ESP_CONSOLE_UART_NONE=1 ; Sin console UART en producción
+```
+
+**Beneficios:**
+- Mejora significativa en velocidad de ejecución
+- Reducción del tamaño del binario
+- Menor consumo de recursos en producción
+- Base preparada para dashboard web futuro
+
+### 4. Limpieza de Configuración ✅
+
+**Mejoras en platformio.ini:**
+- ✅ Eliminadas referencias a versiones antiguas (v2.8.3, v2.8.4, v2.8.6, v2.8.7, v2.8.8)
+- ✅ Changelog consolidado con solo versiones relevantes
+- ✅ Comentarios inline simplificados
+- ✅ Mejor legibilidad y mantenimiento
+
+**Mejoras en project_config.ini:**
+- ✅ Actualizado a versión 2.8.9
+- ✅ Frecuencias SPI actualizadas en documentación
+- ✅ Changelog consolidado y organizado
+- ✅ Sincronizado con docs/PROJECT_CONFIG.ini
+
+---
+
 ## Versión: 2.8.5
 **Fecha:** 2025-11-30  
 
@@ -221,5 +298,5 @@ struct RedundantSensor {
 
 ---
 
-**Documento actualizado:** 2025-11-30  
-**Versión actual:** v2.8.5
+**Documento actualizado:** 2025-12-02  
+**Versión actual:** v2.8.9

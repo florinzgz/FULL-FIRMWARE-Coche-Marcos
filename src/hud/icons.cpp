@@ -71,12 +71,12 @@ void Icons::drawGear(Shifter::Gear g) {
     // NUEVA POSICIÓN: Centro de pantalla, entre warning y coche
     // Centrado horizontalmente, Y = 48 (debajo del warning que termina en Y=40)
     // ========================================
-    const int GEAR_PANEL_X = 140;   // Posición X del panel (centrado ~140-340 = 200px ancho)
-    const int GEAR_PANEL_Y = 48;    // Debajo del triángulo warning
-    const int GEAR_PANEL_W = 200;   // Ancho total del panel
-    const int GEAR_PANEL_H = 36;    // Alto del panel
-    const int GEAR_ITEM_W = 36;     // Ancho de cada celda de marcha
-    const int GEAR_ITEM_H = 28;     // Alto de cada celda
+    const int GEAR_PANEL_X = 155;   // Posición X del panel (más centrado para no tapar temperaturas)
+    const int GEAR_PANEL_Y = 50;    // Debajo del triángulo warning
+    const int GEAR_PANEL_W = 170;   // Ancho total del panel (reducido de 200 a 170)
+    const int GEAR_PANEL_H = 28;    // Alto del panel (reducido de 36 a 28)
+    const int GEAR_ITEM_W = 30;     // Ancho de cada celda de marcha (reducido de 36 a 30)
+    const int GEAR_ITEM_H = 22;     // Alto de cada celda (reducido de 28 a 22)
     const int GEAR_SPACING = 4;     // Espacio entre celdas
     
     // Colores 3D mejorados
@@ -165,12 +165,12 @@ void Icons::drawGear(Shifter::Gear g) {
                               (g == Shifter::R) ? 0xFC10 : 0x07FF);
         }
         
-        // Dibujar texto de la marcha (tamaño grande: font 4)
+        // Dibujar texto de la marcha (font 2 para que quepa en celdas más pequeñas)
         int textX = cellX + GEAR_ITEM_W / 2;
         int textY = cellY + GEAR_ITEM_H / 2;
         
         tft->setTextColor(textColor, bgColor);
-        tft->drawString(gears[i], textX, textY, 4);  // Font 4 = más grande
+        tft->drawString(gears[i], textX, textY, 2);  // Font 2 para celdas más pequeñas
     }
 }
 

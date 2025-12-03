@@ -2,8 +2,8 @@
 
 ## ✅ FIRMWARE 100% FUNCIONAL Y VERIFICADO
 
-Fecha: 2025-11-30
-Versión: 2.8.5 - Final Release
+Fecha: 2025-12-02
+Versión: 2.8.9 - Final Release
 ESP32: S3-DevKitC-1 (44 pines)
 
 ---
@@ -11,6 +11,16 @@ ESP32: S3-DevKitC-1 (44 pines)
 ## 📋 RESUMEN EJECUTIVO
 
 **Estado:** ✅ **COMPLETO Y LISTO PARA PRODUCCIÓN**
+
+**Novedades v2.8.9:**
+- ✅ Frecuencia SPI aumentada de 20MHz a 40MHz para mejor rendimiento del display
+- ✅ SPI_READ_FREQUENCY aumentada a 20MHz para lecturas más rápidas
+- ✅ Touch XPT2046 con librería separada PaulStoffregen para mayor estabilidad
+- ✅ Configuración optimizada basada en TFT_eSPI mySetup27_ST7796_ESP32.h
+- ✅ Limpieza y consolidación de changelog en platformio.ini y project_config.ini
+- ✅ Librerías actualizadas: TFT_eSPI 2.5.43, INA226 (GitHub), FastLED 3.6.0, XPT2046_Touchscreen (GitHub)
+- ✅ Añadido ESP Async WebServer 1.2.4 para dashboard web
+- ✅ Optimizaciones de compilador: -O3, sin logs HAL, sin UART console en producción
 
 **Novedades v2.8.5:**
 - ✅ Revisión exhaustiva de código: 57 .cpp + 61 .h archivos verificados
