@@ -379,11 +379,11 @@ namespace TouchCalibration {
         result.calibData[1] = maxX;
         result.calibData[2] = minY;
         result.calibData[3] = maxY;
-        result.calibData[4] = 3;  // Rotation (matches tft.setRotation(3))
+        result.calibData[4] = tft->getRotation();  // Store current display rotation
         result.success = true;
         
         Logger::infof("TouchCalibration: Calculated calibration [%d, %d, %d, %d, %d]",
-                     minX, maxX, minY, maxY, 3);
+                     minX, maxX, minY, maxY, result.calibData[4]);
         
         snprintf(result.message, sizeof(result.message), "Calibration successful!");
     }
