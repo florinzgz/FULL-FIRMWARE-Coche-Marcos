@@ -15,6 +15,10 @@ namespace TouchCalibration {
     static CalibrationResult result;
     static uint32_t stateStartTime = 0;
     
+    // Touch release tracking
+    static bool waitingForRelease = false;
+    static uint32_t releaseWaitStart = 0;
+    
     // Calibration points (screen coordinates)
     static const int CALIB_MARGIN = 30;  // Margin from screen edge
     static const int CALIB_RADIUS = 10;  // Radius of calibration target
@@ -33,6 +37,11 @@ namespace TouchCalibration {
     // Timeout constants
     static const uint32_t INSTRUCTION_TIMEOUT = 30000;  // 30 seconds
     static const uint32_t POINT_TIMEOUT = 30000;         // 30 seconds per point
+    
+    // Touch controller constants
+    static const uint16_t MAX_TOUCH_VALUE = 4095;        // 12-bit ADC maximum
+    static const uint32_t TOUCH_RELEASE_WAIT = 500;      // ms to wait for touch release
+    static const uint32_t TOUCH_RELEASE_POLL = 50;       // ms between release checks
     
     // Forward declarations
     static void drawCalibrationPoint(int x, int y, uint16_t color);
@@ -82,16 +91,28 @@ namespace TouchCalibration {
         
         uint32_t now = millis();
         
+        // Non-blocking touch release wait
+        if (waitingForRelease) {
+            uint16_t tx, ty;
+            if (!tft->getTouch(&tx, &ty)) {
+                // Touch released
+                waitingForRelease = false;
+            } else if (now - releaseWaitStart > TOUCH_RELEASE_WAIT) {
+                // Timeout waiting for release
+                Logger::warn("TouchCalibration: Timeout waiting for touch release");
+                waitingForRelease = false;
+            }
+            return true;  // Still waiting
+        }
+        
         switch (state) {
             case CalibrationState::Instructions: {
                 // Wait for any touch to proceed
                 uint16_t tx, ty;
                 if (tft->getTouch(&tx, &ty)) {
-                    // Touch detected - wait for release
-                    delay(500);
-                    while (tft->getTouch(&tx, &ty)) {
-                        delay(50);  // Wait for release
-                    }
+                    // Touch detected - initiate non-blocking wait for release
+                    waitingForRelease = true;
+                    releaseWaitStart = now;
                     
                     // Start calibration
                     state = CalibrationState::Point1;
@@ -123,12 +144,9 @@ namespace TouchCalibration {
                     Logger::infof("TouchCalibration: Point 1 collected (raw: %d, %d)", 
                                  point1_rawX, point1_rawY);
                     
-                    // Wait for touch release
-                    delay(500);
-                    uint16_t tx, ty;
-                    while (tft->getTouch(&tx, &ty)) {
-                        delay(50);
-                    }
+                    // Initiate non-blocking wait for touch release
+                    waitingForRelease = true;
+                    releaseWaitStart = now;
                     
                     // Move to second point
                     state = CalibrationState::Point2;
@@ -352,9 +370,9 @@ namespace TouchCalibration {
         uint16_t extrapolateY = (uint16_t)(rangeY * (scaleY - 1.0f) / 2.0f);
         
         minX = (minX > extrapolateX) ? (minX - extrapolateX) : 0;
-        maxX = (maxX + extrapolateX < 4095) ? (maxX + extrapolateX) : 4095;
+        maxX = (maxX + extrapolateX < MAX_TOUCH_VALUE) ? (maxX + extrapolateX) : MAX_TOUCH_VALUE;
         minY = (minY > extrapolateY) ? (minY - extrapolateY) : 0;
-        maxY = (maxY + extrapolateY < 4095) ? (maxY + extrapolateY) : 4095;
+        maxY = (maxY + extrapolateY < MAX_TOUCH_VALUE) ? (maxY + extrapolateY) : MAX_TOUCH_VALUE;
         
         // Store calibration result
         result.calibData[0] = minX;
