@@ -4,6 +4,9 @@
 #include "pins.h"
 #include <Arduino.h>
 
+// External reference to global config
+extern Storage::Config cfg;
+
 namespace TouchCalibration {
     
     // Module state
@@ -221,11 +224,14 @@ namespace TouchCalibration {
             return false;
         }
         
-        // Apply to TFT_eSPI
-        tft->setTouch(calibData);
+        // Apply to TFT_eSPI (need non-const pointer)
+        uint16_t tempCalibData[5];
+        for (int i = 0; i < 5; i++) {
+            tempCalibData[i] = calibData[i];
+        }
+        tft->setTouch(tempCalibData);
         
         // Save to storage
-        extern Storage::Config cfg;
         for (int i = 0; i < 5; i++) {
             cfg.touchCalibration[i] = calibData[i];
         }
