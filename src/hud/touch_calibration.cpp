@@ -12,7 +12,7 @@ namespace TouchCalibration {
     // Module state
     static TFT_eSPI* tft = nullptr;
     static CalibrationState state = CalibrationState::Idle;
-    static CalibrationResult result;
+    static CalibrationResult result = {};
     static uint32_t stateStartTime = 0;
     
     // Touch release tracking
