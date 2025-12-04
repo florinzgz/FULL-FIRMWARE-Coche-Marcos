@@ -88,7 +88,7 @@ tft.setRotation(3);  // Landscape 480x320  ✅ CORRECT
 
 #### Library Used
 ```cpp
-// v2.8.8: Using TFT_eSPI integrated touch
+// Firmware v2.8.8+: Using TFT_eSPI integrated touch (library v2.5.43)
 tft.getTouch(&x, &y);  ✅ CORRECT
 tft.setTouch(calData); ✅ CORRECT
 ```
