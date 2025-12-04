@@ -12,6 +12,7 @@
 // Ahora usamos el touch integrado de TFT_eSPI
 #include "pins.h"
 #include "touch_map.h"  // 🔒 v2.8.3: Constantes centralizadas de calibración táctil
+#include "touch_calibration.h"  // 🔒 v2.9.0: Touch calibration routine
 
 static TFT_eSPI *tft = nullptr;
 // 🔒 v2.8.8: Ya no necesitamos puntero separado al touch
@@ -35,6 +36,7 @@ enum class CalibrationState {
     PEDAL_DONE,
     ENCODER_CENTER,
     ENCODER_DONE,
+    TOUCH_CALIBRATION,  // 🔒 v2.9.0: Touch screen calibration
     REGEN_ADJUST,       // ✅ v2.7.0: Ajuste interactivo de regen
     CLEAR_ERRORS_CONFIRM // ✅ v2.7.0: Confirmación borrado errores
 };
@@ -50,23 +52,24 @@ static const uint32_t DEBOUNCE_TIMEOUT_MS = 500;  // Timeout para debounce
 static const uint32_t DEBOUNCE_SHORT_MS = 200;    // ✅ v2.7.0: Debounce corto para ajustes rápidos
 static const uint32_t FEEDBACK_DISPLAY_MS = 1500; // ✅ v2.7.0: Tiempo de visualización de feedback
 
-// Zonas táctiles del menú (8 opciones)
+// Zonas táctiles del menú (9 opciones)
 static const int MENU_X1 = 60;
 static const int MENU_Y1 = 80;
 static const int MENU_WIDTH = 360;
 static const int MENU_ITEM_HEIGHT = 20;
-static const int NUM_MENU_ITEMS = 8;
+static const int NUM_MENU_ITEMS = 9;
 
 // Opciones del menú (evitar duplicación - DRY)
 static const char* const MENU_ITEMS[NUM_MENU_ITEMS] = {
     "1) Calibrar pedal",
     "2) Calibrar encoder",
-    "3) Ajuste regen (%)",
-    "4) Modulos ON/OFF",
-    "5) Guardar y salir",
-    "6) Restaurar fabrica",
-    "7) Ver errores",
-    "8) Borrar errores"
+    "3) Calibrar touch",      // 🔒 v2.9.0: Nueva opción
+    "4) Ajuste regen (%)",
+    "5) Modulos ON/OFF",
+    "6) Guardar y salir",
+    "7) Restaurar fabrica",
+    "8) Ver errores",
+    "9) Borrar errores"
 };
 
 // 🔒 v2.8.8: Helper para debounce con timeout (usando touch integrado TFT_eSPI)
@@ -125,6 +128,18 @@ static void startEncoderCalibration() {
     calibStartMs = millis();
     Logger::info("Iniciando calibración de encoder - centrando");
     Alerts::play({Audio::AUDIO_CAL_ENCODER, Audio::Priority::PRIO_HIGH});
+}
+
+// 🔒 v2.9.0: Touch screen calibration
+static void startTouchCalibration() {
+    calibState = CalibrationState::TOUCH_CALIBRATION;
+    calibStartMs = millis();
+    Logger::info("Iniciando calibración de touch screen");
+    Alerts::play({Audio::AUDIO_CAL_ENCODER, Audio::Priority::PRIO_HIGH});  // Reuse encoder sound
+    
+    // Initialize and start touch calibration
+    TouchCalibration::init(tft);
+    TouchCalibration::start();
 }
 
 static void updatePedalCalibration(bool touched) {
@@ -646,6 +661,22 @@ void MenuHidden::update(bool batteryIconPressed) {
                  calibState == CalibrationState::ENCODER_DONE) {
             updateEncoderCalibration(touched);
         }
+        // 🔒 v2.9.0: Handle touch calibration
+        else if (calibState == CalibrationState::TOUCH_CALIBRATION) {
+            // Update touch calibration routine
+            if (!TouchCalibration::update()) {
+                // Calibration finished (complete or failed)
+                auto result = TouchCalibration::getResult();
+                if (result.success) {
+                    Logger::info("Touch calibration completed successfully");
+                    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+                } else {
+                    Logger::warn("Touch calibration failed or cancelled");
+                    Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
+                }
+                calibState = CalibrationState::NONE;
+            }
+        }
         // ✅ v2.7.0: Manejar ajuste interactivo de regen
         else if (calibState == CalibrationState::REGEN_ADJUST) {
             updateRegenAdjust(touchX, touchY, touched);
@@ -709,12 +740,13 @@ void MenuHidden::update(bool batteryIconPressed) {
             switch(selectedOption) {
                 case 1: startPedalCalibration(); break;
                 case 2: startEncoderCalibration(); break;
-                case 3: startRegenAdjust(); break;  // ✅ v2.7.0: Ajuste interactivo
-                case 4: applyModules(true, true, true); break;
-                case 5: saveAndExit(); break;
-                case 6: restoreFactory(); break;
-                case 7: showErrors(); break;
-                case 8: startClearErrorsConfirm(); break;  // ✅ v2.7.0: Confirmación
+                case 3: startTouchCalibration(); break;  // 🔒 v2.9.0: Touch calibration
+                case 4: startRegenAdjust(); break;  // ✅ v2.7.0: Ajuste interactivo
+                case 5: applyModules(true, true, true); break;
+                case 6: saveAndExit(); break;
+                case 7: restoreFactory(); break;
+                case 8: showErrors(); break;
+                case 9: startClearErrorsConfirm(); break;  // ✅ v2.7.0: Confirmación
             }
             
             // Redibujar menú después de acción (excepto si se cerró)

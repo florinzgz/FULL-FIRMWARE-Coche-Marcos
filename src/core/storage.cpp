@@ -65,6 +65,14 @@ void Storage::defaults(Config &cfg) {
     // 🔒 v2.8.6: Touch screen configuration
     cfg.touchEnabled           = true;   // Touch habilitado por defecto
     
+    // 🔒 v2.9.0: Touch calibration defaults (from TouchCalibration namespace)
+    cfg.touchCalibration[0] = 200;   // min_x (RAW_MIN)
+    cfg.touchCalibration[1] = 3900;  // max_x (RAW_MAX)
+    cfg.touchCalibration[2] = 200;   // min_y (RAW_MIN)
+    cfg.touchCalibration[3] = 3900;  // max_y (RAW_MAX)
+    cfg.touchCalibration[4] = 3;     // rotation (matches tft.setRotation(3))
+    cfg.touchCalibrated = false;     // No calibration done yet (using defaults)
+    
     // 🔒 v2.4.2: Odómetro y mantenimiento
     cfg.odometer.totalKm = 0.0f;
     cfg.odometer.tripKm = 0.0f;
@@ -117,6 +125,10 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
     
     // 🔒 v2.8.6: Touch screen configuration
     mix((uint8_t*)&cfg.touchEnabled, sizeof(cfg.touchEnabled));
+    
+    // 🔒 v2.9.0: Touch calibration data
+    mix((uint8_t*)&cfg.touchCalibration[0], sizeof(cfg.touchCalibration));
+    mix((uint8_t*)&cfg.touchCalibrated, sizeof(cfg.touchCalibrated));
     
     // 🔒 v2.4.2: Odómetro y mantenimiento
     mix((uint8_t*)&cfg.odometer, sizeof(cfg.odometer));

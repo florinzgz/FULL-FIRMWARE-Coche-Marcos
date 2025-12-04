@@ -4,7 +4,7 @@
 namespace Storage {
 
     // Versión de estructura de datos guardada
-    const uint16_t kConfigVersion = 6;   // ⚠️ v6: added touch_enabled flag for SPI bus stability
+    const uint16_t kConfigVersion = 7;   // ⚠️ v7: added touch calibration data (touchCalibration array + touchCalibrated flag)
 
     struct ErrorLog {
         uint16_t code;       // código de error
@@ -54,6 +54,10 @@ namespace Storage {
         
         // 🔒 v2.8.6: Touch screen configuration
         bool touchEnabled;            // Enable/disable touchscreen functionality
+        
+        // 🔒 v2.9.0: Touch calibration data (XPT2046)
+        uint16_t touchCalibration[5]; // [min_x, max_x, min_y, max_y, rotation]
+        bool touchCalibrated;         // Flag to indicate if calibration has been done
         
         // 🔒 v2.4.2: Odómetro y mantenimiento
         OdometerData odometer;
