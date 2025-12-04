@@ -158,6 +158,16 @@ void HUD::init() {
         tft.setTouch(calData);
         touchInitialized = true;
         Logger::info("Touchscreen XPT2046 integrado TFT_eSPI inicializado OK");
+        
+        // 🔒 v2.9.1: Informative message for touch calibration
+        if (!cfg.touchCalibrated) {
+            Logger::warn("Touch: Using default calibration. If touch doesn't work properly:");
+            Logger::warn("  1. Tap battery icon 4 times to enter code 8989");
+            Logger::warn("  2. Select option 3: 'Calibrar touch'");
+            Logger::warn("  3. Follow on-screen instructions");
+        } else {
+            Logger::info("Touch: Using saved calibration from storage");
+        }
     } else {
         Logger::info("Touchscreen deshabilitado en configuración");
     }
@@ -205,6 +215,18 @@ void HUD::showReady() {
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.drawString("READY", 240, 40, 4);
+    
+    // 🔒 v2.9.1: Show touch calibration hint if not calibrated
+    #ifndef DISABLE_TOUCH
+    if (cfg.touchEnabled && !cfg.touchCalibrated) {
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tft.setTextSize(1);
+        tft.drawString("Touch no calibrado", 240, 90, 2);
+        tft.setTextColor(TFT_CYAN, TFT_BLACK);
+        tft.drawString("Toca bateria 4 veces: 8-9-8-9", 240, 115, 2);
+        tft.drawString("Opcion 3: Calibrar touch", 240, 135, 2);
+    }
+    #endif
 }
 
 void HUD::showError() {
@@ -974,6 +996,33 @@ void HUD::update() {
     if (touchInitialized && cfg.touchEnabled && tft.getTouch(&touchX, &touchY)) {
         int x = (int)touchX;
         int y = (int)touchY;
+        
+        // 🔒 v2.9.1: Visual debug indicator - draw small crosshair at touch point
+        // This helps users verify touch is working and calibrated correctly
+        // Note: Indicator is drawn on top of UI without clearing to avoid erasing
+        // dashboard elements. The normal UI refresh cycle will overwrite it.
+        static uint32_t lastTouchDebugTime = 0;
+        uint32_t now = millis();
+        
+        // Only update debug indicator every 100ms to avoid flickering
+        if (now - lastTouchDebugTime > 100) {
+            // Draw touch indicator (cyan crosshair) with boundary checking
+            // Screen is 480x320, so keep crosshair within bounds
+            int drawX = constrain(x, 5, 475);  // Keep 5px margin from edges
+            int drawY = constrain(y, 5, 315);
+            tft.drawFastHLine(drawX - 5, drawY, 11, TFT_CYAN);
+            tft.drawFastVLine(drawX, drawY - 5, 11, TFT_CYAN);
+            tft.fillCircle(drawX, drawY, 2, TFT_RED);
+            
+            lastTouchDebugTime = now;
+            
+            // Log touch coordinates for debugging (only once per second)
+            static uint32_t lastTouchLogTime = 0;
+            if (now - lastTouchLogTime > 1000) {  // Log every second max
+                Logger::infof("Touch detected at (%d, %d)", x, y);
+                lastTouchLogTime = now;
+            }
+        }
 
 #ifdef STANDALONE_DISPLAY
         // Check demo button touch with long press detection
