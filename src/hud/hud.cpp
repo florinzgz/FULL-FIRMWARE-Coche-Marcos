@@ -123,12 +123,28 @@ void HUD::init() {
         uint16_t calData[5];
         
         if (cfg.touchCalibrated) {
-            // Use saved calibration from storage
-            for (int i = 0; i < 5; i++) {
-                calData[i] = cfg.touchCalibration[i];
+            // Validate calibration data before use
+            if (cfg.touchCalibration[0] < cfg.touchCalibration[1] &&  // minX < maxX
+                cfg.touchCalibration[2] < cfg.touchCalibration[3] &&  // minY < maxY
+                cfg.touchCalibration[1] <= 4095 &&                   // maxX within range
+                cfg.touchCalibration[3] <= 4095) {                   // maxY within range
+                // Use saved calibration from storage
+                for (int i = 0; i < 5; i++) {
+                    calData[i] = cfg.touchCalibration[i];
+                }
+                Logger::infof("Touch: Using stored calibration [%d, %d, %d, %d, %d]",
+                             calData[0], calData[1], calData[2], calData[3], calData[4]);
+            } else {
+                Logger::warn("Touch: Invalid stored calibration, using defaults");
+                cfg.touchCalibrated = false;
+                // Use default calibration values from touch_map.h
+                calData[0] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
+                calData[1] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
+                calData[2] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
+                calData[3] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
+                calData[4] = 3;  // Rotation para coincidir con tft.setRotation(3)
+                Logger::info("Touch: Using default calibration values");
             }
-            Logger::infof("Touch: Using stored calibration [%d, %d, %d, %d, %d]",
-                         calData[0], calData[1], calData[2], calData[3], calData[4]);
         } else {
             // Use default calibration values from touch_map.h
             calData[0] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
