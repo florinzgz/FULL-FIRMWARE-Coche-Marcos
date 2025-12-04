@@ -55,8 +55,7 @@ static const int DEMO_BTN_Y2 = 295;
 #endif
 
 // Botón virtual para giro sobre eje (axis rotation toggle)
-// Constante para cache no inicializado
-static constexpr int CACHE_UNINITIALIZED = -1;
+// CACHE_UNINITIALIZED está definido en display_types.h
 static bool axisRotationEnabled = false;
 static int lastAxisRotationState = CACHE_UNINITIALIZED;  // Forzar dibujado inicial
 static const int AXIS_BTN_X1 = 245;

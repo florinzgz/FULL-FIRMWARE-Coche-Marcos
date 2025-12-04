@@ -1,15 +1,13 @@
 #include "icons.h"
 #include "system.h"   // para consultar errores persistentes
 #include "logger.h"
+#include "display_types.h"  // para CACHE_UNINITIALIZED
 #include <TFT_eSPI.h>
 #include <Arduino.h>  // para constrain()
 #include <math.h>     // para fabs()
 
 static TFT_eSPI *tft = nullptr;
 static bool initialized = false;
-
-// Constante para indicar cache no inicializado
-static constexpr int CACHE_UNINITIALIZED = -1;
 
 // Cache de último estado para evitar redibujos innecesarios
 // NOTA: Usamos int con valor CACHE_UNINITIALIZED para forzar el primer dibujado
