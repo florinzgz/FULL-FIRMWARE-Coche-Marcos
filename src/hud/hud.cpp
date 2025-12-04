@@ -999,22 +999,14 @@ void HUD::update() {
         
         // 🔒 v2.9.1: Visual debug indicator - draw small crosshair at touch point
         // This helps users verify touch is working and calibrated correctly
-        static int lastTouchX = -1, lastTouchY = -1;
+        // Note: Indicator is drawn on top of UI without clearing to avoid erasing
+        // dashboard elements. The normal UI refresh cycle will overwrite it.
         static uint32_t lastTouchDebugTime = 0;
         uint32_t now = millis();
         
         // Only update debug indicator every 100ms to avoid flickering
-        if (now - lastTouchDebugTime > 100 || abs(x - lastTouchX) > 5 || abs(y - lastTouchY) > 5) {
-            // Clear previous indicator if it exists and is different
-            if (lastTouchX >= 0 && lastTouchY >= 0 && (lastTouchX != x || lastTouchY != y)) {
-                // Boundary-safe clearing (constrain to screen bounds)
-                int clearX = constrain(lastTouchX, 5, 475);
-                int clearY = constrain(lastTouchY, 5, 315);
-                tft.drawFastHLine(clearX - 5, clearY, 11, TFT_BLACK);
-                tft.drawFastVLine(clearX, clearY - 5, 11, TFT_BLACK);
-            }
-            
-            // Draw new touch indicator (cyan crosshair) with boundary checking
+        if (now - lastTouchDebugTime > 100) {
+            // Draw touch indicator (cyan crosshair) with boundary checking
             // Screen is 480x320, so keep crosshair within bounds
             int drawX = constrain(x, 5, 475);  // Keep 5px margin from edges
             int drawY = constrain(y, 5, 315);
@@ -1022,11 +1014,9 @@ void HUD::update() {
             tft.drawFastVLine(drawX, drawY - 5, 11, TFT_CYAN);
             tft.fillCircle(drawX, drawY, 2, TFT_RED);
             
-            lastTouchX = drawX;
-            lastTouchY = drawY;
             lastTouchDebugTime = now;
             
-            // Log touch coordinates for debugging (only first touch or significant movement)
+            // Log touch coordinates for debugging (only once per second)
             static uint32_t lastTouchLogTime = 0;
             if (now - lastTouchLogTime > 1000) {  // Log every second max
                 Logger::infof("Touch detected at (%d, %d)", x, y);

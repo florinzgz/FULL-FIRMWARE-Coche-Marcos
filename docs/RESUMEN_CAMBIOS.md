@@ -34,8 +34,8 @@ Si el touch no está calibrado, verás en pantalla:
 ```
 READY
 Touch no calibrado
-Toca bateria 4 veces: 8-9-8-9
-Opcion 3: Calibrar touch
+Toca batería 4 veces: 8-9-8-9
+Opción 3: Calibrar touch
 ```
 
 **Beneficio:** No necesitas abrir la consola serial para saber cómo calibrar.
