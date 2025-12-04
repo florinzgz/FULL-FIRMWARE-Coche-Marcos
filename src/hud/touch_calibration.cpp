@@ -41,7 +41,6 @@ namespace TouchCalibration {
     // Touch controller constants
     static const uint16_t MAX_TOUCH_VALUE = 4095;        // 12-bit ADC maximum
     static const uint32_t TOUCH_RELEASE_WAIT = 500;      // ms to wait for touch release
-    static const uint32_t TOUCH_RELEASE_POLL = 50;       // ms between release checks
     
     // Forward declarations
     static void drawCalibrationPoint(int x, int y, uint16_t color);
@@ -232,8 +231,9 @@ namespace TouchCalibration {
             Logger::info("TouchCalibration: Cancelled by user");
             state = CalibrationState::Failed;
             snprintf(result.message, sizeof(result.message), "Cancelled");
+        } else {
+            state = CalibrationState::Idle;
         }
-        state = CalibrationState::Idle;
     }
     
     bool applyCalibration(const uint16_t calibData[5]) {
@@ -291,7 +291,7 @@ namespace TouchCalibration {
         int y = 120;
         tft->drawString("You will be asked to touch", 60, y, 2); y += 25;
         tft->drawString("2 points on the screen.", 60, y, 2); y += 25;
-        tft->drawString("", 60, y, 2); y += 25;
+        y += 25;  // Blank line for spacing
         tft->drawString("Touch accurately for best", 60, y, 2); y += 25;
         tft->drawString("results.", 60, y, 2); y += 30;
         
