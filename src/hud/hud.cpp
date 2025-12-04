@@ -114,23 +114,31 @@ void HUD::init() {
     Icons::init(&tft);
     MenuHidden::init(&tft);  // MenuHidden stores tft pointer, must be non-null
 
-    // 🔒 v2.8.8: TOUCH INITIALIZATION - Usando touch integrado de TFT_eSPI
-    // Ya no necesitamos inicializar touch por separado porque TFT_eSPI lo maneja
+    // 🔒 v2.9.0: TOUCH INITIALIZATION - Using stored calibration or defaults
     touchInitialized = false;
     
 #ifndef DISABLE_TOUCH
     if (cfg.touchEnabled) {
-        // 🔒 v2.8.8: Touch integrado de TFT_eSPI no requiere begin() separado
-        // TFT_eSPI inicializa el touch automáticamente cuando se define TOUCH_CS
-        // Establecer calibración del touch usando constantes centralizadas (touch_map.h)
-        // Formato: { min_x, max_x, min_y, max_y, rotation }
-        uint16_t calData[5] = { 
-            (uint16_t)TouchCalibration::RAW_MIN,   // 200
-            (uint16_t)TouchCalibration::RAW_MAX,   // 3900
-            (uint16_t)TouchCalibration::RAW_MIN,   // 200
-            (uint16_t)TouchCalibration::RAW_MAX,   // 3900
-            3  // Rotation para coincidir con tft.setRotation(3)
-        };
+        // Use stored calibration if available, otherwise use defaults
+        uint16_t calData[5];
+        
+        if (cfg.touchCalibrated) {
+            // Use saved calibration from storage
+            for (int i = 0; i < 5; i++) {
+                calData[i] = cfg.touchCalibration[i];
+            }
+            Logger::infof("Touch: Using stored calibration [%d, %d, %d, %d, %d]",
+                         calData[0], calData[1], calData[2], calData[3], calData[4]);
+        } else {
+            // Use default calibration values from touch_map.h
+            calData[0] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
+            calData[1] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
+            calData[2] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
+            calData[3] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
+            calData[4] = 3;  // Rotation para coincidir con tft.setRotation(3)
+            Logger::info("Touch: Using default calibration values");
+        }
+        
         tft.setTouch(calData);
         touchInitialized = true;
         Logger::info("Touchscreen XPT2046 integrado TFT_eSPI inicializado OK");

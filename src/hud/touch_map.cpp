@@ -6,7 +6,8 @@
 // - Current mapping uses hardcoded icon coordinates
 // - If touch doesn't align with visible icons, calibration may be needed
 // - XPT2046 touch controller may have different offsets on different ST7796S units
-// TODO: Implement dynamic calibration routine and save to Storage::Config
+// ✅ v2.9.0: Dynamic calibration routine implemented in touch_calibration.cpp
+// Access via Hidden Menu > Option 3 (Calibrar touch)
 
 TouchAction getTouchedZone(int x, int y) {
     if (x >= Icons::BATTERY_X1 && x <= Icons::BATTERY_X2 && y >= Icons::BATTERY_Y1 && y <= Icons::BATTERY_Y2)
