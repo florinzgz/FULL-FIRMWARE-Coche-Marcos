@@ -190,7 +190,7 @@ ledcWrite(0, 255);              // Full brightness
 ### Display Performance
 - **SPI Clock:** 40MHz
 - **Theoretical Bandwidth:** 40 Mbps = 5 MB/s
-- **Full Screen Refresh:** ~307ms (480x320x16bit / 5MB/s)
+- **Full Screen Refresh:** ~61ms (480x320x16bit / 5MB/s)
 - **Typical FPS:** 30 FPS (33ms per frame for HUD updates)
 
 ### Touch Response
