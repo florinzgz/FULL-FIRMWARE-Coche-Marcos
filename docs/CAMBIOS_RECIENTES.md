@@ -46,7 +46,7 @@ TOUCH_IRQ = GPIO 47
 - ✅ INA226: usando repositorio GitHub directamente (problema con registro PlatformIO)
 - ✅ FastLED: mantenida en 3.6.0 (versión 3.7.0 presenta errores de compatibilidad)
 - ✅ XPT2046_Touchscreen: usando repositorio GitHub directamente (problema con registro PlatformIO)
-- ✅ Añadido mathieucarbou/ESP Async WebServer 3.0.6 + AsyncTCP 3.1.4 (soporte para dashboard web)
+- ✅ Añadido mathieucarbou/ESP Async WebServer 3.0.6 (con AsyncTCP 3.1.4) (soporte para dashboard web)
 
 **Optimizaciones del compilador (release):**
 ```ini
