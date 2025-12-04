@@ -370,9 +370,9 @@ namespace TouchCalibration {
         uint16_t extrapolateY = (uint16_t)(rangeY * (scaleY - 1.0f) / 2.0f);
         
         minX = (minX > extrapolateX) ? (minX - extrapolateX) : 0;
-        maxX = (maxX + extrapolateX < MAX_TOUCH_VALUE) ? (maxX + extrapolateX) : MAX_TOUCH_VALUE;
-        minY = (minY > extrapolateY) ? (minY - extrapolateY) : 0;
-        maxY = (maxY + extrapolateY < MAX_TOUCH_VALUE) ? (maxY + extrapolateY) : MAX_TOUCH_VALUE;
+        maxX = ((uint32_t)maxX + (uint32_t)extrapolateX < MAX_TOUCH_VALUE) ? (maxX + extrapolateX) : MAX_TOUCH_VALUE;
+        minY = ((uint32_t)minY > (uint32_t)extrapolateY) ? (minY - extrapolateY) : 0;
+        maxY = ((uint32_t)maxY + (uint32_t)extrapolateY < MAX_TOUCH_VALUE) ? (maxY + extrapolateY) : MAX_TOUCH_VALUE;
         
         // Store calibration result
         result.calibData[0] = minX;
