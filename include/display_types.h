@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+// Constante para cache de estado no inicializado (usado en HUD/icons para forzar dibujado inicial)
+constexpr int CACHE_UNINITIALIZED = -1;
+
 // Tipos de menú
 enum class MenuType {
     NONE,

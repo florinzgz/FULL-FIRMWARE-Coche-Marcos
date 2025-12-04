@@ -1,6 +1,7 @@
 #include "icons.h"
 #include "system.h"   // para consultar errores persistentes
 #include "logger.h"
+#include "display_types.h"  // para CACHE_UNINITIALIZED
 #include <TFT_eSPI.h>
 #include <Arduino.h>  // para constrain()
 #include <math.h>     // para fabs()
@@ -9,14 +10,16 @@ static TFT_eSPI *tft = nullptr;
 static bool initialized = false;
 
 // Cache de último estado para evitar redibujos innecesarios
-static System::State lastSysState = (System::State)-1;
-static Shifter::Gear lastGear = (Shifter::Gear)-1;
-static bool lastLights = false;
-static bool lastMedia = false;
-static bool lastMode4x4 = false;
-static bool lastRegen = false;
+// NOTA: Usamos int con valor CACHE_UNINITIALIZED para forzar el primer dibujado
+// incluso si el estado inicial es false (que se convierte a 0)
+static System::State lastSysState = (System::State)CACHE_UNINITIALIZED;
+static Shifter::Gear lastGear = (Shifter::Gear)CACHE_UNINITIALIZED;
+static int lastLights = CACHE_UNINITIALIZED;     // Usar int para permitir valor -1 (no inicializado)
+static int lastMedia = CACHE_UNINITIALIZED;      // Usar int para permitir valor -1 (no inicializado)
+static int lastMode4x4 = CACHE_UNINITIALIZED;    // Usar int para permitir valor -1 (no inicializado)
+static int lastRegen = CACHE_UNINITIALIZED;      // Usar int para permitir valor -1 (no inicializado)
 static float lastBattery = -999.0f;
-static int lastErrorCount = -1;
+static int lastErrorCount = CACHE_UNINITIALIZED;
 
 // Cache para estado de sensores
 static uint8_t lastCurrentOK = 0;
@@ -176,7 +179,12 @@ void Icons::drawGear(Shifter::Gear g) {
 
 void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
     if(!initialized) return;
-    if(lights==lastLights && media==lastMedia && mode4x4==lastMode4x4 && regenOn==lastRegen) return;
+    // Convertir bool a int para comparación con cache (que puede ser -1 = no inicializado)
+    int iLights = lights ? 1 : 0;
+    int iMedia = media ? 1 : 0;
+    int iMode4x4 = mode4x4 ? 1 : 0;
+    int iRegen = regenOn ? 1 : 0;
+    if(iLights==lastLights && iMedia==lastMedia && iMode4x4==lastMode4x4 && iRegen==lastRegen) return;
 
     // Colores para efectos 3D
     const uint16_t COLOR_BOX_BG = 0x2104;        // Fondo oscuro
@@ -230,34 +238,34 @@ void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
 
     // 4x4 / 4x2 - Siempre muestra el estado activo con color diferente
     // 4x4 = cian, 4x2 = naranja (ambos siempre "activos" visualmente)
-    if(mode4x4 != lastMode4x4) {
+    if(iMode4x4 != lastMode4x4) {
         uint16_t mode4x4Color = mode4x4 ? COLOR_4X4_ACTIVE : COLOR_4X2_ACTIVE;
         draw3DBox(MODE4X4_X1, MODE4X4_Y1, MODE4X4_X2, MODE4X4_Y2, 
                   mode4x4 ? "4x4" : "4x2", true, mode4x4Color);
-        lastMode4x4 = mode4x4;
+        lastMode4x4 = iMode4x4;
     }
 
     // Luces - Amarillo cuando activo
-    if(lights != lastLights) {
+    if(iLights != lastLights) {
         draw3DBox(LIGHTS_X1, LIGHTS_Y1, LIGHTS_X2, LIGHTS_Y2, 
                   "LUCES", lights, COLOR_LIGHTS_ACTIVE);
-        lastLights = lights;
+        lastLights = iLights;
     }
 
     // Multimedia - Verde cuando activo
-    if(media != lastMedia) {
+    if(iMedia != lastMedia) {
         draw3DBox(MEDIA_X1, MEDIA_Y1, MEDIA_X2, MEDIA_Y2, 
                   "MEDIA", media, COLOR_MEDIA_ACTIVE);
-        lastMedia = media;
+        lastMedia = iMedia;
     }
 
     // Regenerativo - Usar helper draw3DBox
-    if(regenOn != lastRegen) {
+    if(iRegen != lastRegen) {
         // Limpiar área primero
         tft->fillRect(400, 250, 75, 45, TFT_BLACK);
         // Usar helper con posiciones fijas para REGEN
         draw3DBox(400, 250, 471, 291, "REGEN", regenOn, COLOR_REGEN_ACTIVE);
-        lastRegen = regenOn;
+        lastRegen = iRegen;
     }
 }
 
