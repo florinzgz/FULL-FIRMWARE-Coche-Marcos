@@ -1007,17 +1007,23 @@ void HUD::update() {
         if (now - lastTouchDebugTime > 100 || abs(x - lastTouchX) > 5 || abs(y - lastTouchY) > 5) {
             // Clear previous indicator if it exists and is different
             if (lastTouchX >= 0 && lastTouchY >= 0 && (lastTouchX != x || lastTouchY != y)) {
-                tft.drawFastHLine(lastTouchX - 5, lastTouchY, 11, TFT_BLACK);
-                tft.drawFastVLine(lastTouchX, lastTouchY - 5, 11, TFT_BLACK);
+                // Boundary-safe clearing (constrain to screen bounds)
+                int clearX = constrain(lastTouchX, 5, 475);
+                int clearY = constrain(lastTouchY, 5, 315);
+                tft.drawFastHLine(clearX - 5, clearY, 11, TFT_BLACK);
+                tft.drawFastVLine(clearX, clearY - 5, 11, TFT_BLACK);
             }
             
-            // Draw new touch indicator (cyan crosshair)
-            tft.drawFastHLine(x - 5, y, 11, TFT_CYAN);
-            tft.drawFastVLine(x, y - 5, 11, TFT_CYAN);
-            tft.fillCircle(x, y, 2, TFT_RED);
+            // Draw new touch indicator (cyan crosshair) with boundary checking
+            // Screen is 480x320, so keep crosshair within bounds
+            int drawX = constrain(x, 5, 475);  // Keep 5px margin from edges
+            int drawY = constrain(y, 5, 315);
+            tft.drawFastHLine(drawX - 5, drawY, 11, TFT_CYAN);
+            tft.drawFastVLine(drawX, drawY - 5, 11, TFT_CYAN);
+            tft.fillCircle(drawX, drawY, 2, TFT_RED);
             
-            lastTouchX = x;
-            lastTouchY = y;
+            lastTouchX = drawX;
+            lastTouchY = drawY;
             lastTouchDebugTime = now;
             
             // Log touch coordinates for debugging (only first touch or significant movement)

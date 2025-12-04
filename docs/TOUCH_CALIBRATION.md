@@ -1,7 +1,7 @@
 # Touch Screen Calibration Guide
 
-## Problem
-El táctil de la pantalla puede no funcionar correctamente sin calibración adecuada.
+## Issue Description
+The touch screen may not work correctly without proper calibration.
 
 ## Symptoms
 - Touch no responde
