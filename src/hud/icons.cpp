@@ -8,17 +8,20 @@
 static TFT_eSPI *tft = nullptr;
 static bool initialized = false;
 
+// Constante para indicar cache no inicializado
+static constexpr int CACHE_UNINITIALIZED = -1;
+
 // Cache de último estado para evitar redibujos innecesarios
-// NOTA: Inicializamos los bool con valor -1 (usando static_cast) para forzar
-// el primer dibujado incluso si el estado inicial es false
-static System::State lastSysState = (System::State)-1;
-static Shifter::Gear lastGear = (Shifter::Gear)-1;
-static int lastLights = -1;     // Usar int para permitir valor -1 (no inicializado)
-static int lastMedia = -1;      // Usar int para permitir valor -1 (no inicializado)
-static int lastMode4x4 = -1;    // Usar int para permitir valor -1 (no inicializado)
-static int lastRegen = -1;      // Usar int para permitir valor -1 (no inicializado)
+// NOTA: Usamos int con valor CACHE_UNINITIALIZED para forzar el primer dibujado
+// incluso si el estado inicial es false (que se convierte a 0)
+static System::State lastSysState = (System::State)CACHE_UNINITIALIZED;
+static Shifter::Gear lastGear = (Shifter::Gear)CACHE_UNINITIALIZED;
+static int lastLights = CACHE_UNINITIALIZED;     // Usar int para permitir valor -1 (no inicializado)
+static int lastMedia = CACHE_UNINITIALIZED;      // Usar int para permitir valor -1 (no inicializado)
+static int lastMode4x4 = CACHE_UNINITIALIZED;    // Usar int para permitir valor -1 (no inicializado)
+static int lastRegen = CACHE_UNINITIALIZED;      // Usar int para permitir valor -1 (no inicializado)
 static float lastBattery = -999.0f;
-static int lastErrorCount = -1;
+static int lastErrorCount = CACHE_UNINITIALIZED;
 
 // Cache para estado de sensores
 static uint8_t lastCurrentOK = 0;

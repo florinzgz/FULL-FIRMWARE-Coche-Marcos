@@ -55,8 +55,10 @@ static const int DEMO_BTN_Y2 = 295;
 #endif
 
 // Botón virtual para giro sobre eje (axis rotation toggle)
+// Constante para cache no inicializado
+static constexpr int CACHE_UNINITIALIZED = -1;
 static bool axisRotationEnabled = false;
-static int lastAxisRotationState = -1;  // Inicializar a -1 para forzar dibujado inicial
+static int lastAxisRotationState = CACHE_UNINITIALIZED;  // Forzar dibujado inicial
 static const int AXIS_BTN_X1 = 245;
 static const int AXIS_BTN_Y1 = 250;
 static const int AXIS_BTN_X2 = 315;
@@ -355,7 +357,7 @@ static bool isTouchInAxisButton(int x, int y) {
 // Toggle axis rotation state and update traction system
 void HUD::toggleAxisRotation() {
     axisRotationEnabled = !axisRotationEnabled;
-    lastAxisRotationState = -1;  // Force redraw by resetting cache
+    lastAxisRotationState = CACHE_UNINITIALIZED;  // Force redraw by resetting cache
     
     // Actualizar sistema de tracción con el nuevo estado
     Traction::setAxisRotation(axisRotationEnabled, 30.0f);  // 30% velocidad por defecto
