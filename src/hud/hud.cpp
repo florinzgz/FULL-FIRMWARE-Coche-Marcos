@@ -39,7 +39,7 @@ extern TFT_eSPI tft;
 static bool touchInitialized = false;
 
 // Touch calibration: Using constants from touch_map.h (included above)
-// TouchCalibration::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
+// TouchConstants::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
 
 // Demo mode button detection for STANDALONE_DISPLAY
 #ifdef STANDALONE_DISPLAY
@@ -138,19 +138,19 @@ void HUD::init() {
                 Logger::warn("Touch: Invalid stored calibration, using defaults");
                 cfg.touchCalibrated = false;
                 // Use default calibration values from touch_map.h
-                calData[0] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
-                calData[1] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
-                calData[2] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
-                calData[3] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
+                calData[0] = (uint16_t)TouchConstants::RAW_MIN;   // 200
+                calData[1] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+                calData[2] = (uint16_t)TouchConstants::RAW_MIN;   // 200
+                calData[3] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
                 calData[4] = 3;  // Rotation para coincidir con tft.setRotation(3)
                 Logger::info("Touch: Using default calibration values");
             }
         } else {
             // Use default calibration values from touch_map.h
-            calData[0] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
-            calData[1] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
-            calData[2] = (uint16_t)TouchCalibration::RAW_MIN;   // 200
-            calData[3] = (uint16_t)TouchCalibration::RAW_MAX;   // 3900
+            calData[0] = (uint16_t)TouchConstants::RAW_MIN;   // 200
+            calData[1] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+            calData[2] = (uint16_t)TouchConstants::RAW_MIN;   // 200
+            calData[3] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
             calData[4] = 3;  // Rotation para coincidir con tft.setRotation(3)
             Logger::info("Touch: Using default calibration values");
         }

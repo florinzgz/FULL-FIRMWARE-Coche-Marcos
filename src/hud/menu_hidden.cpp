@@ -52,7 +52,7 @@ static const uint32_t DEBOUNCE_TIMEOUT_MS = 500;  // Timeout para debounce
 static const uint32_t DEBOUNCE_SHORT_MS = 200;    // ✅ v2.7.0: Debounce corto para ajustes rápidos
 static const uint32_t FEEDBACK_DISPLAY_MS = 1500; // ✅ v2.7.0: Tiempo de visualización de feedback
 
-// Zonas táctiles del menú (8 opciones)
+// Zonas táctiles del menú (9 opciones)
 static const int MENU_X1 = 60;
 static const int MENU_Y1 = 80;
 static const int MENU_WIDTH = 360;

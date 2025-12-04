@@ -19,7 +19,7 @@
 // práctica el rango útil del panel táctil resistivo es aproximadamente 200-3900.
 // Estos valores calibrados excluyen las zonas de borde donde las lecturas
 // son menos precisas. Ajustar si se cambia el panel táctil.
-namespace TouchCalibration {
+namespace TouchConstants {
     // Rango calibrado del ADC táctil (zona útil del panel)
     // El rango teórico 0-4095 se reduce a 200-3900 para mayor precisión
     constexpr int RAW_MIN = 200;    // Valor mínimo calibrado (excluye borde)

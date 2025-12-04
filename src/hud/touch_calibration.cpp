@@ -12,7 +12,7 @@ namespace TouchCalibration {
     // Module state
     static TFT_eSPI* tft = nullptr;
     static CalibrationState state = CalibrationState::Idle;
-    static CalibrationResult result = {};
+    static CalibrationResult result = {};  // Zero-initialize to prevent garbage data
     static uint32_t stateStartTime = 0;
     
     // Touch release tracking
@@ -82,10 +82,14 @@ namespace TouchCalibration {
     }
     
     bool update() {
-        if (state == CalibrationState::Idle || 
-            state == CalibrationState::Complete || 
-            state == CalibrationState::Failed) {
+        if (state == CalibrationState::Idle) {
             return false;  // Not calibrating
+        }
+        
+        // Auto-reset to Idle after terminal states (Complete/Failed)
+        if (state == CalibrationState::Complete || state == CalibrationState::Failed) {
+            state = CalibrationState::Idle;
+            return false;  // Calibration finished
         }
         
         uint32_t now = millis();
