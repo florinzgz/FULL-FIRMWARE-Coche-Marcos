@@ -42,6 +42,11 @@ static bool touchInitialized = false;
 static const uint32_t DIAGNOSTIC_RAW_TOUCH_CHECK_INTERVAL_MS = 5000;  // Check raw touch every 5 seconds when calibrated touch fails
 static const uint16_t TOUCH_ADC_MAX = 4095;                 // XPT2046 12-bit ADC maximum value
 static const uint16_t TOUCH_ADC_MIN = 0;                    // XPT2046 12-bit ADC minimum value
+static const uint8_t DIAGNOSTIC_LOG_INTERVAL = 5;           // Log every Nth raw touch detection to avoid spam
+
+// 🔒 v2.9.3: Touch rotation and validation constants
+static const uint8_t TOUCH_DEFAULT_ROTATION = 3;            // Default rotation for landscape mode (480x320)
+static const uint8_t TOUCH_MAX_ROTATION = 7;                // Maximum valid rotation value (0-7)
 
 // Touch calibration: Using constants from touch_map.h (included above)
 // TouchConstants::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -119,11 +124,11 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     const uint16_t minVal = (uint16_t)TouchConstants::RAW_MIN;   // 200
     const uint16_t maxVal = (uint16_t)TouchConstants::RAW_MAX;   // 3900
     
-    calData[0] = minVal;            // min_x (minimum X coordinate)
-    calData[1] = maxVal;            // max_x (maximum X coordinate)
-    calData[2] = minVal;            // min_y (minimum Y coordinate)
-    calData[3] = maxVal;            // max_y (maximum Y coordinate)
-    calData[4] = 3;                 // rotation (matches tft.setRotation(3) for landscape)
+    calData[0] = minVal;                // min_x (minimum X coordinate)
+    calData[1] = maxVal;                // max_x (maximum X coordinate)
+    calData[2] = minVal;                // min_y (minimum Y coordinate)
+    calData[3] = maxVal;                // max_y (maximum Y coordinate)
+    calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (matches tft.setRotation(3) for landscape)
     
     Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d]",
                  calData[0], calData[1], calData[2], calData[3], calData[4]);
@@ -159,7 +164,7 @@ void HUD::init() {
                 cfg.touchCalibration[2] < cfg.touchCalibration[3] &&               // min_y < max_y
                 cfg.touchCalibration[1] <= TOUCH_ADC_MAX &&                        // max_x within ADC bounds
                 cfg.touchCalibration[3] <= TOUCH_ADC_MAX &&                        // max_y within ADC bounds
-                cfg.touchCalibration[4] <= 7) {                                    // rotation is 0-7
+                cfg.touchCalibration[4] <= TOUCH_MAX_ROTATION) {                   // rotation is 0-7
                 // Use saved calibration from storage
                 for (int i = 0; i < 5; i++) {
                     calData[i] = cfg.touchCalibration[i];
@@ -206,13 +211,16 @@ void HUD::init() {
             // Check if values are in expected range
             if (testX == TOUCH_ADC_MIN && testY == TOUCH_ADC_MIN) {
                 Logger::warn("Touch: Controller returns zero X/Y - not currently touched or hardware issue");
-                Logger::infof("Touch: Z pressure = %d (threshold is %d)", testZ, 
+                
+                // Get configured Z threshold for logging
+                uint16_t zThreshold = 
                     #ifdef Z_THRESHOLD
-                    Z_THRESHOLD
+                    Z_THRESHOLD;
                     #else
-                    350
+                    350;
                     #endif
-                );
+                
+                Logger::infof("Touch: Z pressure = %d (threshold is %d)", testZ, zThreshold);
             } else if (testX > TOUCH_ADC_MAX || testY > TOUCH_ADC_MAX) {
                 Logger::error("Touch: Invalid values detected - possible hardware or SPI issue");
             } else {
@@ -1081,8 +1089,8 @@ void HUD::update() {
                 uint16_t rawZ = tft.getTouchRawZ();
                 diagnosticCounter++;
                 
-                // Only log every 5th detection to avoid spam
-                if (diagnosticCounter % 5 == 1) {
+                // Only log every Nth detection to avoid spam
+                if (diagnosticCounter % DIAGNOSTIC_LOG_INTERVAL == 1) {
                     Logger::infof("Touch: Raw touch detected but getTouch() failed - Raw X=%d, Y=%d, Z=%d", rawX, rawY, rawZ);
                     Logger::warn("Touch: This indicates calibration issue - run calibration routine");
                     Logger::warn("Touch: Tap battery icon 4 times (8-9-8-9), select option 3");

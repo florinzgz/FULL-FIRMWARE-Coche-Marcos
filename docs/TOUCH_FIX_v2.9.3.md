@@ -246,7 +246,7 @@ Este fix resuelve un **bug crítico** en el sistema de touch que impedía su fun
 ---
 
 **Versión:** 2.9.3  
-**Fecha:** 2025-12-05  
+**Fecha:** 2024-12-05  
 **Tipo:** Critical Bug Fix  
 **Prioridad:** Alta  
 **Estado:** ✅ Resuelto y Verificado
