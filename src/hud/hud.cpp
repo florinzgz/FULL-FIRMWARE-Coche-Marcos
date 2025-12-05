@@ -39,7 +39,7 @@ extern TFT_eSPI tft;
 static bool touchInitialized = false;
 
 // 🔒 v2.9.2: Touch diagnostic constants
-static const uint32_t RAW_TOUCH_CHECK_INTERVAL_MS = 5000;  // Check raw touch every 5 seconds when calibrated touch fails
+static const uint32_t DIAGNOSTIC_RAW_TOUCH_CHECK_INTERVAL_MS = 5000;  // Check raw touch every 5 seconds when calibrated touch fails
 static const uint16_t TOUCH_ADC_MAX = 4095;                 // XPT2046 12-bit ADC maximum value
 static const uint16_t TOUCH_ADC_MIN = 0;                    // XPT2046 12-bit ADC minimum value
 
