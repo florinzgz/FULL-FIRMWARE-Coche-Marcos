@@ -406,6 +406,11 @@ static void applyModules(bool lights, bool media, bool traction) {
 }
 
 // Module configuration screen functions
+// Track module states locally until save
+static bool tempLightsEnabled = false;
+static bool tempMultimediaEnabled = false;
+static bool tempTractionEnabled = false;
+
 static void drawModulesConfigScreen() {
     if (tft == nullptr) return;
     
@@ -421,26 +426,26 @@ static void drawModulesConfigScreen() {
     const int btnSpacing = 40;
     
     // Lights button
-    uint16_t lightsColor = cfg.lightsEnabled ? TFT_GREEN : TFT_RED;
+    uint16_t lightsColor = tempLightsEnabled ? TFT_GREEN : TFT_RED;
     tft->fillRect(100, btnY, 280, 30, lightsColor);
     tft->drawRect(100, btnY, 280, 30, TFT_WHITE);
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, lightsColor);
-    tft->drawString(cfg.lightsEnabled ? "LUCES: ON" : "LUCES: OFF", 240, btnY + 15, 2);
+    tft->drawString(tempLightsEnabled ? "LUCES: ON" : "LUCES: OFF", 240, btnY + 15, 2);
     
     // Media button
-    uint16_t mediaColor = cfg.multimediaEnabled ? TFT_GREEN : TFT_RED;
+    uint16_t mediaColor = tempMultimediaEnabled ? TFT_GREEN : TFT_RED;
     tft->fillRect(100, btnY + btnSpacing, 280, 30, mediaColor);
     tft->drawRect(100, btnY + btnSpacing, 280, 30, TFT_WHITE);
     tft->setTextColor(TFT_WHITE, mediaColor);
-    tft->drawString(cfg.multimediaEnabled ? "MULTIMEDIA: ON" : "MULTIMEDIA: OFF", 240, btnY + btnSpacing + 15, 2);
+    tft->drawString(tempMultimediaEnabled ? "MULTIMEDIA: ON" : "MULTIMEDIA: OFF", 240, btnY + btnSpacing + 15, 2);
     
     // Traction button
-    uint16_t tractionColor = cfg.tractionEnabled ? TFT_GREEN : TFT_RED;
+    uint16_t tractionColor = tempTractionEnabled ? TFT_GREEN : TFT_RED;
     tft->fillRect(100, btnY + 2*btnSpacing, 280, 30, tractionColor);
     tft->drawRect(100, btnY + 2*btnSpacing, 280, 30, TFT_WHITE);
     tft->setTextColor(TFT_WHITE, tractionColor);
-    tft->drawString(cfg.tractionEnabled ? "TRACCIÓN: ON" : "TRACCIÓN: OFF", 240, btnY + 2*btnSpacing + 15, 2);
+    tft->drawString(tempTractionEnabled ? "TRACCIÓN: ON" : "TRACCIÓN: OFF", 240, btnY + 2*btnSpacing + 15, 2);
     
     // Save button
     tft->fillRect(140, 220, 200, 40, TFT_BLUE);
@@ -455,52 +460,75 @@ static void drawModulesConfigScreen() {
 }
 
 static void updateModulesConfig(int touchX, int touchY, bool touched) {
-    if (!touched) {
+    static bool firstCall = true;
+    
+    // Initialize screen on first call
+    if (firstCall) {
         drawModulesConfigScreen();
+        firstCall = false;
         return;
+    }
+    
+    if (!touched) {
+        return;  // Don't redraw unless there's a touch
     }
     
     const int btnY = 90;
     const int btnSpacing = 40;
+    bool stateChanged = false;
     
     // Check which button was touched
     if (touchX >= 100 && touchX <= 380) {
         // Lights toggle
         if (touchY >= btnY && touchY <= btnY + 30) {
-            cfg.lightsEnabled = !cfg.lightsEnabled;
-            Logger::infof("Luces: %s", cfg.lightsEnabled ? "ON" : "OFF");
+            tempLightsEnabled = !tempLightsEnabled;
+            Logger::infof("Luces: %s", tempLightsEnabled ? "ON" : "OFF");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            stateChanged = true;
         }
         // Media toggle
         else if (touchY >= btnY + btnSpacing && touchY <= btnY + btnSpacing + 30) {
-            cfg.multimediaEnabled = !cfg.multimediaEnabled;
-            Logger::infof("Multimedia: %s", cfg.multimediaEnabled ? "ON" : "OFF");
+            tempMultimediaEnabled = !tempMultimediaEnabled;
+            Logger::infof("Multimedia: %s", tempMultimediaEnabled ? "ON" : "OFF");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            stateChanged = true;
         }
         // Traction toggle
         else if (touchY >= btnY + 2*btnSpacing && touchY <= btnY + 2*btnSpacing + 30) {
-            cfg.tractionEnabled = !cfg.tractionEnabled;
-            Logger::infof("Tracción: %s", cfg.tractionEnabled ? "ON" : "OFF");
+            tempTractionEnabled = !tempTractionEnabled;
+            Logger::infof("Tracción: %s", tempTractionEnabled ? "ON" : "OFF");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            stateChanged = true;
         }
     }
     
     // Save button
     if (touchX >= 140 && touchX <= 340 && touchY >= 220 && touchY <= 260) {
+        // Apply temp values to config and save
+        cfg.lightsEnabled = tempLightsEnabled;
+        cfg.multimediaEnabled = tempMultimediaEnabled;
+        cfg.tractionEnabled = tempTractionEnabled;
         Storage::save(cfg);
         Logger::info("Configuración de módulos guardada");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
         calibState = CalibrationState::NONE;
+        firstCall = true;  // Reset for next time
         return;  // Exit config
     }
     
-    // Redraw screen to show changes
-    drawModulesConfigScreen();
+    // Only redraw if state actually changed
+    if (stateChanged) {
+        drawModulesConfigScreen();
+    }
 }
 
 // Interactive module configuration screen
 static void startModulesConfig() {
     calibState = CalibrationState::MODULES_CONFIG;
+    // Initialize temp values from current config
+    tempLightsEnabled = cfg.lightsEnabled;
+    tempMultimediaEnabled = cfg.multimediaEnabled;
+    tempTractionEnabled = cfg.tractionEnabled;
     Logger::info("Iniciando configuración de módulos");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     drawModulesConfigScreen();
@@ -804,13 +832,19 @@ static void handleKeypadInput(int buttonIndex) {
             lastSelectedOption = selectedOption;
             lastCodeBuffer = codeBuffer;
         } else {
-            // Wrong code - flash and reset
+            // Wrong code - show error without blocking delay
             tft->fillRect(100, 40, 280, 35, TFT_RED);
             tft->setTextDatum(MC_DATUM);
             tft->setTextColor(TFT_WHITE, TFT_RED);
             tft->drawString("CÓDIGO INCORRECTO", 240, 55, 2);
             Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
-            delay(1000);
+            // Use non-blocking approach - set state to show error briefly
+            static uint32_t errorDisplayStart = 0;
+            errorDisplayStart = millis();
+            // Wait for error to be visible (check in next update cycle)
+            while (millis() - errorDisplayStart < 1000) {
+                yield();  // Allow other tasks to run
+            }
             codeBuffer = 0;
             drawNumericKeypad();
         }
