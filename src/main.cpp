@@ -95,6 +95,7 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 // HUD y Audio
 #include "hud.h"
 #include "hud_manager.h"
+#include "menu_hidden.h"  // 🆕 v2.9.4: Para calibración táctil directa
 #include "car_sensors.h"
 #include "dfplayer.h"
 #include "queue.h"
@@ -344,6 +345,16 @@ void setup() {
     HUDManager::showMenu(MenuType::DASHBOARD);
     Serial.println("[BOOT] Setup complete! Entering main loop...");
 #endif
+}
+
+// ============================================================================
+// 🆕 v2.9.4: Función para activar calibración táctil desde botón físico
+// ============================================================================
+// Esta función se llama cuando el usuario mantiene presionado el botón 4X4
+// durante 5 segundos. Permite calibrar el touch sin necesidad de que funcione.
+void activateTouchCalibration() {
+    Logger::info("activateTouchCalibration() llamada desde botón físico");
+    MenuHidden::startTouchCalibrationDirectly();
 }
 
 void loop() {
