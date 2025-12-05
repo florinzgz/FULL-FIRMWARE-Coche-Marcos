@@ -7,7 +7,7 @@
 ### Problema encontrado:
 ```
 ❌ Calibración incorrecta: [offset, range, offset, range] 
-✅ Calibración correcta:   [min_x, max_x, min_y, max_y]
+✅ Calibración correcta:   [min_x, max_x, min_y, max_y, rotation]
 ```
 
 ## 🚀 Solución Rápida (3 pasos)
