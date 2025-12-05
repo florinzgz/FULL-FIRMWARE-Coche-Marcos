@@ -38,6 +38,9 @@ extern TFT_eSPI tft;
 // Esto evita conflictos de bus SPI que causaban pantalla blanca
 static bool touchInitialized = false;
 
+// 🔒 v2.9.2: Touch diagnostic constants
+static const uint32_t RAW_TOUCH_CHECK_INTERVAL_MS = 5000;  // Check raw touch every 5 seconds when calibrated touch fails
+
 // Touch calibration: Using constants from touch_map.h (included above)
 // TouchConstants::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
 
@@ -108,15 +111,14 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     // Based on typical XPT2046 12-bit ADC range (0-4095)
     // For ST7796S in rotation 3 (landscape 480x320)
     // Format: [x_offset, x_range, y_offset, y_range, rotation_flags]
-    uint16_t xMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
-    uint16_t xMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-    uint16_t yMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
-    uint16_t yMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+    const uint16_t minVal = (uint16_t)TouchConstants::RAW_MIN;   // 200
+    const uint16_t maxVal = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+    const uint16_t range = maxVal - minVal;                      // 3700
     
-    calData[0] = xMin;              // x offset
-    calData[1] = xMax - xMin;       // x range (3700)
-    calData[2] = yMin;              // y offset  
-    calData[3] = yMax - yMin;       // y range (3700)
+    calData[0] = minVal;            // x offset
+    calData[1] = range;             // x range
+    calData[2] = minVal;            // y offset  
+    calData[3] = range;             // y range
     calData[4] = 0;                 // No rotation/inversion (will be handled by display rotation)
     
     Logger::infof("Touch: Using default calibration [offset_x=%d, range_x=%d, offset_y=%d, range_y=%d, flags=%d]",
@@ -1035,9 +1037,10 @@ void HUD::update() {
     
     if (!touchDetected && touchInitialized && cfg.touchEnabled) {
         // Periodically check if raw touch is working even if calibrated touch isn't
-        if (now - lastRawTouchCheck > 5000) {  // Check every 5 seconds
+        if (now - lastRawTouchCheck > RAW_TOUCH_CHECK_INTERVAL_MS) {
             uint16_t rawX = 0, rawY = 0;
             if (tft.getTouchRaw(&rawX, &rawY)) {
+                // Read Z value only once after successful raw touch read
                 uint16_t rawZ = tft.getTouchRawZ();
                 Logger::infof("Touch: Raw values available but getTouch() failed - Raw X=%d, Y=%d, Z=%d", rawX, rawY, rawZ);
                 Logger::warn("Touch: Calibration may be incorrect or Z threshold too high");
@@ -1083,12 +1086,13 @@ void HUD::update() {
             // Log touch coordinates for debugging
 #ifdef TOUCH_DEBUG
             // Verbose logging for troubleshooting - logs every touch
-            Logger::infof("Touch detected at (%d, %d)", x, y);
-            // Also log raw values for comparison
+            // Read raw values once and reuse for both X/Y and Z
             uint16_t rawX = 0, rawY = 0;
             if (tft.getTouchRaw(&rawX, &rawY)) {
                 uint16_t rawZ = tft.getTouchRawZ();
-                Logger::infof("Touch RAW: X=%d, Y=%d, Z=%d", rawX, rawY, rawZ);
+                Logger::infof("Touch detected at (%d, %d) - RAW: X=%d, Y=%d, Z=%d", x, y, rawX, rawY, rawZ);
+            } else {
+                Logger::infof("Touch detected at (%d, %d)", x, y);
             }
 #else
             // Normal logging - only once per second to avoid spam
