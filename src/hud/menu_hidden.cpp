@@ -414,7 +414,7 @@ static void drawModulesConfigScreen() {
     
     tft->setTextDatum(TC_DATUM);
     tft->setTextColor(TFT_CYAN, TFT_BLACK);
-    tft->drawString("CONFIGURACION MODULOS", 240, 50, 4);
+    tft->drawString("CONFIGURACIÓN MÓDULOS", 240, 50, 4);
     
     // Module toggle buttons
     const int btnY = 90;
@@ -440,7 +440,7 @@ static void drawModulesConfigScreen() {
     tft->fillRect(100, btnY + 2*btnSpacing, 280, 30, tractionColor);
     tft->drawRect(100, btnY + 2*btnSpacing, 280, 30, TFT_WHITE);
     tft->setTextColor(TFT_WHITE, tractionColor);
-    tft->drawString(cfg.tractionEnabled ? "TRACCION: ON" : "TRACCION: OFF", 240, btnY + 2*btnSpacing + 15, 2);
+    tft->drawString(cfg.tractionEnabled ? "TRACCIÓN: ON" : "TRACCIÓN: OFF", 240, btnY + 2*btnSpacing + 15, 2);
     
     // Save button
     tft->fillRect(140, 220, 200, 40, TFT_BLUE);
