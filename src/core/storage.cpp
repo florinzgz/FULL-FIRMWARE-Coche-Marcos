@@ -156,6 +156,16 @@ void Storage::load(Config &cfg) {
     // Datos verificados - cargar configuración
     prefs.getBytes(kKeyBlob, &cfg, sizeof(Config));
     
+    // 🔒 v2.9.5: MIGRATION FIX - Force enable touch if disabled
+    // Older configs may have touchEnabled=false causing circular dependency issue
+    // (can't access hidden menu without touch, but can't calibrate touch without menu)
+    if (!cfg.touchEnabled) {
+        Logger::warn("Storage: Touch was disabled - force enabling for usability");
+        cfg.touchEnabled = true;
+        save(cfg);  // Save the fix permanently
+        Logger::info("Storage: Touch enabled and saved to EEPROM");
+    }
+    
     Logger::infof("Storage: Config cargada OK (v%u, checksum 0x%08X)", cfg.version, cfg.checksum);
 }
 
