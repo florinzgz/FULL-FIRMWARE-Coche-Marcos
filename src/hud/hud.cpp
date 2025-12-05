@@ -101,6 +101,28 @@ static float lastSteeringAngle = -999.0f;  // Cache para ángulo del volante
 
 extern Storage::Config cfg;   // acceso a flags
 
+// 🔒 v2.9.2: Helper function to set default touch calibration
+// Avoids code duplication
+static void setDefaultTouchCalibration(uint16_t calData[5]) {
+    // Use default calibration values for XPT2046
+    // Based on typical XPT2046 12-bit ADC range (0-4095)
+    // For ST7796S in rotation 3 (landscape 480x320)
+    // Format: [x_offset, x_range, y_offset, y_range, rotation_flags]
+    uint16_t xMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
+    uint16_t xMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+    uint16_t yMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
+    uint16_t yMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+    
+    calData[0] = xMin;              // x offset
+    calData[1] = xMax - xMin;       // x range (3700)
+    calData[2] = yMin;              // y offset  
+    calData[3] = yMax - yMin;       // y range (3700)
+    calData[4] = 0;                 // No rotation/inversion (will be handled by display rotation)
+    
+    Logger::infof("Touch: Using default calibration [offset_x=%d, range_x=%d, offset_y=%d, range_y=%d, flags=%d]",
+                 calData[0], calData[1], calData[2], calData[3], calData[4]);
+}
+
 void HUD::init() {
     // ✅ NO llamar a tft.init() aquí - ya está inicializado en HUDManager::init()
     // Usamos la instancia global compartida de TFT_eSPI
@@ -138,40 +160,10 @@ void HUD::init() {
             } else {
                 Logger::warn("Touch: Invalid stored calibration, using defaults");
                 cfg.touchCalibrated = false;
-                // Use default calibration values for XPT2046
-                // Format: [x_offset, x_range, y_offset, y_range, rotation_flags]
-                uint16_t xMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
-                uint16_t xMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-                uint16_t yMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
-                uint16_t yMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-                
-                calData[0] = xMin;              // x offset
-                calData[1] = xMax - xMin;       // x range (3700)
-                calData[2] = yMin;              // y offset
-                calData[3] = yMax - yMin;       // y range (3700)
-                calData[4] = 0;                 // No rotation/inversion
-                
-                Logger::infof("Touch: Using default calibration [offset_x=%d, range_x=%d, offset_y=%d, range_y=%d, flags=%d]",
-                             calData[0], calData[1], calData[2], calData[3], calData[4]);
+                setDefaultTouchCalibration(calData);
             }
         } else {
-            // Use default calibration values for XPT2046
-            // Based on typical XPT2046 12-bit ADC range (0-4095)
-            // For ST7796S in rotation 3 (landscape 480x320)
-            // Format: [x_offset, x_range, y_offset, y_range, rotation_flags]
-            uint16_t xMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
-            uint16_t xMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-            uint16_t yMin = (uint16_t)TouchConstants::RAW_MIN;   // 200
-            uint16_t yMax = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-            
-            calData[0] = xMin;              // x offset
-            calData[1] = xMax - xMin;       // x range (3700)
-            calData[2] = yMin;              // y offset  
-            calData[3] = yMax - yMin;       // y range (3700)
-            calData[4] = 0;                 // No rotation/inversion (will be handled by display rotation)
-            
-            Logger::infof("Touch: Using default calibration [offset_x=%d, range_x=%d, offset_y=%d, range_y=%d, flags=%d]",
-                         calData[0], calData[1], calData[2], calData[3], calData[4]);
+            setDefaultTouchCalibration(calData);
         }
         
         tft.setTouch(calData);
