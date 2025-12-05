@@ -176,7 +176,7 @@ void HUD::init() {
         
         tft.setTouch(calData);
         touchInitialized = true;
-        Logger::info("Touchscreen XPT2046 integrado TFT_eSPI inicializado OK");
+        Logger::info("Touchscreen XPT2046 integrated with TFT_eSPI initialized OK");
         
         // 🔒 v2.9.2: Test touch immediately after initialization
         // This helps diagnose if touch controller is responding
