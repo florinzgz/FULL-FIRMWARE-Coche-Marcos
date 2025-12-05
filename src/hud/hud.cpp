@@ -115,6 +115,8 @@ extern Storage::Config cfg;   // acceso a flags
 // Avoids code duplication
 // ⚠️ CRITICAL FIX: Calibration format MUST be [min_x, max_x, min_y, max_y, rotation]
 // NOT [x_offset, x_range, y_offset, y_range, flags] as previously documented
+// 🔒 v2.9.5: FIX - X axis inverted: swap min_x and max_x to correct touch mapping
+// Touch controller X axis is reversed relative to display orientation
 static void setDefaultTouchCalibration(uint16_t calData[5]) {
     // Use default calibration values for XPT2046
     // Based on typical XPT2046 12-bit ADC range (0-4095)
@@ -124,13 +126,16 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     const uint16_t minVal = (uint16_t)TouchConstants::RAW_MIN;   // 200
     const uint16_t maxVal = (uint16_t)TouchConstants::RAW_MAX;   // 3900
     
-    calData[0] = minVal;                // min_x (minimum X coordinate)
-    calData[1] = maxVal;                // max_x (maximum X coordinate)
+    // 🔒 CRITICAL FIX: Swap min_x and max_x to invert X axis
+    // This fixes the issue where touches appear on opposite side of screen
+    // (e.g., pressing battery icon in top-right shows cross in top-left)
+    calData[0] = maxVal;                // min_x (SWAPPED - was minVal)
+    calData[1] = minVal;                // max_x (SWAPPED - was maxVal)
     calData[2] = minVal;                // min_y (minimum Y coordinate)
     calData[3] = maxVal;                // max_y (maximum Y coordinate)
     calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (matches tft.setRotation(3) for landscape)
     
-    Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d]",
+    Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d] (X inverted)",
                  calData[0], calData[1], calData[2], calData[3], calData[4]);
 }
 
