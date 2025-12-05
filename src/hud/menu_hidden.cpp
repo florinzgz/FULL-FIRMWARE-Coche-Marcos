@@ -414,7 +414,7 @@ static void drawModulesConfigScreen() {
     
     tft->setTextDatum(TC_DATUM);
     tft->setTextColor(TFT_CYAN, TFT_BLACK);
-    tft->drawString("CONFIGURACIÓN MÓDULOS", 240, 50, 4);
+    tft->drawString("CONFIGURACIÓN DE MÓDULOS", 240, 50, 4);
     
     // Module toggle buttons
     const int btnY = 90;
