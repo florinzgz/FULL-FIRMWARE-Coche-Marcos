@@ -352,6 +352,19 @@ void setup() {
 // ============================================================================
 // Esta función se llama cuando el usuario mantiene presionado el botón 4X4
 // durante 5 segundos. Permite calibrar el touch sin necesidad de que funcione.
+//
+// Precondiciones:
+// - El sistema debe estar completamente inicializado
+// - TFT debe estar inicializado (HUDManager::init() ya ejecutado)
+// - MenuHidden debe estar inicializado (MenuHidden::init() ya ejecutado)
+//
+// Comportamiento:
+// - Cierra el menú oculto si está abierto
+// - Cancela cualquier calibración en curso
+// - Inicia la calibración táctil interactiva
+// - Reproduce sonido de confirmación (AUDIO_MENU_OCULTO)
+//
+// Llamada desde: buttons.cpp al detectar presión de 5s en botón 4X4
 void activateTouchCalibration() {
     Logger::info("activateTouchCalibration() llamada desde botón físico");
     MenuHidden::startTouchCalibrationDirectly();
