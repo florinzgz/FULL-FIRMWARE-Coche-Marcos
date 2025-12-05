@@ -40,6 +40,8 @@ static bool touchInitialized = false;
 
 // 🔒 v2.9.2: Touch diagnostic constants
 static const uint32_t RAW_TOUCH_CHECK_INTERVAL_MS = 5000;  // Check raw touch every 5 seconds when calibrated touch fails
+static const uint16_t TOUCH_ADC_MAX = 4095;                 // XPT2046 12-bit ADC maximum value
+static const uint16_t TOUCH_ADC_MIN = 0;                    // XPT2046 12-bit ADC minimum value
 
 // Touch calibration: Using constants from touch_map.h (included above)
 // TouchConstants::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
@@ -180,9 +182,9 @@ void HUD::init() {
         if (touchResponding) {
             Logger::infof("Touch: Controller responding, raw values: X=%d, Y=%d", testX, testY);
             // Check if values are in expected range
-            if (testX == 0 && testY == 0) {
+            if (testX == TOUCH_ADC_MIN && testY == TOUCH_ADC_MIN) {
                 Logger::warn("Touch: Controller returns zero values - not currently touched or hardware issue");
-            } else if (testX > 4095 || testY > 4095) {
+            } else if (testX > TOUCH_ADC_MAX || testY > TOUCH_ADC_MAX) {
                 Logger::error("Touch: Invalid values detected - possible hardware or SPI issue");
             } else {
                 Logger::info("Touch: Initial test successful, values in valid range");
