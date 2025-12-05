@@ -7,6 +7,7 @@
 #include "buttons.h"
 #include "settings.h"
 #include "system.h"
+#include "error_codes.h"  // 🆕 v2.9.5: Descripciones de códigos de error
 #include <TFT_eSPI.h>
 // 🔒 v2.8.8: Eliminada librería XPT2046_Touchscreen separada
 // Ahora usamos el touch integrado de TFT_eSPI
@@ -552,6 +553,7 @@ static void restoreFactory() {
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
 }
 
+// 🆕 v2.9.5: Mejorada visualización de errores con descripciones
 static void showErrors() {
     int count = System::getErrorCount();
     const Storage::ErrorLog* errors = System::getErrors();
@@ -573,18 +575,36 @@ static void showErrors() {
         char line[64];
         int y = 80;
         int displayed = 0;
-        for (int i = 0; i < count && displayed < 8; i++) {
+        for (int i = 0; i < count && displayed < 7; i++) {  // Max 7 para dejar espacio
             if (errors[i].code != 0) {
-                snprintf(line, sizeof(line), "Error %d: Codigo %d", i+1, errors[i].code);
-                tft->drawString(line, 80, y, 2);
-                y += 18;
+                // 🆕 v2.9.5: Mostrar código Y descripción
+                const char* desc = ErrorCodes::getErrorDescription(errors[i].code);
+                snprintf(line, sizeof(line), "%d: %s", errors[i].code, desc);
+                
+                // Usar fuente más pequeña si la descripción es larga
+                if (strlen(line) > 40) {
+                    tft->drawString(line, 70, y, 1);  // Fuente 1 (más pequeña)
+                    y += 15;
+                } else {
+                    tft->drawString(line, 70, y, 2);  // Fuente 2 (normal)
+                    y += 18;
+                }
                 displayed++;
             }
         }
         
+        // Mostrar total
         snprintf(line, sizeof(line), "Total: %d errores", count);
         tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft->drawString(line, 80, y + 10, 2);
+        tft->drawString(line, 70, y + 5, 2);
+        
+        // Mensaje de ayuda si hay más errores de los que se pueden mostrar
+        if (count > 7) {
+            tft->setTextColor(TFT_CYAN, TFT_BLACK);
+            tft->setTextDatum(MC_DATUM);
+            snprintf(line, sizeof(line), "(Mostrando %d de %d)", displayed, count);
+            tft->drawString(line, 240, y + 25, 1);
+        }
     }
     
     tft->setTextDatum(MC_DATUM);
