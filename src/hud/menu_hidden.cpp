@@ -742,7 +742,7 @@ static void drawNumericKeypad() {
     // Title
     tft->setTextDatum(TC_DATUM);
     tft->setTextColor(TFT_CYAN, TFT_BLACK);
-    tft->drawString("Codigo de acceso", 240, 20, 4);
+    tft->drawString("Código de acceso", 240, 20, 4);
     
     // Code display
     tft->setTextDatum(MC_DATUM);
