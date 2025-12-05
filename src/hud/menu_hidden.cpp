@@ -690,13 +690,13 @@ static void handleKeypadInput(int buttonIndex) {
         codeBuffer = codeBuffer / 10;
         updateCodeDisplay();
         drawNumericKeypad();  // Redraw to show updated code
-        Alerts::play(Audio::AUDIO_MODULO_OK);  // Simple beep
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     } else if (btn.value == -2) {
         // Enter/OK - check code
         if (codeBuffer == accessCode) {
             menuActive = true;
             numpadActive = false;
-            Alerts::play(Audio::AUDIO_MENU_OCULTO);
+            Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
             drawMenuFull();
             lastMenuActive = true;
             lastSelectedOption = selectedOption;
@@ -707,7 +707,7 @@ static void handleKeypadInput(int buttonIndex) {
             tft->setTextDatum(MC_DATUM);
             tft->setTextColor(TFT_WHITE, TFT_RED);
             tft->drawString("CODIGO INCORRECTO", 240, 55, 2);
-            Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+            Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
             delay(1000);
             codeBuffer = 0;
             drawNumericKeypad();
@@ -716,12 +716,12 @@ static void handleKeypadInput(int buttonIndex) {
         // Number button (0-9)
         if (codeBuffer > 999) {
             // Already 4 digits, ignore
-            Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+            Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_NORMAL});
             return;
         }
         codeBuffer = (codeBuffer * 10) + btn.value;
         drawNumericKeypad();  // Redraw to show updated code
-        Alerts::play(Audio::AUDIO_MODULO_OK);  // Simple beep
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     }
 }
 
@@ -842,7 +842,7 @@ void MenuHidden::update(bool batteryIconPressed) {
             numpadActive = true;
             codeBuffer = 0;
             drawNumericKeypad();
-            Alerts::play(Audio::AUDIO_MODULO_OK);
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
             lastCodeBuffer = codeBuffer;
             return;
         }
