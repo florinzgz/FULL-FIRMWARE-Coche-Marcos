@@ -869,8 +869,8 @@ void MenuHidden::update(bool batteryIconPressed) {
                 numpadActive = false;
                 codeBuffer = 0;
                 lastCodeBuffer = 0;
-                // Clear screen - let main HUD redraw
-                tft->fillScreen(TFT_BLACK);
+                // Don't clear screen - let normal HUD update redraw
+                // This prevents flickering from full screen clear
             }
         }
         
@@ -923,7 +923,7 @@ void MenuHidden::update(bool batteryIconPressed) {
 }
 
 bool MenuHidden::isActive() {
-    return menuActive;
+    return menuActive || numpadActive;  // Include numpad in active state
 }
 
 void MenuHidden::activateDirectly() {
