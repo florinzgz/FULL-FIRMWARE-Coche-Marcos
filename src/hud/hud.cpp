@@ -212,13 +212,12 @@ void HUD::init() {
             if (testX == TOUCH_ADC_MIN && testY == TOUCH_ADC_MIN) {
                 Logger::warn("Touch: Controller returns zero X/Y - not currently touched or hardware issue");
                 
-                // Get configured Z threshold for logging
-                uint16_t zThreshold = 
-                    #ifdef Z_THRESHOLD
-                    Z_THRESHOLD;
-                    #else
-                    350;
-                    #endif
+                // Report configured Z threshold for diagnostics
+                #ifdef Z_THRESHOLD
+                const uint16_t zThreshold = Z_THRESHOLD;
+                #else
+                const uint16_t zThreshold = 350;  // Default if not configured
+                #endif
                 
                 Logger::infof("Touch: Z pressure = %d (threshold is %d)", testZ, zThreshold);
             } else if (testX > TOUCH_ADC_MAX || testY > TOUCH_ADC_MAX) {
@@ -1091,8 +1090,9 @@ void HUD::update() {
                 uint16_t rawZ = tft.getTouchRawZ();
                 diagnosticCounter++;
                 
-                // Only log every Nth detection to avoid spam
-                if (diagnosticCounter % DIAGNOSTIC_LOG_INTERVAL == 1) {
+                // Log every Nth detection (starting from 0: counts 0, 5, 10, ...)
+                // This avoids spam while still providing regular diagnostic updates
+                if (diagnosticCounter % DIAGNOSTIC_LOG_INTERVAL == 0) {
                     Logger::infof("Touch: Raw touch detected but getTouch() failed - Raw X=%d, Y=%d, Z=%d", rawX, rawY, rawZ);
                     Logger::warn("Touch: This indicates calibration issue - run calibration routine");
                     Logger::warn("Touch: Tap battery icon 4 times (8-9-8-9), select option 3");
