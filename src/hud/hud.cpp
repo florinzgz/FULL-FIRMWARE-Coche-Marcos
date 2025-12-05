@@ -204,7 +204,7 @@ void HUD::init() {
         Logger::info("Touch: Testing touch controller response...");
         bool touchResponding = tft.getTouchRaw(&testX, &testY);
         if (touchResponding) {
-            // Read Z pressure value to check sensitivity
+            // Read Z pressure value to check sensitivity (only if touch is responding)
             uint16_t testZ = tft.getTouchRawZ();
             Logger::infof("Touch: Controller responding, raw values: X=%d, Y=%d, Z=%d", testX, testY, testZ);
             
@@ -1085,7 +1085,9 @@ void HUD::update() {
             bool rawTouchActive = tft.getTouchRaw(&rawX, &rawY);
             
             if (rawTouchActive) {
-                // Read Z value only once after successful raw touch read
+                // Read Z pressure value to diagnose sensitivity issues
+                // Note: This is intentionally called each diagnostic interval when touch is active
+                // to monitor pressure levels and help identify Z_THRESHOLD issues
                 uint16_t rawZ = tft.getTouchRawZ();
                 diagnosticCounter++;
                 
@@ -1144,11 +1146,11 @@ void HUD::update() {
             
             // Log touch coordinates for debugging
 #ifdef TOUCH_DEBUG
-            // Verbose logging for troubleshooting - logs every touch
-            // Read raw values once and reuse for both X/Y and Z
+            // Verbose logging for troubleshooting - logs every touch with raw values
+            // Only read Z if raw touch read succeeds to avoid unnecessary SPI traffic
             uint16_t rawX = 0, rawY = 0;
             if (tft.getTouchRaw(&rawX, &rawY)) {
-                uint16_t rawZ = tft.getTouchRawZ();
+                uint16_t rawZ = tft.getTouchRawZ();  // Read pressure only after successful raw read
                 Logger::infof("Touch detected at (%d, %d) - RAW: X=%d, Y=%d, Z=%d", x, y, rawX, rawY, rawZ);
             } else {
                 Logger::infof("Touch detected at (%d, %d)", x, y);
