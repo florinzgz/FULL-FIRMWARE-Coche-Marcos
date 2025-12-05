@@ -135,10 +135,10 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     // - Screen right (X=SCREEN_WIDTH-1) uses min ADC value  
     // - Screen top (Y=0) uses min ADC value
     // - Screen bottom (Y=SCREEN_HEIGHT-1) uses max ADC value
-    calData[0] = maxVal;                // min_x (inverted)
-    calData[1] = minVal;                // max_x (inverted)
-    calData[2] = minVal;                // min_y (normal)
-    calData[3] = maxVal;                // max_y (normal)
+    calData[0] = maxVal;                // min_x (using max ADC - inverted)
+    calData[1] = minVal;                // max_x (using min ADC - inverted)
+    calData[2] = minVal;                // min_y (using min ADC - normal)
+    calData[3] = maxVal;                // max_y (using max ADC - normal)
     calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (landscape)
     
     Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d] (X inverted)",
