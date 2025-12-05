@@ -5,6 +5,9 @@
 #include "alerts.h"
 #include <Arduino.h>
 
+// 🆕 v2.9.4: Forward declaration para función en main.cpp
+extern void activateTouchCalibration();
+
 static Buttons::State s;
 static bool lastLights = false;
 static bool lastMultimedia = false;
@@ -16,10 +19,12 @@ static bool ev4x4 = false;
 
 // 🔒 CORRECCIÓN: Añadir soporte para long-press
 static constexpr unsigned long DEBOUNCE_MS = 30;
-static constexpr unsigned long LONG_PRESS_MS = 2000;  // 2 segundos
+static constexpr unsigned long LONG_PRESS_MS = 2000;  // 2 segundos para acciones normales
+static constexpr unsigned long VERY_LONG_PRESS_MS = 5000;  // 🆕 v2.9.4: 5 segundos para calibración táctil
 static unsigned long lastScan[3] = {0,0,0};
 static unsigned long pressStartMs[3] = {0,0,0};
 static bool longPressTriggered[3] = {false, false, false};
+static bool veryLongPressTriggered = false;  // 🆕 v2.9.4: Para calibración táctil (solo 4X4)
 
 static bool initialized = false;
 
@@ -115,20 +120,31 @@ void Buttons::update() {
     if(mode4x4 && !last4x4) {
         pressStartMs[2] = now;
         longPressTriggered[2] = false;
+        veryLongPressTriggered = false;  // 🆕 v2.9.4: Reset very long press
     } else if(mode4x4 && last4x4) {
-        if (!longPressTriggered[2] && (now - pressStartMs[2] >= LONG_PRESS_MS)) {
+        // 🆕 v2.9.4: Very long press (5 segundos) - Activar calibración táctil directa
+        if (!veryLongPressTriggered && (now - pressStartMs[2] >= VERY_LONG_PRESS_MS)) {
+            veryLongPressTriggered = true;
+            Logger::info("Buttons: 4X4 very-long-press (5s) - Iniciando calibración táctil");
+            Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
+            // Llamar función externa definida en main.cpp
+            activateTouchCalibration();
+        }
+        // Long press normal (2 segundos)
+        else if (!longPressTriggered[2] && (now - pressStartMs[2] >= LONG_PRESS_MS)) {
             longPressTriggered[2] = true;
             Logger::info("Buttons: 4X4 long-press detectado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
             // TODO: Acción específica para long-press
         }
     } else if(!mode4x4 && last4x4) {
-        if (!longPressTriggered[2]) {
+        if (!longPressTriggered[2] && !veryLongPressTriggered) {
             s.mode4x4 = !s.mode4x4;
             ev4x4 = true;
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         }
         longPressTriggered[2] = false;
+        veryLongPressTriggered = false;  // 🆕 v2.9.4: Reset
     }
 
     lastLights = lights;

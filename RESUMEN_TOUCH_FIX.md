@@ -1,10 +1,50 @@
 # RESUMEN EJECUTIVO: Problema Touch Resuelto
 
-## 🎯 PROBLEMA REPORTADO
+## 🎯 PROBLEMA REPORTADO (ACTUALIZADO v2.9.4)
 
-> "aun no funciona el touch ya no se que hacer compuebame todo el sistema y mira ver que ocurre"
+> **Problema original:** "aun no funciona el touch ya no se que hacer compuebame todo el sistema y mira ver que ocurre"
 
-## ✅ DIAGNÓSTICO COMPLETO
+> **Problema actual:** "vale no va el touch de ninguna manera,me dices que entrre al menu oculto y calibrar,como entro si no funciona el touch de la pantalla"
+
+## ✅ SOLUCIÓN IMPLEMENTADA v2.9.4
+
+### 🆕 NUEVA CARACTERÍSTICA: Calibración sin touch funcional
+
+**¿El touch no funciona y no puedes acceder al menú?**
+
+Ahora puedes calibrar el touch usando un **botón físico**:
+
+1. **Mantén presionado el botón 4X4 durante 5 segundos**
+2. Escucharás un sonido de confirmación
+3. La calibración del touch se inicia automáticamente
+4. Sigue las instrucciones en pantalla
+
+**✅ Ya NO necesitas un touch funcional para calibrarlo**
+
+Ver guía completa: **`docs/CALIBRACION_TOUCH_SIN_PANTALLA.md`**
+
+---
+
+## 📋 CAMBIOS REALIZADOS v2.9.4
+
+### Archivos modificados:
+```
+include/menu_hidden.h                      - Nueva función pública
+src/hud/menu_hidden.cpp                    - Calibración directa
+src/input/buttons.cpp                      - Detección 5 segundos
+src/main.cpp                               - Función activación
+docs/CALIBRACION_TOUCH_SIN_PANTALLA.md     - Guía completa
+RESUMEN_TOUCH_FIX.md                       - Este archivo
+```
+
+### Funcionalidad añadida:
+- ✅ Presión muy larga (5s) en botón 4X4 activa calibración
+- ✅ No requiere touch funcional
+- ✅ Confirmación sonora al activar
+- ✅ Cierra menú automáticamente si estaba abierto
+- ✅ Cancela calibraciones previas si las hay
+
+---
 
 He analizado todo el sistema del touch y encontré **un bug crítico** que impedía su funcionamiento.
 

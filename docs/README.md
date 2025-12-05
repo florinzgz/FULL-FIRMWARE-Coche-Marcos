@@ -1,8 +1,22 @@
 # 📚 Documentación del Firmware - ESP32-S3 Car Control System
 
-**Versión Firmware:** 2.8.9  
+**Versión Firmware:** 2.9.4  
 **Placa:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2025-12-02
+**Última actualización:** 2024-12-05
+
+---
+
+## 🆕 NOVEDAD: Calibración Touch Sin Pantalla Funcional (v2.9.4)
+
+**¿El touch no funciona y no puedes acceder al menú de calibración?**
+
+### ⚡ Solución Rápida:
+1. **Mantén presionado el botón 4X4 durante 5 segundos**
+2. Escucharás un sonido de confirmación
+3. La calibración del touch se inicia automáticamente
+4. Sigue las instrucciones en pantalla
+
+**📖 Guía completa:** [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md)
 
 ---
 
@@ -83,6 +97,9 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 | Archivo | Descripción |
 |---------|-------------|
+| [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md) | **🆕 v2.9.4 SOLUCIÓN DEFINITIVA** - Calibrar touch usando botón físico (sin necesidad de touch funcional) |
+| [CALIBRACION_TOUCH_SIN_PANTALLA.md](CALIBRACION_TOUCH_SIN_PANTALLA.md) | **🆕 v2.9.4** - Guía técnica para calibración por botón físico 4X4 (5 segundos) |
+| [TOUCH_FIX_v2.9.3.md](TOUCH_FIX_v2.9.3.md) | Fix del bug de calibración y mejoras de sensibilidad (v2.9.3) |
 | [TOUCH_QUICK_FIX.md](TOUCH_QUICK_FIX.md) | **⚡ Soluciones rápidas** - Las 3 correcciones más comunes para problemas de touch |
 | [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) | **🆕 Guía completa de resolución de problemas** - Diagnóstico y solución de problemas de touch XPT2046 |
 | [TOUCH_CALIBRATION.md](TOUCH_CALIBRATION.md) | Guía de calibración del touchscreen |
@@ -95,6 +112,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 | [VERIFICACION_DISPLAY_FUNCIONAL.md](VERIFICACION_DISPLAY_FUNCIONAL.md) | Verificación funcional del display |
 
 > ⚠️ **PROBLEMAS CON TOUCH?** 
+> - **🆕 SIN TOUCH FUNCIONAL**: [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md) - Calibra con botón físico
 > - **Solución rápida**: [TOUCH_QUICK_FIX.md](TOUCH_QUICK_FIX.md) - 90% de problemas resueltos bajando SPI frequency
 > - **Diagnóstico completo**: [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) - Guía paso a paso
 

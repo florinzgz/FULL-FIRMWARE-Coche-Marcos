@@ -29,6 +29,13 @@ namespace MenuHidden {
     // Activa el menú oculto directamente sin necesidad de código.
     // Usado en modo STANDALONE_DISPLAY para facilitar pruebas.
     void activateDirectly();
+    
+    // --- Activación directa de calibración táctil (emergencia) ---
+    // Inicia la calibración táctil directamente sin necesidad de menú ni touch.
+    // PROPÓSITO: Permite calibrar la pantalla cuando el touch NO funciona.
+    // Se activa mediante botón físico (ver buttons.cpp).
+    // ⚠️ IMPORTANTE: Requiere que TFT esté inicializado (init() ya ejecutado).
+    void startTouchCalibrationDirectly();
 
     // --- Notas ---
     // * El código de acceso por defecto es 8989.

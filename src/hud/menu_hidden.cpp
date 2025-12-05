@@ -776,3 +776,27 @@ void MenuHidden::activateDirectly() {
         Logger::info("Menu oculto activado directamente (modo demo)");
     }
 }
+
+void MenuHidden::startTouchCalibrationDirectly() {
+    // 🆕 v2.9.4: Direct touch calibration activation via physical button
+    // Allows calibrating touch when it doesn't work (no menu needed)
+    if (tft == nullptr) {
+        Logger::error("Cannot start touch calibration: TFT not initialized");
+        return;
+    }
+    
+    // Cancel any active calibration first
+    if (calibState != CalibrationState::NONE) {
+        Logger::warn("Cancelling previous calibration to start touch calibration");
+        calibState = CalibrationState::NONE;
+    }
+    
+    // Close menu if active
+    if (menuActive) {
+        menuActive = false;
+        lastMenuActive = false;
+    }
+    
+    Logger::info("Starting direct touch calibration (activated by physical button)");
+    startTouchCalibration();
+}
