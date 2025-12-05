@@ -768,7 +768,7 @@ static void drawNumericKeypad() {
     // Instructions
     tft->setTextDatum(BC_DATUM);
     tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft->drawString("Toca numeros para entrar 8989", 240, 310, 2);
+    tft->drawString("Toca números para entrar 8989", 240, 310, 2);
 }
 
 static int getTouchedKeypadButton(int x, int y) {
