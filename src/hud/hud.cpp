@@ -129,12 +129,17 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     // 🔒 CRITICAL FIX: Swap min_x and max_x to invert X axis
     // This fixes the issue where touches appear on opposite side of screen
     // (e.g., pressing battery icon in top-right shows cross in top-left)
-    // By swapping the values, high ADC values map to left side (X=0) and low ADC values to right side (X=SCREEN_WIDTH-1)
-    calData[0] = maxVal;                // min_x position (screen left, X=0) uses max ADC value (inverted X axis)
-    calData[1] = minVal;                // max_x position (screen right, X=SCREEN_WIDTH-1) uses min ADC value (inverted X axis)
-    calData[2] = minVal;                // min_y position (screen top, Y=0) uses min ADC value (normal Y axis)
-    calData[3] = maxVal;                // max_y position (screen bottom, Y=SCREEN_HEIGHT-1) uses max ADC value (normal Y axis)
-    calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (matches tft.setRotation(3) for landscape)
+    // 
+    // Coordinate mapping (with X-axis inversion):
+    // - Screen left (X=0) uses max ADC value
+    // - Screen right (X=SCREEN_WIDTH-1) uses min ADC value  
+    // - Screen top (Y=0) uses min ADC value
+    // - Screen bottom (Y=SCREEN_HEIGHT-1) uses max ADC value
+    calData[0] = maxVal;                // min_x (inverted)
+    calData[1] = minVal;                // max_x (inverted)
+    calData[2] = minVal;                // min_y (normal)
+    calData[3] = maxVal;                // max_y (normal)
+    calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (landscape)
     
     Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d] (X inverted)",
                  calData[0], calData[1], calData[2], calData[3], calData[4]);
