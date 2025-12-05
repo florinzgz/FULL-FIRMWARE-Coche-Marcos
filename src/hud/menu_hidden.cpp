@@ -25,6 +25,10 @@ static const uint16_t accessCode = 8989;
 static bool numpadActive = false;
 static uint32_t lastKeypadTouch = 0;
 static const uint32_t KEYPAD_DEBOUNCE_MS = 300;  // Debounce for keypad buttons
+static uint32_t wrongCodeDisplayStart = 0;  // For non-blocking error display
+
+// Module configuration state
+static bool modulesConfigFirstCall = true;
 
 static int selectedOption = 1;   // opción seleccionada (1..8)
 
@@ -460,12 +464,10 @@ static void drawModulesConfigScreen() {
 }
 
 static void updateModulesConfig(int touchX, int touchY, bool touched) {
-    static bool firstCall = true;
-    
     // Initialize screen on first call
-    if (firstCall) {
+    if (modulesConfigFirstCall) {
         drawModulesConfigScreen();
-        firstCall = false;
+        modulesConfigFirstCall = false;
         return;
     }
     
@@ -512,7 +514,7 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
         Logger::info("Configuración de módulos guardada");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
         calibState = CalibrationState::NONE;
-        firstCall = true;  // Reset for next time
+        modulesConfigFirstCall = true;  // Reset for next time
         return;  // Exit config
     }
     
@@ -832,21 +834,16 @@ static void handleKeypadInput(int buttonIndex) {
             lastSelectedOption = selectedOption;
             lastCodeBuffer = codeBuffer;
         } else {
-            // Wrong code - show error without blocking delay
+            // Wrong code - show error with non-blocking delay
             tft->fillRect(100, 40, 280, 35, TFT_RED);
             tft->setTextDatum(MC_DATUM);
             tft->setTextColor(TFT_WHITE, TFT_RED);
             tft->drawString("CÓDIGO INCORRECTO", 240, 55, 2);
             Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
-            // Use non-blocking approach - set state to show error briefly
-            static uint32_t errorDisplayStart = 0;
-            errorDisplayStart = millis();
-            // Wait for error to be visible (check in next update cycle)
-            while (millis() - errorDisplayStart < 1000) {
-                yield();  // Allow other tasks to run
-            }
+            // Set timestamp for non-blocking error display
+            wrongCodeDisplayStart = millis();
             codeBuffer = 0;
-            drawNumericKeypad();
+            // Error message will be cleared in update loop after 1 second
         }
     } else {
         // Number button (0-9)
@@ -1003,6 +1000,12 @@ void MenuHidden::update(bool batteryIconPressed) {
                         waitTouchRelease(DEBOUNCE_SHORT_MS);
                     }
                 }
+            }
+            
+            // Clear wrong code error message after 1 second (non-blocking)
+            if (wrongCodeDisplayStart > 0 && (now - wrongCodeDisplayStart > 1000)) {
+                wrongCodeDisplayStart = 0;
+                drawNumericKeypad();  // Redraw keypad to clear error
             }
             
             // Exit keypad if battery pressed again (cancel)
