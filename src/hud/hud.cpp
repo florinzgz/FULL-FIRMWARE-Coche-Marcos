@@ -924,11 +924,20 @@ void HUD::update() {
     bool tempWarning = sensorStatus.temperatureWarning;
     float maxTemp = sensorStatus.maxTemperature;
     
-    // Temperatura ambiente desde sensor DS18B20 #4
-    // Verificar si el sensor está OK antes de usar su valor
+    // Temperatura ambiente desde sensor DS18B20 #5 (índice 4)
+    // Sensor mapping: 0-3 = motores, 4 = ambiente
     float ambientTemp = 22.0f;  // Valor por defecto
-    if (cfg.tempSensorsEnabled && Sensors::isTemperatureSensorOk(4)) {
-        ambientTemp = Sensors::getTemperature(4);
+    if (cfg.tempSensorsEnabled) {
+        if (Sensors::isTemperatureSensorOk(4)) {
+            ambientTemp = Sensors::getTemperature(4);
+        } else {
+            // Sensor 4 (ambiente) no está OK - usar default
+            static uint32_t lastAmbientWarning = 0;
+            if (millis() - lastAmbientWarning > 10000) {  // Log cada 10 segundos
+                Logger::warn("Sensor temperatura ambiente (DS18B20 #5) no disponible");
+                lastAmbientWarning = millis();
+            }
+        }
     }
 #endif
 

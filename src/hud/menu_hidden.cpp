@@ -43,6 +43,7 @@ enum class CalibrationState {
     ENCODER_DONE,
     TOUCH_CALIBRATION,  // 🔒 v2.9.0: Touch screen calibration
     REGEN_ADJUST,       // ✅ v2.7.0: Ajuste interactivo de regen
+    MODULES_CONFIG,     // Configuración de módulos ON/OFF
     CLEAR_ERRORS_CONFIRM // ✅ v2.7.0: Confirmación borrado errores
 };
 static CalibrationState calibState = CalibrationState::NONE;
@@ -402,6 +403,107 @@ static void applyModules(bool lights, bool media, bool traction) {
     Storage::save(cfg);
     Logger::infof("Módulos guardados: lights=%d media=%d traction=%d", lights, media, traction);
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+}
+
+// Module configuration screen functions
+static void drawModulesConfigScreen() {
+    if (tft == nullptr) return;
+    
+    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    tft->drawRect(60, 40, 360, 240, TFT_CYAN);
+    
+    tft->setTextDatum(TC_DATUM);
+    tft->setTextColor(TFT_CYAN, TFT_BLACK);
+    tft->drawString("CONFIGURACION MODULOS", 240, 50, 4);
+    
+    // Module toggle buttons
+    const int btnY = 90;
+    const int btnSpacing = 40;
+    
+    // Lights button
+    uint16_t lightsColor = cfg.lightsEnabled ? TFT_GREEN : TFT_RED;
+    tft->fillRect(100, btnY, 280, 30, lightsColor);
+    tft->drawRect(100, btnY, 280, 30, TFT_WHITE);
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_WHITE, lightsColor);
+    tft->drawString(cfg.lightsEnabled ? "LUCES: ON" : "LUCES: OFF", 240, btnY + 15, 2);
+    
+    // Media button
+    uint16_t mediaColor = cfg.multimediaEnabled ? TFT_GREEN : TFT_RED;
+    tft->fillRect(100, btnY + btnSpacing, 280, 30, mediaColor);
+    tft->drawRect(100, btnY + btnSpacing, 280, 30, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, mediaColor);
+    tft->drawString(cfg.multimediaEnabled ? "MULTIMEDIA: ON" : "MULTIMEDIA: OFF", 240, btnY + btnSpacing + 15, 2);
+    
+    // Traction button
+    uint16_t tractionColor = cfg.tractionEnabled ? TFT_GREEN : TFT_RED;
+    tft->fillRect(100, btnY + 2*btnSpacing, 280, 30, tractionColor);
+    tft->drawRect(100, btnY + 2*btnSpacing, 280, 30, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, tractionColor);
+    tft->drawString(cfg.tractionEnabled ? "TRACCION: ON" : "TRACCION: OFF", 240, btnY + 2*btnSpacing + 15, 2);
+    
+    // Save button
+    tft->fillRect(140, 220, 200, 40, TFT_BLUE);
+    tft->drawRect(140, 220, 200, 40, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, TFT_BLUE);
+    tft->drawString("GUARDAR Y VOLVER", 240, 240, 2);
+    
+    // Instructions
+    tft->setTextDatum(BC_DATUM);
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->drawString("Toca para activar/desactivar", 240, 275, 1);
+}
+
+static void updateModulesConfig(int touchX, int touchY, bool touched) {
+    if (!touched) {
+        drawModulesConfigScreen();
+        return;
+    }
+    
+    const int btnY = 90;
+    const int btnSpacing = 40;
+    
+    // Check which button was touched
+    if (touchX >= 100 && touchX <= 380) {
+        // Lights toggle
+        if (touchY >= btnY && touchY <= btnY + 30) {
+            cfg.lightsEnabled = !cfg.lightsEnabled;
+            Logger::infof("Luces: %s", cfg.lightsEnabled ? "ON" : "OFF");
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        }
+        // Media toggle
+        else if (touchY >= btnY + btnSpacing && touchY <= btnY + btnSpacing + 30) {
+            cfg.multimediaEnabled = !cfg.multimediaEnabled;
+            Logger::infof("Multimedia: %s", cfg.multimediaEnabled ? "ON" : "OFF");
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        }
+        // Traction toggle
+        else if (touchY >= btnY + 2*btnSpacing && touchY <= btnY + 2*btnSpacing + 30) {
+            cfg.tractionEnabled = !cfg.tractionEnabled;
+            Logger::infof("Tracción: %s", cfg.tractionEnabled ? "ON" : "OFF");
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        }
+    }
+    
+    // Save button
+    if (touchX >= 140 && touchX <= 340 && touchY >= 220 && touchY <= 260) {
+        Storage::save(cfg);
+        Logger::info("Configuración de módulos guardada");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        calibState = CalibrationState::NONE;
+        return;  // Exit config
+    }
+    
+    // Redraw screen to show changes
+    drawModulesConfigScreen();
+}
+
+// Interactive module configuration screen
+static void startModulesConfig() {
+    calibState = CalibrationState::MODULES_CONFIG;
+    Logger::info("Iniciando configuración de módulos");
+    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+    drawModulesConfigScreen();
 }
 
 static void saveAndExit() {
@@ -824,6 +926,11 @@ void MenuHidden::update(bool batteryIconPressed) {
             updateRegenAdjust(touchX, touchY, touched);
             if (touched) waitTouchRelease(DEBOUNCE_SHORT_MS);  // Debounce corto después de procesar
         }
+        // Manejar configuración de módulos ON/OFF
+        else if (calibState == CalibrationState::MODULES_CONFIG) {
+            updateModulesConfig(touchX, touchY, touched);
+            if (touched) waitTouchRelease(DEBOUNCE_SHORT_MS);  // Debounce corto después de procesar
+        }
         // ✅ v2.7.0: Manejar confirmación de borrado de errores
         else if (calibState == CalibrationState::CLEAR_ERRORS_CONFIRM) {
             updateClearErrorsConfirm(touchX, touchY, touched);
@@ -905,7 +1012,7 @@ void MenuHidden::update(bool batteryIconPressed) {
                 case 2: startEncoderCalibration(); break;
                 case 3: startTouchCalibration(); break;  // 🔒 v2.9.0: Touch calibration
                 case 4: startRegenAdjust(); break;  // ✅ v2.7.0: Ajuste interactivo
-                case 5: applyModules(true, true, true); break;
+                case 5: startModulesConfig(); break;  // Configuración interactiva de módulos
                 case 6: saveAndExit(); break;
                 case 7: restoreFactory(); break;
                 case 8: showErrors(); break;
