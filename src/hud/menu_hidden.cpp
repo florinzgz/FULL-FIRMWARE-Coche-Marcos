@@ -976,6 +976,8 @@ void MenuHidden::update(bool batteryIconPressed) {
                 numpadActive = false;
                 codeBuffer = 0;
                 lastCodeBuffer = 0;
+                lastKeypadTouch = now;
+                waitTouchRelease(DEBOUNCE_SHORT_MS);
                 // Don't clear screen - let normal HUD update redraw
                 // This prevents flickering from full screen clear
             }
