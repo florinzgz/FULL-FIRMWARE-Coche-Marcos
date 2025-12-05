@@ -1080,29 +1080,18 @@ void HUD::update() {
         int x = (int)touchX;
         int y = (int)touchY;
         
-        // 🔒 v2.9.1: Visual debug indicator - draw small crosshair at touch point
-        // This helps users verify touch is working and calibrated correctly
-        // Note: Indicator is drawn on top of UI without clearing to avoid erasing
-        // dashboard elements. The normal UI refresh cycle will overwrite it.
-        static uint32_t lastTouchDebugTime = 0;
+        // Touch coordinates are now correct after X-axis inversion fix
+        // Visual debug indicators removed per user request
+        // Touch logging remains for diagnostics
+        
         uint32_t now = millis();
         
-        // Only update debug indicator every 100ms to avoid flickering
-        if (now - lastTouchDebugTime > 100) {
-            // Draw touch indicator (cyan crosshair) with boundary checking
-            // Screen is 480x320, so keep crosshair within bounds
-            int drawX = constrain(x, 5, 475);  // Keep 5px margin from edges
-            int drawY = constrain(y, 5, 315);
-            tft.drawFastHLine(drawX - 5, drawY, 11, TFT_CYAN);
-            tft.drawFastVLine(drawX, drawY - 5, 11, TFT_CYAN);
-            tft.fillCircle(drawX, drawY, 2, TFT_RED);
-            
-            lastTouchDebugTime = now;
-            
-            // Log touch coordinates for debugging
+        // Log touch coordinates for debugging
 #ifdef TOUCH_DEBUG
-            // Verbose logging for troubleshooting - logs every touch with raw values
-            // Only read Z if raw touch read succeeds to avoid unnecessary SPI traffic
+        // Verbose logging for troubleshooting - logs every touch with raw values
+        // Only read Z if raw touch read succeeds to avoid unnecessary SPI traffic
+        static uint32_t lastTouchLogTime = 0;
+        if (now - lastTouchLogTime > 100) {  // Limit to 10 times per second
             uint16_t rawX = 0, rawY = 0;
             if (tft.getTouchRaw(&rawX, &rawY)) {
                 uint16_t rawZ = tft.getTouchRawZ();  // Read pressure only after successful raw read
@@ -1110,15 +1099,16 @@ void HUD::update() {
             } else {
                 Logger::infof("Touch detected at (%d, %d)", x, y);
             }
-#else
-            // Normal logging - only once per second to avoid spam
-            static uint32_t lastTouchLogTime = 0;
-            if (now - lastTouchLogTime > 1000) {  // Log every second max
-                Logger::infof("Touch detected at (%d, %d)", x, y);
-                lastTouchLogTime = now;
-            }
-#endif
+            lastTouchLogTime = now;
         }
+#else
+        // Normal logging - only once per second to avoid spam
+        static uint32_t lastTouchLogTime = 0;
+        if (now - lastTouchLogTime > 1000) {  // Log every second max
+            Logger::infof("Touch detected at (%d, %d)", x, y);
+            lastTouchLogTime = now;
+        }
+#endif
 
 #ifdef STANDALONE_DISPLAY
         // Check demo button touch with long press detection

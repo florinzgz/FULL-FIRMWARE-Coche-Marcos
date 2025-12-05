@@ -21,6 +21,11 @@ static bool menuActive = false;
 static uint16_t codeBuffer = 0;
 static const uint16_t accessCode = 8989;
 
+// Numeric keypad state for code entry
+static bool numpadActive = false;
+static uint32_t lastKeypadTouch = 0;
+static const uint32_t KEYPAD_DEBOUNCE_MS = 300;  // Debounce for keypad buttons
+
 static int selectedOption = 1;   // opción seleccionada (1..8)
 
 // Cache para evitar redibujos innecesarios
@@ -586,6 +591,141 @@ static int getTouchedMenuOption(int touchX, int touchY) {
 }
 
 // -----------------------
+// Numeric Keypad for Code Entry
+// -----------------------
+
+// Forward declarations
+static void drawMenuFull();
+static void updateCodeDisplay();
+
+// Keypad layout constants
+static const int KEYPAD_X = 100;
+static const int KEYPAD_Y = 80;
+static const int KEYPAD_BTN_WIDTH = 60;
+static const int KEYPAD_BTN_HEIGHT = 50;
+static const int KEYPAD_SPACING = 10;
+
+// Keypad button structure
+struct KeypadButton {
+    int x, y;
+    int value;  // -1 for backspace, -2 for enter
+    const char* label;
+};
+
+// 3x4 keypad layout: 1-9, back, 0, enter
+static const KeypadButton keypadButtons[12] = {
+    {KEYPAD_X, KEYPAD_Y, 1, "1"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y, 2, "2"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y, 3, "3"},
+    
+    {KEYPAD_X, KEYPAD_Y + (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 4, "4"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 5, "5"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 6, "6"},
+    
+    {KEYPAD_X, KEYPAD_Y + 2 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 7, "7"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 2 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 8, "8"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 2 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 9, "9"},
+    
+    {KEYPAD_X, KEYPAD_Y + 3 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), -1, "<"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 3 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 0, "0"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 3 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), -2, "OK"}
+};
+
+static void drawNumericKeypad() {
+    if (tft == nullptr) return;
+    
+    // Clear screen
+    tft->fillScreen(TFT_BLACK);
+    
+    // Title
+    tft->setTextDatum(TC_DATUM);
+    tft->setTextColor(TFT_CYAN, TFT_BLACK);
+    tft->drawString("Codigo de acceso", 240, 20, 4);
+    
+    // Code display
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_WHITE, TFT_BLACK);
+    char codeStr[8];
+    snprintf(codeStr, sizeof(codeStr), "%04d", codeBuffer);
+    tft->drawString(codeStr, 240, 55, 4);
+    
+    // Draw keypad buttons
+    for (int i = 0; i < 12; i++) {
+        const KeypadButton& btn = keypadButtons[i];
+        
+        // Button background
+        tft->fillRoundRect(btn.x, btn.y, KEYPAD_BTN_WIDTH, KEYPAD_BTN_HEIGHT, 5, TFT_NAVY);
+        tft->drawRoundRect(btn.x, btn.y, KEYPAD_BTN_WIDTH, KEYPAD_BTN_HEIGHT, 5, TFT_WHITE);
+        
+        // Button label
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_WHITE, TFT_NAVY);
+        tft->drawString(btn.label, btn.x + KEYPAD_BTN_WIDTH/2, btn.y + KEYPAD_BTN_HEIGHT/2, 4);
+    }
+    
+    // Instructions
+    tft->setTextDatum(BC_DATUM);
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->drawString("Toca numeros para entrar 8989", 240, 310, 2);
+}
+
+static int getTouchedKeypadButton(int x, int y) {
+    for (int i = 0; i < 12; i++) {
+        const KeypadButton& btn = keypadButtons[i];
+        if (x >= btn.x && x < btn.x + KEYPAD_BTN_WIDTH &&
+            y >= btn.y && y < btn.y + KEYPAD_BTN_HEIGHT) {
+            return i;  // Return button index
+        }
+    }
+    return -1;  // No button touched
+}
+
+static void handleKeypadInput(int buttonIndex) {
+    if (buttonIndex < 0 || buttonIndex >= 12) return;
+    
+    const KeypadButton& btn = keypadButtons[buttonIndex];
+    
+    if (btn.value == -1) {
+        // Backspace
+        codeBuffer = codeBuffer / 10;
+        updateCodeDisplay();
+        drawNumericKeypad();  // Redraw to show updated code
+        Alerts::play(Audio::AUDIO_MODULO_OK);  // Simple beep
+    } else if (btn.value == -2) {
+        // Enter/OK - check code
+        if (codeBuffer == accessCode) {
+            menuActive = true;
+            numpadActive = false;
+            Alerts::play(Audio::AUDIO_MENU_OCULTO);
+            drawMenuFull();
+            lastMenuActive = true;
+            lastSelectedOption = selectedOption;
+            lastCodeBuffer = codeBuffer;
+        } else {
+            // Wrong code - flash and reset
+            tft->fillRect(100, 40, 280, 35, TFT_RED);
+            tft->setTextDatum(MC_DATUM);
+            tft->setTextColor(TFT_WHITE, TFT_RED);
+            tft->drawString("CODIGO INCORRECTO", 240, 55, 2);
+            Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+            delay(1000);
+            codeBuffer = 0;
+            drawNumericKeypad();
+        }
+    } else {
+        // Number button (0-9)
+        if (codeBuffer > 999) {
+            // Already 4 digits, ignore
+            Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+            return;
+        }
+        codeBuffer = (codeBuffer * 10) + btn.value;
+        drawNumericKeypad();  // Redraw to show updated code
+        Alerts::play(Audio::AUDIO_MODULO_OK);  // Simple beep
+    }
+}
+
+// -----------------------
 // Dibujo del menú
 // -----------------------
 static void drawMenuFull() {
@@ -601,11 +741,8 @@ static void drawMenuFull() {
         tft->setTextColor(col, TFT_BLACK);
         tft->drawString(MENU_ITEMS[i], 80, 80 + i*20, 2);
     }
-
-    // Código
-    tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    tft->drawString("Code:", 80, 240, 2);
-    tft->drawString(String(codeBuffer), 140, 240, 2);
+    
+    // No need to show code anymore - entered via keypad
 }
 
 static void updateOptionHighlight() {
@@ -619,10 +756,15 @@ static void updateOptionHighlight() {
 }
 
 static void updateCodeDisplay() {
-    // Limpiar zona del código
-    tft->fillRect(140, 230, 100, 20, TFT_BLACK);
+    // Update code display on numeric keypad
+    if (!numpadActive) return;
+    
+    tft->fillRect(100, 40, 280, 35, TFT_BLACK);
+    tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    tft->drawString(String(codeBuffer), 140, 240, 2);
+    char codeStr[8];
+    snprintf(codeStr, sizeof(codeStr), "%04d", codeBuffer);
+    tft->drawString(codeStr, 240, 55, 4);
 }
 
 // -----------------------
@@ -695,22 +837,43 @@ void MenuHidden::update(bool batteryIconPressed) {
     }
     
     if(!menuActive) {
-        if(batteryIconPressed) {
-            codeBuffer = (codeBuffer * 10) + 8;
-            if(codeBuffer > 9999) codeBuffer = 0;
-
-            if(codeBuffer == accessCode) {
-                menuActive = true;
-                Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
-                drawMenuFull();
-                lastMenuActive = true;
-                lastSelectedOption = selectedOption;
-                lastCodeBuffer = codeBuffer;
-            } else if(codeBuffer != lastCodeBuffer) {
-                updateCodeDisplay();
-                lastCodeBuffer = codeBuffer;
+        // Show keypad on first battery icon press
+        if(batteryIconPressed && !numpadActive) {
+            numpadActive = true;
+            codeBuffer = 0;
+            drawNumericKeypad();
+            Alerts::play(Audio::AUDIO_MODULO_OK);
+            lastCodeBuffer = codeBuffer;
+            return;
+        }
+        
+        // Handle keypad interaction when active
+        if(numpadActive) {
+            uint16_t tx, ty;
+            uint32_t now = millis();
+            
+            // Check for touch with debounce
+            if (tft != nullptr && tft->getTouch(&tx, &ty)) {
+                if (now - lastKeypadTouch > KEYPAD_DEBOUNCE_MS) {
+                    int buttonIndex = getTouchedKeypadButton((int)tx, (int)ty);
+                    if (buttonIndex >= 0) {
+                        handleKeypadInput(buttonIndex);
+                        lastKeypadTouch = now;
+                        waitTouchRelease(DEBOUNCE_SHORT_MS);
+                    }
+                }
+            }
+            
+            // Exit keypad if battery pressed again (cancel)
+            if (batteryIconPressed && (now - lastKeypadTouch > KEYPAD_DEBOUNCE_MS)) {
+                numpadActive = false;
+                codeBuffer = 0;
+                lastCodeBuffer = 0;
+                // Clear screen - let main HUD redraw
+                tft->fillScreen(TFT_BLACK);
             }
         }
+        
         return;
     }
 
