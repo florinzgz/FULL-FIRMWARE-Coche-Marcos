@@ -173,11 +173,16 @@ void HUD::init() {
             // Note: X-axis may be inverted (min_x > max_x) to correct touch mapping
             // Y-axis is expected to be normal (min_y < max_y)
             bool xAxisValid = (cfg.touchCalibration[0] != cfg.touchCalibration[1]) &&  // min_x != max_x (allows both normal and inverted)
-                             cfg.touchCalibration[0] <= TOUCH_ADC_MAX &&               // min_x within ADC bounds
-                             cfg.touchCalibration[1] <= TOUCH_ADC_MAX;                 // max_x within ADC bounds
+                             cfg.touchCalibration[0] >= TOUCH_ADC_MIN &&               // min_x within lower ADC bound
+                             cfg.touchCalibration[0] <= TOUCH_ADC_MAX &&               // min_x within upper ADC bound
+                             cfg.touchCalibration[1] >= TOUCH_ADC_MIN &&               // max_x within lower ADC bound
+                             cfg.touchCalibration[1] <= TOUCH_ADC_MAX;                 // max_x within upper ADC bound
             
             bool yAxisValid = cfg.touchCalibration[2] < cfg.touchCalibration[3] &&     // min_y < max_y (normal orientation)
-                             cfg.touchCalibration[3] <= TOUCH_ADC_MAX;                 // max_y within ADC bounds
+                             cfg.touchCalibration[2] >= TOUCH_ADC_MIN &&               // min_y within lower ADC bound
+                             cfg.touchCalibration[2] <= TOUCH_ADC_MAX &&               // min_y within upper ADC bound
+                             cfg.touchCalibration[3] >= TOUCH_ADC_MIN &&               // max_y within lower ADC bound
+                             cfg.touchCalibration[3] <= TOUCH_ADC_MAX;                 // max_y within upper ADC bound
             
             bool rotationValid = cfg.touchCalibration[4] <= TOUCH_MAX_ROTATION;        // rotation is 0-7
             
