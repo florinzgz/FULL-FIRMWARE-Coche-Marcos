@@ -38,6 +38,11 @@ extern TFT_eSPI tft;
 // Esto evita conflictos de bus SPI que causaban pantalla blanca
 static bool touchInitialized = false;
 
+// 🔒 v2.9.2: Touch diagnostic constants
+static const uint32_t DIAGNOSTIC_RAW_TOUCH_CHECK_INTERVAL_MS = 5000;  // Check raw touch every 5 seconds when calibrated touch fails
+static const uint16_t TOUCH_ADC_MAX = 4095;                 // XPT2046 12-bit ADC maximum value
+static const uint16_t TOUCH_ADC_MIN = 0;                    // XPT2046 12-bit ADC minimum value
+
 // Touch calibration: Using constants from touch_map.h (included above)
 // TouchConstants::RAW_MIN, RAW_MAX, SCREEN_WIDTH, SCREEN_HEIGHT
 
@@ -101,6 +106,31 @@ static float lastSteeringAngle = -999.0f;  // Cache para ángulo del volante
 
 extern Storage::Config cfg;   // acceso a flags
 
+// 🔒 v2.9.2: Helper function to set default touch calibration
+// Avoids code duplication
+static void setDefaultTouchCalibration(uint16_t calData[5]) {
+    // Use default calibration values for XPT2046
+    // Based on typical XPT2046 12-bit ADC range (0-4095)
+    // For ST7796S in rotation 3 (landscape 480x320)
+    // Format: [x_offset, x_range, y_offset, y_range, rotation_flags]
+    const uint16_t minVal = (uint16_t)TouchConstants::RAW_MIN;   // 200
+    const uint16_t maxVal = (uint16_t)TouchConstants::RAW_MAX;   // 3900
+    const uint16_t range = maxVal - minVal;                      // 3700
+    
+    calData[0] = minVal;            // x offset
+    calData[1] = range;             // x range
+    calData[2] = minVal;            // y offset  
+    calData[3] = range;             // y range
+    // Set rotation/inversion flags to 0: touch coordinates are mapped directly to the display's native orientation.
+    // Do NOT set rotation/inversion flags here, because display rotation is handled separately via tft.setRotation(3).
+    // This avoids double-rotating or inverting touch input. If you change the display rotation, update tft.setRotation accordingly,
+    // but keep calData[4] = 0 unless you need to compensate for hardware-specific touch panel orientation.
+    calData[4] = 0;
+    
+    Logger::infof("Touch: Using default calibration [offset_x=%d, range_x=%d, offset_y=%d, range_y=%d, flags=%d]",
+                 calData[0], calData[1], calData[2], calData[3], calData[4]);
+}
+
 void HUD::init() {
     // ✅ NO llamar a tft.init() aquí - ya está inicializado en HUDManager::init()
     // Usamos la instancia global compartida de TFT_eSPI
@@ -125,10 +155,12 @@ void HUD::init() {
         
         if (cfg.touchCalibrated) {
             // Validate calibration data before use
-            if (cfg.touchCalibration[0] < cfg.touchCalibration[1] &&  // minX < maxX
-                cfg.touchCalibration[2] < cfg.touchCalibration[3] &&  // minY < maxY
-                cfg.touchCalibration[1] <= 4095 &&                   // maxX within range
-                cfg.touchCalibration[3] <= 4095) {                   // maxY within range
+            // New format: [x_offset, x_range, y_offset, y_range, flags]
+            // Validate that ranges are positive and within ADC bounds
+            if (cfg.touchCalibration[1] > 0 &&                                      // x_range must be positive
+                cfg.touchCalibration[3] > 0 &&                                      // y_range must be positive
+                cfg.touchCalibration[0] + cfg.touchCalibration[1] <= TOUCH_ADC_MAX && // x_offset + x_range within ADC bounds
+                cfg.touchCalibration[2] + cfg.touchCalibration[3] <= TOUCH_ADC_MAX) { // y_offset + y_range within ADC bounds
                 // Use saved calibration from storage
                 for (int i = 0; i < 5; i++) {
                     calData[i] = cfg.touchCalibration[i];
@@ -138,27 +170,34 @@ void HUD::init() {
             } else {
                 Logger::warn("Touch: Invalid stored calibration, using defaults");
                 cfg.touchCalibrated = false;
-                // Use default calibration values from touch_map.h
-                calData[0] = (uint16_t)TouchConstants::RAW_MIN;   // 200
-                calData[1] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-                calData[2] = (uint16_t)TouchConstants::RAW_MIN;   // 200
-                calData[3] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-                calData[4] = 3;  // Rotation para coincidir con tft.setRotation(3)
-                Logger::info("Touch: Using default calibration values");
+                setDefaultTouchCalibration(calData);
             }
         } else {
-            // Use default calibration values from touch_map.h
-            calData[0] = (uint16_t)TouchConstants::RAW_MIN;   // 200
-            calData[1] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-            calData[2] = (uint16_t)TouchConstants::RAW_MIN;   // 200
-            calData[3] = (uint16_t)TouchConstants::RAW_MAX;   // 3900
-            calData[4] = 3;  // Rotation para coincidir con tft.setRotation(3)
-            Logger::info("Touch: Using default calibration values");
+            setDefaultTouchCalibration(calData);
         }
         
         tft.setTouch(calData);
         touchInitialized = true;
-        Logger::info("Touchscreen XPT2046 integrado TFT_eSPI inicializado OK");
+        Logger::info("Touchscreen XPT2046 integrated with TFT_eSPI initialized OK");
+        
+        // 🔒 v2.9.2: Test touch immediately after initialization
+        // This helps diagnose if touch controller is responding
+        uint16_t testX = 0, testY = 0;
+        Logger::info("Touch: Testing touch controller response...");
+        bool touchResponding = tft.getTouchRaw(&testX, &testY);
+        if (touchResponding) {
+            Logger::infof("Touch: Controller responding, raw values: X=%d, Y=%d", testX, testY);
+            // Check if values are in expected range
+            if (testX == TOUCH_ADC_MIN && testY == TOUCH_ADC_MIN) {
+                Logger::warn("Touch: Controller returns zero values - not currently touched or hardware issue");
+            } else if (testX > TOUCH_ADC_MAX || testY > TOUCH_ADC_MAX) {
+                Logger::error("Touch: Invalid values detected - possible hardware or SPI issue");
+            } else {
+                Logger::info("Touch: Initial test successful, values in valid range");
+            }
+        } else {
+            Logger::warn("Touch: Controller not responding to getTouchRaw() - check wiring and SPI configuration");
+        }
         
         // 🔒 v2.9.1: Informative message for touch calibration
         if (!cfg.touchCalibrated) {
@@ -994,8 +1033,42 @@ void HUD::update() {
 
 #ifndef DISABLE_TOUCH
     uint16_t touchX = 0, touchY = 0;
+    
+    // 🔒 v2.9.2: Enhanced touch detection with diagnostics
+    // Try to get calibrated touch coordinates
+    bool touchDetected = touchInitialized && cfg.touchEnabled && tft.getTouch(&touchX, &touchY);
+    
+    // 🔒 v2.9.2: Additional diagnostics - check raw touch values when calibrated touch fails
+    static uint32_t lastRawTouchCheck = 0;
+    static bool lastTouchState = false;
+    uint32_t now = millis();
+    
+    if (!touchDetected && touchInitialized && cfg.touchEnabled) {
+        // Periodically check if raw touch is working even if calibrated touch isn't
+        if (now - lastRawTouchCheck > DIAGNOSTIC_RAW_TOUCH_CHECK_INTERVAL_MS) {
+            uint16_t rawX = 0, rawY = 0;
+            if (tft.getTouchRaw(&rawX, &rawY)) {
+                // Read Z value only once after successful raw touch read
+                uint16_t rawZ = tft.getTouchRawZ();
+                Logger::infof("Touch: Raw values available but getTouch() failed - Raw X=%d, Y=%d, Z=%d", rawX, rawY, rawZ);
+                Logger::warn("Touch: Calibration may be incorrect or Z threshold too high");
+            }
+            lastRawTouchCheck = now;
+        }
+    }
+    
+    // Log touch state changes for debugging
+    if (touchDetected != lastTouchState) {
+        if (touchDetected) {
+            Logger::info("Touch: Screen touched");
+        } else {
+            Logger::info("Touch: Screen released");
+        }
+        lastTouchState = touchDetected;
+    }
+    
     // 🔒 v2.8.8: Usar tft.getTouch() del touch integrado de TFT_eSPI
-    if (touchInitialized && cfg.touchEnabled && tft.getTouch(&touchX, &touchY)) {
+    if (touchDetected) {
         int x = (int)touchX;
         int y = (int)touchY;
         
@@ -1018,12 +1091,25 @@ void HUD::update() {
             
             lastTouchDebugTime = now;
             
-            // Log touch coordinates for debugging (only once per second)
+            // Log touch coordinates for debugging
+#ifdef TOUCH_DEBUG
+            // Verbose logging for troubleshooting - logs every touch
+            // Read raw values once and reuse for both X/Y and Z
+            uint16_t rawX = 0, rawY = 0;
+            if (tft.getTouchRaw(&rawX, &rawY)) {
+                uint16_t rawZ = tft.getTouchRawZ();
+                Logger::infof("Touch detected at (%d, %d) - RAW: X=%d, Y=%d, Z=%d", x, y, rawX, rawY, rawZ);
+            } else {
+                Logger::infof("Touch detected at (%d, %d)", x, y);
+            }
+#else
+            // Normal logging - only once per second to avoid spam
             static uint32_t lastTouchLogTime = 0;
             if (now - lastTouchLogTime > 1000) {  // Log every second max
                 Logger::infof("Touch detected at (%d, %d)", x, y);
                 lastTouchLogTime = now;
             }
+#endif
         }
 
 #ifdef STANDALONE_DISPLAY

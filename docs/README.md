@@ -79,6 +79,27 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 ---
 
+## 🖥️ Display & Touch Screen
+
+| Archivo | Descripción |
+|---------|-------------|
+| [TOUCH_QUICK_FIX.md](TOUCH_QUICK_FIX.md) | **⚡ Soluciones rápidas** - Las 3 correcciones más comunes para problemas de touch |
+| [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) | **🆕 Guía completa de resolución de problemas** - Diagnóstico y solución de problemas de touch XPT2046 |
+| [TOUCH_CALIBRATION.md](TOUCH_CALIBRATION.md) | Guía de calibración del touchscreen |
+| [TOUCH_CALIBRATION_GUIDE.md](TOUCH_CALIBRATION_GUIDE.md) | Guía detallada de calibración paso a paso |
+| [TOUCH_CALIBRATION_IMPLEMENTATION.md](TOUCH_CALIBRATION_IMPLEMENTATION.md) | Implementación técnica del sistema de calibración |
+| [SOLUCION_TOUCH.md](SOLUCION_TOUCH.md) | Soluciones a problemas comunes de touch |
+| [README_TOUCH.md](README_TOUCH.md) | Documentación general del sistema touch |
+| [DISPLAY_TOUCH_VERIFICATION.md](DISPLAY_TOUCH_VERIFICATION.md) | Verificación de funcionamiento de display y touch |
+| [ANALISIS_DISPLAY_GRAFICOS.md](ANALISIS_DISPLAY_GRAFICOS.md) | Análisis de gráficos y visualización en display |
+| [VERIFICACION_DISPLAY_FUNCIONAL.md](VERIFICACION_DISPLAY_FUNCIONAL.md) | Verificación funcional del display |
+
+> ⚠️ **PROBLEMAS CON TOUCH?** 
+> - **Solución rápida**: [TOUCH_QUICK_FIX.md](TOUCH_QUICK_FIX.md) - 90% de problemas resueltos bajando SPI frequency
+> - **Diagnóstico completo**: [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) - Guía paso a paso
+
+---
+
 ## 📈 Mejoras y Roadmap
 
 | Archivo | Descripción |
