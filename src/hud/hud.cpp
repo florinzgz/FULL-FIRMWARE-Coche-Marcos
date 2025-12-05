@@ -121,7 +121,11 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     calData[1] = range;             // x range
     calData[2] = minVal;            // y offset  
     calData[3] = range;             // y range
-    calData[4] = 0;                 // No rotation/inversion (will be handled by display rotation)
+    // Set rotation/inversion flags to 0: touch coordinates are mapped directly to the display's native orientation.
+    // Do NOT set rotation/inversion flags here, because display rotation is handled separately via tft.setRotation(3).
+    // This avoids double-rotating or inverting touch input. If you change the display rotation, update tft.setRotation accordingly,
+    // but keep calData[4] = 0 unless you need to compensate for hardware-specific touch panel orientation.
+    calData[4] = 0;
     
     Logger::infof("Touch: Using default calibration [offset_x=%d, range_x=%d, offset_y=%d, range_y=%d, flags=%d]",
                  calData[0], calData[1], calData[2], calData[3], calData[4]);
