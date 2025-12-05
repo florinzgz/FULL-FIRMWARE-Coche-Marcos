@@ -170,12 +170,18 @@ void HUD::init() {
         if (cfg.touchCalibrated) {
             // Validate calibration data before use
             // ⚠️ CRITICAL: Format is [min_x, max_x, min_y, max_y, rotation]
-            // Validate that min < max and values are within ADC bounds (0-4095)
-            if (cfg.touchCalibration[0] < cfg.touchCalibration[1] &&               // min_x < max_x
-                cfg.touchCalibration[2] < cfg.touchCalibration[3] &&               // min_y < max_y
-                cfg.touchCalibration[1] <= TOUCH_ADC_MAX &&                        // max_x within ADC bounds
-                cfg.touchCalibration[3] <= TOUCH_ADC_MAX &&                        // max_y within ADC bounds
-                cfg.touchCalibration[4] <= TOUCH_MAX_ROTATION) {                   // rotation is 0-7
+            // Note: X-axis may be inverted (min_x > max_x) to correct touch mapping
+            // Y-axis is expected to be normal (min_y < max_y)
+            bool xAxisValid = (cfg.touchCalibration[0] != cfg.touchCalibration[1]) &&  // min_x != max_x (allows both normal and inverted)
+                             cfg.touchCalibration[0] <= TOUCH_ADC_MAX &&               // min_x within ADC bounds
+                             cfg.touchCalibration[1] <= TOUCH_ADC_MAX;                 // max_x within ADC bounds
+            
+            bool yAxisValid = cfg.touchCalibration[2] < cfg.touchCalibration[3] &&     // min_y < max_y (normal orientation)
+                             cfg.touchCalibration[3] <= TOUCH_ADC_MAX;                 // max_y within ADC bounds
+            
+            bool rotationValid = cfg.touchCalibration[4] <= TOUCH_MAX_ROTATION;        // rotation is 0-7
+            
+            if (xAxisValid && yAxisValid && rotationValid) {
                 // Use saved calibration from storage
                 for (int i = 0; i < 5; i++) {
                     calData[i] = cfg.touchCalibration[i];
