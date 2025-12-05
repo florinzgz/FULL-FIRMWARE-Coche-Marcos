@@ -155,10 +155,12 @@ void HUD::init() {
         
         if (cfg.touchCalibrated) {
             // Validate calibration data before use
-            if (cfg.touchCalibration[0] < cfg.touchCalibration[1] &&  // minX < maxX
-                cfg.touchCalibration[2] < cfg.touchCalibration[3] &&  // minY < maxY
-                cfg.touchCalibration[1] <= 4095 &&                   // maxX within range
-                cfg.touchCalibration[3] <= 4095) {                   // maxY within range
+            // New format: [x_offset, x_range, y_offset, y_range, flags]
+            // Validate that ranges are positive and within ADC bounds
+            if (cfg.touchCalibration[1] > 0 &&                                      // x_range must be positive
+                cfg.touchCalibration[3] > 0 &&                                      // y_range must be positive
+                cfg.touchCalibration[0] + cfg.touchCalibration[1] <= TOUCH_ADC_MAX && // x_offset + x_range within ADC bounds
+                cfg.touchCalibration[2] + cfg.touchCalibration[3] <= TOUCH_ADC_MAX) { // y_offset + y_range within ADC bounds
                 // Use saved calibration from storage
                 for (int i = 0; i < 5; i++) {
                     calData[i] = cfg.touchCalibration[i];
@@ -1043,7 +1045,7 @@ void HUD::update() {
     
     if (!touchDetected && touchInitialized && cfg.touchEnabled) {
         // Periodically check if raw touch is working even if calibrated touch isn't
-        if (now - lastRawTouchCheck > RAW_TOUCH_CHECK_INTERVAL_MS) {
+        if (now - lastRawTouchCheck > DIAGNOSTIC_RAW_TOUCH_CHECK_INTERVAL_MS) {
             uint16_t rawX = 0, rawY = 0;
             if (tft.getTouchRaw(&rawX, &rawY)) {
                 // Read Z value only once after successful raw touch read

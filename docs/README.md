@@ -79,7 +79,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 ---
 
-## 🖥️ Display y Touch Screen
+## 🖥️ Display & Touch Screen
 
 | Archivo | Descripción |
 |---------|-------------|
