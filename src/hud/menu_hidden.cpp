@@ -21,6 +21,15 @@ static bool menuActive = false;
 static uint16_t codeBuffer = 0;
 static const uint16_t accessCode = 8989;
 
+// Numeric keypad state for code entry
+static bool numpadActive = false;
+static uint32_t lastKeypadTouch = 0;
+static const uint32_t KEYPAD_DEBOUNCE_MS = 300;  // Debounce for keypad buttons
+static uint32_t wrongCodeDisplayStart = 0;  // For non-blocking error display
+
+// Module configuration state
+static bool modulesConfigFirstCall = true;
+
 static int selectedOption = 1;   // opción seleccionada (1..8)
 
 // Cache para evitar redibujos innecesarios
@@ -38,6 +47,7 @@ enum class CalibrationState {
     ENCODER_DONE,
     TOUCH_CALIBRATION,  // 🔒 v2.9.0: Touch screen calibration
     REGEN_ADJUST,       // ✅ v2.7.0: Ajuste interactivo de regen
+    MODULES_CONFIG,     // Configuración de módulos ON/OFF
     CLEAR_ERRORS_CONFIRM // ✅ v2.7.0: Confirmación borrado errores
 };
 static CalibrationState calibState = CalibrationState::NONE;
@@ -399,6 +409,133 @@ static void applyModules(bool lights, bool media, bool traction) {
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
 }
 
+// Module configuration screen functions
+// Track module states locally until save
+static bool tempLightsEnabled = false;
+static bool tempMultimediaEnabled = false;
+static bool tempTractionEnabled = false;
+
+static void drawModulesConfigScreen() {
+    if (tft == nullptr) return;
+    
+    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    tft->drawRect(60, 40, 360, 240, TFT_CYAN);
+    
+    tft->setTextDatum(TC_DATUM);
+    tft->setTextColor(TFT_CYAN, TFT_BLACK);
+    tft->drawString("CONFIGURACIÓN DE MÓDULOS", 240, 50, 4);
+    
+    // Module toggle buttons
+    const int btnY = 90;
+    const int btnSpacing = 40;
+    
+    // Lights button
+    uint16_t lightsColor = tempLightsEnabled ? TFT_GREEN : TFT_RED;
+    tft->fillRect(100, btnY, 280, 30, lightsColor);
+    tft->drawRect(100, btnY, 280, 30, TFT_WHITE);
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_WHITE, lightsColor);
+    tft->drawString(tempLightsEnabled ? "LUCES: ON" : "LUCES: OFF", 240, btnY + 15, 2);
+    
+    // Media button
+    uint16_t mediaColor = tempMultimediaEnabled ? TFT_GREEN : TFT_RED;
+    tft->fillRect(100, btnY + btnSpacing, 280, 30, mediaColor);
+    tft->drawRect(100, btnY + btnSpacing, 280, 30, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, mediaColor);
+    tft->drawString(tempMultimediaEnabled ? "MULTIMEDIA: ON" : "MULTIMEDIA: OFF", 240, btnY + btnSpacing + 15, 2);
+    
+    // Traction button
+    uint16_t tractionColor = tempTractionEnabled ? TFT_GREEN : TFT_RED;
+    tft->fillRect(100, btnY + 2*btnSpacing, 280, 30, tractionColor);
+    tft->drawRect(100, btnY + 2*btnSpacing, 280, 30, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, tractionColor);
+    tft->drawString(tempTractionEnabled ? "TRACCIÓN: ON" : "TRACCIÓN: OFF", 240, btnY + 2*btnSpacing + 15, 2);
+    
+    // Save button
+    tft->fillRect(140, 220, 200, 40, TFT_BLUE);
+    tft->drawRect(140, 220, 200, 40, TFT_WHITE);
+    tft->setTextColor(TFT_WHITE, TFT_BLUE);
+    tft->drawString("GUARDAR Y VOLVER", 240, 240, 2);
+    
+    // Instructions
+    tft->setTextDatum(BC_DATUM);
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->drawString("Toca para activar/desactivar", 240, 275, 1);
+}
+
+static void updateModulesConfig(int touchX, int touchY, bool touched) {
+    // Initialize screen on first call
+    if (modulesConfigFirstCall) {
+        drawModulesConfigScreen();
+        modulesConfigFirstCall = false;
+        return;
+    }
+    
+    if (!touched) {
+        return;  // Don't redraw unless there's a touch
+    }
+    
+    const int btnY = 90;
+    const int btnSpacing = 40;
+    bool stateChanged = false;
+    
+    // Check which button was touched
+    if (touchX >= 100 && touchX <= 380) {
+        // Lights toggle
+        if (touchY >= btnY && touchY <= btnY + 30) {
+            tempLightsEnabled = !tempLightsEnabled;
+            Logger::infof("Luces: %s", tempLightsEnabled ? "ON" : "OFF");
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            stateChanged = true;
+        }
+        // Media toggle
+        else if (touchY >= btnY + btnSpacing && touchY <= btnY + btnSpacing + 30) {
+            tempMultimediaEnabled = !tempMultimediaEnabled;
+            Logger::infof("Multimedia: %s", tempMultimediaEnabled ? "ON" : "OFF");
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            stateChanged = true;
+        }
+        // Traction toggle
+        else if (touchY >= btnY + 2*btnSpacing && touchY <= btnY + 2*btnSpacing + 30) {
+            tempTractionEnabled = !tempTractionEnabled;
+            Logger::infof("Tracción: %s", tempTractionEnabled ? "ON" : "OFF");
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            stateChanged = true;
+        }
+    }
+    
+    // Save button
+    if (touchX >= 140 && touchX <= 340 && touchY >= 220 && touchY <= 260) {
+        // Apply temp values to config and save
+        cfg.lightsEnabled = tempLightsEnabled;
+        cfg.multimediaEnabled = tempMultimediaEnabled;
+        cfg.tractionEnabled = tempTractionEnabled;
+        Storage::save(cfg);
+        Logger::info("Configuración de módulos guardada");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        calibState = CalibrationState::NONE;
+        modulesConfigFirstCall = true;  // Reset for next time
+        return;  // Exit config
+    }
+    
+    // Only redraw if state actually changed
+    if (stateChanged) {
+        drawModulesConfigScreen();
+    }
+}
+
+// Interactive module configuration screen
+static void startModulesConfig() {
+    calibState = CalibrationState::MODULES_CONFIG;
+    // Initialize temp values from current config
+    tempLightsEnabled = cfg.lightsEnabled;
+    tempMultimediaEnabled = cfg.multimediaEnabled;
+    tempTractionEnabled = cfg.tractionEnabled;
+    Logger::info("Iniciando configuración de módulos");
+    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+    drawModulesConfigScreen();
+}
+
 static void saveAndExit() {
     Storage::save(cfg);
     Logger::info("Configuración guardada. Saliendo de menú oculto.");
@@ -586,6 +723,142 @@ static int getTouchedMenuOption(int touchX, int touchY) {
 }
 
 // -----------------------
+// Numeric Keypad for Code Entry
+// -----------------------
+
+// Forward declarations
+static void drawMenuFull();
+static void updateCodeDisplay();
+
+// Keypad layout constants
+static const int KEYPAD_X = 100;
+static const int KEYPAD_Y = 80;
+static const int KEYPAD_BTN_WIDTH = 60;
+static const int KEYPAD_BTN_HEIGHT = 50;
+static const int KEYPAD_SPACING = 10;
+
+// Keypad button structure
+struct KeypadButton {
+    int x, y;
+    int value;  // -1 for backspace, -2 for enter
+    const char* label;
+};
+
+// 3x4 keypad layout: 1-9, back, 0, enter
+static const KeypadButton keypadButtons[12] = {
+    {KEYPAD_X, KEYPAD_Y, 1, "1"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y, 2, "2"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y, 3, "3"},
+    
+    {KEYPAD_X, KEYPAD_Y + (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 4, "4"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 5, "5"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 6, "6"},
+    
+    {KEYPAD_X, KEYPAD_Y + 2 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 7, "7"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 2 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 8, "8"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 2 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 9, "9"},
+    
+    {KEYPAD_X, KEYPAD_Y + 3 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), -1, "<"},
+    {KEYPAD_X + (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 3 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), 0, "0"},
+    {KEYPAD_X + 2 * (KEYPAD_BTN_WIDTH + KEYPAD_SPACING), KEYPAD_Y + 3 * (KEYPAD_BTN_HEIGHT + KEYPAD_SPACING), -2, "OK"}
+};
+
+static void drawNumericKeypad() {
+    if (tft == nullptr) return;
+    
+    // Clear screen
+    tft->fillScreen(TFT_BLACK);
+    
+    // Title
+    tft->setTextDatum(TC_DATUM);
+    tft->setTextColor(TFT_CYAN, TFT_BLACK);
+    tft->drawString("Código de acceso", 240, 20, 4);
+    
+    // Code display
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(TFT_WHITE, TFT_BLACK);
+    char codeStr[8];
+    snprintf(codeStr, sizeof(codeStr), "%04d", codeBuffer);
+    tft->drawString(codeStr, 240, 55, 4);
+    
+    // Draw keypad buttons
+    for (int i = 0; i < 12; i++) {
+        const KeypadButton& btn = keypadButtons[i];
+        
+        // Button background
+        tft->fillRoundRect(btn.x, btn.y, KEYPAD_BTN_WIDTH, KEYPAD_BTN_HEIGHT, 5, TFT_NAVY);
+        tft->drawRoundRect(btn.x, btn.y, KEYPAD_BTN_WIDTH, KEYPAD_BTN_HEIGHT, 5, TFT_WHITE);
+        
+        // Button label
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_WHITE, TFT_NAVY);
+        tft->drawString(btn.label, btn.x + KEYPAD_BTN_WIDTH/2, btn.y + KEYPAD_BTN_HEIGHT/2, 4);
+    }
+    
+    // Instructions
+    tft->setTextDatum(BC_DATUM);
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->drawString("Toca números para entrar 8989", 240, 310, 2);
+}
+
+static int getTouchedKeypadButton(int x, int y) {
+    for (int i = 0; i < 12; i++) {
+        const KeypadButton& btn = keypadButtons[i];
+        if (x >= btn.x && x < btn.x + KEYPAD_BTN_WIDTH &&
+            y >= btn.y && y < btn.y + KEYPAD_BTN_HEIGHT) {
+            return i;  // Return button index
+        }
+    }
+    return -1;  // No button touched
+}
+
+static void handleKeypadInput(int buttonIndex) {
+    if (buttonIndex < 0 || buttonIndex >= 12) return;
+    
+    const KeypadButton& btn = keypadButtons[buttonIndex];
+    
+    if (btn.value == -1) {
+        // Backspace
+        codeBuffer = codeBuffer / 10;
+        updateCodeDisplay();
+        drawNumericKeypad();  // Redraw to show updated code
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+    } else if (btn.value == -2) {
+        // Enter/OK - check code
+        if (codeBuffer == accessCode) {
+            menuActive = true;
+            numpadActive = false;
+            Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
+            drawMenuFull();
+            lastMenuActive = true;
+            lastSelectedOption = selectedOption;
+            lastCodeBuffer = codeBuffer;
+        } else {
+            // Wrong code - show error with non-blocking delay
+            tft->fillRect(100, 40, 280, 35, TFT_RED);
+            tft->setTextDatum(MC_DATUM);
+            tft->setTextColor(TFT_WHITE, TFT_RED);
+            tft->drawString("CÓDIGO INCORRECTO", 240, 55, 2);
+            Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
+            // Set timestamp for non-blocking error display
+            wrongCodeDisplayStart = millis();
+            codeBuffer = 0;
+            // Error message will be cleared in update loop after 1 second
+        }
+    } else {
+        // Number button (0-9)
+        if (codeBuffer > 999) {
+            // Already 4 digits, ignore
+            Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_NORMAL});
+            return;
+        }
+        codeBuffer = (codeBuffer * 10) + btn.value;
+        drawNumericKeypad();  // Redraw to show updated code
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+    }
+}
+
+// -----------------------
 // Dibujo del menú
 // -----------------------
 static void drawMenuFull() {
@@ -601,11 +874,8 @@ static void drawMenuFull() {
         tft->setTextColor(col, TFT_BLACK);
         tft->drawString(MENU_ITEMS[i], 80, 80 + i*20, 2);
     }
-
-    // Código
-    tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    tft->drawString("Code:", 80, 240, 2);
-    tft->drawString(String(codeBuffer), 140, 240, 2);
+    
+    // No need to show code anymore - entered via keypad
 }
 
 static void updateOptionHighlight() {
@@ -619,10 +889,15 @@ static void updateOptionHighlight() {
 }
 
 static void updateCodeDisplay() {
-    // Limpiar zona del código
-    tft->fillRect(140, 230, 100, 20, TFT_BLACK);
+    // Update code display on numeric keypad
+    if (!numpadActive) return;
+    
+    tft->fillRect(100, 40, 280, 35, TFT_BLACK);
+    tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    tft->drawString(String(codeBuffer), 140, 240, 2);
+    char codeStr[8];
+    snprintf(codeStr, sizeof(codeStr), "%04d", codeBuffer);
+    tft->drawString(codeStr, 240, 55, 4);
 }
 
 // -----------------------
@@ -682,6 +957,11 @@ void MenuHidden::update(bool batteryIconPressed) {
             updateRegenAdjust(touchX, touchY, touched);
             if (touched) waitTouchRelease(DEBOUNCE_SHORT_MS);  // Debounce corto después de procesar
         }
+        // Manejar configuración de módulos ON/OFF
+        else if (calibState == CalibrationState::MODULES_CONFIG) {
+            updateModulesConfig(touchX, touchY, touched);
+            if (touched) waitTouchRelease(DEBOUNCE_SHORT_MS);  // Debounce corto después de procesar
+        }
         // ✅ v2.7.0: Manejar confirmación de borrado de errores
         else if (calibState == CalibrationState::CLEAR_ERRORS_CONFIRM) {
             updateClearErrorsConfirm(touchX, touchY, touched);
@@ -695,22 +975,51 @@ void MenuHidden::update(bool batteryIconPressed) {
     }
     
     if(!menuActive) {
-        if(batteryIconPressed) {
-            codeBuffer = (codeBuffer * 10) + 8;
-            if(codeBuffer > 9999) codeBuffer = 0;
-
-            if(codeBuffer == accessCode) {
-                menuActive = true;
-                Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
-                drawMenuFull();
-                lastMenuActive = true;
-                lastSelectedOption = selectedOption;
-                lastCodeBuffer = codeBuffer;
-            } else if(codeBuffer != lastCodeBuffer) {
-                updateCodeDisplay();
-                lastCodeBuffer = codeBuffer;
+        // Show keypad on first battery icon press
+        if(batteryIconPressed && !numpadActive) {
+            numpadActive = true;
+            codeBuffer = 0;
+            drawNumericKeypad();
+            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            lastCodeBuffer = codeBuffer;
+            return;
+        }
+        
+        // Handle keypad interaction when active
+        if(numpadActive) {
+            uint16_t tx, ty;
+            uint32_t now = millis();
+            
+            // Check for touch with debounce
+            if (tft != nullptr && tft->getTouch(&tx, &ty)) {
+                if (now - lastKeypadTouch > KEYPAD_DEBOUNCE_MS) {
+                    int buttonIndex = getTouchedKeypadButton((int)tx, (int)ty);
+                    if (buttonIndex >= 0) {
+                        handleKeypadInput(buttonIndex);
+                        lastKeypadTouch = now;
+                        waitTouchRelease(DEBOUNCE_SHORT_MS);
+                    }
+                }
+            }
+            
+            // Clear wrong code error message after 1 second (non-blocking)
+            if (wrongCodeDisplayStart > 0 && (now - wrongCodeDisplayStart > 1000)) {
+                wrongCodeDisplayStart = 0;
+                drawNumericKeypad();  // Redraw keypad to clear error
+            }
+            
+            // Exit keypad if battery pressed again (cancel)
+            if (batteryIconPressed && (now - lastKeypadTouch > KEYPAD_DEBOUNCE_MS)) {
+                numpadActive = false;
+                codeBuffer = 0;
+                lastCodeBuffer = 0;
+                lastKeypadTouch = now;
+                waitTouchRelease(DEBOUNCE_SHORT_MS);
+                // Don't clear screen - let normal HUD update redraw
+                // This prevents flickering from full screen clear
             }
         }
+        
         return;
     }
 
@@ -742,7 +1051,7 @@ void MenuHidden::update(bool batteryIconPressed) {
                 case 2: startEncoderCalibration(); break;
                 case 3: startTouchCalibration(); break;  // 🔒 v2.9.0: Touch calibration
                 case 4: startRegenAdjust(); break;  // ✅ v2.7.0: Ajuste interactivo
-                case 5: applyModules(true, true, true); break;
+                case 5: startModulesConfig(); break;  // Configuración interactiva de módulos
                 case 6: saveAndExit(); break;
                 case 7: restoreFactory(); break;
                 case 8: showErrors(); break;
@@ -760,7 +1069,7 @@ void MenuHidden::update(bool batteryIconPressed) {
 }
 
 bool MenuHidden::isActive() {
-    return menuActive;
+    return menuActive || numpadActive;  // Include numpad in active state
 }
 
 void MenuHidden::activateDirectly() {

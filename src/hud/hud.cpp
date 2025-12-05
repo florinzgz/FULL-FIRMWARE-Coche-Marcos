@@ -115,6 +115,8 @@ extern Storage::Config cfg;   // acceso a flags
 // Avoids code duplication
 // ⚠️ CRITICAL FIX: Calibration format MUST be [min_x, max_x, min_y, max_y, rotation]
 // NOT [x_offset, x_range, y_offset, y_range, flags] as previously documented
+// 🔒 FIX: X axis inverted: swap min_x and max_x to correct touch mapping
+// Touch controller X axis is reversed relative to display orientation
 static void setDefaultTouchCalibration(uint16_t calData[5]) {
     // Use default calibration values for XPT2046
     // Based on typical XPT2046 12-bit ADC range (0-4095)
@@ -124,13 +126,22 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
     const uint16_t minVal = (uint16_t)TouchConstants::RAW_MIN;   // 200
     const uint16_t maxVal = (uint16_t)TouchConstants::RAW_MAX;   // 3900
     
-    calData[0] = minVal;                // min_x (minimum X coordinate)
-    calData[1] = maxVal;                // max_x (maximum X coordinate)
-    calData[2] = minVal;                // min_y (minimum Y coordinate)
-    calData[3] = maxVal;                // max_y (maximum Y coordinate)
-    calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (matches tft.setRotation(3) for landscape)
+    // 🔒 CRITICAL FIX: Swap min_x and max_x to invert X axis
+    // This fixes the issue where touches appear on opposite side of screen
+    // (e.g., pressing battery icon in top-right shows cross in top-left)
+    // 
+    // Coordinate mapping (with X-axis inversion):
+    // - Screen left (X=0) uses max ADC value
+    // - Screen right (X=SCREEN_WIDTH-1) uses min ADC value  
+    // - Screen top (Y=0) uses min ADC value
+    // - Screen bottom (Y=SCREEN_HEIGHT-1) uses max ADC value
+    calData[0] = maxVal;                // min_x (using max ADC - inverted)
+    calData[1] = minVal;                // max_x (using min ADC - inverted)
+    calData[2] = minVal;                // min_y (using min ADC - normal)
+    calData[3] = maxVal;                // max_y (using max ADC - normal)
+    calData[4] = TOUCH_DEFAULT_ROTATION; // rotation (landscape)
     
-    Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d]",
+    Logger::infof("Touch: Using default calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d] (X inverted)",
                  calData[0], calData[1], calData[2], calData[3], calData[4]);
 }
 
@@ -159,12 +170,23 @@ void HUD::init() {
         if (cfg.touchCalibrated) {
             // Validate calibration data before use
             // ⚠️ CRITICAL: Format is [min_x, max_x, min_y, max_y, rotation]
-            // Validate that min < max and values are within ADC bounds (0-4095)
-            if (cfg.touchCalibration[0] < cfg.touchCalibration[1] &&               // min_x < max_x
-                cfg.touchCalibration[2] < cfg.touchCalibration[3] &&               // min_y < max_y
-                cfg.touchCalibration[1] <= TOUCH_ADC_MAX &&                        // max_x within ADC bounds
-                cfg.touchCalibration[3] <= TOUCH_ADC_MAX &&                        // max_y within ADC bounds
-                cfg.touchCalibration[4] <= TOUCH_MAX_ROTATION) {                   // rotation is 0-7
+            // Note: X-axis may be inverted (min_x > max_x) to correct touch mapping
+            // Y-axis is expected to be normal (min_y < max_y)
+            bool xAxisValid = (cfg.touchCalibration[0] != cfg.touchCalibration[1]) &&  // min_x != max_x (allows both normal and inverted)
+                             cfg.touchCalibration[0] >= TOUCH_ADC_MIN &&               // min_x within lower ADC bound
+                             cfg.touchCalibration[0] <= TOUCH_ADC_MAX &&               // min_x within upper ADC bound
+                             cfg.touchCalibration[1] >= TOUCH_ADC_MIN &&               // max_x within lower ADC bound
+                             cfg.touchCalibration[1] <= TOUCH_ADC_MAX;                 // max_x within upper ADC bound
+            
+            bool yAxisValid = cfg.touchCalibration[2] < cfg.touchCalibration[3] &&     // min_y < max_y (normal orientation)
+                             cfg.touchCalibration[2] >= TOUCH_ADC_MIN &&               // min_y within lower ADC bound
+                             cfg.touchCalibration[2] <= TOUCH_ADC_MAX &&               // min_y within upper ADC bound
+                             cfg.touchCalibration[3] >= TOUCH_ADC_MIN &&               // max_y within lower ADC bound
+                             cfg.touchCalibration[3] <= TOUCH_ADC_MAX;                 // max_y within upper ADC bound
+            
+            bool rotationValid = cfg.touchCalibration[4] <= TOUCH_MAX_ROTATION;        // rotation is 0-7
+            
+            if (xAxisValid && yAxisValid && rotationValid) {
                 // Use saved calibration from storage
                 for (int i = 0; i < 5; i++) {
                     calData[i] = cfg.touchCalibration[i];
@@ -902,11 +924,20 @@ void HUD::update() {
     bool tempWarning = sensorStatus.temperatureWarning;
     float maxTemp = sensorStatus.maxTemperature;
     
-    // Temperatura ambiente desde sensor DS18B20 #4
-    // Verificar si el sensor está OK antes de usar su valor
+    // Temperatura ambiente desde sensor DS18B20 #5 (índice 4)
+    // Sensor mapping: 0-3 = motores, 4 = ambiente
     float ambientTemp = 22.0f;  // Valor por defecto
-    if (cfg.tempSensorsEnabled && Sensors::isTemperatureSensorOk(4)) {
-        ambientTemp = Sensors::getTemperature(4);
+    if (cfg.tempSensorsEnabled) {
+        if (Sensors::isTemperatureSensorOk(4)) {
+            ambientTemp = Sensors::getTemperature(4);
+        } else {
+            // Sensor 4 (ambiente) no está OK - usar default
+            static uint32_t lastAmbientWarning = 0;
+            if (millis() - lastAmbientWarning > 10000) {  // Log cada 10 segundos
+                Logger::warn("Sensor temperatura ambiente (DS18B20 #5) no disponible");
+                lastAmbientWarning = millis();
+            }
+        }
     }
 #endif
 
@@ -1058,29 +1089,18 @@ void HUD::update() {
         int x = (int)touchX;
         int y = (int)touchY;
         
-        // 🔒 v2.9.1: Visual debug indicator - draw small crosshair at touch point
-        // This helps users verify touch is working and calibrated correctly
-        // Note: Indicator is drawn on top of UI without clearing to avoid erasing
-        // dashboard elements. The normal UI refresh cycle will overwrite it.
-        static uint32_t lastTouchDebugTime = 0;
+        // Touch coordinates are now correct after X-axis inversion fix
+        // Visual debug indicators removed per user request
+        // Touch logging remains for diagnostics
+        
         uint32_t now = millis();
         
-        // Only update debug indicator every 100ms to avoid flickering
-        if (now - lastTouchDebugTime > 100) {
-            // Draw touch indicator (cyan crosshair) with boundary checking
-            // Screen is 480x320, so keep crosshair within bounds
-            int drawX = constrain(x, 5, 475);  // Keep 5px margin from edges
-            int drawY = constrain(y, 5, 315);
-            tft.drawFastHLine(drawX - 5, drawY, 11, TFT_CYAN);
-            tft.drawFastVLine(drawX, drawY - 5, 11, TFT_CYAN);
-            tft.fillCircle(drawX, drawY, 2, TFT_RED);
-            
-            lastTouchDebugTime = now;
-            
-            // Log touch coordinates for debugging
+        // Log touch coordinates for debugging
 #ifdef TOUCH_DEBUG
-            // Verbose logging for troubleshooting - logs every touch with raw values
-            // Only read Z if raw touch read succeeds to avoid unnecessary SPI traffic
+        // Verbose logging for troubleshooting - logs every touch with raw values
+        // Only read Z if raw touch read succeeds to avoid unnecessary SPI traffic
+        static uint32_t lastTouchLogTime = 0;
+        if (now - lastTouchLogTime > 100) {  // Limit to 10 times per second
             uint16_t rawX = 0, rawY = 0;
             if (tft.getTouchRaw(&rawX, &rawY)) {
                 uint16_t rawZ = tft.getTouchRawZ();  // Read pressure only after successful raw read
@@ -1088,15 +1108,16 @@ void HUD::update() {
             } else {
                 Logger::infof("Touch detected at (%d, %d)", x, y);
             }
-#else
-            // Normal logging - only once per second to avoid spam
-            static uint32_t lastTouchLogTime = 0;
-            if (now - lastTouchLogTime > 1000) {  // Log every second max
-                Logger::infof("Touch detected at (%d, %d)", x, y);
-                lastTouchLogTime = now;
-            }
-#endif
+            lastTouchLogTime = now;
         }
+#else
+        // Normal logging - only once per second to avoid spam
+        static uint32_t lastTouchLogTime = 0;
+        if (now - lastTouchLogTime > 1000) {  // Log every second max
+            Logger::infof("Touch detected at (%d, %d)", x, y);
+            lastTouchLogTime = now;
+        }
+#endif
 
 #ifdef STANDALONE_DISPLAY
         // Check demo button touch with long press detection

@@ -440,6 +440,13 @@ void loop() {
     Steering::update();
     Buttons::update();
     Shifter::update();
+    
+    // Handle 4x4 button toggle
+    if (Buttons::toggled4x4()) {
+        bool new4x4State = Buttons::get().mode4x4;
+        Traction::setMode4x4(new4x4State);
+        Logger::infof("4x4 button toggled: %s", new4x4State ? "ON" : "OFF");
+    }
 
     // Sensores
     Sensors::updateCurrent();
