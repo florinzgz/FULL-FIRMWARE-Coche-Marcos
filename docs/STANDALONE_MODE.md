@@ -2,10 +2,10 @@
 
 ## Descripción
 
-El modo **STANDALONE_DISPLAY** permite probar la pantalla ILI9488 y el dashboard HUD **sin necesidad de conectar sensores, motores, o hardware adicional**. Solo necesitas la ESP32-S3 y la pantalla.
+El modo **STANDALONE_DISPLAY** permite probar la pantalla ST7796S y el dashboard HUD **sin necesidad de conectar sensores, motores, o hardware adicional**. Solo necesitas la ESP32-S3 y la pantalla.
 
 Este modo es ideal para:
-- ✅ Verificar que la pantalla ILI9488 funciona correctamente
+- ✅ Verificar que la pantalla ST7796S funciona correctamente
 - ✅ Validar el sistema SPI y la comunicación display-MCU
 - ✅ Visualizar el dashboard completo con valores simulados
 - ✅ Probar el diseño del HUD antes del montaje final
@@ -235,7 +235,7 @@ pio device monitor -b 115200
 Deberías ver:
 ```
 🧪 STANDALONE_DISPLAY MODE: Skipping sensor initialization
-HUD init OK - Display ILI9488 ready
+HUD init OK - Display ST7796S ready
 🧪 STANDALONE MODE: Dashboard active with simulated values
 ```
 
@@ -265,7 +265,7 @@ Para modo standalone solo necesitas:
 | Componente | Pines | Alimentación |
 |------------|-------|--------------|
 | ESP32-S3-N16R8 | - | 5V USB o 3.3V regulado |
-| ILI9488 Display | VDD→3V3, GND→GND, CS→8, DC→13, RST→14, MOSI→11, SCK→10, MISO→12, BL→42 | 3.3V desde ESP32 |
+| ST7796S Display | VDD→3V3, GND→GND, CS→16, DC→13, RST→14, MOSI→11, SCK→10, MISO→12, BL→42 | 3.3V desde ESP32 |
 | XPT2046 Touch | TCS→3, PEN→46, compartidos MOSI/MISO/SCK | 3.3V desde ESP32 |
 
 **IMPORTANTE:** NO conectes motores, relés, o sensores de alta corriente en modo standalone. Solo display y touch.
@@ -303,7 +303,7 @@ El modo standalone reduce el uso de SRAM al omitir módulos de sensores y contro
 
 ### Compatibilidad
 - ✅ ESP32-S3-DevKitC-1 (N16R8)
-- ✅ ILI9488 320x480 (SPI)
+- ✅ ST7796S 320x480 (SPI)
 - ✅ XPT2046 Touchscreen
 - ✅ TFT_eSPI library v2.5.x
 

@@ -14,7 +14,7 @@ Este documento detalla la configuración hardware completa del sistema de contro
 - ✅ **Monitorización de corriente** en tiempo real (6 canales INA226)
 - ✅ **Sistema de dirección preciso** con encoder 1200PPR + señal Z
 - ✅ **Detección de velocidad de ruedas** con sensores inductivos
-- ✅ **Interfaz táctil** ILI9488 480x320
+- ✅ **Interfaz táctil** ST7796S 480x320
 - ✅ **Sistemas avanzados de seguridad** (ABS, TCS, Regenerativo)
 - ✅ **Iluminación LED inteligente** estilo KITT
 - ✅ **Conectividad WiFi** y OTA updates
@@ -130,16 +130,17 @@ Sensores inductivos de proximidad NPN NO 4mm.
 
 ### 8. Pantalla y Táctil
 
-#### ILI9488 (480x320 TFT)
+#### ST7796S (480x320 TFT)
 
 | Pin | GPIO | Función |
 |-----|------|---------|
-| CS | 15 | Chip Select |
-| DC | 27 | Data/Command |
+| CS | 16 | Chip Select |
+| DC | 13 | Data/Command |
 | RST | 14 | Reset |
 | MOSI | 11 | SPI Data Out |
-| MISO | 19 | SPI Data In |
-| SCK | 18 | SPI Clock |
+| MISO | 12 | SPI Data In |
+| SCK | 10 | SPI Clock |
+| BL | 42 | Backlight |
 
 #### XPT2046 (Táctil)
 
@@ -232,6 +233,19 @@ Sensores inductivos de proximidad NPN NO 4mm.
 
 ## 📊 Mapeo Completo de Pines ESP32-S3
 
+**⚠️ NOTA IMPORTANTE:** Esta tabla puede contener información desactualizada. Para el mapeo de pines definitivo y actualizado, consulta siempre el archivo `include/pins.h` en el código fuente, que es la referencia autoritativa.
+
+**Pines críticos de la pantalla ST7796S (fuente: pins.h):**
+- TFT_CS = GPIO 16
+- TFT_DC = GPIO 13  
+- TFT_RST = GPIO 14
+- TFT_MOSI = GPIO 11
+- TFT_MISO = GPIO 12
+- TFT_SCLK = GPIO 10
+- TFT_BL = GPIO 42
+- TOUCH_CS = GPIO 21
+- TOUCH_IRQ = GPIO 47
+
 ### Lado Izquierdo
 
 | Pin | GPIO | Función | Módulo |
@@ -249,11 +263,11 @@ Sensores inductivos de proximidad NPN NO 4mm.
 | 11 | 8 | IN1 Motor FR | BTS7960 |
 | 12 | 9 | IN2 Motor FR | BTS7960 |
 | 13 | 10 | PWM Motor RL | BTS7960 |
-| 14 | 11 | TFT MOSI | ILI9488 |
+| 14 | 11 | TFT MOSI | ST7796S |
 | 15 | 12 | Touch CS | XPT2046 |
 | 16 | 13 | Touch IRQ | XPT2046 |
-| 17 | 14 | TFT RST | ILI9488 |
-| 18 | 15 | TFT CS | ILI9488 |
+| 17 | 14 | TFT RST | ST7796S |
+| 18 | 16 | TFT CS | ST7796S |
 | 19 | 16 | DFPlayer RX | UART |
 | 20 | 17 | DFPlayer TX | UART |
 | 21 | 18 | SPI SCK | Compartido |
@@ -282,7 +296,7 @@ Sensores inductivos de proximidad NPN NO 4mm.
 | 16 | 30 | Sensor Rueda RL | LJ12A3 |
 | 17 | 29 | IN2 Motor RR | BTS7960 |
 | 18 | 28 | IN1 Motor RR | BTS7960 |
-| 19 | 27 | TFT DC | ILI9488 |
+| 19 | 27 | TFT DC | ST7796S |
 | 20 | 26 | OneWire DS18B20 | Temperatura |
 | 21 | 25 | Encoder Z (centro) | LJ12A3 |
 | 22 | 24 | PWM Motor RR | BTS7960 |
@@ -299,7 +313,7 @@ Sensores inductivos de proximidad NPN NO 4mm.
 | ESP32-S3 | 3.3V | 500mA | 1.65W |
 | Motores tracción (4x) | 24V | 43A c/u | 4.1kW |
 | Motor dirección | 12V | 10A | 120W |
-| Pantalla ILI9488 | 3.3V | 150mA | 0.5W |
+| Pantalla ST7796S | 3.3V | 150mA | 0.5W |
 | LEDs WS2812B | 5V | 3A (max) | 15W |
 | Relés y lógica | 5V / 12V | 2A | 24W |
 | **TOTAL ESTIMADO** | - | - | **~4.3kW** |
@@ -391,7 +405,7 @@ Usar convertidores bidireccionales para:
 - [ ] Montar optoacopladores HY-M158 (2x)
 - [ ] Conectar 4 BTS7960 tracción
 - [ ] Conectar BTS7960 dirección + RS390
-- [ ] Instalar pantalla ILI9488 + táctil
+- [ ] Instalar pantalla ST7796S + táctil
 - [ ] Preparar SD DFPlayer (/mp3/0001-0038.mp3)
 - [ ] Conectar LEDs WS2812B
 - [ ] Verificar relés potencia

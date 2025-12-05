@@ -102,7 +102,7 @@ Los firmwares compilados están disponibles en **GitHub Actions**:
 ### ✅ Lo que Deberías Ver
 
 1. **Secuencia de colores** (rojo → verde → azul) - 0.5s cada uno
-2. **"ILI9488 OK"** - Texto blanco sobre fondo negro
+2. **"ST7796S OK"** - Texto blanco sobre fondo negro
 3. **Logo de arranque** - 1.5 segundos
 4. **Dashboard completo** con valores simulados:
    - Velocidad: 12 km/h
