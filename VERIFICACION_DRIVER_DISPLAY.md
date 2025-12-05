@@ -67,10 +67,18 @@ He consultado las siguientes fuentes oficiales de GitHub:
 | Parámetro | Nuestro Config | GitHub Recomienda | Estado |
 |-----------|----------------|-------------------|--------|
 | Driver | ST7796_DRIVER | ST7796_DRIVER | ✅ Correcto |
-| SPI Freq | 40 MHz | 40-80 MHz | ✅ Óptimo |
+| SPI Freq | 40 MHz | 40-80 MHz (40 recomendado) | ✅ Óptimo |
 | Touch Freq | 2.5 MHz | 1-2.5 MHz | ✅ Correcto |
 | SPI Trans | Habilitado | Recomendado | ✅ Implementado |
 | Pin Config | Ver pins.h | ESP32 estándar | ✅ Correcto |
+
+**Nota sobre 40 MHz vs 80 MHz:**
+Aunque el ST7796S soporta hasta 80 MHz, usamos 40 MHz porque:
+1. Es la velocidad recomendada por TFT_eSPI Setup27
+2. Mejor compatibilidad con touch controller en bus compartido
+3. Mayor estabilidad con cables de longitud variable
+4. Margen de seguridad para interferencias
+5. Balance óptimo entre velocidad y fiabilidad
 
 ### Correcciones Realizadas
 

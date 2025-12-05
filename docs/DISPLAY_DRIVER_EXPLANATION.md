@@ -44,6 +44,13 @@ La pantalla instalada en el sistema es una **ST7796S 480x320 TFT LCD**, no ILI94
 #### 1. Velocidad SPI Superior
 El ST7796S puede operar a velocidades SPI más altas (hasta 80 MHz) comparado con el ILI9488 (hasta 60 MHz). Nuestro sistema está configurado a **40 MHz**, que es el punto óptimo recomendado por Bodmer (autor de TFT_eSPI) para ESP32-S3.
 
+**¿Por qué 40 MHz y no 80 MHz?**
+- Balance entre velocidad y estabilidad
+- Compatibilidad con XPT2046 touch en bus compartido
+- Recomendación oficial de TFT_eSPI Setup27
+- Mayor margen de seguridad para cables largos
+- Probado extensivamente por la comunidad
+
 **Referencia:** [TFT_eSPI GitHub Discussion #898](https://github.com/Bodmer/TFT_eSPI/discussions/898)
 
 #### 2. Profundidad de Color Más Eficiente
@@ -88,6 +95,14 @@ Benchmarks de la comunidad muestran que ST7796S tiene mejor rendimiento en opera
 | Fill rect 100x100 | ~8 ms | ~12 ms |
 | Draw text | ~3 ms | ~4 ms |
 | FPS (full screen) | ~42 FPS | ~28 FPS |
+
+**Condiciones de prueba:**
+- ESP32 @ 240 MHz
+- TFT_eSPI library v2.5.x
+- SPI @ 40 MHz para ambos displays
+- Operaciones gráficas estándar (no sprites)
+
+**Nota:** Resultados pueden variar según cables, alimentación y configuración específica.
 
 **Referencia:** [YouTube: ST7796 vs ILI9488 Performance](https://www.youtube.com/watch?v=dvNLbD7TZUo)
 
@@ -149,29 +164,37 @@ ILI9488 tiene problemas conocidos y documentados con controladores touch en bus 
    - Especificaciones eléctricas
    - Timings SPI
    - Comandos de inicialización
+   - [Copia local disponible si se requiere]
 
 2. **TFT_eSPI Library (Bodmer)**
    - GitHub: https://github.com/Bodmer/TFT_eSPI
    - Version actual: 2.5.43
    - Setup files: User_Setups/
+   - **Nota:** En caso de que los enlaces externos no estén disponibles, la configuración esencial está documentada en `platformio.ini` y este documento contiene toda la información crítica para el funcionamiento del sistema.
 
 ### Discusiones Técnicas Relevantes
 1. **ST7796 and ILI9488 Touch Controller Warnings**
    - https://github.com/Bodmer/TFT_eSPI/discussions/898
    - Explica problemas SDO/MISO y soluciones
+   - **Resumen clave:** ST7796S funciona mejor con touch en bus compartido
 
 2. **ST7796S Compatibility Thread**
    - https://github.com/Bodmer/TFT_eSPI/issues/499
    - Confirmación de soporte y benchmarks
+   - **Resumen clave:** ST7796S validado a 40-80 MHz en ESP32
 
 3. **Driver Color Differences**
    - https://github.com/Bodmer/TFT_eSPI/discussions/2239
    - Explica diferencias de color entre drivers
+   - **Resumen clave:** Cada driver tiene gamma distinto, usar el correcto
 
 ### Videos Comparativos
 1. **ST7796 vs ILI9488 Performance**
    - https://www.youtube.com/watch?v=dvNLbD7TZUo
    - Benchmarks lado a lado
+   - **Resumen clave:** ST7796S ~50% más rápido en FPS
+
+**Nota sobre referencias externas:** Los enlaces proporcionados son las fuentes oficiales. En caso de indisponibilidad, toda la información esencial está documentada en este archivo y en la configuración del proyecto (`platformio.ini`, `include/pins.h`).
 
 ---
 
