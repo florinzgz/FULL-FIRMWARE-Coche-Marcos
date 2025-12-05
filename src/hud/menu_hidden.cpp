@@ -808,7 +808,7 @@ static void handleKeypadInput(int buttonIndex) {
             tft->fillRect(100, 40, 280, 35, TFT_RED);
             tft->setTextDatum(MC_DATUM);
             tft->setTextColor(TFT_WHITE, TFT_RED);
-            tft->drawString("CODIGO INCORRECTO", 240, 55, 2);
+            tft->drawString("CÓDIGO INCORRECTO", 240, 55, 2);
             Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
             delay(1000);
             codeBuffer = 0;
