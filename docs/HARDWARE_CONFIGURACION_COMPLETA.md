@@ -233,6 +233,19 @@ Sensores inductivos de proximidad NPN NO 4mm.
 
 ## 📊 Mapeo Completo de Pines ESP32-S3
 
+**⚠️ NOTA IMPORTANTE:** Esta tabla puede contener información desactualizada. Para el mapeo de pines definitivo y actualizado, consulta siempre el archivo `include/pins.h` en el código fuente, que es la referencia autoritativa.
+
+**Pines críticos de la pantalla ST7796S (fuente: pins.h):**
+- TFT_CS = GPIO 16
+- TFT_DC = GPIO 13  
+- TFT_RST = GPIO 14
+- TFT_MOSI = GPIO 11
+- TFT_MISO = GPIO 12
+- TFT_SCLK = GPIO 10
+- TFT_BL = GPIO 42
+- TOUCH_CS = GPIO 21
+- TOUCH_IRQ = GPIO 47
+
 ### Lado Izquierdo
 
 | Pin | GPIO | Función | Módulo |
@@ -254,7 +267,7 @@ Sensores inductivos de proximidad NPN NO 4mm.
 | 15 | 12 | Touch CS | XPT2046 |
 | 16 | 13 | Touch IRQ | XPT2046 |
 | 17 | 14 | TFT RST | ST7796S |
-| 18 | 15 | TFT CS | ST7796S |
+| 18 | 16 | TFT CS | ST7796S |
 | 19 | 16 | DFPlayer RX | UART |
 | 20 | 17 | DFPlayer TX | UART |
 | 21 | 18 | SPI SCK | Compartido |
