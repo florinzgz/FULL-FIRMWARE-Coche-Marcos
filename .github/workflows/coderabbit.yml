@@ -1,42 +1,24 @@
-name: CodeRabbit Audit
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: es-ES
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+reviews:
+  fail_commit_status: true
+  collapse_walkthrough: true
+  auto_apply_labels: true
+  auto_assign_reviewers: true
+  review_status: true
+  profile: assertive
 
-jobs:
-  coderabbit-review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Run CodeRabbit Review
-        uses: coderabbitai/action@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          config: |
-            language: es-ES
-            reviews:
-              fail_commit_status: true        # Marca el commit como fallido si hay problemas
-              collapse_walkthrough: true      # Colapsa explicaciones largas
-              auto_apply_labels: true         # Aplica etiquetas automáticamente
-              auto_assign_reviewers: true     # Asigna revisores automáticamente
-              review_status: true             # Muestra estado de revisión en PR/MR
-              profile: assertive              # Auditoría exhaustiva, feedback detallado y “nitpicky”
-
-            guidelines:
-              - match: "src/**"
-                message: "Verificar uso de millis() en lugar de delay(); evitar bloqueos en loop() y tareas FreeRTOS."
-              - match: "src/**"
-                message: "Comprobar clamps y guards en sensores; validar conversiones y unidades contra settings.h."
-              - match: "include/**"
-                message: "Revisar coherencia de APIs y prototipos; evitar funciones no declaradas o firmas divergentes."
-              - match: "src/HUD/**"
-                message: "Asegurar que HUDManager y LEDController respeten settings.h y muestren advertencias de errores persistentes."
-              - match: "src/tasks/**"
-                message: "Revisar tamaños de stack en xTaskCreate; medir HighWaterMark y evitar desbordamientos."
-              - match: "src/led/**"
-                message: "Confirmar configuración LEDC (resolución/frecuencia) y que el duty respete los límites (0..(1<<res)-1)."
-              - match: "platformio.ini"
-                message: "Verificar entornos (release/test/ota/touch-debug/no-touch) y coherencia de flags y puertos de subida."
+guidelines:
+  - match: "src/**"
+    message: "Verificar uso de millis() en lugar de delay(); evitar bloqueos en loop() y tareas FreeRTOS."
+  - match: "src/**"
+    message: "Comprobar clamps y guards en sensores; validar conversiones y unidades contra settings.h."
+  - match: "include/**"
+    message: "Revisar coherencia de APIs y prototipos; evitar funciones no declaradas o firmas divergentes."
+  - match: "src/HUD/**"
+    message: "Asegurar que HUDManager y LEDController respeten settings.h y muestren advertencias de errores persistentes."
+  - match: "src/tasks/**"
+    message: "Revisar tamaños de stack en xTaskCreate; medir HighWaterMark y evitar desbordamientos."
+  - match: "platformio.ini"
+    message: "Verificar entornos (release/test/ota/touch-debug/no-touch) y coherencia de flags y puertos de subida."
