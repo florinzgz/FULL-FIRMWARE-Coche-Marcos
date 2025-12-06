@@ -11,7 +11,7 @@
 
 // Variables estáticas
 MenuType HUDManager::currentMenu = MenuType::NONE;
-CarData HUDManager::carData = {};
+CarData HUDManager::carData = CarData{};
 uint32_t HUDManager::lastUpdateMs = 0;
 bool HUDManager::needsRedraw = true;
 uint8_t HUDManager::brightness = 200;
