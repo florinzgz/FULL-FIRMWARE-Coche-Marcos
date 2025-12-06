@@ -172,6 +172,20 @@ void setup() {
     System::init();
     Serial.println("[BOOT] Initializing Storage...");
     Storage::init();
+    
+    // 🔒 CRITICAL FIX: Load configuration from EEPROM
+    // Without this, cfg.displayBrightness is uninitialized (0), causing screen to turn off
+    // when HUDManager reconfigures the backlight to PWM mode
+    Serial.println("[BOOT] Loading configuration from EEPROM...");
+    if (Storage::isCorrupted()) {
+        Serial.println("[BOOT] EEPROM corrupted or uninitialized - applying defaults");
+        Storage::defaults(cfg);
+        Storage::save(cfg);
+    } else {
+        Storage::load(cfg);
+    }
+    Serial.printf("[BOOT] Display brightness loaded: %d\n", cfg.displayBrightness);
+    
     Serial.println("[BOOT] Initializing Logger...");
     Logger::init();
     
