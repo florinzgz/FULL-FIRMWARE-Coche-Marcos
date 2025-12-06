@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdio>
 
 /**
  * @file error_codes.h
