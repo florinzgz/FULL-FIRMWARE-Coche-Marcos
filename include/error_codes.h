@@ -154,25 +154,25 @@ inline const char* getErrorDescription(uint16_t code) {
     // Current Sensors (300-399)
     if (code >= 300 && code <= 303) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf300[32];  // Unique buffer name to avoid conflicts
+        thread_local char buf300[32];  // Unique buffer name to avoid conflicts, now thread-safe
         snprintf(buf300, sizeof(buf300), "INA226 %s fallo persistente", motorNames[code - 300]);
         return buf300;
     }
     if (code >= 310 && code <= 313) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf310[32];  // Unique buffer name
+        thread_local char buf310[32];  // Unique buffer name, now thread-safe
         snprintf(buf310, sizeof(buf310), "INA226 %s config error", motorNames[code - 310]);
         return buf310;
     }
     if (code >= 320 && code <= 323) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf320[32];  // Unique buffer name
+        thread_local char buf320[32];  // Unique buffer name, now thread-safe
         snprintf(buf320, sizeof(buf320), "INA226 %s voltaje error", motorNames[code - 320]);
         return buf320;
     }
     if (code >= 330 && code <= 333) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf330[32];  // Unique buffer name
+        thread_local char buf330[32];  // Unique buffer name, now thread-safe
         snprintf(buf330, sizeof(buf330), "INA226 %s corriente error", motorNames[code - 330]);
         return buf330;
     }
