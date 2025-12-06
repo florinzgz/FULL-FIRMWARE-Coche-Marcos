@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdio>
+#include <cstdint>
 
 /**
  * @file error_codes.h
@@ -154,31 +155,31 @@ inline const char* getErrorDescription(uint16_t code) {
     // Current Sensors (300-399)
     if (code >= 300 && code <= 303) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf300[32];  // Unique buffer name to avoid conflicts, now thread-safe
+        thread_local char buf300[48];  // Increased buffer size for safety margin
         snprintf(buf300, sizeof(buf300), "INA226 %s fallo persistente", motorNames[code - 300]);
         return buf300;
     }
     if (code >= 310 && code <= 313) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf310[32];  // Unique buffer name, now thread-safe
+        thread_local char buf310[48];  // Increased buffer size for safety margin
         snprintf(buf310, sizeof(buf310), "INA226 %s config error", motorNames[code - 310]);
         return buf310;
     }
     if (code >= 320 && code <= 323) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf320[32];  // Unique buffer name, now thread-safe
+        thread_local char buf320[48];  // Increased buffer size for safety margin
         snprintf(buf320, sizeof(buf320), "INA226 %s voltaje error", motorNames[code - 320]);
         return buf320;
     }
     if (code >= 330 && code <= 333) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf330[32];  // Unique buffer name, now thread-safe
+        thread_local char buf330[48];  // Increased buffer size for safety margin
         snprintf(buf330, sizeof(buf330), "INA226 %s corriente error", motorNames[code - 330]);
         return buf330;
     }
     if (code >= 340 && code <= 343) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf340[32];  // Unique buffer name
+        thread_local char buf340[48];  // Increased buffer size for safety margin
         snprintf(buf340, sizeof(buf340), "INA226 %s potencia error", motorNames[code - 340]);
         return buf340;
     }
@@ -187,7 +188,7 @@ inline const char* getErrorDescription(uint16_t code) {
     // Temperature Sensors (400-499)
     if (code >= 400 && code <= 403) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf400[32];  // Unique buffer name
+        thread_local char buf400[48];  // Increased buffer size for safety margin
         snprintf(buf400, sizeof(buf400), "DS18B20 %s no encontrado", motorNames[code - 400]);
         return buf400;
     }
@@ -196,7 +197,7 @@ inline const char* getErrorDescription(uint16_t code) {
     // Wheel Sensors (500-599)
     if (code >= 500 && code <= 503) {
         static const char* wheelNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf500[32];  // Unique buffer name
+        thread_local char buf500[48];  // Increased buffer size for safety margin
         snprintf(buf500, sizeof(buf500), "Sensor rueda %s sin pulsos", wheelNames[code - 500]);
         return buf500;
     }
@@ -218,7 +219,7 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == DFPLAYER_INIT_FAIL) return "DFPlayer init fallo";
     if (code == DFPLAYER_COMM_ERROR) return "DFPlayer comm error";
     if (code >= DFPLAYER_ERROR_BASE && code < 720) {
-        static char buf702[32];  // Unique buffer name
+        thread_local char buf702[48];  // Increased buffer size for safety margin
         snprintf(buf702, sizeof(buf702), "DFPlayer error %d", code - DFPLAYER_ERROR_BASE);
         return buf702;
     }
@@ -236,13 +237,13 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == TRACTION_ASYMMETRY_EXTREME) return "Asimetria extrema";
     if (code >= 810 && code <= 813) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf810[32];  // Unique buffer name
+        thread_local char buf810[48];  // Increased buffer size for safety margin
         snprintf(buf810, sizeof(buf810), "Motor %s sobrecorriente", motorNames[code - 810]);
         return buf810;
     }
     if (code >= 820 && code <= 823) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf820[32];  // Unique buffer name
+        thread_local char buf820[48];  // Increased buffer size for safety margin
         snprintf(buf820, sizeof(buf820), "Motor %s PWM invalido", motorNames[code - 820]);
         return buf820;
     }

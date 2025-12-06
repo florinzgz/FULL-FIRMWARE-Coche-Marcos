@@ -576,7 +576,7 @@ static void showErrors() {
         tft->setTextColor(TFT_GREEN, TFT_BLACK);
         tft->drawString("Sin errores", 240, 150, 4);
     } else {
-        char line[64];
+        char line[80];  // Increased buffer size to safely accommodate error code + description
         int y = 80;
         int displayed = 0;
         for (int i = 0; i < count && displayed < MAX_DISPLAYED_ERRORS; i++) {
