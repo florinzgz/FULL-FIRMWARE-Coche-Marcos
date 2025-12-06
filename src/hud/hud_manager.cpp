@@ -82,23 +82,48 @@ void HUDManager::init() {
     tft.fillScreen(TFT_BLACK);
     // 🔒 v2.4.2: Eliminado delay(50) - fillScreen es síncrono, no requiere espera
     
-    // 🔒 CORRECCIÓN MEDIA: Cargar brightness de configuración
+    // 🔒 CRITICAL FIX v2.9.9: Enhanced brightness loading with validation
+    // Print diagnostic info to help debug display issues
+    Serial.printf("[HUD] Config brightness value: %d\n", cfg.displayBrightness);
+    
+    // Validate and load brightness from configuration
     if (cfg.displayBrightness > 0 && cfg.displayBrightness <= 255) {
         brightness = cfg.displayBrightness;
+        Serial.printf("[HUD] Using config brightness: %d\n", brightness);
         Logger::infof("HUD: Brightness cargado de config: %d", brightness);
     } else {
         // 🔒 CRITICAL FIX: Ensure brightness is never 0 (would turn off screen)
         brightness = DISPLAY_BRIGHTNESS_DEFAULT;  // Use safe default if config is invalid
+        Serial.printf("[HUD] Config brightness invalid (%d), using default: %d\n", cfg.displayBrightness, DISPLAY_BRIGHTNESS_DEFAULT);
         Logger::warnf("HUD: Valor de brightness inválido (%d), usando predeterminado: %d", cfg.displayBrightness, DISPLAY_BRIGHTNESS_DEFAULT);
     }
+    
+    // 🔒 CRITICAL: Double-check brightness is valid before setting PWM
+    // This is a failsafe in case of memory corruption or race conditions
+    if (brightness == 0) {
+        Serial.println("[HUD] CRITICAL: Brightness is 0! Forcing to default value.");
+        brightness = DISPLAY_BRIGHTNESS_DEFAULT;
+    }
+    
+    Serial.printf("[HUD] Final brightness value: %d (validated)\n", brightness);
     
     // 🔒 v2.8.1: Configurar backlight PWM para control de brillo
     // Usamos LEDC PWM en lugar de digital GPIO para permitir dimming
     // Esto sobrescribe la configuración digital anterior con PWM
+    // CRITICAL: Set up PWM and write brightness value to prevent any flicker
     ledcSetup(0, 5000, 8);  // Canal 0, 5kHz, 8-bit resolution
     ledcAttachPin(PIN_TFT_BL, 0);
+    // Write brightness value twice to ensure it's definitely applied
+    // This prevents any race conditions or timing issues that could cause the backlight to turn off
     ledcWrite(0, brightness);
+    delayMicroseconds(100);  // Brief delay to ensure first write completes
+    ledcWrite(0, brightness);  // Write again to be absolutely certain
     Serial.printf("[HUD] Backlight PWM configured, brightness: %d\n", brightness);
+    
+    // 🔒 v2.9.9: Brief delay to ensure PWM signal stabilizes
+    // Without this, there may be a momentary flicker or the backlight may not turn on
+    delay(10);
+    Serial.println("[HUD] Backlight PWM stabilized");
     
     // Inicializar HUD básico (will show color test and initialize components)
     // Display is now ready with rotation=3 (480x320 landscape, ST7796S)

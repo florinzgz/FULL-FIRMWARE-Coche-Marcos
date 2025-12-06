@@ -186,6 +186,16 @@ void setup() {
     }
     Serial.printf("[BOOT] Display brightness loaded: %d\n", cfg.displayBrightness);
     
+    // 🔒 v2.9.9: Additional safety check - ensure brightness is valid after load
+    // This is a failsafe in case EEPROM data is corrupted or from an incompatible version
+    if (cfg.displayBrightness == 0 || cfg.displayBrightness > 255) {
+        Serial.printf("[BOOT] WARNING: Invalid brightness value (%d), forcing to default (%d)\n", 
+                      cfg.displayBrightness, DISPLAY_BRIGHTNESS_DEFAULT);
+        cfg.displayBrightness = DISPLAY_BRIGHTNESS_DEFAULT;
+        Storage::save(cfg);  // Save the corrected value
+        Serial.println("[BOOT] Brightness corrected and saved to EEPROM");
+    }
+    
     Serial.println("[BOOT] Initializing Logger...");
     Logger::init();
     
