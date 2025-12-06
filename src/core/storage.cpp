@@ -46,7 +46,7 @@ void Storage::defaults(Config &cfg) {
     // HUD
     cfg.showTemps  = true;
     cfg.showEffort = true;
-    cfg.displayBrightness = 200;  // Brillo por defecto (200 de 255)
+    cfg.displayBrightness = DISPLAY_BRIGHTNESS_DEFAULT;  // Default brightness
 
     // Módulos
     cfg.audioEnabled      = true;

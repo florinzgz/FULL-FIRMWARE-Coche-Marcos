@@ -20,6 +20,10 @@ constexpr int MAX_RPM          = 400;  // rpm
 constexpr int REGEN_DEFAULT    = 30;
 
 // ======================================================
+// Display brightness (0..255, PWM duty cycle)
+constexpr uint8_t DISPLAY_BRIGHTNESS_DEFAULT = 200;  // Default brightness (200 of 255)
+
+// ======================================================
 // Comprobaciones en tiempo de compilación
 static_assert(TEMP_WARN_MOTOR < TEMP_MAX_MOTOR, "TEMP_WARN_MOTOR must be less than TEMP_MAX_MOTOR");
 static_assert(CURR_MAX_WHEEL > 0, "CURR_MAX_WHEEL must be > 0");

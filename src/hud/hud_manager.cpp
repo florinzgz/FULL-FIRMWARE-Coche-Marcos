@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "system.h"
 #include "storage.h"
+#include "settings.h"  // For DISPLAY_BRIGHTNESS_DEFAULT
 #include "sensors.h"  // Para estado de sensores
 #include "pedal.h"    // Para calibración del pedal
 #include <Arduino.h>
@@ -87,8 +88,8 @@ void HUDManager::init() {
         Logger::infof("HUD: Brightness cargado de config: %d", brightness);
     } else {
         // 🔒 CRITICAL FIX: Ensure brightness is never 0 (would turn off screen)
-        brightness = 200;  // Use safe default if config is invalid
-        Logger::warnf("HUD: Invalid brightness value (%d), using default: 200", cfg.displayBrightness);
+        brightness = DISPLAY_BRIGHTNESS_DEFAULT;  // Use safe default if config is invalid
+        Logger::warnf("HUD: Invalid brightness value (%d), using default: %d", cfg.displayBrightness, DISPLAY_BRIGHTNESS_DEFAULT);
     }
     
     // 🔒 v2.8.1: Configurar backlight PWM para control de brillo
