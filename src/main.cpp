@@ -175,6 +175,7 @@ void setup() {
     
     // 🔒 CRITICAL FIX: Load configuration from EEPROM
     // Without this, cfg.displayBrightness is uninitialized (0), causing screen to turn off
+    // when HUDManager reconfigures the backlight to PWM mode
     Serial.println("[BOOT] Loading configuration from EEPROM...");
     if (Storage::isCorrupted()) {
         Serial.println("[BOOT] EEPROM corrupted or uninitialized - applying defaults");
