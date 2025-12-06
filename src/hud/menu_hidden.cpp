@@ -554,6 +554,10 @@ static void restoreFactory() {
 }
 
 // 🆕 v2.9.5: Mejorada visualización de errores con descripciones
+// Constantes para visualización de errores
+static const int MAX_DISPLAYED_ERRORS = 7;  // Máximo de errores mostrados a la vez
+static const int ERROR_LINE_LENGTH_THRESHOLD = 40;  // Umbral para usar fuente pequeña
+
 static void showErrors() {
     int count = System::getErrorCount();
     const Storage::ErrorLog* errors = System::getErrors();
@@ -575,14 +579,14 @@ static void showErrors() {
         char line[64];
         int y = 80;
         int displayed = 0;
-        for (int i = 0; i < count && displayed < 7; i++) {  // Max 7 para dejar espacio
+        for (int i = 0; i < count && displayed < MAX_DISPLAYED_ERRORS; i++) {
             if (errors[i].code != 0) {
                 // 🆕 v2.9.5: Mostrar código Y descripción
                 const char* desc = ErrorCodes::getErrorDescription(errors[i].code);
                 snprintf(line, sizeof(line), "%d: %s", errors[i].code, desc);
                 
                 // Usar fuente más pequeña si la descripción es larga
-                if (strlen(line) > 40) {
+                if (strlen(line) > ERROR_LINE_LENGTH_THRESHOLD) {
                     tft->drawString(line, 70, y, 1);  // Fuente 1 (más pequeña)
                     y += 15;
                 } else {
@@ -599,7 +603,7 @@ static void showErrors() {
         tft->drawString(line, 70, y + 5, 2);
         
         // Mensaje de ayuda si hay más errores de los que se pueden mostrar
-        if (count > 7) {
+        if (count > MAX_DISPLAYED_ERRORS) {
             tft->setTextColor(TFT_CYAN, TFT_BLACK);
             tft->setTextDatum(MC_DATUM);
             snprintf(line, sizeof(line), "(Mostrando %d de %d)", displayed, count);

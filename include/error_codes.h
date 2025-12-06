@@ -153,51 +153,51 @@ inline const char* getErrorDescription(uint16_t code) {
     // Current Sensors (300-399)
     if (code >= 300 && code <= 303) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "INA226 %s fallo persistente", motorNames[code - 300]);
-        return buf;
+        static char buf300[32];  // Unique buffer name to avoid conflicts
+        snprintf(buf300, sizeof(buf300), "INA226 %s fallo persistente", motorNames[code - 300]);
+        return buf300;
     }
     if (code >= 310 && code <= 313) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "INA226 %s config error", motorNames[code - 310]);
-        return buf;
+        static char buf310[32];  // Unique buffer name
+        snprintf(buf310, sizeof(buf310), "INA226 %s config error", motorNames[code - 310]);
+        return buf310;
     }
     if (code >= 320 && code <= 323) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "INA226 %s voltaje error", motorNames[code - 320]);
-        return buf;
+        static char buf320[32];  // Unique buffer name
+        snprintf(buf320, sizeof(buf320), "INA226 %s voltaje error", motorNames[code - 320]);
+        return buf320;
     }
     if (code >= 330 && code <= 333) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "INA226 %s corriente error", motorNames[code - 330]);
-        return buf;
+        static char buf330[32];  // Unique buffer name
+        snprintf(buf330, sizeof(buf330), "INA226 %s corriente error", motorNames[code - 330]);
+        return buf330;
     }
     if (code >= 340 && code <= 343) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "INA226 %s potencia error", motorNames[code - 340]);
-        return buf;
+        static char buf340[32];  // Unique buffer name
+        snprintf(buf340, sizeof(buf340), "INA226 %s potencia error", motorNames[code - 340]);
+        return buf340;
     }
     if (code == CURRENT_SENSORS_INIT_FAIL) return "Init sensores corriente fallo";
     
     // Temperature Sensors (400-499)
     if (code >= 400 && code <= 403) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "DS18B20 %s no encontrado", motorNames[code - 400]);
-        return buf;
+        static char buf400[32];  // Unique buffer name
+        snprintf(buf400, sizeof(buf400), "DS18B20 %s no encontrado", motorNames[code - 400]);
+        return buf400;
     }
     if (code == TEMP_CONVERSION_TIMEOUT) return "Timeout conversion temperatura";
     
     // Wheel Sensors (500-599)
     if (code >= 500 && code <= 503) {
         static const char* wheelNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "Sensor rueda %s sin pulsos", wheelNames[code - 500]);
-        return buf;
+        static char buf500[32];  // Unique buffer name
+        snprintf(buf500, sizeof(buf500), "Sensor rueda %s sin pulsos", wheelNames[code - 500]);
+        return buf500;
     }
     
     // Relay System (600-699)
@@ -217,9 +217,9 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == DFPLAYER_INIT_FAIL) return "DFPlayer init fallo";
     if (code == DFPLAYER_COMM_ERROR) return "DFPlayer comm error";
     if (code >= DFPLAYER_ERROR_BASE && code < 720) {
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "DFPlayer error %d", code - DFPLAYER_ERROR_BASE);
-        return buf;
+        static char buf702[32];  // Unique buffer name
+        snprintf(buf702, sizeof(buf702), "DFPlayer error %d", code - DFPLAYER_ERROR_BASE);
+        return buf702;
     }
     if (code == ALERT_NOT_INITIALIZED) return "Alertas sin inicializar";
     if (code == ALERT_INVALID_TRACK) return "Track alerta invalido";
@@ -235,15 +235,15 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == TRACTION_ASYMMETRY_EXTREME) return "Asimetria extrema";
     if (code >= 810 && code <= 813) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "Motor %s sobrecorriente", motorNames[code - 810]);
-        return buf;
+        static char buf810[32];  // Unique buffer name
+        snprintf(buf810, sizeof(buf810), "Motor %s sobrecorriente", motorNames[code - 810]);
+        return buf810;
     }
     if (code >= 820 && code <= 823) {
         static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        static char buf[32];
-        snprintf(buf, sizeof(buf), "Motor %s PWM invalido", motorNames[code - 820]);
-        return buf;
+        static char buf820[32];  // Unique buffer name
+        snprintf(buf820, sizeof(buf820), "Motor %s PWM invalido", motorNames[code - 820]);
+        return buf820;
     }
     
     // Storage System (900-999)
