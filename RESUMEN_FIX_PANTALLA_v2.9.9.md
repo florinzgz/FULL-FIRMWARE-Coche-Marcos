@@ -180,7 +180,6 @@ Con estas correcciones, el sistema garantiza que:
 4. ✅ El backlight permanece encendido durante todo el proceso de inicio
 5. ✅ **Stack overflow eliminado** - no más reinicios continuos
 6. ✅ Logging detallado para diagnosticar problemas futuros
-5. ✅ Logging detallado para diagnosticar problemas futuros
 
 ## 🔍 Diagnóstico
 
