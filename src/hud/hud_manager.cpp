@@ -85,6 +85,10 @@ void HUDManager::init() {
     if (cfg.displayBrightness > 0 && cfg.displayBrightness <= 255) {
         brightness = cfg.displayBrightness;
         Logger::infof("HUD: Brightness cargado de config: %d", brightness);
+    } else {
+        // 🔒 CRITICAL FIX: Ensure brightness is never 0 (would turn off screen)
+        brightness = 200;  // Use safe default if config is invalid
+        Logger::warnf("HUD: Invalid brightness value (%d), using default: 200", cfg.displayBrightness);
     }
     
     // 🔒 v2.8.1: Configurar backlight PWM para control de brillo
