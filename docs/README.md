@@ -1,12 +1,25 @@
 # 📚 Documentación del Firmware - ESP32-S3 Car Control System
 
-**Versión Firmware:** 2.9.4  
+**Versión Firmware:** 2.9.5  
 **Placa:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2024-12-05
+**Última actualización:** 2025-12-05
 
 ---
 
-## 🆕 NOVEDAD: Calibración Touch Sin Pantalla Funcional (v2.9.4)
+## 🆕 NOVEDAD: Documentación de Códigos de Error (v2.9.5)
+
+**¿No entiendes los códigos de error del menú oculto?**
+
+### ⚡ Consulta:
+1. **Accede al menú oculto** (tocar batería 4 veces: 8-9-8-9)
+2. **Los errores ahora muestran descripciones claras**, no solo números
+3. **Ejemplo:** "300: INA226 FL fallo persistente" en lugar de "Error 1: Codigo 300"
+
+**📖 Guía completa de códigos:** [CODIGOS_ERROR.md](CODIGOS_ERROR.md)
+
+---
+
+## 🎯 Calibración Touch Sin Pantalla Funcional (v2.9.4)
 
 **¿El touch no funciona y no puedes acceder al menú de calibración?**
 
@@ -34,11 +47,12 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 ---
 
-## 📊 Informes de Estado
+## 📊 Informes de Estado y Diagnóstico
 
 | Archivo | Descripción |
 |---------|-------------|
-| [FIRMWARE_FINAL_STATUS.md](FIRMWARE_FINAL_STATUS.md) | Estado final del firmware v2.8.9 - Sistema 100% operativo |
+| [CODIGOS_ERROR.md](CODIGOS_ERROR.md) | 🆕 **v2.9.5** Documentación completa de códigos de error (100-999) |
+| [FIRMWARE_FINAL_STATUS.md](FIRMWARE_FINAL_STATUS.md) | Estado final del firmware v2.9.5 - Sistema 100% operativo |
 | [INFORME_AUDITORIA.md](INFORME_AUDITORIA.md) | Auditoría completa del firmware con verificación de todos los módulos |
 | [INFORME_CHECKLIST.md](INFORME_CHECKLIST.md) | Checklist de verificación del sistema completo |
 | [CAMBIOS_RECIENTES.md](CAMBIOS_RECIENTES.md) | Historial de cambios y novedades del firmware |

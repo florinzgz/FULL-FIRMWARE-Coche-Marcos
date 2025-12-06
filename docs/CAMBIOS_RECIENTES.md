@@ -1,5 +1,69 @@
 # Cambios Recientes en el Firmware
 
+## Versión: 2.9.5
+**Fecha:** 2025-12-05  
+
+---
+
+## 🔍 Novedades v2.9.5 - ERROR DIAGNOSTICS ENHANCEMENT
+
+### 1. Sistema de Diagnóstico Mejorado ✅
+
+**Problema resuelto:** Códigos de error en menú oculto eran solo números sin explicación.
+
+**Solución implementada:**
+- ✅ Creado `docs/CODIGOS_ERROR.md` con documentación completa (100-999)
+- ✅ Creado `include/error_codes.h` con constantes y función `getErrorDescription()`
+- ✅ Actualizado menú oculto para mostrar descripciones claras
+- ✅ Formato mejorado: "300: INA226 FL fallo persistente" vs "Codigo 300"
+- ✅ Máximo 7 errores mostrados con fuente adaptativa
+- ✅ Indicador cuando hay más errores de los mostrados
+
+**Ejemplo de mejora:**
+```
+Antes: "Error 1: Codigo 300"
+        "Error 2: Codigo 450"
+        
+Ahora:  "300: INA226 FL fallo persistente"
+        "450: Timeout conversion temperatura"
+```
+
+**Rangos documentados:**
+- 100-199: Entradas (pedal, botones)
+- 200-299: Dirección (encoder, motor steering)
+- 300-399: Corriente (INA226)
+- 400-499: Temperatura (DS18B20)
+- 500-599: Ruedas (sensores inductivos)
+- 600-699: Relés y potencia
+- 700-799: Audio (DFPlayer, alertas)
+- 800-899: Tracción (motores, PWM)
+- 900-999: Storage (EEPROM, config)
+
+### 2. Eliminación Modo Sin Touch ✅
+
+**Cambio implementado:** Modo no-touch removido del firmware.
+
+**Justificación:**
+- Calibración touch disponible mediante botón físico 4X4 (5 segundos)
+- No es necesario mantener un entorno separado
+- Simplifica configuración y compilación
+
+**Archivos modificados:**
+- ✅ Eliminado `[env:esp32-s3-devkitc-no-touch]` de platformio.ini
+- ✅ Eliminado comentario de `-DDISABLE_TOUCH` build flag
+- ✅ Touch siempre habilitado por defecto
+
+### 3. Actualización de Versiones ✅
+
+**Archivos actualizados a v2.9.5:**
+- ✅ `platformio.ini` - Changelog ampliado
+- ✅ `project_config.ini` - Changelog con detalles completos
+- ✅ `docs/PROJECT_CONFIG.ini` - Sincronizado
+- ✅ `docs/README.md` - Nueva sección de códigos de error
+- ✅ `docs/FIRMWARE_FINAL_STATUS.md` - Estado actualizado
+
+---
+
 ## Versión: 2.8.9
 **Fecha:** 2025-12-02  
 

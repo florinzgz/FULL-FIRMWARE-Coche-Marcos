@@ -2,8 +2,8 @@
 
 ## ✅ FIRMWARE 100% FUNCIONAL Y VERIFICADO
 
-Fecha: 2025-12-02
-Versión: 2.8.9 - Final Release
+Fecha: 2025-12-05
+Versión: 2.9.5 - Final Release
 ESP32: S3-DevKitC-1 (44 pines)
 
 ---
@@ -11,6 +11,13 @@ ESP32: S3-DevKitC-1 (44 pines)
 ## 📋 RESUMEN EJECUTIVO
 
 **Estado:** ✅ **COMPLETO Y LISTO PARA PRODUCCIÓN**
+
+**Novedades v2.9.5:**
+- ✅ **Sistema de diagnóstico mejorado:** Descripciones claras de errores en menú oculto
+- ✅ **Documentación completa:** docs/CODIGOS_ERROR.md con todos los códigos 100-999
+- ✅ **Centralización:** include/error_codes.h con constantes y función getErrorDescription()
+- ✅ **Eliminado modo sin touch:** Entorno esp32-s3-devkitc-no-touch removido
+- ✅ **Mejora UX:** Errores muestran "300: INA226 FL fallo persistente" en lugar de "Código 300"
 
 **Novedades v2.8.9:**
 - ✅ Frecuencia SPI aumentada de 20MHz a 40MHz para mejor rendimiento del display
