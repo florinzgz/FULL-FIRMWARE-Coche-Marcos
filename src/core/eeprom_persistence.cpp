@@ -29,8 +29,8 @@ EEPROMPersistence::LEDConfig EEPROMPersistence::getDefaultLEDConfig() {
 
 EEPROMPersistence::WiFiConfig EEPROMPersistence::getDefaultWiFiConfig() {
     WiFiConfig cfg;
-    strncpy(cfg.ssid, "", sizeof(cfg.ssid));
-    strncpy(cfg.password, "", sizeof(cfg.password));
+    cfg.ssid[0] = '\0';
+    cfg.password[0] = '\0';
     cfg.autoConnect = false;
     cfg.otaEnabled = true;
     return cfg;
