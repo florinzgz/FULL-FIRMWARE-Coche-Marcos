@@ -9,10 +9,6 @@
 #include "pedal.h"    // Para calibración del pedal
 #include <Arduino.h>
 
-// 🔒 CRITICAL: Explicit extern declaration for cfg (defined in storage.cpp)
-// This ensures we're accessing the same global config instance across all modules
-extern Storage::Config cfg;
-
 // Variables estáticas
 MenuType HUDManager::currentMenu = MenuType::NONE;
 CarData HUDManager::carData = {};
