@@ -2,23 +2,41 @@
 
 **Fecha:** 2025-12-06  
 **Versión:** 2.9.9  
-**Problema:** La pantalla no muestra nada después del último merge
+**Problemas:** 
+1. La pantalla no muestra nada después del último merge
+2. Stack overflow (Stack canary watchpoint triggered)
 
 ---
 
-## 📋 Problema Reportado
+## 📋 Problemas Reportados
 
+### Problema 1: Pantalla Negra
 El usuario reportó que después del último merge (PR #67), la pantalla dejó de mostrar contenido. La pantalla quedaba completamente en negro, aunque el sistema seguía funcionando.
+
+### Problema 2: Stack Overflow
+El sistema se reinicia continuamente con el error:
+```
+Guru Meditation Error: Core 0 panic'ed (Unhandled debug exception)
+Debug exception reason: Stack canary watchpoint triggered (ipc0)
+```
 
 ## 🔍 Análisis de Causa Raíz
 
-El problema fue causado por una combinación de factores:
+### Causa 1: Brightness = 0
+El problema de pantalla negra fue causado por una combinación de factores:
 
 1. **EEPROM con datos corruptos o antiguos**: El valor `cfg.displayBrightness` podía ser 0 o inválido
 2. **Transición de GPIO a PWM**: Al cambiar de modo digital a PWM para el control del backlight, si el valor de brillo era 0, el backlight se apagaba completamente
 3. **Falta de validación robusta**: No había suficientes comprobaciones para asegurar que el brillo siempre fuera válido
 
-### Secuencia del problema:
+### Causa 2: Stack Overflow
+El stack overflow fue causado por:
+
+1. **Stack size por defecto insuficiente**: v2.9.8 revirtió los tamaños de stack a valores por defecto (8KB loop, 4KB main task)
+2. **Código de validación adicional**: Los nuevos Serial.printf() y validaciones añadieron uso de stack
+3. **Acumulación de llamadas**: El código de inicialización usa stack de forma profunda
+
+### Secuencia del problema de pantalla:
 ```
 1. main.cpp: pinMode(PIN_TFT_BL, OUTPUT) + digitalWrite(HIGH) → Backlight ON (digital)
 2. EEPROM load: cfg.displayBrightness = 0 (corrupto o no inicializado)
@@ -26,6 +44,14 @@ El problema fue causado por una combinación de factores:
    - ledcSetup() + ledcAttachPin() → Cambia de digital a PWM
    - ledcWrite(0, 0) → ¡Backlight OFF! (0% duty cycle)
 4. Resultado: Pantalla negra permanente
+```
+
+### Secuencia del stack overflow:
+```
+1. v2.9.8: Stack sizes comentados → 8KB loop stack, 4KB main task
+2. Setup inicia con stack pequeño
+3. Validaciones adicionales de brightness consumen más stack
+4. Stack overflow → Watchpoint triggered → Reboot continuo
 ```
 
 ## ✅ Solución Implementada
@@ -102,6 +128,18 @@ if (cfg.displayBrightness == 0 || cfg.displayBrightness > 255) {
 - Si el valor es inválido, se corrige automáticamente
 - Se guarda de vuelta a EEPROM para evitar el problema en futuros arranques
 
+### 5. Tamaños de Stack Incrementados (`platformio.ini`)
+```ini
+; Stack size configuration for ESP32-S3
+; v2.9.9: Re-enabled to fix stack overflow with enhanced brightness validation
+-DCONFIG_ARDUINO_LOOP_STACK_SIZE=20480   ; 20KB (was 8KB default)
+-DCONFIG_ESP_MAIN_TASK_STACK_SIZE=12288  ; 12KB (was 4KB default)
+```
+- Re-habilitados los tamaños de stack de v2.9.7 que resolvieron este problema
+- Loop stack: 20KB (2.5x el default de 8KB)
+- Main task stack: 12KB (3x el default de 4KB)
+- Previene "Stack canary watchpoint triggered" durante inicialización
+
 ## 📊 Niveles de Protección
 
 | Nivel | Ubicación | Función |
@@ -110,6 +148,7 @@ if (cfg.displayBrightness == 0 || cfg.displayBrightness > 255) {
 | 2 | `hud_manager.cpp` (línea 94) | Validación rango config |
 | 3 | `hud_manager.cpp` (línea 107) | Failsafe double-check |
 | 4 | `hud_manager.cpp` (línea 122) | PWM write double + delay |
+| 5 | `platformio.ini` (línea 184) | Stack sizes aumentados |
 
 ## 🔧 Archivos Modificados
 
@@ -126,6 +165,11 @@ if (cfg.displayBrightness == 0 || cfg.displayBrightness > 255) {
   - Failsafe adicional
   - PWM inicialización robusta con double-write y delays
 
+### `platformio.ini`
+- **Líneas modificadas**: 12
+- **Cambios**: Re-habilitados stack sizes de v2.9.7
+- **Funcionalidad**: Previene stack overflow durante boot
+
 ## 🎯 Resultados Esperados
 
 Con estas correcciones, el sistema garantiza que:
@@ -134,6 +178,8 @@ Con estas correcciones, el sistema garantiza que:
 2. ✅ Valores corruptos en EEPROM se detectan y corrigen automáticamente
 3. ✅ La transición de GPIO a PWM es suave y sin parpadeos
 4. ✅ El backlight permanece encendido durante todo el proceso de inicio
+5. ✅ **Stack overflow eliminado** - no más reinicios continuos
+6. ✅ Logging detallado para diagnosticar problemas futuros
 5. ✅ Logging detallado para diagnosticar problemas futuros
 
 ## 🔍 Diagnóstico
@@ -155,9 +201,11 @@ Si el valor de brillo se muestra como 0 en cualquier punto, indica un problema m
 
 **v2.9.9 (2025-12-06)**
 - 🔒 **CRITICAL FIX**: Pantalla en negro debido a brillo = 0
+- 🔒 **CRITICAL FIX**: Stack overflow (Stack canary watchpoint triggered)
 - ✅ Validación multi-capa de brillo de pantalla
 - ✅ PWM inicialización robusta con double-write
 - ✅ Auto-corrección de EEPROM corrupta
+- ✅ Stack sizes incrementados (20KB loop, 12KB main task)
 - ✅ Logging mejorado para diagnóstico
 
 ## 🚀 Próximos Pasos
@@ -165,7 +213,8 @@ Si el valor de brillo se muestra como 0 en cualquier punto, indica un problema m
 1. Flashear firmware v2.9.9 al ESP32-S3
 2. Verificar logs seriales durante el arranque
 3. Confirmar que la pantalla se enciende correctamente
-4. Si el problema persiste, revisar hardware (conexiones del backlight)
+4. Confirmar que **NO** hay más reinicios continuos
+5. Si el problema persiste, revisar hardware (conexiones del backlight)
 
 ---
 
