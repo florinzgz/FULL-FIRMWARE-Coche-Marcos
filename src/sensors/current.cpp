@@ -99,7 +99,8 @@ void Sensors::initCurrent() {
         }
         
         // Create INA226 object for this channel
-        ina[i] = new INA226(0x40);  // Address will be selected via TCA9548A multiplexer
+        // Using nothrow to explicitly get nullptr on allocation failure
+        ina[i] = new(std::nothrow) INA226(0x40);  // Address will be selected via TCA9548A multiplexer
         
         // 🔒 CRITICAL FIX: Check if allocation succeeded
         if (ina[i] == nullptr) {

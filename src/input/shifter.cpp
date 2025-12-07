@@ -47,7 +47,8 @@ void Shifter::init() {
         mcpAvailable = false;
     }
     
-    mcpShifter = new Adafruit_MCP23X17();
+    // Using nothrow to explicitly get nullptr on allocation failure
+    mcpShifter = new(std::nothrow) Adafruit_MCP23X17();
     
     // 🔒 CRITICAL FIX: Check if allocation succeeded
     if (mcpShifter == nullptr) {
