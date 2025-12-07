@@ -18,6 +18,22 @@
 static TFT_eSPI *tft = nullptr;
 // 🔒 v2.8.8: Ya no necesitamos puntero separado al touch
 
+// 🔒 CRITICAL: Helper function to ensure displayBrightness is never corrupted before saving
+// Stack overflow or memory corruption could set brightness to 0, causing black screen
+// This function validates brightness before every save to prevent permanent corruption
+// Note: Only validates displayBrightness. Other fields are assumed correct from calibration functions.
+static void safeSaveConfig() {
+    // Validate displayBrightness before saving (valid range: 1-255)
+    // Using same validation logic as main.cpp and hud_manager.cpp
+    if (cfg.displayBrightness < 1 || cfg.displayBrightness > 255) {
+        Logger::warnf("MenuHidden: displayBrightness corrupted (%d), restoring to default (%d)", 
+                      cfg.displayBrightness, DISPLAY_BRIGHTNESS_DEFAULT);
+        cfg.displayBrightness = DISPLAY_BRIGHTNESS_DEFAULT;
+    }
+    // Perform actual save to EEPROM with validated brightness value
+    Storage::save(cfg);
+}
+
 static bool menuActive = false;
 static uint16_t codeBuffer = 0;
 static const uint16_t accessCode = 8989;
@@ -194,7 +210,7 @@ static void updatePedalCalibration(bool touched) {
             cfg.pedalMin = pedalCalibMin;
             cfg.pedalMax = pedalCalibMax;
             Pedal::setCalibration(pedalCalibMin, pedalCalibMax, cfg.pedalCurve);
-            Storage::save(cfg);
+            safeSaveConfig();
             
             Logger::infof("Calibración pedal guardada: %d - %d", pedalCalibMin, pedalCalibMax);
             Alerts::play({Audio::AUDIO_PEDAL_OK, Audio::Priority::PRIO_HIGH});
@@ -251,7 +267,7 @@ static void updateEncoderCalibration(bool touched) {
             // Centrar el encoder
             Steering::center();
             cfg.steerZeroOffset = Steering::getZeroOffset();
-            Storage::save(cfg);
+            safeSaveConfig();
             
             Logger::infof("Encoder centrado. Offset: %ld", cfg.steerZeroOffset);
             calibState = CalibrationState::ENCODER_DONE;
@@ -367,7 +383,7 @@ static void updateRegenAdjust(int touchX, int touchY, bool touched) {
     // Detectar toque en botón GUARDAR
     else if (touchX >= 180 && touchX <= 300 && touchY >= 200 && touchY <= 240) {
         cfg.regenPercent = regenAdjustValue;
-        Storage::save(cfg);
+        safeSaveConfig();
         Logger::infof("Ajuste de regen guardado: %d%%", cfg.regenPercent);
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
         
@@ -405,7 +421,7 @@ static void applyModules(bool lights, bool media, bool traction) {
     cfg.lightsEnabled = lights;
     cfg.multimediaEnabled = media;
     cfg.tractionEnabled = traction;
-    Storage::save(cfg);
+    safeSaveConfig();
     Logger::infof("Módulos guardados: lights=%d media=%d traction=%d", lights, media, traction);
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
 }
@@ -511,7 +527,7 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
         cfg.lightsEnabled = tempLightsEnabled;
         cfg.multimediaEnabled = tempMultimediaEnabled;
         cfg.tractionEnabled = tempTractionEnabled;
-        Storage::save(cfg);
+        safeSaveConfig();
         Logger::info("Configuración de módulos guardada");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
         calibState = CalibrationState::NONE;
@@ -538,7 +554,7 @@ static void startModulesConfig() {
 }
 
 static void saveAndExit() {
-    Storage::save(cfg);
+    safeSaveConfig();
     Logger::info("Configuración guardada. Saliendo de menú oculto.");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
     menuActive = false;
@@ -549,7 +565,7 @@ static void saveAndExit() {
 static void restoreFactory() {
     Storage::defaults(cfg);
     Logger::info("Configuración restaurada a valores de fábrica.");
-    Storage::save(cfg);
+    safeSaveConfig();
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
 }
 
