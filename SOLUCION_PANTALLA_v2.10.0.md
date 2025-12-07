@@ -29,7 +29,7 @@ El usuario reportó los siguientes problemas con la versión 2.8.9:
 // Touch logging remains for diagnostics
 ```
 
-Esto indica que **HAB a código de diagnóstico visual** que dibujaba cruces en cada toque, y fue removido en alguna versión posterior a 2.8.9.
+Esto indica que **HABÍA código de diagnóstico visual** que dibujaba cruces en cada toque, y fue removido en alguna versión posterior a 2.8.9.
 
 **Causa:** La versión 2.8.9 probablemente contenía código de debugging que dibujaba indicadores visuales (cruces) en las coordenadas táctiles para ayudar con calibración.
 
