@@ -6,7 +6,7 @@ sonar.projectVersion=1.0
 
 # Directorios a analizar
 sonar.sources=src,include
-sonar.tests=test
+# Nota: eliminado sonar.tests porque no existe carpeta de tests en tu repo
 
 # Lenguaje principal
 sonar.language=cpp
