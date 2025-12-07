@@ -1,0 +1,23 @@
+# Identificadores únicos de tu proyecto en SonarCloud
+sonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
+sonar.organization=florinzgz
+sonar.projectName=ESP32-S3 Firmware HUD
+sonar.projectVersion=1.0
+
+# Directorios a analizar
+sonar.sources=src,include
+sonar.tests=test
+
+# Lenguaje principal
+sonar.language=cpp
+
+# Configuración para proyectos C/C++ con PlatformIO
+sonar.cfamily.build-wrapper-output=bw-output
+
+# Opciones adicionales para auditoría detallada
+sonar.sourceEncoding=UTF-8
+sonar.verbose=true
+
+# Quality Gate: bloquea merges si hay problemas graves
+sonar.qualitygate.wait=true
+sonar.cfamily.cache.enabled=true
