@@ -486,6 +486,7 @@ static void drawModulesConfigScreen() {
     // Subsequent redraws only clear the menu area to reduce flicker
     if (modulesConfigFirstCall) {
         tft->fillScreen(TFT_BLACK);
+        modulesConfigFirstCall = false;
     } else {
         tft->fillRect(60, 40, 360, 240, TFT_BLACK);
     }
