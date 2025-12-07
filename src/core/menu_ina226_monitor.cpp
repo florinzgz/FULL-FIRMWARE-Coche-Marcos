@@ -1,5 +1,6 @@
 #include "../../include/menu_ina226_monitor.h"
 #include "../../include/i2c_recovery.h"
+#include "../../include/logger.h"  // 🔒 CRITICAL FIX: Include logger for error reporting
 
 TFT_eSPI* MenuINA226Monitor::_tft = nullptr;
 unsigned long MenuINA226Monitor::_lastUpdate = 0;
@@ -25,6 +26,12 @@ void MenuINA226Monitor::init(TFT_eSPI* tft) {
 }
 
 void MenuINA226Monitor::draw() {
+    // 🔒 CRITICAL FIX: Check _tft is not null before use
+    if (_tft == nullptr) {
+        Logger::error(999, "MenuINA226Monitor::draw() called with null TFT");
+        return;
+    }
+    
     _tft->fillScreen(TFT_BLACK);
     _tft->setTextColor(TFT_WHITE, TFT_BLACK);
     _tft->setTextSize(2);
@@ -76,6 +83,9 @@ void MenuINA226Monitor::handleTouch(uint16_t x, uint16_t y) {
 }
 
 void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y) {
+    // 🔒 CRITICAL FIX: Check _tft is not null before use
+    if (_tft == nullptr) return;
+    
     // Card background
     _tft->fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 5, TFT_DARKGREY);
     _tft->drawRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 5, TFT_WHITE);
@@ -129,6 +139,9 @@ void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y) {
 }
 
 void MenuINA226Monitor::drawStatistics() {
+    // 🔒 CRITICAL FIX: Check _tft is not null before use
+    if (_tft == nullptr) return;
+    
     // Stats panel background
     _tft->fillRect(5, STATS_Y, 310, 60, TFT_NAVY);
     _tft->drawRect(5, STATS_Y, 310, 60, TFT_WHITE);
@@ -183,6 +196,9 @@ void MenuINA226Monitor::drawStatistics() {
 }
 
 void MenuINA226Monitor::drawButtons() {
+    // 🔒 CRITICAL FIX: Check _tft is not null before use
+    if (_tft == nullptr) return;
+    
     // Reset Stats button
     _tft->fillRoundRect(10, BTN_Y, 150, 30, 5, TFT_ORANGE);
     _tft->drawRoundRect(10, BTN_Y, 150, 30, 5, TFT_WHITE);

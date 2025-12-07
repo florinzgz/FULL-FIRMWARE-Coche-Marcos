@@ -38,9 +38,25 @@ static void announce(Shifter::Gear g) {
 void Shifter::init() {
     // ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4)
     // Pines consecutivos 8-12 para las 5 posiciones: P, R, N, D1, D2
-    // NOTA: mcpShifter es un singleton que persiste toda la vida de la aplicación.
-    // No se requiere cleanup ya que el MCP23017 debe estar disponible siempre.
-    mcpShifter = new Adafruit_MCP23X17();
+    
+    // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
+    // Delete existing object if init() is called multiple times
+    if (mcpShifter != nullptr) {
+        delete mcpShifter;
+        mcpShifter = nullptr;
+        mcpAvailable = false;
+    }
+    
+    // Using nothrow to explicitly get nullptr on allocation failure
+    mcpShifter = new(std::nothrow) Adafruit_MCP23X17();
+    
+    // 🔒 CRITICAL FIX: Check if allocation succeeded
+    if (mcpShifter == nullptr) {
+        mcpAvailable = false;
+        initialized = false;  // Initialization failed
+        Logger::error(700, "Shifter: Failed to allocate MCP23017 object!");
+        return;
+    }
     
     if (mcpShifter->begin_I2C(I2C_ADDR_MCP23017)) {
         // Configurar todos los pines del shifter como entrada con pull-up
@@ -51,16 +67,17 @@ void Shifter::init() {
         mcpShifter->pinMode(MCP_PIN_SHIFTER_D2, INPUT_PULLUP);  // GPIOB4: Drive 2
         
         mcpAvailable = true;
+        initialized = true;  // Success
         Logger::info("Shifter: MCP23017 GPIOB0-B4 configurado (pines 8-12)");
     } else {
         mcpAvailable = false;
+        initialized = false;  // Initialization failed
         Logger::error(700, "Shifter: MCP23017 no disponible!");
         // Liberar memoria si init falla
         delete mcpShifter;
         mcpShifter = nullptr;
     }
     
-    initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
     Logger::info("Shifter init completado (via MCP23017)");
 }
 

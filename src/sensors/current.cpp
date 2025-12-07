@@ -91,8 +91,24 @@ void Sensors::initCurrent() {
     bool allOk = true;
 
     for(int i=0; i<NUM_CURRENTS; i++) {
+        // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
+        // Delete existing INA226 objects before creating new ones
+        if (ina[i] != nullptr) {
+            delete ina[i];
+            ina[i] = nullptr;
+        }
+        
         // Create INA226 object for this channel
-        ina[i] = new INA226(0x40);  // Address will be selected via TCA9548A multiplexer
+        // Using nothrow to explicitly get nullptr on allocation failure
+        ina[i] = new(std::nothrow) INA226(0x40);  // Address will be selected via TCA9548A multiplexer
+        
+        // 🔒 CRITICAL FIX: Check if allocation succeeded
+        if (ina[i] == nullptr) {
+            Logger::errorf("INA226 allocation failed ch %d", i);
+            sensorOk[i] = false;
+            allOk = false;
+            continue;
+        }
         
         tcaSelect(i);
         if(!ina[i]->begin()) {
