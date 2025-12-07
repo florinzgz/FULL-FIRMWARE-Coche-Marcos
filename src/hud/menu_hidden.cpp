@@ -21,14 +21,17 @@ static TFT_eSPI *tft = nullptr;
 // 🔒 CRITICAL: Helper function to ensure displayBrightness is never corrupted before saving
 // Stack overflow or memory corruption could set brightness to 0, causing black screen
 // This function validates brightness before every save to prevent permanent corruption
+// Note: Only validates displayBrightness. Other fields are assumed correct from calibration functions.
 static void safeSaveConfig() {
-    // Validate displayBrightness before saving
-    if (cfg.displayBrightness == 0 || cfg.displayBrightness > 255) {
+    // Validate displayBrightness before saving (valid range: 1-255)
+    // Using same validation logic as main.cpp and hud_manager.cpp
+    if (cfg.displayBrightness < 1 || cfg.displayBrightness > 255) {
         Logger::warnf("MenuHidden: displayBrightness corrupted (%d), restoring to default (%d)", 
                       cfg.displayBrightness, DISPLAY_BRIGHTNESS_DEFAULT);
         cfg.displayBrightness = DISPLAY_BRIGHTNESS_DEFAULT;
     }
-    Storage::save(cfg);  // Original Storage::save call - do NOT replace this one
+    // Perform actual save to EEPROM with validated brightness value
+    Storage::save(cfg);
 }
 
 static bool menuActive = false;
