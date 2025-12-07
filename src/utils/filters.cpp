@@ -26,7 +26,8 @@ MovingAverage::~MovingAverage() {
 void MovingAverage::reset() {
     idx = 0; count = 0; sum = 0.0f;
     // 🔒 CRITICAL FIX: Check buffer is valid before use
-    if(buf != nullptr) memset(buf, 0, sizeof(float) * win);
+    if(buf == nullptr) return;
+    memset(buf, 0, sizeof(float) * win);
 }
 
 void MovingAverage::push(float v) {

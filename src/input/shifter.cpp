@@ -53,8 +53,8 @@ void Shifter::init() {
     // 🔒 CRITICAL FIX: Check if allocation succeeded
     if (mcpShifter == nullptr) {
         mcpAvailable = false;
+        initialized = false;  // Initialization failed
         Logger::error(700, "Shifter: Failed to allocate MCP23017 object!");
-        initialized = true;
         return;
     }
     
@@ -67,16 +67,17 @@ void Shifter::init() {
         mcpShifter->pinMode(MCP_PIN_SHIFTER_D2, INPUT_PULLUP);  // GPIOB4: Drive 2
         
         mcpAvailable = true;
+        initialized = true;  // Success
         Logger::info("Shifter: MCP23017 GPIOB0-B4 configurado (pines 8-12)");
     } else {
         mcpAvailable = false;
+        initialized = false;  // Initialization failed
         Logger::error(700, "Shifter: MCP23017 no disponible!");
         // Liberar memoria si init falla
         delete mcpShifter;
         mcpShifter = nullptr;
     }
     
-    initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
     Logger::info("Shifter init completado (via MCP23017)");
 }
 
