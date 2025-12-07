@@ -9,6 +9,13 @@ MovingAverage::MovingAverage(size_t window)
 : buf(nullptr), win(window), idx(0), count(0), sum(0.0f) {
     if(win == 0) win = 1;
     buf = (float*)malloc(sizeof(float) * win);
+    // 🔒 CRITICAL FIX: Check malloc success
+    if(buf == nullptr) {
+        // Allocation failed - set window to 0 to prevent crashes
+        win = 0;
+        count = 0;
+        return;
+    }
     memset(buf, 0, sizeof(float) * win);
 }
 
@@ -18,10 +25,14 @@ MovingAverage::~MovingAverage() {
 
 void MovingAverage::reset() {
     idx = 0; count = 0; sum = 0.0f;
-    if(buf) memset(buf, 0, sizeof(float) * win);
+    // 🔒 CRITICAL FIX: Check buffer is valid before use
+    if(buf != nullptr) memset(buf, 0, sizeof(float) * win);
 }
 
 void MovingAverage::push(float v) {
+    // 🔒 CRITICAL FIX: Check buffer is valid before use
+    if(buf == nullptr || win == 0) return;
+    
     if(count < win) {
         buf[count++] = v;
         sum += v;
