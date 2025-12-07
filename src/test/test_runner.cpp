@@ -81,9 +81,9 @@ bool runPreDeploymentTests() {
     MemoryStressTest::init();
     bool memoryOk = MemoryStressTest::runAllTests();
     
-    // Memory tests: track approximation based on typical test count
-    // Update this if memory tests are added/removed
-    const uint32_t MEMORY_TEST_COUNT = 4;  // Repeated init, fragmentation, stability, etc.
+    // Memory tests: actual tests run in MemoryStressTest::runAllTests()
+    // Currently: Repeated init, fragmentation, stability (malloc failures not called)
+    const uint32_t MEMORY_TEST_COUNT = 3;
     totalTests += MEMORY_TEST_COUNT;
     if (memoryOk) {
         totalPassed += MEMORY_TEST_COUNT;

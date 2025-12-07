@@ -177,13 +177,20 @@ bool testHeapFragmentation() {
     const size_t ALLOC_SIZE = 64;
     void* allocations[ALLOC_COUNT];
     
+    // Initialize array to nullptr for safe cleanup
+    for (int i = 0; i < ALLOC_COUNT; i++) {
+        allocations[i] = nullptr;
+    }
+    
     // Allocate
+    int successfulAllocs = 0;
     for (int i = 0; i < ALLOC_COUNT; i++) {
         allocations[i] = malloc(ALLOC_SIZE);
         if (allocations[i] == nullptr) {
-            Logger::warn("Allocation failed during fragmentation test");
+            Logger::warnf("Allocation failed at index %d during fragmentation test", i);
             break;
         }
+        successfulAllocs++;
     }
     
     // Deallocate every other allocation (creates fragmentation)

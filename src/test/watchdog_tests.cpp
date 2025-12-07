@@ -119,7 +119,8 @@ bool testFeedInterval() {
     delay(10);
     uint32_t newInterval = Watchdog::getLastFeedInterval();
     
-    bool intervalReset = (newInterval < interval);
+    // After feeding, the interval should be small (< 100ms) indicating recent feed
+    bool intervalReset = (newInterval < 100);
     
     bool passed = intervalOk && intervalReset;
     recordTest("Feed Interval", passed);
@@ -177,8 +178,6 @@ bool testEmergencyShutdown() {
     // Instead, we verify that the panic handler mechanism is in place
     // by checking that relay pins are configured correctly
     
-    bool shutdownReady = true;
-    
     // Verify relay pins are configured as outputs
     // The panic handler uses direct GPIO register access, but we can verify
     // that the pins are at least configured
@@ -188,15 +187,17 @@ bool testEmergencyShutdown() {
     pinMode(PIN_RELAY_DIR, OUTPUT);
     pinMode(PIN_RELAY_SPARE, OUTPUT);
     
-    // Verify we can control relay pins (without actually triggering them)
-    // This confirms the emergency shutdown mechanism would work
+    // Verify configuration by checking pin modes (Arduino doesn't provide easy API for this)
+    // For now, we just verify the pinMode calls don't crash
+    // This is a limitation - proper verification would require reading GPIO registers
     
-    Logger::info("Emergency shutdown mechanism verified (relay pins configured)");
-    Logger::info("⚠️  Note: Actual watchdog timeout not triggered (would reset system)");
+    Logger::warn("Emergency shutdown mechanism: Limited verification - pinMode configuration only");
+    Logger::warn("⚠️  Full test requires watchdog timeout trigger (would reset system)");
     
-    recordTest("Emergency Shutdown Mechanism", shutdownReady);
+    // Mark test as passed with caveat
+    recordTest("Emergency Shutdown Mechanism (limited)", true);
     
-    return shutdownReady;
+    return true;
 }
 
 void printSummary() {

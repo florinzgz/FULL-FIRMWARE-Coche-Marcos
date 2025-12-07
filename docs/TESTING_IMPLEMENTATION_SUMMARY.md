@@ -10,23 +10,26 @@ This implementation adds comprehensive pre-deployment testing infrastructure to 
 
 **Purpose:** Verify all subsystems operate correctly under normal conditions
 
-**Tests Implemented (22 total):**
-- Display Tests (4): Init, backlight, touch, rendering
-- Sensor Tests (4): Current (INA226), temperature (DS18B20), wheels, obstacles (VL53L5CX)
-- Motor Tests (3): Steering motor, traction control, relay sequence
-- Safety Tests (4): Watchdog feed, emergency stop, ABS, TCS
-- Communication Tests (3): I2C bus, Bluetooth, WiFi
-- Storage Tests (2): EEPROM read/write, config persistence
+**Tests Implemented (22 total, some with limitations):**
+- Display Tests (4): Init (placeholder), backlight (verified), touch (placeholder), rendering (placeholder)
+- Sensor Tests (4): Current (INA226 - verified), temperature (DS18B20 - verified), wheels (verified), obstacles (placeholder)
+- Motor Tests (3): Steering motor (verified), traction control (placeholder), relay sequence (placeholder)
+- Safety Tests (4): Watchdog feed (verified), emergency stop (placeholder), ABS (placeholder), TCS (placeholder)
+- Communication Tests (3): I2C bus (verified), Bluetooth (limited), WiFi (placeholder)
+- Storage Tests (2): EEPROM read/write (verified), config persistence (verified)
+
+**Note:** Tests marked as "placeholder" perform minimal or no validation and always pass. These provide a framework for future implementation but should not be relied upon for actual verification. Tests marked as "verified" perform actual validation of the subsystem.
 
 ### 2. Memory Stress Testing Module (`memory_stress_test.h/cpp`)
 
 **Purpose:** Detect memory leaks and validate heap stability
 
-**Tests Implemented (4 total):**
+**Tests Implemented (3 total - actual tests run):**
 - Repeated initialization (leak detection) - Tests Shifter and Current sensors
 - Heap fragmentation testing - 100 allocations with intentional fragmentation
 - Heap stability monitoring - 5 second operational stability test
-- Malloc failure handling - Verified via nullptr checks in code
+
+**Note:** The `testMallocFailures()` function exists but is not currently called in `runAllTests()`. Test count reflects only tests actually executed.
 
 **Memory Monitoring:**
 - Tracks minimum free heap during operation
@@ -40,8 +43,10 @@ This implementation adds comprehensive pre-deployment testing infrastructure to 
 **Tests Implemented (4 total):**
 - I2C bus recovery - Tests `I2CRecovery::recoverBus()` and health checks
 - Sensor disconnection handling - Verifies valid fallback values (not NaN/Inf)
-- Display failure handling - Confirms system continues without display
+- Display failure handling - Limited test (verifies system doesn't crash)
 - Power variation monitoring - Validates voltage readings and thresholds
+
+**Note:** Display failure test is a placeholder that only verifies the system doesn't crash within 100ms, not actual display failure scenarios.
 
 ### 4. Watchdog Timer Verification (`watchdog_tests.h/cpp`)
 
@@ -52,7 +57,9 @@ This implementation adds comprehensive pre-deployment testing infrastructure to 
 - Feed interval monitoring - Ensures feed interval < 8 seconds (80% of 10s timeout)
 - Feed count tracking - Verifies feed count increases
 - Status reporting - Tests all status query functions
-- Emergency shutdown mechanism - Validates relay pin configuration for panic handler
+- Emergency shutdown mechanism - Limited verification (pinMode configuration only)
+
+**Note:** Emergency shutdown test cannot fully verify the mechanism without triggering actual watchdog timeout (which would reset the system).
 
 ### 5. Test Coordination (`test_runner.h/cpp`)
 
@@ -199,13 +206,15 @@ pio device monitor -e esp32-s3-devkitc-predeployment
 
 ## Testing Categories Coverage
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Functional Testing | 22 | ✅ Complete |
-| Memory Stress Testing | 4 | ✅ Complete |
-| Hardware Failure Testing | 4 | ✅ Complete |
-| Watchdog Verification | 5 | ✅ Complete |
-| **TOTAL** | **35** | **✅ Complete** |
+| Category | Tests | Verified | Placeholders | Status |
+|----------|-------|----------|--------------|--------|
+| Functional Testing | 22 | 8 | 14 | ⚠️ Partial |
+| Memory Stress Testing | 3 | 3 | 0 | ✅ Complete |
+| Hardware Failure Testing | 4 | 3 | 1 | ⚠️ Mostly Complete |
+| Watchdog Verification | 5 | 4 | 1 | ⚠️ Mostly Complete |
+| **TOTAL** | **34** | **18** | **16** | **⚠️ Partial Coverage** |
+
+**Note:** "Verified" tests perform actual validation. "Placeholders" are framework implementations that always pass or perform minimal checks. Total test count updated from 35 to 34 (memory test count corrected from 4 to 3).
 
 ## Deployment Checklist
 
@@ -240,9 +249,15 @@ Before deploying to production, verify:
 ## Known Limitations
 
 1. **Hardware-dependent tests:** Some tests require actual hardware to fully validate (sensors, motors)
-2. **Test coverage:** Tests verify API functionality but not all edge cases
-3. **Async operations:** Some system behaviors are difficult to test in unit tests
-4. **Watchdog timeout:** Actual timeout cannot be tested without system reset
+2. **Placeholder tests:** 16 of 34 tests are placeholders that perform minimal or no validation and always pass:
+   - Functional: Display init/touch/rendering, obstacle sensors, traction control, relay sequence, emergency stop, ABS, TCS, Bluetooth (partial), WiFi
+   - Hardware: Display failure handling (limited)
+   - Watchdog: Emergency shutdown (limited verification)
+3. **Test coverage:** Tests verify API functionality but not all edge cases
+4. **Async operations:** Some system behaviors are difficult to test in unit tests
+5. **Watchdog timeout:** Actual timeout cannot be tested without system reset
+
+**Important:** The test framework provides 34 tests, but only 18 perform actual verification. Placeholder tests should be implemented before relying on them for deployment decisions.
 
 ## Recommendations
 
