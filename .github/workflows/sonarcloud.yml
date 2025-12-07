@@ -38,6 +38,17 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
+      - name: Install PlatformIO and build-wrapper
+        run: |
+          sudo apt-get update && sudo apt-get install -y build-essential python3-pip wget unzip
+          pip install platformio
+          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+
+      - name: Run build-wrapper with PlatformIO
+        run: |
+          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run
+
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
