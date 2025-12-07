@@ -106,6 +106,14 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 #include "filters.h"
 #include "math_utils.h"
 
+// Testing (conditionally included)
+#if defined(ENABLE_FUNCTIONAL_TESTS) || \
+    defined(ENABLE_MEMORY_STRESS_TESTS) || \
+    defined(ENABLE_HARDWARE_FAILURE_TESTS) || \
+    defined(ENABLE_WATCHDOG_TESTS)
+#include "test_runner.h"
+#endif
+
 // ============================================================================
 // Boot Timing Constants (Hardware requirements)
 // ============================================================================
@@ -380,9 +388,6 @@ void setup() {
     
     Serial.println("\n[BOOT] Pre-deployment testing enabled - running tests...");
     Logger::info("Starting pre-deployment test suite");
-    
-    // Include test runner
-    #include "test_runner.h"
     
     // Run all enabled tests
     bool testsOk = TestRunner::runPreDeploymentTests();

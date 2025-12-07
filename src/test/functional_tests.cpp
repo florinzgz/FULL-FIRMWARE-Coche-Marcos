@@ -159,6 +159,10 @@ bool runCategoryTests(TestCategory category) {
             
         case TestCategory::ALL:
             return runAllTests();
+            
+        default:
+            Logger::error("Invalid test category");
+            return false;
     }
     
     return categoryPassed;
@@ -392,7 +396,8 @@ bool testEEPROMReadWrite() {
     // Test EEPROM read/write operations
     // Use a test location to avoid corrupting real data
     
-    // Save current config
+    // Get current global config (defined in settings.h as extern Storage::Config cfg)
+    // Declared as extern in storage.h
     Storage::Config testCfg = cfg;
     
     // Modify a non-critical value

@@ -81,13 +81,14 @@ bool runPreDeploymentTests() {
     MemoryStressTest::init();
     bool memoryOk = MemoryStressTest::runAllTests();
     
-    // Memory tests don't provide individual pass/fail counts in the same way
-    // We'll add to total based on the overall result
-    totalTests += 4;  // Typical number of memory tests
+    // Memory tests: track approximation based on typical test count
+    // Update this if memory tests are added/removed
+    const uint32_t MEMORY_TEST_COUNT = 4;  // Repeated init, fragmentation, stability, etc.
+    totalTests += MEMORY_TEST_COUNT;
     if (memoryOk) {
-        totalPassed += 4;
+        totalPassed += MEMORY_TEST_COUNT;
     } else {
-        totalFailed += 4;
+        totalFailed += MEMORY_TEST_COUNT;
     }
     
     allPassed &= memoryOk;
@@ -106,12 +107,13 @@ bool runPreDeploymentTests() {
     HardwareFailureTests::init();
     bool hardwareOk = HardwareFailureTests::runAllTests();
     
-    // Hardware tests run 4 scenarios
-    totalTests += 4;
+    // Hardware tests: I2C recovery, sensor disconnection, display, power
+    const uint32_t HARDWARE_TEST_COUNT = 4;
+    totalTests += HARDWARE_TEST_COUNT;
     if (hardwareOk) {
-        totalPassed += 4;
+        totalPassed += HARDWARE_TEST_COUNT;
     } else {
-        totalFailed += 4;
+        totalFailed += HARDWARE_TEST_COUNT;
     }
     
     allPassed &= hardwareOk;
@@ -130,12 +132,13 @@ bool runPreDeploymentTests() {
     WatchdogTests::init();
     bool watchdogOk = WatchdogTests::runAllTests();
     
-    // Watchdog tests run 5 tests
-    totalTests += 5;
+    // Watchdog tests: config, feed interval, counting, status, emergency shutdown
+    const uint32_t WATCHDOG_TEST_COUNT = 5;
+    totalTests += WATCHDOG_TEST_COUNT;
     if (watchdogOk) {
-        totalPassed += 5;
+        totalPassed += WATCHDOG_TEST_COUNT;
     } else {
-        totalFailed += 5;
+        totalFailed += WATCHDOG_TEST_COUNT;
     }
     
     allPassed &= watchdogOk;
