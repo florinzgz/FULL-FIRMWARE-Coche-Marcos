@@ -82,4 +82,16 @@ void printMemoryStats();
  */
 void printSummary();
 
+/**
+ * @brief Get the number of passed tests
+ * @return Number of tests that passed
+ */
+uint32_t getPassedCount();
+
+/**
+ * @brief Get the number of failed tests
+ * @return Number of tests that failed
+ */
+uint32_t getFailedCount();
+
 } // namespace MemoryStressTest
