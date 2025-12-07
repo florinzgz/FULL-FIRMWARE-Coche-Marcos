@@ -975,8 +975,7 @@ static void drawMenuFull() {
     // when the menu opens. Clear the entire screen first.
     tft->fillScreen(TFT_BLACK);
     
-    // Draw menu rectangle
-    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    // Draw menu rectangle border (background already black from fillScreen)
     tft->drawRect(60, 40, 360, 240, TFT_WHITE);
     tft->setTextDatum(TL_DATUM);
 
