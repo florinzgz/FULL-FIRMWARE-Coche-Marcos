@@ -46,6 +46,7 @@ static uint32_t wrongCodeDisplayStart = 0;  // For non-blocking error display
 
 // Module configuration state
 static bool modulesConfigFirstCall = true;
+static bool regenAdjustFirstCall = true;  // 🔒 v2.10.0: Track first draw for regen adjust
 
 static int selectedOption = 1;   // opción seleccionada (1..8)
 
@@ -304,6 +305,7 @@ static void startRegenAdjust() {
     calibState = CalibrationState::REGEN_ADJUST;
     calibStartMs = millis();
     regenAdjustValue = cfg.regenPercent;  // Cargar valor actual
+    regenAdjustFirstCall = true;  // 🔒 v2.10.0: Reset for full screen clear on first draw
     Logger::info("Iniciando ajuste de regen - usa touch para ajustar");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
 }
@@ -312,7 +314,15 @@ static void startRegenAdjust() {
 static void drawRegenAdjustScreen() {
     if (tft == nullptr) return;
     
-    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    // 🔒 v2.10.0: Full screen clear on first call to prevent gauge ghosting
+    // Subsequent redraws only clear the menu area to reduce flicker
+    if (regenAdjustFirstCall) {
+        tft->fillScreen(TFT_BLACK);
+        regenAdjustFirstCall = false;
+    } else {
+        tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    }
+    
     tft->drawRect(60, 40, 360, 240, TFT_CYAN);
     
     tft->setTextDatum(TC_DATUM);
@@ -401,6 +411,11 @@ static void updateRegenAdjust(int touchX, int touchY, bool touched) {
         uint32_t waitStart = millis();
         while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         
+        // 🔒 v2.10.0: Clear screen when exiting regen adjust
+        if (tft != nullptr) {
+            tft->fillScreen(TFT_BLACK);
+        }
+        
         calibState = CalibrationState::NONE;
         return;
     }
@@ -435,7 +450,14 @@ static bool tempTractionEnabled = false;
 static void drawModulesConfigScreen() {
     if (tft == nullptr) return;
     
-    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    // 🔒 v2.10.0: Full screen clear on first call to prevent gauge ghosting
+    // Subsequent redraws only clear the menu area to reduce flicker
+    if (modulesConfigFirstCall) {
+        tft->fillScreen(TFT_BLACK);
+    } else {
+        tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    }
+    
     tft->drawRect(60, 40, 360, 240, TFT_CYAN);
     
     tft->setTextDatum(TC_DATUM);
@@ -530,6 +552,12 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
         safeSaveConfig();
         Logger::info("Configuración de módulos guardada");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        
+        // 🔒 v2.10.0: Clear screen when exiting modules config
+        if (tft != nullptr) {
+            tft->fillScreen(TFT_BLACK);
+        }
+        
         calibState = CalibrationState::NONE;
         modulesConfigFirstCall = true;  // Reset for next time
         return;  // Exit config
@@ -557,6 +585,13 @@ static void saveAndExit() {
     safeSaveConfig();
     Logger::info("Configuración guardada. Saliendo de menú oculto.");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+    
+    // 🔒 v2.10.0: Clear screen when exiting menu to ensure clean redraw of HUD
+    // This prevents menu remnants from staying on screen
+    if (tft != nullptr) {
+        tft->fillScreen(TFT_BLACK);
+    }
+    
     menuActive = false;
     codeBuffer = 0;
     lastMenuActive = false;
@@ -902,6 +937,13 @@ static void handleKeypadInput(int buttonIndex) {
 // Dibujo del menú
 // -----------------------
 static void drawMenuFull() {
+    // 🔒 v2.10.0: Full screen clear to prevent gauge ghosting
+    // The speed and RPM gauges at (70,175) and (410,175) with radius ~73px
+    // extend beyond the menu rectangle (60,40,360,240), leaving visible artifacts
+    // when the menu opens. Clear the entire screen first.
+    tft->fillScreen(TFT_BLACK);
+    
+    // Draw menu rectangle
     tft->fillRect(60, 40, 360, 240, TFT_BLACK);
     tft->drawRect(60, 40, 360, 240, TFT_WHITE);
     tft->setTextDatum(TL_DATUM);
