@@ -47,6 +47,7 @@ static uint32_t wrongCodeDisplayStart = 0;  // For non-blocking error display
 // Module configuration state
 static bool modulesConfigFirstCall = true;
 static bool regenAdjustFirstCall = true;  // 🔒 v2.10.0: Track first draw for regen adjust
+static bool calibrationFirstCall = true;  // 🔒 v2.10.0: Track first draw for pedal/encoder calibration
 
 static int selectedOption = 1;   // opción seleccionada (1..8)
 
@@ -117,7 +118,14 @@ static void waitTouchRelease(uint32_t maxWaitMs = DEBOUNCE_TIMEOUT_MS) {
 static void drawCalibrationScreen(const char* title, const char* instruction, const char* value) {
     if (tft == nullptr) return;  // Guard contra puntero nulo
     
-    tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    // 🔒 v2.10.0: Full screen clear on first call to prevent gauge ghosting
+    if (calibrationFirstCall) {
+        tft->fillScreen(TFT_BLACK);
+        calibrationFirstCall = false;
+    } else {
+        tft->fillRect(60, 40, 360, 240, TFT_BLACK);
+    }
+    
     tft->drawRect(60, 40, 360, 240, TFT_CYAN);
     
     tft->setTextDatum(TC_DATUM);
@@ -147,6 +155,7 @@ static void startPedalCalibration() {
     calibStartMs = millis();
     pedalCalibMin = 0;
     pedalCalibMax = 4095;
+    calibrationFirstCall = true;  // 🔒 v2.10.0: Reset for full screen clear on first draw
     Logger::info("Iniciando calibración de pedal - fase MIN");
     Alerts::play({Audio::AUDIO_CAL_PEDAL, Audio::Priority::PRIO_HIGH});
 }
@@ -154,6 +163,7 @@ static void startPedalCalibration() {
 static void startEncoderCalibration() {
     calibState = CalibrationState::ENCODER_CENTER;
     calibStartMs = millis();
+    calibrationFirstCall = true;  // 🔒 v2.10.0: Reset for full screen clear on first draw
     Logger::info("Iniciando calibración de encoder - centrando");
     Alerts::play({Audio::AUDIO_CAL_ENCODER, Audio::Priority::PRIO_HIGH});
 }
@@ -245,12 +255,23 @@ static void updatePedalCalibration(bool touched) {
             while (millis() - waitStart < 2000) { yield(); }
         }
         
+        // 🔒 v2.10.0: Clear screen when exiting pedal calibration
+        if (tft != nullptr) {
+            tft->fillScreen(TFT_BLACK);
+        }
+        
         calibState = CalibrationState::NONE;
     }
     
     // Timeout
     if (millis() - calibStartMs > CALIB_TIMEOUT_MS) {
         Logger::warn("Calibración pedal timeout");
+        
+        // 🔒 v2.10.0: Clear screen on timeout
+        if (tft != nullptr) {
+            tft->fillScreen(TFT_BLACK);
+        }
+        
         calibState = CalibrationState::NONE;
         Alerts::play({Audio::AUDIO_PEDAL_ERROR, Audio::Priority::PRIO_NORMAL});
     }
@@ -289,12 +310,23 @@ static void updateEncoderCalibration(bool touched) {
         uint32_t waitStart = millis();
         while (millis() - waitStart < FEEDBACK_DISPLAY_MS) { yield(); }
         
+        // 🔒 v2.10.0: Clear screen when exiting encoder calibration
+        if (tft != nullptr) {
+            tft->fillScreen(TFT_BLACK);
+        }
+        
         calibState = CalibrationState::NONE;
     }
     
     // Timeout
     if (millis() - calibStartMs > CALIB_TIMEOUT_MS) {
         Logger::warn("Calibración encoder timeout");
+        
+        // 🔒 v2.10.0: Clear screen on timeout
+        if (tft != nullptr) {
+            tft->fillScreen(TFT_BLACK);
+        }
+        
         calibState = CalibrationState::NONE;
         Alerts::play({Audio::AUDIO_ENCODER_ERROR, Audio::Priority::PRIO_NORMAL});
     }
