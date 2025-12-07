@@ -22,6 +22,10 @@ uint8_t HUDManager::longPressButtonId = 0;
 // 🔒 v2.5.0: Flag de inicialización
 static bool initialized = false;
 
+// 🔒 CRITICAL: Explicit extern declaration for cfg (defined in storage.cpp)
+// This ensures we're accessing the same global config instance across all modules
+extern Storage::Config cfg;
+
 // ✅ ÚNICA instancia global de TFT_eSPI - compartida con HUD y otros módulos
 TFT_eSPI tft = TFT_eSPI();
 
