@@ -1,0 +1,52 @@
+name: SonarCloud Audit
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  schedule:
+    - cron: '0 3 * * 0'   # análisis automático cada domingo a las 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write   # permite decorar PRs con resultados
+  security-events: write # permite publicar alertas en GitHub Code Scanning
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # necesario para análisis completo
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=TU_ORG_TU_REPO
+            -Dsonar.organization=TU_ORG
+            -Dsonar.sources=src,include
+            -Dsonar.tests=test
+            -Dsonar.cfamily.build-wrapper-output=bw-output
+            -Dsonar.verbose=true
