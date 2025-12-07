@@ -207,7 +207,7 @@ void printSummary() {
     Logger::infof("Total Tests: %lu", testCount);
     Logger::infof("Passed: %lu", passedCount);
     Logger::infof("Failed: %lu", failedCount);
-    
+
     if (passedCount == testCount && testCount > 0) {
         Logger::info("✅ ALL WATCHDOG TESTS PASSED");
         Logger::info("Watchdog timer is properly configured and operational");
@@ -216,6 +216,14 @@ void printSummary() {
         Logger::error("⚠️  CRITICAL: System may not be safe for deployment!");
     }
     Logger::info("========================================\n");
+}
+
+uint32_t getPassedCount() {
+    return passedCount;
+}
+
+uint32_t getFailedCount() {
+    return failedCount;
 }
 
 } // namespace WatchdogTests

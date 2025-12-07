@@ -67,10 +67,11 @@ This implementation adds comprehensive pre-deployment testing infrastructure to 
 
 **Features:**
 - Runs all enabled test categories in sequence
-- Aggregates pass/fail counts across modules
+- Aggregates pass/fail counts across modules using `getPassedCount()`/`getFailedCount()` functions
 - Provides comprehensive summary with formatted output
 - Conditional compilation based on build flags
 - Clear pass/fail indication for deployment decision
+- Accurate per-test tracking (each test module tracks individual test results)
 
 ### 6. Documentation (`docs/DEPLOYMENT_TESTING_GUIDE.md`)
 

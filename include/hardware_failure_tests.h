@@ -54,4 +54,16 @@ bool testPowerVariations();
  */
 void printSummary();
 
+/**
+ * @brief Get the number of tests that passed
+ * @return Number of passed tests
+ */
+uint32_t getPassedCount();
+
+/**
+ * @brief Get the number of tests that failed
+ * @return Number of failed tests
+ */
+uint32_t getFailedCount();
+
 } // namespace HardwareFailureTests
