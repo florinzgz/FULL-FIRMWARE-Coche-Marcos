@@ -369,6 +369,35 @@ void setup() {
     HUDManager::showMenu(MenuType::DASHBOARD);
     Serial.println("[BOOT] Setup complete! Entering main loop...");
 #endif
+
+    // ========================================================================
+    // 🧪 PRE-DEPLOYMENT TESTING (if enabled)
+    // ========================================================================
+#if defined(ENABLE_FUNCTIONAL_TESTS) || \
+    defined(ENABLE_MEMORY_STRESS_TESTS) || \
+    defined(ENABLE_HARDWARE_FAILURE_TESTS) || \
+    defined(ENABLE_WATCHDOG_TESTS)
+    
+    Serial.println("\n[BOOT] Pre-deployment testing enabled - running tests...");
+    Logger::info("Starting pre-deployment test suite");
+    
+    // Include test runner
+    #include "test_runner.h"
+    
+    // Run all enabled tests
+    bool testsOk = TestRunner::runPreDeploymentTests();
+    
+    if (testsOk) {
+        Serial.println("\n✅ ALL PRE-DEPLOYMENT TESTS PASSED");
+        Serial.println("System ready for production deployment");
+    } else {
+        Serial.println("\n❌ PRE-DEPLOYMENT TESTS FAILED");
+        Serial.println("⚠️  DO NOT DEPLOY - Fix issues and retest");
+    }
+    
+    Serial.println("\n[BOOT] Test execution complete. System will continue normal operation...");
+    delay(3000);  // Give user time to see test results
+#endif
 }
 
 // ============================================================================

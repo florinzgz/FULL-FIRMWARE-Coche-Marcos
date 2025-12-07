@@ -78,17 +78,17 @@ bool testI2CBusRecovery() {
     Logger::info("\n--- Testing I2C Bus Recovery ---");
     
     // Check that I2C recovery system is initialized and functional
-    bool recoveryAvailable = I2CRecovery::isHealthy();
+    bool recoveryAvailable = I2CRecovery::isBusHealthy();
     
     if (!recoveryAvailable) {
         Logger::warn("I2C bus not healthy - testing recovery mechanism");
         
         // Attempt recovery
-        I2CRecovery::recover();
+        I2CRecovery::recoverBus();
         delay(100);
         
         // Check if recovery worked
-        recoveryAvailable = I2CRecovery::isHealthy();
+        recoveryAvailable = I2CRecovery::isBusHealthy();
     }
     
     recordTest("I2C Bus Recovery", recoveryAvailable);
@@ -104,16 +104,16 @@ bool testSensorDisconnection() {
     
     bool allSensorsValid = true;
     
-    // Test current sensors
-    float voltage = Sensors::getBatteryVoltage();
+    // Test current sensors - using correct API
+    float voltage = Sensors::getVoltage(0);  // Battery is typically index 0
     allSensorsValid &= std::isfinite(voltage);
     
-    float current = Sensors::getBatteryCurrent();
+    float current = Sensors::getCurrent(0);
     allSensorsValid &= std::isfinite(current);
     
-    // Test temperature sensors
+    // Test temperature sensors - using correct API
     for (int i = 0; i < 4; i++) {
-        float temp = Sensors::getMotorTemperature(i);
+        float temp = Sensors::getTemperature(i);
         allSensorsValid &= std::isfinite(temp);
     }
     
@@ -149,7 +149,7 @@ bool testPowerVariations() {
     Logger::info("\n--- Testing Power Supply Variation Handling ---");
     
     // Test that system can detect and respond to power variations
-    float voltage = Sensors::getBatteryVoltage();
+    float voltage = Sensors::getVoltage(0);  // Battery voltage
     
     bool voltageValid = std::isfinite(voltage) && (voltage > 0.0f) && (voltage < 100.0f);
     

@@ -27,7 +27,7 @@ struct TestResult {
 
 // Test categories
 enum class TestCategory {
-    DISPLAY,
+    DISPLAY_TESTS,  // Renamed from DISPLAY to avoid Arduino.h conflict
     SENSORS,
     MOTORS,
     SAFETY,

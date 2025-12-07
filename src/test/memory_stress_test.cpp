@@ -228,8 +228,8 @@ bool testHeapStability(uint32_t durationMs) {
     
     // Simulate normal operation for specified duration
     while (millis() - startTime < durationMs) {
-        // Perform typical operations
-        CarSensors::update();
+        // Perform typical operations - read sensors
+        CarSensors::readCritical();
         delay(100);
         updateMinHeap();
     }
