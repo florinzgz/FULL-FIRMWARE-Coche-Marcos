@@ -48,13 +48,13 @@ jobs:
       - name: Build with build-wrapper (all environments)
         run: |
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run \
-            -e esp32-s3-devkitc-touch-debug \
             -e esp32-s3-devkitc \
-            -e esp32-s3-devkitc-predeployment \
             -e esp32-s3-devkitc-no-touch \
             -e esp32-s3-devkitc-release \
-            -e esp32-s3-devkitc-ota
-          ls -R .pio/build   # 👈 debug: confirma que se generaron objetos y binarios
+            -e esp32-s3-devkitc-ota \
+            -e esp32-s3-devkitc-predeployment \
+            -e esp32-s3-devkitc-touch-debug
+          ls -R .pio/build || true
 
       - name: Workaround for missing /etc/gitconfig
         run: sudo touch /etc/gitconfig
