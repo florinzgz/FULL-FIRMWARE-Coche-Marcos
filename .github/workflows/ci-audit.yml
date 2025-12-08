@@ -37,10 +37,16 @@ jobs:
           sudo apt-get update && sudo apt-get install -y build-essential wget unzip
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
-          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run -e esp32-s3-devkitc -e release -e ota -e test -e touch-debug -e no-touch
+          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run \
+            -e esp32-s3-devkitc \
+            -e esp32-s3-devkitc-release \
+            -e esp32-s3-devkitc-ota \
+            -e esp32-s3-devkitc-test \
+            -e esp32-s3-devkitc-no-touch \
+            -e esp32-s3-devkitc-predeployment
 
       - name: Upload firmware artifacts
-        uses: actions/upload-artifact@v4   # ✅ actualizado a v4
+        uses: actions/upload-artifact@v4
         with:
           name: firmware-builds
           path: .pio/build/*/*.bin
