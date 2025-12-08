@@ -40,7 +40,7 @@ jobs:
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run -e esp32-s3-devkitc -e release -e ota -e test -e touch-debug -e no-touch
 
       - name: Upload firmware artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4   # ✅ actualizado a v4
         with:
           name: firmware-builds
           path: .pio/build/*/*.bin
