@@ -49,6 +49,10 @@ jobs:
         run: |
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run
 
+      - name: Workaround for missing /etc/gitconfig
+        run: |
+          sudo touch /etc/gitconfig
+
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
