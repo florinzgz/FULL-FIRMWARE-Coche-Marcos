@@ -67,7 +67,7 @@ jobs:
           args: >
             -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
             -Dsonar.organization=florinzgz
-            -Dsonar.sources=src   # 👈 ahora recorre todas las subcarpetas
+            -Dsonar.sources=src   # 👈 recorre todas las subcarpetas bajo src/
             -Dsonar.projectBaseDir=.
             -Dsonar.cfamily.build-wrapper-output=bw-output
             -Dsonar.verbose=true
