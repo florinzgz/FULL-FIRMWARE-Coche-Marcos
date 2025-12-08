@@ -47,7 +47,7 @@ jobs:
 
       - name: Run build-wrapper with PlatformIO
         run: |
-          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run -e esp32-s3-devkitc
+          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output pio run
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
