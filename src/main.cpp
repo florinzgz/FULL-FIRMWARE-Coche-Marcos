@@ -106,6 +106,14 @@ static const float DEMO_TEMP_WARNING_THRESHOLD = 52.0f;// Temp threshold for war
 #include "filters.h"
 #include "math_utils.h"
 
+// Testing (conditionally included)
+#if defined(ENABLE_FUNCTIONAL_TESTS) || \
+    defined(ENABLE_MEMORY_STRESS_TESTS) || \
+    defined(ENABLE_HARDWARE_FAILURE_TESTS) || \
+    defined(ENABLE_WATCHDOG_TESTS)
+#include "test_runner.h"
+#endif
+
 // ============================================================================
 // Boot Timing Constants (Hardware requirements)
 // ============================================================================
@@ -134,10 +142,11 @@ void setup() {
     // 3. First sign of life - print boot message
     Serial.println();
     Serial.println("========================================");
-    Serial.println("ESP32-S3 Car Control System v2.8.1");
+    Serial.println("ESP32-S3 Car Control System v2.10.1");
     Serial.println("========================================");
     Serial.printf("CPU Freq: %d MHz\n", getCpuFrequencyMhz());
     Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("Stack high water mark: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     Serial.println("Boot sequence starting...");
     Serial.flush();
     
@@ -170,8 +179,11 @@ void setup() {
     // --- Inicialización básica ---
     Serial.println("[BOOT] Initializing System...");
     System::init();
+    Serial.printf("[STACK] After System::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+    
     Serial.println("[BOOT] Initializing Storage...");
     Storage::init();
+    Serial.printf("[STACK] After Storage::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     // 🔒 CRITICAL FIX: Load configuration from EEPROM
     // Without this, cfg.displayBrightness is uninitialized (0), causing screen to turn off
@@ -198,6 +210,7 @@ void setup() {
     
     Serial.println("[BOOT] Initializing Logger...");
     Logger::init();
+    Serial.printf("[STACK] After Logger::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
 #ifdef STANDALONE_DISPLAY
     Serial.println("[BOOT] STANDALONE_DISPLAY MODE: Skipping sensor initialization");
@@ -271,34 +284,47 @@ void setup() {
     // CRITICAL: Initialize Watchdog and I²C Recovery FIRST
     Serial.println("[BOOT] Initializing Watchdog...");
     Watchdog::init();
+    Serial.printf("[STACK] After Watchdog::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+    
     Serial.println("[BOOT] Initializing I2C Recovery...");
     I2CRecovery::init();
+    Serial.printf("[STACK] After I2CRecovery::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     // Initialize WiFi and OTA (before sensors for telemetry)
     Serial.println("[BOOT] Initializing WiFi Manager...");
     WiFiManager::init();
+    Serial.printf("[STACK] After WiFiManager::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     Serial.println("[BOOT] Initializing Relays...");
     Relays::init();
+    Serial.printf("[STACK] After Relays::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     // Initialize unified sensor reader
     Serial.println("[BOOT] Initializing Car Sensors...");
     CarSensors::init();
+    Serial.printf("[STACK] After CarSensors::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     // Initialize advanced HUD manager
     Serial.println("[BOOT] Initializing HUD Manager...");
     HUDManager::init();
+    Serial.printf("[STACK] After HUDManager::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     Serial.println("[BOOT] Initializing DFPlayer Audio...");
     Audio::DFPlayer::init();
     Audio::AudioQueue::init();
+    Serial.printf("[STACK] After Audio init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
 
     Serial.println("[BOOT] Initializing Current Sensors (INA226)...");
     Sensors::initCurrent();
+    Serial.printf("[STACK] After Current Sensors - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+    
     Serial.println("[BOOT] Initializing Temperature Sensors (DS18B20)...");
     Sensors::initTemperature();
+    Serial.printf("[STACK] After Temperature Sensors - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+    
     Serial.println("[BOOT] Initializing Wheel Sensors...");
     Sensors::initWheels();
+    Serial.printf("[STACK] After Wheel Sensors - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
 
     Serial.println("[BOOT] Initializing Pedal...");
     Pedal::init();
@@ -325,6 +351,8 @@ void setup() {
     // --- Obstacle Detection System ---
     Serial.println("[BOOT] Initializing Obstacle Detection...");
     ObstacleDetection::init();
+    Serial.printf("[STACK] After Obstacle Detection - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+    
     Serial.println("[BOOT] Initializing Obstacle Safety...");
     ObstacleSafety::init();
     
@@ -335,6 +363,7 @@ void setup() {
     // --- Bluetooth Emergency Override Controller ---
     Serial.println("[BOOT] Initializing Bluetooth Controller...");
     BluetoothController::init();
+    Serial.printf("[STACK] After Bluetooth - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
 
     Serial.println("[BOOT] All modules initialized. Starting self-test...");
     
@@ -368,6 +397,32 @@ void setup() {
     // Show advanced dashboard
     HUDManager::showMenu(MenuType::DASHBOARD);
     Serial.println("[BOOT] Setup complete! Entering main loop...");
+#endif
+
+    // ========================================================================
+    // 🧪 PRE-DEPLOYMENT TESTING (if enabled)
+    // ========================================================================
+#if defined(ENABLE_FUNCTIONAL_TESTS) || \
+    defined(ENABLE_MEMORY_STRESS_TESTS) || \
+    defined(ENABLE_HARDWARE_FAILURE_TESTS) || \
+    defined(ENABLE_WATCHDOG_TESTS)
+    
+    Serial.println("\n[BOOT] Pre-deployment testing enabled - running tests...");
+    Logger::info("Starting pre-deployment test suite");
+    
+    // Run all enabled tests
+    bool testsOk = TestRunner::runPreDeploymentTests();
+    
+    if (testsOk) {
+        Serial.println("\n✅ ALL PRE-DEPLOYMENT TESTS PASSED");
+        Serial.println("System ready for production deployment");
+    } else {
+        Serial.println("\n❌ PRE-DEPLOYMENT TESTS FAILED");
+        Serial.println("⚠️  DO NOT DEPLOY - Fix issues and retest");
+    }
+    
+    Serial.println("\n[BOOT] Test execution complete. System will continue normal operation...");
+    delay(3000);  // Give user time to see test results
 #endif
 }
 
