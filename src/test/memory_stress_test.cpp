@@ -281,15 +281,23 @@ void printSummary() {
     Logger::infof("Total Tests: %lu", testCount);
     Logger::infof("Passed: %lu", passedCount);
     Logger::infof("Failed: %lu", failedCount);
-    
+
     printMemoryStats();
-    
+
     if (passedCount == testCount && testCount > 0) {
         Logger::info("✅ ALL MEMORY TESTS PASSED");
     } else {
         Logger::error("❌ MEMORY TESTS FAILED");
     }
     Logger::info("========================================\n");
+}
+
+uint32_t getPassedCount() {
+    return passedCount;
+}
+
+uint32_t getFailedCount() {
+    return failedCount;
 }
 
 } // namespace MemoryStressTest

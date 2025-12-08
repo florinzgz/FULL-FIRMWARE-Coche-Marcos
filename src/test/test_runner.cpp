@@ -80,17 +80,11 @@ bool runPreDeploymentTests() {
     
     MemoryStressTest::init();
     bool memoryOk = MemoryStressTest::runAllTests();
-    
-    // Memory tests: actual tests run in MemoryStressTest::runAllTests()
-    // Currently: Repeated init, fragmentation, stability (malloc failures not called)
-    const uint32_t MEMORY_TEST_COUNT = 3;
-    totalTests += MEMORY_TEST_COUNT;
-    if (memoryOk) {
-        totalPassed += MEMORY_TEST_COUNT;
-    } else {
-        totalFailed += MEMORY_TEST_COUNT;
-    }
-    
+
+    totalPassed += MemoryStressTest::getPassedCount();
+    totalFailed += MemoryStressTest::getFailedCount();
+    totalTests += MemoryStressTest::getPassedCount() + MemoryStressTest::getFailedCount();
+
     allPassed &= memoryOk;
 #else
     Logger::info("\n⏭️  MEMORY STRESS TESTS: Skipped (not enabled)");
@@ -106,16 +100,11 @@ bool runPreDeploymentTests() {
     
     HardwareFailureTests::init();
     bool hardwareOk = HardwareFailureTests::runAllTests();
-    
-    // Hardware tests: I2C recovery, sensor disconnection, display, power
-    const uint32_t HARDWARE_TEST_COUNT = 4;
-    totalTests += HARDWARE_TEST_COUNT;
-    if (hardwareOk) {
-        totalPassed += HARDWARE_TEST_COUNT;
-    } else {
-        totalFailed += HARDWARE_TEST_COUNT;
-    }
-    
+
+    totalPassed += HardwareFailureTests::getPassedCount();
+    totalFailed += HardwareFailureTests::getFailedCount();
+    totalTests += HardwareFailureTests::getPassedCount() + HardwareFailureTests::getFailedCount();
+
     allPassed &= hardwareOk;
 #else
     Logger::info("\n⏭️  HARDWARE FAILURE TESTS: Skipped (not enabled)");
@@ -131,16 +120,11 @@ bool runPreDeploymentTests() {
     
     WatchdogTests::init();
     bool watchdogOk = WatchdogTests::runAllTests();
-    
-    // Watchdog tests: config, feed interval, counting, status, emergency shutdown
-    const uint32_t WATCHDOG_TEST_COUNT = 5;
-    totalTests += WATCHDOG_TEST_COUNT;
-    if (watchdogOk) {
-        totalPassed += WATCHDOG_TEST_COUNT;
-    } else {
-        totalFailed += WATCHDOG_TEST_COUNT;
-    }
-    
+
+    totalPassed += WatchdogTests::getPassedCount();
+    totalFailed += WatchdogTests::getFailedCount();
+    totalTests += WatchdogTests::getPassedCount() + WatchdogTests::getFailedCount();
+
     allPassed &= watchdogOk;
 #else
     Logger::info("\n⏭️  WATCHDOG TESTS: Skipped (not enabled)");
