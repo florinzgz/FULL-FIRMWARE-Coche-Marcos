@@ -29,7 +29,7 @@
 Para sistemas que no necesitan WiFi/OTA:
 - Stack: 20KB loop / 16KB main task (reducido)
 - Flag: `-DDISABLE_WIFI`
-- Ahorro: 12KB RAM
+- Ahorro: 20KB RAM
 - Desactiva: WiFi, OTA, Telemetría
 
 ### 2. Archivo: `src/main.cpp`

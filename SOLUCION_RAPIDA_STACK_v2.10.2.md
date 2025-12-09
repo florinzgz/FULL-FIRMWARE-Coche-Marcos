@@ -73,7 +73,7 @@ pio run -e esp32-s3-devkitc-no-wifi
 pio run -e esp32-s3-devkitc-no-wifi -t upload --upload-port COM4
 ```
 **Ventajas:**
-- Stack reducido a 20KB/16KB (ahorro de 12KB RAM)
+- Stack reducido a 20KB/16KB (ahorro de 20KB RAM)
 - Boot más rápido
 - **Desventajas:** Sin WiFi, sin OTA, sin telemetría web
 

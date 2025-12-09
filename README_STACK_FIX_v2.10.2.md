@@ -75,7 +75,7 @@ Si no necesitas WiFi/OTA:
 ```bash
 pio run -e esp32-s3-devkitc-no-wifi -t upload --upload-port COM4
 ```
-**Beneficio:** Ahorra 12KB de RAM
+**Beneficio:** Ahorra 20KB de RAM
 
 ---
 

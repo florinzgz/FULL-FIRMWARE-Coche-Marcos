@@ -237,7 +237,7 @@ pio run -e esp32-s3-devkitc-no-wifi -t upload --upload-port COM4
 ```
 
 **Beneficios:**
-- Stack reducido: 20KB loop / 16KB main (ahorra 12KB RAM)
+- Stack reducido: 20KB loop / 16KB main (ahorra 20KB RAM)
 - Boot más rápido (sin inicialización WiFi)
 - Mayor estabilidad en sistemas con RAM limitada
 
