@@ -142,7 +142,7 @@ void setup() {
     // 3. First sign of life - print boot message
     Serial.println();
     Serial.println("========================================");
-    Serial.println("ESP32-S3 Car Control System v2.10.1");
+    Serial.println("ESP32-S3 Car Control System v2.10.2");
     Serial.println("========================================");
     Serial.printf("CPU Freq: %d MHz\n", getCpuFrequencyMhz());
     Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
