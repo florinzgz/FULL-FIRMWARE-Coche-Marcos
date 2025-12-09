@@ -291,9 +291,14 @@ void setup() {
     Serial.printf("[STACK] After I2CRecovery::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
     
     // Initialize WiFi and OTA (before sensors for telemetry)
+#ifndef DISABLE_WIFI
     Serial.println("[BOOT] Initializing WiFi Manager...");
     WiFiManager::init();
     Serial.printf("[STACK] After WiFiManager::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+#else
+    Serial.println("[BOOT] WiFi DISABLED (DISABLE_WIFI flag set)");
+    Serial.println("[BOOT] OTA and telemetry features unavailable");
+#endif
     
     Serial.println("[BOOT] Initializing Relays...");
     Relays::init();
@@ -357,8 +362,12 @@ void setup() {
     ObstacleSafety::init();
     
     // --- Telemetry System ---
+#ifndef DISABLE_WIFI
     Serial.println("[BOOT] Initializing Telemetry...");
     Telemetry::init();           // 🆕 v2.8.0: Sistema de telemetría
+#else
+    Serial.println("[BOOT] Telemetry DISABLED (requires WiFi)");
+#endif
     
     // --- Bluetooth Emergency Override Controller ---
     Serial.println("[BOOT] Initializing Bluetooth Controller...");
@@ -555,8 +564,10 @@ void loop() {
     ObstacleDetection::update();
     ObstacleSafety::update();
     
+#ifndef DISABLE_WIFI
     // Telemetry
     Telemetry::update();         // 🆕 v2.8.0: Sistema de telemetría
+#endif
 
     // HUD - Update at fixed 30 FPS for fluid rendering
     if (now - lastHudUpdate >= HUD_UPDATE_INTERVAL) {
@@ -571,8 +582,10 @@ void loop() {
     // Audio
     Audio::AudioQueue::update();
 
+#ifndef DISABLE_WIFI
     // WiFi and OTA
     WiFiManager::update();
+#endif
 
     // Sistema
     System::update();

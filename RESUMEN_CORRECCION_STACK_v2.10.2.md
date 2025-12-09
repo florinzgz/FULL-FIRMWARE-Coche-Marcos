@@ -225,9 +225,30 @@ Significa:
    pio run -e esp32-s3-devkitc -t upload
    ```
 
-### Desactivar WiFi temporalmente (si es necesario):
+### Desactivar WiFi para reducir stack (alternativa):
 
-Si necesitas reducir el uso de stack, puedes comentar la inicialización de WiFi en `src/main.cpp`:
+**Opción A: Usar entorno sin WiFi (más fácil)**
+
+El firmware ahora incluye un entorno especial sin WiFi que reduce el stack:
+
+```bash
+pio run -e esp32-s3-devkitc-no-wifi
+pio run -e esp32-s3-devkitc-no-wifi -t upload --upload-port COM4
+```
+
+**Beneficios:**
+- Stack reducido: 20KB loop / 16KB main (ahorra 12KB RAM)
+- Boot más rápido (sin inicialización WiFi)
+- Mayor estabilidad en sistemas con RAM limitada
+
+**Limitaciones:**
+- Sin WiFi conectividad
+- Sin OTA (updates over-the-air)
+- Sin telemetría web
+
+**Opción B: Comentar código manualmente**
+
+Si prefieres editar el código directamente en `src/main.cpp`:
 
 ```cpp
 // Serial.println("[BOOT] Initializing WiFi Manager...");
@@ -235,7 +256,7 @@ Si necesitas reducir el uso de stack, puedes comentar la inicialización de WiFi
 // Serial.printf("[STACK] After WiFiManager::init - Free: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
 ```
 
-**Nota**: Esto deshabilitará OTA y telemetría WiFi.
+**Nota**: La Opción A es preferible ya que también desactiva telemetría y actualiza los símbolos de compilación.
 
 ## 📚 Referencias Técnicas
 
