@@ -7,7 +7,7 @@
 
 ## 🔍 RESPUESTA A TU COMENTARIO
 
-> "y con esta info cambiaria algo e encotrado este tutorial para la calibracion,dejando mis pines"
+> "y con esta info cambiaria algo e encontrado este tutorial para la calibracion,dejando mis pines"
 
 **Sí, hay diferencias importantes.** Basándome en la información que proporcionaste:
 
@@ -185,7 +185,7 @@ Si deseas usar Arduino IDE en lugar de PlatformIO:
    - Abrir Arduino IDE
    - Ir a: Sketch → Include Library → Manage Libraries
    - Buscar: "TFT_eSPI"
-   - Instalar versión 2.5.43 o superior
+   - instalar versión 2.5.43 o superior
 
 2. **⚠️ IMPORTANTE - Configuración personalizada:**
    
