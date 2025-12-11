@@ -185,7 +185,7 @@ Si deseas usar Arduino IDE en lugar de PlatformIO:
    - Abrir Arduino IDE
    - Ir a: Sketch → Include Library → Manage Libraries
    - Buscar: "TFT_eSPI"
-   - instalar versión 2.5.43 o superior
+   - Instalar versión 2.5.43 o superior
 
 2. **⚠️ IMPORTANTE - Configuración personalizada:**
    
