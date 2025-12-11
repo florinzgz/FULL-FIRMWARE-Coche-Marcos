@@ -5,6 +5,39 @@
 
 ---
 
+## 🔍 RESPUESTA A TU COMENTARIO
+
+> "y con esta info cambiaria algo e encotrado este tutorial para la calibracion,dejando mis pines"
+
+**Sí, hay diferencias importantes.** Basándome en la información que proporcionaste:
+
+1. **Hardware diferente:** Mencionas **ESP32-C3-DevKitM-1**, pero este repositorio está configurado para **ESP32-S3-DevKitC-1**
+
+2. **Pines diferentes:** Los pines que indicaste son:
+   - TFT_CS=7 (vs GPIO 16 en el repo)
+   - TFT_DC=9 (vs GPIO 13 en el repo)
+   - TFT_RST=10 (vs GPIO 14 en el repo)
+   - TOUCH_CS=1 (vs GPIO 21 en el repo)
+   - Y otros pines también diferentes
+
+3. **Configuración TFT_eSPI:** Correcta tu referencia a `mySetup27_ST7796_ESP32.h` - esa es la configuración base para ESP32-C3
+
+4. **Recomendación sobre setups personalizados:** Correcto, es mejor guardar configuraciones personalizadas en carpeta separada
+
+**¿Qué cambiaría en la documentación?**
+- ✅ He actualizado este documento para incluir AMBAS configuraciones (ESP32-S3 y ESP32-C3)
+- ✅ Ahora incluye tabla comparativa de pines
+- ✅ Instrucciones específicas para cada hardware
+- ✅ Guía para configurar TFT_eSPI con archivos setup personalizados
+
+**¿Qué debes hacer?**
+- Si usas **ESP32-C3**: Sigue las instrucciones de "Opción B" en las secciones de este documento
+- Si usas **ESP32-S3**: Sigue las instrucciones de "Opción A" (configuración actual del repo)
+
+Continúa leyendo para todos los detalles técnicos...
+
+---
+
 ## ✅ RESPUESTA COMPLETA
 
 ### 1. 🖥️ **¿Cuál es mi pantalla?**
@@ -18,7 +51,13 @@ Interfaz: SPI
 Driver IC: ST7796S
 ```
 
-**📍 Pines conectados (ESP32-S3-DevKitC-1):**
+**⚠️ IMPORTANTE: Configuración de Pines según Hardware**
+
+La configuración de pines depende del modelo de ESP32 que estés usando:
+
+#### **Opción A: ESP32-S3-DevKitC-1 (44 pines) - Configuración del Repositorio**
+
+**📍 Pines TFT (configurados en `platformio.ini`):**
 ```
 TFT_CS   = GPIO 16  (Chip Select pantalla)
 TFT_DC   = GPIO 13  (Data/Command)
@@ -28,6 +67,44 @@ TFT_MISO = GPIO 12  (Master In Slave Out)
 TFT_SCLK = GPIO 10  (Clock)
 TFT_BL   = GPIO 42  (Backlight)
 ```
+
+**📍 Pines Touch:**
+```
+TOUCH_CS  = GPIO 21  (Chip Select del touch)
+TOUCH_IRQ = GPIO 47  (Interrupt Request - no usado por TFT_eSPI)
+```
+
+#### **Opción B: ESP32-C3-DevKitM-1 - Configuración Alternativa**
+
+Si estás usando **ESP32-C3-DevKitM-1**, los pines son diferentes:
+
+**📍 Pines TFT (basado en mySetup27_ST7796_ESP32.h):**
+```
+TFT_MISO = GPIO 5   (SDO - Master In Slave Out)
+TFT_MOSI = GPIO 6   (SDI - Master Out Slave In)  
+TFT_SCLK = GPIO 4   (SCK - Clock)
+TFT_CS   = GPIO 7   (CS - Chip Select pantalla)
+TFT_DC   = GPIO 9   (DC/RS - Data/Command)
+TFT_RST  = GPIO 10  (RESET - Reset)
+TFT_BL   = 3.3V     (LED - conectado directo a 3.3V)
+```
+
+**📍 Pines Touch (ESP32-C3):**
+```
+TOUCH_CS  = GPIO 1  (T_CS - Chip Select del touch)
+T_CLK     = GPIO 4  (T_CLK - Clock, compartido con TFT_SCLK)
+T_DIN     = GPIO 6  (T_DIN - Data In, compartido con TFT_MOSI)
+T_DO      = GPIO 5  (T_DO - Data Out, compartido con TFT_MISO)
+T_IRQ     = No conectado (no necesario con TFT_eSPI en modo polling)
+```
+
+**🔍 ¿Cómo saber cuál tengo?**
+
+1. **Revisa tu placa física:** Lee el texto impreso en el chip o la placa
+2. **Cuenta los pines:** ESP32-S3-DevKitC-1 tiene 44 pines, ESP32-C3-DevKitM-1 tiene 22 pines
+3. **Verifica `platformio.ini`:** Busca la línea `board = ...`
+   - Si dice `esp32-s3-devkitc-1` → Opción A (ESP32-S3)
+   - Si dice `esp32-c3-devkitm-1` → Opción B (ESP32-C3)
 
 ---
 
@@ -93,11 +170,101 @@ lib_deps =
 
 ---
 
-### 5. 🎯 **Configuración del Touch en `platformio.ini`**
+#### **📝 Instalación y Configuración de TFT_eSPI**
 
+**Para PlatformIO (usado en este proyecto):**
+- ✅ Ya está configurado en `platformio.ini`
+- ✅ Los pines se definen en `platformio.ini` usando `-D` flags
+- ✅ NO necesitas editar archivos dentro de la carpeta de la librería
+
+**Para Arduino IDE:**
+
+Si deseas usar Arduino IDE en lugar de PlatformIO:
+
+1. **Instalar librería:**
+   - Abrir Arduino IDE
+   - Ir a: Sketch → Include Library → Manage Libraries
+   - Buscar: "TFT_eSPI"
+   - Instalar versión 2.5.43 o superior
+
+2. **⚠️ IMPORTANTE - Configuración personalizada:**
+   
+   Como menciona la documentación oficial de TFT_eSPI, **NO edites directamente** los archivos en la carpeta de la librería, ya que se sobrescribirán en cada actualización.
+   
+   **Método recomendado:**
+   
+   a) Crear carpeta personalizada:
+   ```
+   Arduino/libraries/TFT_eSPI_Setups/
+   ```
+   
+   b) Crear archivo de configuración personalizado, por ejemplo:
+   ```
+   Arduino/libraries/TFT_eSPI_Setups/Setup_ESP32_ST7796.h
+   ```
+   
+   c) Copiar el contenido del ejemplo `mySetup27_ST7796_ESP32.h` (para ESP32-C3) o usar la configuración de pines de tu hardware
+   
+   d) Editar el archivo principal de TFT_eSPI:
+   ```
+   Arduino/libraries/TFT_eSPI/User_Setup_Select.h
+   ```
+   
+   e) Buscar y descomentar/añadir la línea que apunta a tu setup:
+   ```cpp
+   #include <../TFT_eSPI_Setups/Setup_ESP32_ST7796.h>
+   ```
+
+3. **Contenido del archivo Setup personalizado (ESP32-C3 ejemplo):**
+
+```cpp
+// User Setup for ST7796S 480x320 with ESP32-C3-DevKitM-1
+#define USER_SETUP_ID 27
+
+// Driver
+#define ST7796_DRIVER
+
+// Pines (ajustar según tu hardware)
+#define TFT_MISO 5
+#define TFT_MOSI 6
+#define TFT_SCLK 4
+#define TFT_CS   7
+#define TFT_DC   9
+#define TFT_RST  10
+
+// Touch
+#define TOUCH_CS 1
+
+// Fuentes
+#define LOAD_GLCD
+#define LOAD_FONT2
+#define LOAD_FONT4
+#define LOAD_FONT6
+#define LOAD_FONT7
+#define LOAD_FONT8
+#define LOAD_GFXFF
+#define SMOOTH_FONT
+
+// Frecuencias SPI
+#define SPI_FREQUENCY  40000000       // 40 MHz para ST7796S
+#define SPI_TOUCH_FREQUENCY  2500000  // 2.5 MHz para XPT2046
+```
+
+**✅ Ventaja de este método:** 
+- Tus configuraciones personalizadas se guardan fuera de la carpeta de la librería
+- No se sobrescriben al actualizar TFT_eSPI
+- Puedes tener múltiples configuraciones y cambiar fácilmente entre ellas
+
+---
+
+### 5. 🎯 **Configuración del Touch**
+
+#### **Para PlatformIO (`platformio.ini`):**
+
+**ESP32-S3 (configuración actual del repositorio):**
 ```ini
 # Touch controller configuration (XPT2046)
--DTOUCH_CS=21                   # Pin Chip Select del touch
+-DTOUCH_CS=21                   # Pin Chip Select del touch (GPIO 21)
 
 # SPI Touch frequency
 -DSPI_TOUCH_FREQUENCY=2500000   # 2.5 MHz (requerimiento XPT2046)
@@ -112,10 +279,38 @@ lib_deps =
 -DSUPPORT_TRANSACTIONS
 ```
 
-**📝 Nota sobre sensibilidad:**
+**ESP32-C3 (si usas esta variante):**
+```ini
+# Touch controller configuration (XPT2046)
+-DTOUCH_CS=1                    # Pin Chip Select del touch (GPIO 1)
+
+# SPI Touch frequency
+-DSPI_TOUCH_FREQUENCY=2500000   # 2.5 MHz (requerimiento XPT2046)
+
+# Touch sensitivity
+-DZ_THRESHOLD=300               # Presión mínima para detectar toque
+
+# SPI Transaction support
+-DSPI_HAS_TRANSACTION
+-DSUPPORT_TRANSACTIONS
+```
+
+**📝 Nota sobre sensibilidad (aplica a ambos):**
 - Valor actual: 300 (buena sensibilidad general)
 - Si el touch es poco sensible: reducir a 250-280
 - Si detecta toques fantasma: aumentar a 350-400
+
+#### **Para Arduino IDE (archivo Setup personalizado):**
+
+```cpp
+// En tu archivo Setup_ESP32_ST7796.h
+#define TOUCH_CS 1     // Para ESP32-C3 (GPIO 1)
+// o
+#define TOUCH_CS 21    // Para ESP32-S3 (GPIO 21)
+
+// Frecuencia touch
+#define SPI_TOUCH_FREQUENCY  2500000  // 2.5 MHz
+```
 
 ---
 
@@ -379,6 +574,8 @@ pio run -e esp32-s3-devkitc-no-touch
 
 ### 12. 📊 **Resumen Técnico**
 
+#### **Componentes comunes (ambas configuraciones):**
+
 | Componente | Especificación |
 |------------|---------------|
 | **Pantalla** | ST7796S 480x320 TFT 3.5" |
@@ -386,13 +583,25 @@ pio run -e esp32-s3-devkitc-no-touch
 | **Touch** | XPT2046 resistivo SPI |
 | **Driver Touch** | TFT_eSPI integrado |
 | **Librería** | TFT_eSPI 2.5.43 (Bodmer) |
-| **SPI Pantalla** | 40 MHz (HSPI) |
+| **SPI Pantalla** | 40 MHz |
 | **SPI Touch** | 2.5 MHz |
 | **Resolución Touch** | 12-bit (0-4095) |
 | **Calibración** | 2 puntos (esquinas) |
 | **Almacenamiento** | EEPROM (Config v7) |
-| **Pin TFT_CS** | GPIO 16 |
-| **Pin TOUCH_CS** | GPIO 21 |
+
+#### **Pines específicos por hardware:**
+
+| Pin | ESP32-S3-DevKitC-1 | ESP32-C3-DevKitM-1 |
+|-----|-------------------|-------------------|
+| **TFT_CS** | GPIO 16 | GPIO 7 |
+| **TFT_DC** | GPIO 13 | GPIO 9 |
+| **TFT_RST** | GPIO 14 | GPIO 10 |
+| **TFT_MOSI** | GPIO 11 | GPIO 6 |
+| **TFT_MISO** | GPIO 12 | GPIO 5 |
+| **TFT_SCLK** | GPIO 10 | GPIO 4 |
+| **TFT_BL** | GPIO 42 | 3.3V directo |
+| **TOUCH_CS** | GPIO 21 | GPIO 1 |
+| **TOUCH_IRQ** | GPIO 47 (no usado) | No conectado |
 
 ---
 
@@ -429,7 +638,7 @@ Para más detalles, consulta estos archivos en el repositorio:
 
 ## ✅ CONCLUSIÓN
 
-**Tu configuración actual:**
+**Tu configuración de hardware:**
 - ✅ Pantalla: ST7796S 480x320 (correcta)
 - ✅ Driver pantalla: ST7796_DRIVER (correcto y óptimo)
 - ✅ Touch: XPT2046 integrado (correcto)
@@ -437,9 +646,26 @@ Para más detalles, consulta estos archivos en el repositorio:
 - ✅ Calibración: Sistema de 2 puntos implementado y funcional
 - ✅ Almacenamiento: EEPROM persistente
 
+**⚠️ IMPORTANTE: Verifica tu hardware**
+
+Este repositorio está configurado para **ESP32-S3-DevKitC-1**. Si estás usando **ESP32-C3-DevKitM-1**, debes:
+
+1. **Actualizar `platformio.ini`:**
+   - Cambiar `board = esp32-s3-devkitc-1` por `board = esp32-c3-devkitm-1`
+   - Actualizar todos los pines según la tabla en la sección 12
+   - Ajustar `-DTOUCH_CS=21` a `-DTOUCH_CS=1`
+   - Revisar otros pines del proyecto que no son de la pantalla
+
+2. **Para Arduino IDE:**
+   - Crear archivo de configuración personalizado con los pines correctos
+   - Colocarlo en `Arduino/libraries/TFT_eSPI_Setups/`
+   - Editar `User_Setup_Select.h` para apuntar a tu archivo
+
 **NO necesitas instalar ninguna librería adicional.** Todo está integrado en TFT_eSPI.
 
 **Para calibrar:** Usa el Método 1 (menú oculto) siguiendo los pasos del punto 13.
+
+**📖 Referencia:** La configuración ESP32-C3 está basada en `mySetup27_ST7796_ESP32.h` de TFT_eSPI.
 
 ---
 
