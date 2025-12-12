@@ -17,7 +17,8 @@ El firmware ha sido completamente verificado y **compila exitosamente** sin erro
 - ✅ **Compilación:** Exitosa
 - ✅ **Errores:** 0
 - ✅ **Advertencias:** 0
-- ✅ **Uso de Flash:** 73.4% (961,813 bytes de 1,310,720 bytes)
+- ✅ **Uso de Flash (partición app):** 73.4% (961,813 bytes de 1,310,720 bytes)
+  - _Nota: ESP32-S3 tiene 16MB Flash total, particionado para app + filesystem + OTA_
 - ✅ **Uso de RAM:** 17.4% (57,020 bytes de 327,680 bytes)
 - ✅ **Tiempo de compilación:** 7.56 segundos
 
