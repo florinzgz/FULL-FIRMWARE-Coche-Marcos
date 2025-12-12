@@ -9,8 +9,24 @@
 #include "logger.h"         // 🔒 v2.4.0: Para logging
 #include <Arduino.h>
 #include <cmath>            // 🔒 v2.4.0: Para isfinite()
+#include <WiFi.h>           // 🔒 v2.10.2: Para WiFi status
 
 extern Storage::Config cfg; // 🔒 v2.4.0: Acceso a configuración
+
+// 🔒 v2.10.2: Constantes para conversiones y tolerancias
+namespace {
+    // Tiempo y conversiones de distancia
+    constexpr float MS_PER_HOUR = 3600000.0f;      // Milisegundos por hora
+    constexpr float MM_TO_KM = 1000000.0f;         // Milímetros a kilómetros
+    
+    // Factores de conversión velocidad/RPM
+    constexpr float CURRENT_TO_SPEED_FACTOR = 2.0f;      // 10A = 20 km/h
+    constexpr float CURRENT_UNIT = 10.0f;                // Unidad de corriente para conversión
+    constexpr float SPEED_TO_RPM_FACTOR = 7.33f;        // Factor de conversión velocidad a RPM
+    
+    // Umbrales de advertencia
+    constexpr float WARNING_THRESHOLD_PERCENT = 0.9f;   // 90% del máximo
+}
 
 // Variables estáticas
 CarData CarSensors::lastData = {};
@@ -123,11 +139,13 @@ void CarSensors::readSecondary() {
     
     // 🔒 v2.10.2: Actualizar odómetro con cálculo real desde encoders o velocidad
     // Intervalo de actualización: 500ms (lastSecondaryRead se actualiza cada 500ms)
-    const float UPDATE_INTERVAL_HOURS = 500.0f / 3600000.0f;  // 500ms en horas
+    const float UPDATE_INTERVAL_HOURS = 500.0f / MS_PER_HOUR;  // 500ms en horas
     
     if (cfg.wheelSensorsEnabled) {
         // Método 1: Usar distancia real de encoders si están disponibles
         // Calcular distancia recorrida desde última actualización
+        // 🔒 NOTA: Esta variable estática es segura porque readSecondary() 
+        // solo se llama desde el loop principal (single-threaded)
         static unsigned long lastTotalDistance = 0;
         
         // Usar promedio de todas las ruedas para mayor precisión
@@ -146,7 +164,7 @@ void CarSensors::readSecondary() {
             
             // Calcular distancia incremental en km
             if (avgDistance > lastTotalDistance) {
-                float distanceKm = (float)(avgDistance - lastTotalDistance) / 1000000.0f;  // mm a km
+                float distanceKm = (float)(avgDistance - lastTotalDistance) / MM_TO_KM;  // mm a km
                 lastData.odoTotal += distanceKm;
                 lastData.odoTrip += distanceKm;
                 lastTotalDistance = avgDistance;
@@ -304,7 +322,6 @@ void CarSensors::readSystemStatus() {
     
     // 🔒 v2.10.2: Leer estado WiFi real
     // WiFi incluye tanto el WiFiManager como conexión activa
-    #include <WiFi.h>
     lastData.status.wifi = (WiFi.status() == WL_CONNECTED);
     
     // 🔒 v2.10.2: Bluetooth
@@ -324,7 +341,7 @@ void CarSensors::readSystemStatus() {
     
     bool currentWarning = false;
     for (int i = 0; i < 4; i++) {
-        if (lastData.motorCurrent[i] > CURR_MAX_WHEEL * 0.9f) {  // 90% del máximo
+        if (lastData.motorCurrent[i] > CURR_MAX_WHEEL * WARNING_THRESHOLD_PERCENT) {
             currentWarning = true;
             break;
         }
@@ -368,8 +385,9 @@ float CarSensors::calculateSpeed() {
     }
     avgCurrent /= 4.0f;
     
-    // Aproximación lineal: 10A = 20 km/h (ajustar según calibración real)
-    float speed = (avgCurrent / 10.0f) * 20.0f;
+    // Aproximación lineal: CURRENT_UNIT A = CURRENT_TO_SPEED_FACTOR * CURRENT_UNIT km/h
+    // Por defecto: 10A = 20 km/h (ajustar constantes según calibración real)
+    float speed = (avgCurrent / CURRENT_UNIT) * (CURRENT_TO_SPEED_FACTOR * CURRENT_UNIT);
     return constrain(speed, 0.0f, 35.0f);  // Límite MAX_SPEED_KMH
 }
 
@@ -382,17 +400,18 @@ float CarSensors::calculateRPM() {
     // - Circunferencia: pi * 0.25 = 0.785m
     // - Relación transmisión: típicamente 1:15 a 1:20 (motor a rueda)
     // 
-    // Para simplificar, usamos la fórmula: RPM ≈ velocidad * factor
-    // donde factor se calibra según el vehículo específico
+    // Para simplificar, usamos la fórmula: RPM ≈ velocidad * SPEED_TO_RPM_FACTOR
+    // donde el factor se calibra según el vehículo específico
     
     // Estimación basada en velocidad
-    // Factor de conversión calibrado: ~7.33 es aproximado para:
+    // SPEED_TO_RPM_FACTOR (7.33) es aproximado para:
     // velocidad en km/h * (1000m/km / 60min/h) / (pi * 0.25m) / relación
     // = velocidad * 1000 / 60 / 0.785 / 15
     // = velocidad * 8.49 (aproximado a 7.33 tras calibración empírica)
+    // Ajustar esta constante según mediciones reales del vehículo
     
     // Usar la velocidad ya calculada (que puede venir de encoders si están habilitados)
-    float rpm = lastData.speed * 7.33f;
+    float rpm = lastData.speed * SPEED_TO_RPM_FACTOR;
     
     // Limitar a rango seguro (MAX_RPM definido en settings.h)
     return constrain(rpm, 0.0f, (float)MAX_RPM);

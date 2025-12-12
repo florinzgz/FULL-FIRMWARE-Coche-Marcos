@@ -8,6 +8,12 @@
 // #include "display.h"  // Display module not yet implemented
 // #include "audio.h"  // Audio module not yet implemented
 
+// 🔒 v2.10.2: Constantes para verificaciones de seguridad OTA
+namespace {
+    constexpr float SPEED_TOLERANCE_KMH = 0.5f;      // Tolerancia de velocidad para considerar vehículo detenido
+    constexpr int MIN_BATTERY_PERCENT_FOR_OTA = 50;  // Porcentaje mínimo de batería para actualización OTA
+}
+
 // Static member initialization
 unsigned long MenuWiFiOTA::lastUpdate = 0;
 bool MenuWiFiOTA::updateAvailable = false;
@@ -290,7 +296,7 @@ void MenuWiFiOTA::installUpdate() {
     
     // 🔒 v2.10.2: Verificar que el vehículo esté detenido
     CarData data = CarSensors::readCritical();
-    if (data.speed > 0.5f) {  // Tolerancia de 0.5 km/h para ruido de sensores
+    if (data.speed > SPEED_TOLERANCE_KMH) {  // Tolerancia para ruido de sensores
         Logger::error("OTA: ABORTADO - Vehículo en movimiento (velocidad: %.1f km/h)", data.speed);
         // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté disponible
         return;
@@ -303,10 +309,10 @@ void MenuWiFiOTA::installUpdate() {
         return;
     }
     
-    // 🔒 v2.10.2: Verificar nivel de batería > 50%
-    if (data.batteryPercent < 50) {
-        Logger::error("OTA: ABORTADO - Batería insuficiente (%d%%, requiere >50%%)", 
-                     data.batteryPercent);
+    // 🔒 v2.10.2: Verificar nivel de batería > umbral mínimo
+    if (data.batteryPercent < MIN_BATTERY_PERCENT_FOR_OTA) {
+        Logger::error("OTA: ABORTADO - Batería insuficiente (%d%%, requiere >%d%%)", 
+                     data.batteryPercent, MIN_BATTERY_PERCENT_FOR_OTA); 
         // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté disponible
         return;
     }
