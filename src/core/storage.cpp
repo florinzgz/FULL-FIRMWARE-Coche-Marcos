@@ -73,6 +73,10 @@ void Storage::defaults(Config &cfg) {
     cfg.touchCalibration[4] = 3;     // rotation (matches tft.setRotation(3))
     cfg.touchCalibrated = false;     // No calibration done yet (using defaults)
     
+    // 🔒 v2.10.2: Límites de corriente configurables
+    cfg.maxBatteryCurrentA = 100.0f;  // Default: 100A para batería
+    cfg.maxMotorCurrentA = 50.0f;     // Default: 50A por motor
+    
     // 🔒 v2.4.2: Odómetro y mantenimiento
     cfg.odometer.totalKm = 0.0f;
     cfg.odometer.tripKm = 0.0f;

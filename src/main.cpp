@@ -4,6 +4,7 @@
 // Configuración
 #include "pins.h"
 #include "settings.h"
+#include "version.h"  // 🔒 v2.10.2: Firmware version information
 
 // ============================================================================
 // Demo Mode Animation Constants (STANDALONE_DISPLAY)
@@ -142,7 +143,7 @@ void setup() {
     // 3. First sign of life - print boot message
     Serial.println();
     Serial.println("========================================");
-    Serial.println("ESP32-S3 Car Control System v2.10.1");
+    Serial.printf("ESP32-S3 Car Control System %s\n", FIRMWARE_VERSION_FULL);
     Serial.println("========================================");
     Serial.printf("CPU Freq: %d MHz\n", getCpuFrequencyMhz());
     Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());

@@ -31,13 +31,13 @@ namespace {
     // En lugar de constante hardcodeada, usar valores configurables
     inline float getMaxCurrentA(int channel) {
         // Canal 4 = batería (típico 100A), resto = motores (típico 50A)
-        // Si cfg no tiene estos campos, usar defaults seguros
+        // 🔒 v2.10.2: Ahora usa valores configurables desde cfg
         if (channel == 4) {
-            // Batería: 100A por defecto
-            return 100.0f; // TODO: usar cfg.maxBatteryCurrentA cuando esté disponible
+            // Batería: usar valor configurado
+            return cfg.maxBatteryCurrentA;
         } else {
-            // Motores: 50A por defecto  
-            return 50.0f;  // TODO: usar cfg.maxMotorCurrentA cuando esté disponible
+            // Motores: usar valor configurado
+            return cfg.maxMotorCurrentA;
         }
     }
 

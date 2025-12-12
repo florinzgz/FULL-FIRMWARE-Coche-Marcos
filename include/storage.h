@@ -4,7 +4,7 @@
 namespace Storage {
 
     // Versión de estructura de datos guardada
-    const uint16_t kConfigVersion = 7;   // ⚠️ v7: added touch calibration data (touchCalibration array + touchCalibrated flag)
+    const uint16_t kConfigVersion = 8;   // ⚠️ v8: added maxBatteryCurrentA and maxMotorCurrentA fields (v2.10.2)
 
     struct ErrorLog {
         uint16_t code;       // código de error
@@ -39,6 +39,10 @@ namespace Storage {
         bool showTemps;
         bool showEffort;
         uint8_t displayBrightness;  // Brillo de pantalla (0-255)
+        
+        // 🔒 v2.10.2: Límites de corriente configurables
+        float maxBatteryCurrentA;   // Corriente máxima batería (A) - default 100A
+        float maxMotorCurrentA;     // Corriente máxima por motor (A) - default 50A
 
         // Módulos habilitados
         bool audioEnabled;
