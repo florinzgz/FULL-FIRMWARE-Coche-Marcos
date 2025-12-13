@@ -105,7 +105,7 @@ void Buttons::update() {
             longPressTriggered[1] = true;
             Logger::info("Buttons: MULTIMEDIA long-press detectado - cambio de modo de audio");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // Long-press cycles through audio modes (radio/bluetooth/aux)
+            // TODO: Long-press reserved for cycling audio modes (radio/bluetooth/aux)
         }
     } else if(!multimedia && lastMultimedia) {
         if (!longPressTriggered[1]) {
