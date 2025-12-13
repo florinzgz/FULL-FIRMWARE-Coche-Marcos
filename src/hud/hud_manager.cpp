@@ -241,14 +241,13 @@ void HUDManager::showError(const char* message) {
     tft.println(message);
 }
 
-void HUDManager::handleTouch(int16_t x, int16_t y, bool pressed) {
+void HUDManager::handleTouch([[maybe_unused]] int16_t x, 
+                            [[maybe_unused]] int16_t y, 
+                            [[maybe_unused]] bool pressed) {
     // 🔒 v2.10.3: Touch handling delegated to active menu/screen
     // Each screen (Dashboard, MenuHidden, MenuLEDControl, etc.) handles its own touch
     // This function serves as a placeholder for future global touch gestures
     // (e.g., swipe to change screens, pinch to zoom, etc.)
-    (void)x;        // Suppress unused parameter warning
-    (void)y;        // Suppress unused parameter warning
-    (void)pressed;  // Suppress unused parameter warning
 }
 
 void HUDManager::setBrightness(uint8_t newBrightness) {
