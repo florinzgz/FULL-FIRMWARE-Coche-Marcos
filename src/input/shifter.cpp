@@ -35,8 +35,8 @@ static void announce(Shifter::Gear g) {
             Alerts::play(Audio::AUDIO_MODULO_OK); // Confirmation beep for park
             break;
         case Shifter::Gear::R:
-            // Use dedicated reverse warning tone - distinctive but not an error
-            Alerts::play(Audio::AUDIO_REVERSE_WARNING);
+            // Use dedicated reverse gear audio - "Marcha atrás activada"
+            Alerts::play(Audio::AUDIO_MARCHA_R);
             break;
         case Shifter::Gear::N:
             Alerts::play(Audio::AUDIO_MODULO_OK); // Neutral confirmation
