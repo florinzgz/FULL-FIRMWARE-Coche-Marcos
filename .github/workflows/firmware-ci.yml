@@ -22,12 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment:
-          - release
-          - ota
-          - test
-          - touch-debug
-          - no-touch
+                environment:
+          - esp32-s3-devkitc-release
+          - esp32-s3-devkitc-ota
+          - esp32-s3-devkitc-test
+          - esp32-s3-devkitc-touch-debug
+          - esp32-s3-devkitc-no-touch
       fail-fast: false
     
     steps:
