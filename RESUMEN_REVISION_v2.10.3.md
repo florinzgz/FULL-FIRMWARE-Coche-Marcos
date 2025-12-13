@@ -12,7 +12,7 @@
 Se ha realizado una **revisión completa línea por línea** de todo el código del firmware, tal como se solicitó. Se han verificado y corregido todos los aspectos críticos del sistema.
 
 ### Solicitud Original
-> "compruebame linea por linea de todo el codigo, has una lista completa y detallada y verifica y corige el codigo y has las correcciones necesarias para que funcione con seguridad y sin fallos sobre todo en la pantalla el el firmware de los sensore y los driver de los motores de traccion dirreccion, los led sensores de detccin de obstaculos, pedal, palanca de cambios, sensoresina226, los shunts, sensores de temperatura, etc, implementa lo que falta en el codig y borra lo que sobra y puede traer problemas"
+> "compruebame linea por linea de todo el codigo, has una lista completa y detallada y verifica y corige el codigo y has las correcciones necesarias para que funcione con seguridad y sin fallos sobre todo en la pantalla el el firmware de los sensore y los driver de los motores de traccion dirreccion, los led sensores de detección de obstaculos, pedal, palanca de cambios, sensoresina226, los shunts, sensores de temperatura, etc, implementa lo que falta en el codig y borra lo que sobra y puede traer problemas"
 
 ### ✅ Resultado
 **TODOS los elementos solicitados han sido verificados y están funcionando correctamente.**
