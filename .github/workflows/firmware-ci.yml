@@ -51,7 +51,7 @@ jobs:
         uses:  actions/upload-artifact@v4
         with: 
           name: firmware-${{ matrix.environment }}
-          path: . pio/build/${{ matrix. environment }}/firmware.bin
+          path: .pio/build/${{ matrix.environment }}/firmware.bin
           if-no-files-found:  error
 
   # ============================================
@@ -92,7 +92,7 @@ jobs:
         run: |
           clang-format -i src/**/*.cpp include/**/*.h
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github. com"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/**/*.cpp include/**/*.h
           git commit -m "Apply clang-format automatically"
           git push
@@ -119,7 +119,7 @@ jobs:
         uses: actions/cache@v4
         with:  
           path: ~/.sonar/cache
-          key: ${{ runner. os }}-sonar
+          key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
       - name: Install PlatformIO and build-wrapper
@@ -138,7 +138,7 @@ jobs:
             -e esp32-s3-devkitc-ota \
             -e esp32-s3-devkitc-predeployment \
             -e esp32-s3-devkitc-touch-debug
-          ls -R . pio/build || true
+          ls -R .pio/build || true
 
       - name: Workaround for missing /etc/gitconfig
         run: sudo touch /etc/gitconfig
@@ -154,4 +154,4 @@ jobs:
             -Dsonar.sources=src,include
             -Dsonar.projectBaseDir=. 
             -Dsonar.cfamily.build-wrapper-output=bw-output
-            -Dsonar. verbose=true
+            -Dsonar.verbose=true
