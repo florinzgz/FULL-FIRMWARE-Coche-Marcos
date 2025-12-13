@@ -20,4 +20,5 @@
 #define HARDWARE_TARGET "ESP32-S3-DevKitC-1"
 
 // Complete version string with build info
-#define FIRMWARE_VERSION_FULL "v" FIRMWARE_VERSION " (" FIRMWARE_BUILD_DATE " " FIRMWARE_BUILD_TIME ")"
+#define FIRMWARE_VERSION_FULL                                                  \
+  "v" FIRMWARE_VERSION " (" FIRMWARE_BUILD_DATE " " FIRMWARE_BUILD_TIME ")"
