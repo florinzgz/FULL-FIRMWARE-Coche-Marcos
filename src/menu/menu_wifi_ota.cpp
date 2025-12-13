@@ -268,7 +268,7 @@ void MenuWiFiOTA::checkForUpdates() {
     */
     
     Logger::info("OTA: Verificación de actualizaciones (placeholder)");
-    Logger::info("OTA: Versión actual: %s", FIRMWARE_VERSION);
+    Logger::infof("OTA: Versión actual: %s", FIRMWARE_VERSION);
     
     // Por ahora, simular que no hay actualizaciones disponibles
     // En producción, implementar la lógica HTTP anterior
@@ -297,7 +297,7 @@ void MenuWiFiOTA::installUpdate() {
     // 🔒 v2.10.2: Verificar que el vehículo esté detenido
     CarData data = CarSensors::readCritical();
     if (data.speed > SPEED_TOLERANCE_KMH) {  // Tolerancia para ruido de sensores
-        Logger::error("OTA: ABORTADO - Vehículo en movimiento (velocidad: %.1f km/h)", data.speed);
+        Logger::errorf("OTA: ABORTADO - Vehículo en movimiento (velocidad: %.1f km/h)", data.speed);
         // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté disponible
         return;
     }
@@ -311,7 +311,7 @@ void MenuWiFiOTA::installUpdate() {
     
     // 🔒 v2.10.2: Verificar nivel de batería > umbral mínimo
     if (data.batteryPercent < MIN_BATTERY_PERCENT_FOR_OTA) {
-        Logger::error("OTA: ABORTADO - Batería insuficiente (%d%%, requiere >%d%%)", 
+        Logger::errorf("OTA: ABORTADO - Batería insuficiente (%d%%, requiere >%d%%)", 
                      data.batteryPercent, MIN_BATTERY_PERCENT_FOR_OTA); 
         // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté disponible
         return;
