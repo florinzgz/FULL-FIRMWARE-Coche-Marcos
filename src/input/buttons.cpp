@@ -135,7 +135,8 @@ void Buttons::update() {
             longPressTriggered[2] = true;
             Logger::info("Buttons: 4X4 long-press detectado - modo de tracción avanzado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // Long-press reserved for future advanced traction modes (sand/mud/rock)
+            // Placeholder: No advanced traction mode functionality is currently implemented.
+            // Long-press is reserved for future advanced traction modes (sand/mud/rock).
         }
     } else if(!mode4x4 && last4x4) {
         if (!longPressTriggered[2] && !veryLongPressTriggered) {
