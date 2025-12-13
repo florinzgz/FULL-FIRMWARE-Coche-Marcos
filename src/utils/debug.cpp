@@ -6,7 +6,8 @@ static uint8_t gLevel = 1;
 void Debug::setLevel(uint8_t lvl) { gLevel = lvl; }
 uint8_t Debug::level() { return gLevel; }
 
-static void vlogf(const char *prefix, const char *tag, const char *fmt, va_list args) {
+static void vlogf(const char *prefix, const char *tag, const char *fmt,
+                  va_list args) {
   Serial.print(prefix);
   Serial.print(tag);
   Serial.print(": ");
