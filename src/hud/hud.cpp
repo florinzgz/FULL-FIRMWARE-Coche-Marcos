@@ -897,10 +897,10 @@ void HUD::update() {
     // Formula: RPM = (speed_kmh * gear_ratio * final_drive) / (wheel_diameter * PI / 60)
     // For this vehicle:
     //   - Wheel diameter: 20cm (0.2m)
-    //   - Final drive ratio: 10:1
+    //   - Final drive ratio: empirically determined (see below)
     //   - Typical gear ratio: 1.0 (direct drive in electric vehicle)
-    //   - Calculation: (km/h * 1000/60) / (0.2 * PI) / 10 ≈ speed * 11.5
-    // Factor 11.5 = 1000/(60 * 0.2 * 3.14159 * 10) empirically validated
+    //   - Calculation: (km/h * 1000/60) / (0.2 * PI) / final_drive ≈ speed * 11.5
+    // Note: The factor 11.5 is empirically validated for this vehicle and may not match the theoretical value using the stated parameters.
     static constexpr float RPM_FACTOR = 11.5f;  // RPM per km/h
     float rpm = speedKmh * RPM_FACTOR;
     if(rpm > MAX_RPM) rpm = MAX_RPM;
