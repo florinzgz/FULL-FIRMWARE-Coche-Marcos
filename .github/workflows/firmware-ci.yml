@@ -10,8 +10,8 @@ on:
   workflow_dispatch: 
 
 permissions: 
-  contents:  read
-  pull-requests: write
+  contents: write  # Cambiado de 'read' a 'write'
+  pull-requests:  write
   security-events: write
 
 jobs:
@@ -78,24 +78,32 @@ jobs:
         run: clang-format --dry-run --Werror src/**/*.cpp include/**/*.h
 
   autoformat:
-    runs-on: ubuntu-latest
-    needs: audit
-    if: failure()
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  runs-on: ubuntu-latest
+  needs: audit
+  if: failure()
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ github.head_ref }}
 
-      - name: Install clang-format
-        run: sudo apt-get install -y clang-format
+    - name: Install clang-format
+      run: sudo apt-get install -y clang-format
 
-      - name: Autoformat with clang-format
-        run: |
-          clang-format -i src/**/*.cpp include/**/*.h
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/**/*.cpp include/**/*.h
+    - name: Autoformat with clang-format
+      run: |
+        find src -name "*.cpp" -exec clang-format -i {} + 2>/dev/null || true
+        find include -name "*.h" -exec clang-format -i {} + 2>/dev/null || true
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if ! git diff --cached --quiet; then
           git commit -m "Apply clang-format automatically"
           git push
+        else
+          echo "No formatting changes needed"
+        fi
 
   # ============================================
   # Job 3: Análisis de calidad de código (SonarCloud)
