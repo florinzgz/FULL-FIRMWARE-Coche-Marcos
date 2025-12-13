@@ -82,7 +82,7 @@ void Buttons::update() {
         // Botón mantenido - verificar long press
         if (!longPressTriggered[0] && (now - pressStartMs[0] >= LONG_PRESS_MS)) {
             longPressTriggered[0] = true;
-            Logger::info("Buttons: LIGHTS long-press detectado - activando luces de emergencia");
+            Logger::info("Buttons: LIGHTS long-press detectado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
             // Long-press activates emergency/hazard lights (handled by LED controller)
         }
