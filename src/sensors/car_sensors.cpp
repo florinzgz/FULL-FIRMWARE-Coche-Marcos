@@ -314,7 +314,13 @@ void CarSensors::readSystemStatus() {
 
   // 🔒 v2.10.3: Estado de luces desde sistema de botones
   // El LED controller gestiona las luces físicas, aquí solo reflejamos el estado
-  lastData.status.lights = Buttons::get().lights;
+  // Defensive: Check if Buttons is initialized before accessing lights
+  if (Buttons::isInitialized()) {
+    lastData.status.lights = Buttons::get().lights;
+  } else {
+    Logger::warn("CarSensors: Buttons not initialized, setting lights status to false");
+    lastData.status.lights = false; // or a suitable default
+  }
 
   // Modo 4x4 (leer desde sistema de tracción)
   // Por defecto true si está en modo DRIVE
