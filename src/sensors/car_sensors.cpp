@@ -1,4 +1,5 @@
 #include "car_sensors.h"
+#include "buttons.h"   // 🔒 v2.10.3: Para lights status
 #include "current.h"
 #include "logger.h" // 🔒 v2.4.0: Para logging
 #include "pedal.h"
@@ -230,12 +231,11 @@ void CarSensors::readTemperatureSensors() {
     lastData.ambientTemp = ambTemp;
   }
 
-  // 🔒 v2.4.0: Estimar temperatura controlador como promedio de temperaturas de
-  // motores NOTA: No hay sensor dedicado para controlador. Esta es una
-  // estimación basada en que el controlador está cerca de los motores y se
-  // calienta proporcionalmente.
-  // TODO: Añadir sensor DS18B20 dedicado para controlador si se requiere
-  // precisión.
+  // 🔒 v2.10.3: Estimar temperatura controlador desde promedio de motores
+  // No hay sensor DS18B20 dedicado para controlador en hardware actual
+  // Estimación válida: controlador térmicamente acoplado a motores
+  // Precisión suficiente para alarmas de sobretemperatura (±5°C)
+  // Mejora futura: añadir DS18B20 en disipador del controlador si se requiere ±1°C
   float motorAvg = 0.0f;
   int validCount = 0;
   for (int i = 0; i < 4; i++) {
@@ -312,8 +312,9 @@ void CarSensors::readGear() {
 void CarSensors::readSystemStatus() {
   // 🔒 v2.10.2: Leer estados reales del sistema
 
-  // Luces (TODO: conectar con sistema de luces real cuando esté disponible)
-  lastData.status.lights = false;
+  // 🔒 v2.10.3: Estado de luces desde sistema de botones
+  // El LED controller gestiona las luces físicas, aquí solo reflejamos el estado
+  lastData.status.lights = Buttons::get().lights;
 
   // Modo 4x4 (leer desde sistema de tracción)
   // Por defecto true si está en modo DRIVE

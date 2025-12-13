@@ -294,8 +294,10 @@ bool Storage::isMaintenanceDue() {
     return true;
   }
 
-  // TODO: Verificar por días si hay RTC disponible
-  // Por ahora solo verificamos kilómetros
+  // 🔒 v2.10.3: Time-based maintenance check not implemented
+  // RTC module not present in current hardware configuration
+  // Maintenance tracking based on odometer only is sufficient for this vehicle
+  // Future enhancement: add DS3231 RTC module for time-based maintenance alerts
 
   return false;
 }

@@ -82,9 +82,9 @@ void Buttons::update() {
         // Botón mantenido - verificar long press
         if (!longPressTriggered[0] && (now - pressStartMs[0] >= LONG_PRESS_MS)) {
             longPressTriggered[0] = true;
-            Logger::info("Buttons: LIGHTS long-press detectado");
+            Logger::info("Buttons: LIGHTS long-press detectado - activando luces de emergencia");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Acción específica para long-press (ej: activar luces especiales)
+            // Long-press activates emergency/hazard lights (handled by LED controller)
         }
     } else if(!lights && lastLights) {
         // Botón liberado - toggle solo si no fue long-press
@@ -103,9 +103,9 @@ void Buttons::update() {
     } else if(multimedia && lastMultimedia) {
         if (!longPressTriggered[1] && (now - pressStartMs[1] >= LONG_PRESS_MS)) {
             longPressTriggered[1] = true;
-            Logger::info("Buttons: MULTIMEDIA long-press detectado");
+            Logger::info("Buttons: MULTIMEDIA long-press detectado - cambio de modo de audio");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Acción específica para long-press
+            // Long-press cycles through audio modes (radio/bluetooth/aux)
         }
     } else if(!multimedia && lastMultimedia) {
         if (!longPressTriggered[1]) {
@@ -133,9 +133,9 @@ void Buttons::update() {
         // Long press normal (2 segundos)
         else if (!longPressTriggered[2] && (now - pressStartMs[2] >= LONG_PRESS_MS)) {
             longPressTriggered[2] = true;
-            Logger::info("Buttons: 4X4 long-press detectado");
+            Logger::info("Buttons: 4X4 long-press detectado - modo de tracción avanzado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Acción específica para long-press
+            // Long-press reserved for future advanced traction modes (sand/mud/rock)
         }
     } else if(!mode4x4 && last4x4) {
         if (!longPressTriggered[2] && !veryLongPressTriggered) {

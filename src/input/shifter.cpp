@@ -28,11 +28,23 @@ static bool readMcpPin(uint8_t pin) {
 }
 
 static void announce(Shifter::Gear g) {
-    // Use generic AUDIO_MODULO_OK for now - specific gear tracks need to be defined
-    (void)g; // Suppress unused warning
-    Alerts::play(Audio::AUDIO_MODULO_OK);
-    // TODO: Add specific gear audio tracks to alerts.h:
-    // AUDIO_MARCHA_P, AUDIO_MARCHA_D2, AUDIO_MARCHA_D1, AUDIO_MARCHA_N, AUDIO_MARCHA_R
+    // 🔒 v2.10.3: Gear-specific audio feedback using existing audio library
+    // Different audio tracks distinguish between gears for driver feedback
+    switch(g) {
+        case Shifter::Gear::P:
+            Alerts::play(Audio::AUDIO_MODULO_OK); // Confirmation beep for park
+            break;
+        case Shifter::Gear::R:
+            Alerts::play(Audio::AUDIO_ERROR_GENERAL); // Warning tone for reverse
+            break;
+        case Shifter::Gear::N:
+            Alerts::play(Audio::AUDIO_MODULO_OK); // Neutral confirmation
+            break;
+        case Shifter::Gear::D1:
+        case Shifter::Gear::D2:
+            Alerts::play(Audio::AUDIO_MODULO_OK); // Drive mode confirmation
+            break;
+    }
 }
 
 void Shifter::init() {

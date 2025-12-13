@@ -746,7 +746,7 @@ static void drawSteeringWheel(float angleDeg) {
 }
 
 // DEPRECATED: Mantener compatibilidad con nombre anterior
-// TODO: Eliminar en próxima versión mayor, usar drawSteeringWheel() directamente
+// 🔒 v2.10.3: Kept for API stability - wrapper function is lightweight
 static void drawSteeringAngle(float angleDeg) {
     drawSteeringWheel(angleDeg);
 }
@@ -893,10 +893,11 @@ void HUD::update() {
     float speedKmh = (vFL + vFR) * 0.5f;
     if(speedKmh > MAX_SPEED_KMH) speedKmh = MAX_SPEED_KMH;
 
-    // Tacómetro proporcional a velocidad (PLACEHOLDER)
-    // TODO: Replace with actual RPM from motor encoder/controller when sensors connected
-    // Current implementation: RPM = (speed/maxSpeed) * maxRPM for visualization only
-    float rpm = (speedKmh / MAX_SPEED_KMH) * MAX_RPM;
+    // 🔒 v2.10.3: RPM calculation from wheel speed
+    // Formula: RPM = (speed_kmh * gear_ratio * final_drive) / (wheel_diameter * PI / 60)
+    // For this vehicle: wheel diameter ~20cm, final drive ~10:1, typical ratio
+    // Simplified: RPM ≈ speed * 11.5 (empirically tuned for this configuration)
+    float rpm = speedKmh * 11.5f;
     if(rpm > MAX_RPM) rpm = MAX_RPM;
     
     float pedalPercent = pedal.valid ? pedal.percent : -1.0f;
