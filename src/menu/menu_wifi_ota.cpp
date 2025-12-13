@@ -1,12 +1,12 @@
 #include "menu_wifi_ota.h"
+#include "alerts.h"      // 🔒 v2.10.3: Para audio de errores
 #include "car_sensors.h" // 🔒 v2.10.2: Para verificar estado del vehículo
 #include "config_storage.h"
+#include "dfplayer.h"    // 🔒 v2.10.3: Para definiciones de Audio
 #include "logger.h"  // 🔒 v2.10.2: Para logging
 #include "version.h" // 🔒 v2.10.2: Firmware version
 #include <ArduinoOTA.h>
 #include <WiFi.h>
-// #include "display.h"  // Display module not yet implemented
-// #include "audio.h"  // Audio module not yet implemented
 
 // 🔒 v2.10.2: Constantes para verificaciones de seguridad OTA
 namespace {
@@ -307,16 +307,16 @@ void MenuWiFiOTA::installUpdate() {
     Logger::errorf(
         "OTA: ABORTADO - Vehículo en movimiento (velocidad: %.1f km/h)",
         data.speed);
-    // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté
-    // disponible
+    // 🔒 v2.10.3: Alerta sonora de error de seguridad
+    Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
     return;
   }
 
   // 🔒 v2.10.2: Verificar que el vehículo esté en PARK
   if (data.gear != GearPosition::PARK) {
     Logger::error("OTA: ABORTADO - Vehículo no está en PARK");
-    // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté
-    // disponible
+    // 🔒 v2.10.3: Alerta sonora de error de seguridad
+    Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
     return;
   }
 
@@ -325,8 +325,8 @@ void MenuWiFiOTA::installUpdate() {
     Logger::errorf(
         "OTA: ABORTADO - Batería insuficiente (%d%%, requiere >%d%%)",
         data.batteryPercent, MIN_BATTERY_PERCENT_FOR_OTA);
-    // Audio::playAlert(Audio::ALERT_ERROR);  // TODO: cuando audio esté
-    // disponible
+    // 🔒 v2.10.3: Alerta sonora de error de seguridad
+    Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
     return;
   }
 
