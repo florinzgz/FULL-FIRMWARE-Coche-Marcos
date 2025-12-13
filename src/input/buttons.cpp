@@ -84,7 +84,8 @@ void Buttons::update() {
             longPressTriggered[0] = true;
             Logger::info("Buttons: LIGHTS long-press detectado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // Long-press activates emergency/hazard lights (handled by LED controller)
+            // TODO: Long-press should activate emergency/hazard lights via LED controller.
+            //       Integration with LED controller required here (future enhancement).
         }
     } else if(!lights && lastLights) {
         // Botón liberado - toggle solo si no fue long-press
