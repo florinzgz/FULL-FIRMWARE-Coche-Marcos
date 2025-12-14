@@ -166,8 +166,15 @@ void setup() {
   Serial.println("========================================");
   Serial.printf("CPU Freq: %d MHz\n", getCpuFrequencyMhz());
   Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
-  Serial.printf("PSRAM: %d bytes\n", ESP.getPsramSize());
-  Serial.printf("Free PSRAM: %d bytes\n", ESP.getFreePsram());
+  
+  // Check PSRAM availability (returns 0 if not present/enabled)
+  size_t psramSize = ESP.getPsramSize();
+  if (psramSize > 0) {
+    Serial.printf("PSRAM: %d bytes (Free: %d bytes)\n", psramSize, ESP.getFreePsram());
+  } else {
+    Serial.println("PSRAM: Not available or not enabled");
+  }
+  
   Serial.printf("Stack high water mark: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Serial.printf("Configured loop stack: %d bytes\n", CONFIG_ARDUINO_LOOP_STACK_SIZE);

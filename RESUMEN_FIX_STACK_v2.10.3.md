@@ -99,6 +99,24 @@ Los módulos más críticos que consumen stack durante `setup()`:
 
 Con el stack anterior de 24KB, no había margen suficiente, causando overflow.
 
+### Cálculo del Margen de Seguridad
+
+**Stack asignado**: 32KB  
+**Uso pico medido**: ~25KB  
+**Margen de seguridad**: 7KB (28%)
+
+Este margen de 7KB es crítico porque cubre:
+- **Llamadas anidadas**: Funciones que llaman a otras funciones agregan frames al stack
+- **Manejadores de interrupción**: ISRs que pueden ejecutarse durante la inicialización
+- **Variabilidad**: Diferentes rutas de código según configuración y hardware
+- **Crecimiento futuro**: Espacio para nuevas features sin recompilar
+- **Debug overhead**: El modo debug consume más stack por logging adicional
+
+Un margen del 28% es considerado adecuado para sistemas embebidos críticos donde:
+- Un stack overflow causa un crash completo del sistema
+- No hay recuperación posible sin reinicio
+- La seguridad operacional es prioritaria
+
 ## 🔒 Seguridad
 
 ### ¿Qué es el Stack Canary?
