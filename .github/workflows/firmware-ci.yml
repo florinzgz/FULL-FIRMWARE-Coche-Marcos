@@ -168,6 +168,7 @@ jobs:
           sonar.sourceEncoding=UTF-8
           sonar.cfamily.build-wrapper-output=bw-output
           sonar.language=c,cpp
+          sonar.inclusions=**/*.cpp,**/*.c,**/*.h,**/*.hpp
           sonar.exclusions=**/test/**,**/.pio/**,**/lib/**
           EOF
 
