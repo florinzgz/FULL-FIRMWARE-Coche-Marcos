@@ -166,8 +166,12 @@ void setup() {
   Serial.println("========================================");
   Serial.printf("CPU Freq: %d MHz\n", getCpuFrequencyMhz());
   Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
+  Serial.printf("PSRAM: %d bytes\n", ESP.getPsramSize());
+  Serial.printf("Free PSRAM: %d bytes\n", ESP.getFreePsram());
   Serial.printf("Stack high water mark: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Serial.printf("Configured loop stack: %d bytes\n", CONFIG_ARDUINO_LOOP_STACK_SIZE);
+  Serial.printf("Configured main task stack: %d bytes\n", CONFIG_ESP_MAIN_TASK_STACK_SIZE);
   Serial.println("Boot sequence starting...");
   Serial.flush();
 
