@@ -84,7 +84,8 @@ void Buttons::update() {
             longPressTriggered[0] = true;
             Logger::info("Buttons: LIGHTS long-press detectado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Acción específica para long-press (ej: activar luces especiales)
+            // TODO: Long-press should activate emergency/hazard lights via LED controller.
+            //       Integration with LED controller required here (future enhancement).
         }
     } else if(!lights && lastLights) {
         // Botón liberado - toggle solo si no fue long-press
@@ -103,9 +104,9 @@ void Buttons::update() {
     } else if(multimedia && lastMultimedia) {
         if (!longPressTriggered[1] && (now - pressStartMs[1] >= LONG_PRESS_MS)) {
             longPressTriggered[1] = true;
-            Logger::info("Buttons: MULTIMEDIA long-press detectado");
+            Logger::info("Buttons: MULTIMEDIA long-press detectado - cambio de modo de audio");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Acción específica para long-press
+            // TODO: Long-press reserved for cycling audio modes (radio/bluetooth/aux)
         }
     } else if(!multimedia && lastMultimedia) {
         if (!longPressTriggered[1]) {
@@ -133,9 +134,10 @@ void Buttons::update() {
         // Long press normal (2 segundos)
         else if (!longPressTriggered[2] && (now - pressStartMs[2] >= LONG_PRESS_MS)) {
             longPressTriggered[2] = true;
-            Logger::info("Buttons: 4X4 long-press detectado");
+            Logger::info("Buttons: 4X4 long-press detectado - modo de tracción avanzado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Acción específica para long-press
+            // Placeholder: No advanced traction mode functionality is currently implemented.
+            // Long-press is reserved for future advanced traction modes (sand/mud/rock).
         }
     } else if(!mode4x4 && last4x4) {
         if (!longPressTriggered[2] && !veryLongPressTriggered) {
