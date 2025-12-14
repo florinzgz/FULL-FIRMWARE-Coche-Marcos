@@ -7,10 +7,10 @@
 // ============================================================================
 
 // Firmware version string (semantic versioning)
-#define FIRMWARE_VERSION "2.10.3"
+#define FIRMWARE_VERSION "2.10.4"
 #define FIRMWARE_VERSION_MAJOR 2
 #define FIRMWARE_VERSION_MINOR 10
-#define FIRMWARE_VERSION_PATCH 3
+#define FIRMWARE_VERSION_PATCH 4
 
 // Build date (automatically set at compile time)
 #define FIRMWARE_BUILD_DATE __DATE__
