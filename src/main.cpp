@@ -220,6 +220,13 @@ void setup() {
   Storage::init();
   Serial.printf("[STACK] After Storage::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  
+  // 🔒 v2.10.5: Feed watchdog early to prevent boot loop during initialization
+  // Watchdog has 10s timeout - must feed during long setup() to prevent reset
+  Serial.println("[BOOT] Initializing Watchdog early...");
+  Watchdog::init();
+  Watchdog::feed();
+  Serial.println("[BOOT] Watchdog initialized and fed");
 
   // 🔒 CRITICAL FIX: Load configuration from EEPROM
   // Without this, cfg.displayBrightness is uninitialized (0), causing screen to
@@ -252,15 +259,20 @@ void setup() {
   Logger::init();
   Serial.printf("[STACK] After Logger::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed watchdog after logger init
 
 #ifdef STANDALONE_DISPLAY
   Serial.println(
       "[BOOT] STANDALONE_DISPLAY MODE: Skipping sensor initialization");
   Logger::info("🧪 STANDALONE_DISPLAY MODE: Skipping sensor initialization");
+  
+  // 🔒 v2.10.5: Initialize watchdog in standalone mode too
+  Watchdog::feed();  // Feed watchdog in standalone mode
 
   // Initialize only display components
   Serial.println("[BOOT] Initializing HUD Manager (display only)...");
   HUDManager::init();
+  Watchdog::feed();  // Feed after HUD init
 
   // Show logo briefly with non-blocking timing
   Serial.println("[BOOT] Showing logo...");
@@ -268,11 +280,14 @@ void setup() {
   unsigned long logoStart = millis();
   while (millis() - logoStart < 1500) {
     // Keep main loop responsive during logo display
+    Watchdog::feed();  // Feed watchdog during logo display
     yield(); // Allow background tasks to run
+    delay(10); // Small delay to prevent tight loop
   }
 
   // Go directly to dashboard
   HUDManager::showMenu(MenuType::DASHBOARD);
+  Watchdog::feed();  // Feed after showing dashboard
 
   // CRITICAL: Initialize CarData with simulated values BEFORE calling update()
   // Otherwise, HUD::update() may use uninitialized data causing garbage values
@@ -327,60 +342,66 @@ void setup() {
 
   Serial.println("[BOOT] FULL MODE: Starting hardware initialization...");
 
-  // CRITICAL: Initialize Watchdog and I²C Recovery FIRST
-  Serial.println("[BOOT] Initializing Watchdog...");
-  Watchdog::init();
-  Serial.printf("[STACK] After Watchdog::init - Free: %d bytes\n",
-                uxTaskGetStackHighWaterMark(NULL));
-
+  // CRITICAL: Watchdog already initialized above - feed it regularly
+  Watchdog::feed();
+  
   Serial.println("[BOOT] Initializing I2C Recovery...");
   I2CRecovery::init();
   Serial.printf("[STACK] After I2CRecovery::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after I2C init
 
   // Initialize WiFi and OTA (before sensors for telemetry)
   Serial.println("[BOOT] Initializing WiFi Manager...");
   WiFiManager::init();
   Serial.printf("[STACK] After WiFiManager::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after WiFi init (non-blocking but important)
 
   Serial.println("[BOOT] Initializing Relays...");
   Relays::init();
   Serial.printf("[STACK] After Relays::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after relays init
 
   // Initialize unified sensor reader
   Serial.println("[BOOT] Initializing Car Sensors...");
   CarSensors::init();
   Serial.printf("[STACK] After CarSensors::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after car sensors init
 
   // Initialize advanced HUD manager
   Serial.println("[BOOT] Initializing HUD Manager...");
   HUDManager::init();
   Serial.printf("[STACK] After HUDManager::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after HUD init
 
   Serial.println("[BOOT] Initializing DFPlayer Audio...");
   Audio::DFPlayer::init();
   Audio::AudioQueue::init();
   Serial.printf("[STACK] After Audio init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after audio init
 
   Serial.println("[BOOT] Initializing Current Sensors (INA226)...");
   Sensors::initCurrent();
   Serial.printf("[STACK] After Current Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after current sensors init (I2C operations)
 
   Serial.println("[BOOT] Initializing Temperature Sensors (DS18B20)...");
   Sensors::initTemperature();
   Serial.printf("[STACK] After Temperature Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after temperature sensors init
 
   Serial.println("[BOOT] Initializing Wheel Sensors...");
   Sensors::initWheels();
   Serial.printf("[STACK] After Wheel Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after wheel sensors init
 
   Serial.println("[BOOT] Initializing Pedal...");
   Pedal::init();
@@ -390,11 +411,13 @@ void setup() {
   Buttons::init();
   Serial.println("[BOOT] Initializing Shifter...");
   Shifter::init();
+  Watchdog::feed();  // Feed after input devices init
 
   Serial.println("[BOOT] Initializing Traction...");
   Traction::init();
   Serial.println("[BOOT] Initializing Steering Motor...");
   SteeringMotor::init();
+  Watchdog::feed();  // Feed after control systems init
 
   // --- Advanced Safety Systems ---
   Serial.println("[BOOT] Initializing ABS System...");
@@ -403,36 +426,44 @@ void setup() {
   TCSSystem::init();
   Serial.println("[BOOT] Initializing Regen AI...");
   RegenAI::init();
+  Watchdog::feed();  // Feed after safety systems init
 
   // --- Obstacle Detection System ---
   Serial.println("[BOOT] Initializing Obstacle Detection...");
   ObstacleDetection::init();
   Serial.printf("[STACK] After Obstacle Detection - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after obstacle detection init (I2C intensive)
 
   Serial.println("[BOOT] Initializing Obstacle Safety...");
   ObstacleSafety::init();
+  Watchdog::feed();  // Feed after obstacle safety init
 
   // --- Telemetry System ---
   Serial.println("[BOOT] Initializing Telemetry...");
   Telemetry::init(); // 🆕 v2.8.0: Sistema de telemetría
+  Watchdog::feed();  // Feed after telemetry init
 
   // --- Bluetooth Emergency Override Controller ---
   Serial.println("[BOOT] Initializing Bluetooth Controller...");
   BluetoothController::init();
   Serial.printf("[STACK] After Bluetooth - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
+  Watchdog::feed();  // Feed after Bluetooth init
 
   Serial.println("[BOOT] All modules initialized. Starting self-test...");
+  Watchdog::feed();  // Feed before self-test
 
   // --- Logo de arranque ---
   HUDManager::showLogo();
   Alerts::play(Audio::AUDIO_INICIO);
   // Non-blocking: logo display time handled by first loop iterations
   // Removed blocking delay(2000) - logo will show during system checks
+  Watchdog::feed();  // Feed after showing logo
 
   // --- Chequeo rápido ---
   auto health = System::selfTest();
+  Watchdog::feed();  // Feed after self-test
   if (health.ok) {
     Serial.println("[BOOT] Self-test PASSED!");
     Steering::center();
