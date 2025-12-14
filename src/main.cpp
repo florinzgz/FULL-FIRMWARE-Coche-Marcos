@@ -221,8 +221,11 @@ void setup() {
   Serial.printf("[STACK] After Storage::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   
-  // 🔒 v2.10.5: Feed watchdog early to prevent boot loop during initialization
-  // Watchdog has 10s timeout - must feed during long setup() to prevent reset
+  // 🔒 v2.10.5: CRITICAL - Initialize watchdog EARLY to prevent boot loop
+  // Previously watchdog was initialized later in FULL mode only, causing boot loops
+  // when setup() took longer than watchdog timeout (WiFi timeout + sensor init).
+  // Now initialized early for BOTH standalone and full modes, and fed regularly
+  // throughout setup(). See watchdog.h for WDT_TIMEOUT_SECONDS configuration.
   Serial.println("[BOOT] Initializing Watchdog early...");
   Watchdog::init();
   Watchdog::feed();
@@ -282,7 +285,7 @@ void setup() {
     // Keep main loop responsive during logo display
     Watchdog::feed();  // Feed watchdog during logo display
     yield(); // Allow background tasks to run
-    delay(10); // Small delay to prevent tight loop
+    delayMicroseconds(1000); // 1ms delay for precise timing in tight loop
   }
 
   // Go directly to dashboard
