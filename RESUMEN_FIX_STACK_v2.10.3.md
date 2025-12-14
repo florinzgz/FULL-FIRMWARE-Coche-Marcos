@@ -66,8 +66,15 @@ Se han añadido más puntos de diagnóstico en `main.cpp` para identificar fallo
 
 ```cpp
 Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
-Serial.printf("PSRAM: %d bytes\n", ESP.getPsramSize());
-Serial.printf("Free PSRAM: %d bytes\n", ESP.getFreePsram());
+
+// Check PSRAM availability (returns 0 if not present/enabled)
+size_t psramSize = ESP.getPsramSize();
+if (psramSize > 0) {
+  Serial.printf("PSRAM: %d bytes (Free: %d bytes)\n", psramSize, ESP.getFreePsram());
+} else {
+  Serial.println("PSRAM: Not available or not enabled");
+}
+
 Serial.printf("Stack high water mark: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
 Serial.printf("Configured loop stack: %d bytes\n", CONFIG_ARDUINO_LOOP_STACK_SIZE);
 Serial.printf("Configured main task stack: %d bytes\n", CONFIG_ESP_MAIN_TASK_STACK_SIZE);
@@ -80,9 +87,9 @@ Serial.printf("Configured main task stack: %d bytes\n", CONFIG_ESP_MAIN_TASK_STA
 - PSRAM disponible (si está instalada): hasta 8 MB
 
 ### Impacto del Fix
-- **Incremento total**: +16 KB (8KB loop + 4KB main task)
-- **Porcentaje de RAM**: ~5% de la RAM total
-- **RAM libre restante**: ~267 KB (81.5%)
+- **Incremento total**: +12 KB (8KB loop + 4KB main task)
+- **Porcentaje de RAM**: ~3.7% de la RAM total
+- **RAM libre restante**: ~271 KB (82.7%)
 
 ### Uso de Stack en Inicialización
 
@@ -172,8 +179,7 @@ ESP32-S3 Car Control System v2.10.3
 ========================================
 CPU Freq: 240 MHz
 Free heap: XXXXX bytes
-PSRAM: XXXXX bytes
-Free PSRAM: XXXXX bytes
+PSRAM: XXXXX bytes (Free: XXXXX bytes)
 Stack high water mark: XXXXX bytes
 Configured loop stack: 32768 bytes
 Configured main task stack: 20480 bytes
@@ -220,13 +226,13 @@ Boot sequence starting...
 ## 📝 Cambios en Archivos
 
 ### platformio.ini
-- Líneas 229-230: Stack sizes aumentados a 32KB/20KB (base)
-- Líneas 286-287: Stack sizes aumentados a 32KB/20KB (test)
-- Líneas 333-334: Stack sizes aumentados a 32KB/20KB (predeployment)
-- Líneas 9-15: Changelog actualizado con v2.10.3
+- Líneas 246-247: Stack sizes aumentados a 32KB/20KB (base)
+- Líneas 303-304: Stack sizes aumentados a 32KB/20KB (test)
+- Líneas 342-343: Stack sizes aumentados a 32KB/20KB (predeployment)
+- Líneas 9-16: Changelog actualizado con v2.10.3
 
 ### src/main.cpp
-- Líneas 168-173: Agregada información de diagnóstico de PSRAM y stack
+- Líneas 169-181: Agregada información de diagnóstico de PSRAM y stack
 
 ## 🎯 Conclusión
 
