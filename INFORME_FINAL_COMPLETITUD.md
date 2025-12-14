@@ -114,7 +114,7 @@ Este documento proporciona un análisis exhaustivo de:
 **Detalles:**
 - ✅ WiFi con status real desde WiFi.status()
 - ✅ OTA con verificaciones (stopped, PARK, battery>50%)
-- ✅ Versión centralizada (version.h: "2.10.3")
+- ✅ Versión centralizada (version.h: "2.10.4")
 - ✅ Bluetooth para emergency stop remoto
 - ✅ Audio con cola no bloqueante y prioridades
 
@@ -462,7 +462,7 @@ Este documento proporciona un análisis exhaustivo de:
 3. ✅ **Deploy release** en producción si tests OK
 4. ✅ **Considerar mejoras opcionales** en futuras versiones
 
-### Firmware v2.10.3: ✅ LISTO PARA PRODUCCIÓN
+### Firmware v2.10.4: ✅ LISTO PARA PRODUCCIÓN
 
 ---
 
