@@ -640,7 +640,7 @@ void loop() {
     } else if (stackFree < STACK_LOW_THRESHOLD) {
       Logger::warnf("⚠️ STACK BAJO: %u bytes libres (aumentar CONFIG_ARDUINO_LOOP_STACK_SIZE)", stackFree);
     } else if (stackFree < STACK_ACCEPTABLE_THRESHOLD) {
-      Debug::printf(DEBUG, "Loop stack: %u bytes libres (aceptable)", stackFree);
+      Logger::infof("Loop stack: %u bytes libres (aceptable)", stackFree);
     }
     // Si >2KB, no loggear para no saturar serial
   }
