@@ -10,7 +10,6 @@
 #include "temperature.h"
 #include "wheels.h"
 #include <Arduino.h>
-#include <WiFi.h> // 🔒 v2.10.2: Para WiFi status
 #include <cmath>  // 🔒 v2.4.0: Para isfinite()
 
 extern Storage::Config cfg; // 🔒 v2.4.0: Acceso a configuración
@@ -324,9 +323,8 @@ void CarSensors::readSystemStatus() {
   // Freno de estacionamiento (activo en PARK)
   lastData.status.parkingBrake = (lastData.gear == GearPosition::PARK);
 
-  // 🔒 v2.10.2: Leer estado WiFi real
-  // WiFi incluye tanto el WiFiManager como conexión activa
-  lastData.status.wifi = (WiFi.status() == WL_CONNECTED);
+  // WiFi disabled in this firmware version
+  lastData.status.wifi = false;
 
   // 🔒 v2.10.2: Bluetooth
   // ESP32-S3 no soporta Bluetooth clásico, solo BLE

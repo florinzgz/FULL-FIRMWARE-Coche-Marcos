@@ -119,7 +119,6 @@ bool testTCSSystem();
 // Communication Tests
 bool testI2CBus();
 bool testBluetoothConnection();
-bool testWiFiConnection();
 
 // Storage Tests
 bool testEEPROMReadWrite();
