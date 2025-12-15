@@ -68,8 +68,9 @@ if ! command -v $ADDR2LINE &> /dev/null; then
     echo "2. Instalar ESP32 toolchain manualmente"
     echo ""
     
-    # Intentar encontrar en PlatformIO
-    TOOLCHAIN_PATH=$(find ~/.platformio/packages -name "xtensa-esp32s3-elf-addr2line" 2>/dev/null | head -1)
+    # Intentar encontrar en PlatformIO (múltiples ubicaciones posibles)
+    PLATFORMIO_HOME="${PLATFORMIO_HOME:-$HOME/.platformio}"
+    TOOLCHAIN_PATH=$(find "$PLATFORMIO_HOME/packages" -name "xtensa-esp32s3-elf-addr2line" 2>/dev/null | head -1)
     
     if [ -n "$TOOLCHAIN_PATH" ]; then
         echo -e "${GREEN}✅ Encontrado en PlatformIO:${NC} $TOOLCHAIN_PATH"

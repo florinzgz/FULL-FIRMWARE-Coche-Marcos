@@ -3,6 +3,7 @@
 # Compatible con: Linux, macOS, Windows (Git Bash)
 # Versión: 1.0
 # Fecha: 2025-12-15
+# Compatible con: Firmware v2.10.8+
 
 set -e  # Exit on error
 
