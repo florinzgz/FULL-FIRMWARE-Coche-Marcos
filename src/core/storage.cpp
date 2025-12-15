@@ -20,6 +20,21 @@ void Storage::init() {
   if (!prefs.begin(kNamespace, false)) {
     Logger::warn("Storage init: fallo al abrir namespace");
     System::logError(970); // código: fallo apertura storage
+  } else {
+    // 🔒 v2.10.7: Confirm storage initialization
+    Logger::info("Storage init: EEPROM namespace abierto correctamente");
+    
+    // Verificar si hay datos guardados
+    if (prefs.isKey(kKeyMagic)) {
+      uint32_t magic = prefs.getUInt(kKeyMagic, 0);
+      if (magic == MAGIC_NUMBER) {
+        Logger::info("Storage init: Datos válidos detectados en EEPROM");
+      } else {
+        Logger::warn("Storage init: Magic number incorrecto - EEPROM puede estar corrupta");
+      }
+    } else {
+      Logger::info("Storage init: EEPROM vacía o primera inicialización");
+    }
   }
 }
 

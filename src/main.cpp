@@ -612,6 +612,24 @@ void loop() {
 #else
   // CRITICAL: Feed watchdog at start of every loop iteration
   Watchdog::feed();
+  
+  // 🔒 v2.10.7: Stack health monitoring (every 10 seconds)
+  static unsigned long lastStackCheck = 0;
+  if (now - lastStackCheck > 10000) {
+    lastStackCheck = now;
+    
+    UBaseType_t stackFree = uxTaskGetStackHighWaterMark(NULL);
+    
+    // Log stack status
+    if (stackFree < 512) {
+      Logger::errorf("🚨 STACK CRÍTICO: Solo %u bytes libres! Overflow inminente", stackFree);
+    } else if (stackFree < 1024) {
+      Logger::warnf("⚠️ STACK BAJO: %u bytes libres (aumentar CONFIG_ARDUINO_LOOP_STACK_SIZE)", stackFree);
+    } else if (stackFree < 2048) {
+      Debug::printf(DEBUG, "Loop stack: %u bytes libres (aceptable)", stackFree);
+    }
+    // Si >2KB, no loggear para no saturar serial
+  }
 
   // PRIORITY 1: Bluetooth Emergency Override (HIGHEST PRIORITY)
   BluetoothController::update();
