@@ -19,7 +19,7 @@ void System::init() {
     Logger::info("System init: entrando en PRECHECK");
     currentState = PRECHECK;
     
-    // 🔒 v2.10.7: Enhanced diagnostic information
+    // 🔒 v2.10.8: Enhanced diagnostic information
     Logger::infof("System init: Estado inicial OK");
     Logger::infof("System init: Free heap: %u bytes", ESP.getFreeHeap());
     

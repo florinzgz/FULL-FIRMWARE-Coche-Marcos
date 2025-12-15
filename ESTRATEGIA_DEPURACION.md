@@ -1,4 +1,4 @@
-# Estrategia de Depuración - Firmware v2.10.7+
+# Estrategia de Depuración - Firmware v2.10.8+
 
 ## 🎯 Objetivo
 

@@ -17,7 +17,7 @@ void init() {
     if(!Serial) {
         warn("Serial no reporta disponibilidad inmediata");
     } else {
-        // 🔒 v2.10.7: Confirm logger initialization
+        // 🔒 v2.10.8: Confirm logger initialization
         info("Logger init: Serial comunicación establecida");
     }
 }

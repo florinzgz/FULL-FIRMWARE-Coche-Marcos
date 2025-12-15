@@ -21,7 +21,7 @@ void Storage::init() {
     Logger::warn("Storage init: fallo al abrir namespace");
     System::logError(970); // código: fallo apertura storage
   } else {
-    // 🔒 v2.10.7: Confirm storage initialization
+    // 🔒 v2.10.8: Confirm storage initialization
     Logger::info("Storage init: EEPROM namespace abierto correctamente");
     
     // Verificar si hay datos guardados
