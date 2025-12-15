@@ -10,6 +10,12 @@
 #include "storage.h"
 #include "steering_motor.h"   // 🔒 v2.4.0: Para verificar motor dirección
 #include "traction.h"         // 🔒 v2.4.0: Para verificar tracción
+#include "eeprom_persistence.h"  // 🔒 v2.11.0: Persistencia de configuración
+#include "abs_system.h"          // 🔒 v2.11.0: Sistema ABS
+#include "tcs_system.h"          // 🔒 v2.11.0: Sistema TCS
+#include "regen_ai.h"            // 🔒 v2.11.0: Freno regenerativo
+#include "obstacle_safety.h"     // 🔒 v2.11.0: Seguridad obstáculos
+#include "led_controller.h"      // 🔒 v2.11.0: Control LEDs
 
 extern Storage::Config cfg;
 
@@ -26,6 +32,54 @@ void System::init() {
     #ifdef ARDUINO_ESP32S3_DEV
     Logger::info("System init: Platform ESP32-S3 detected");
     #endif
+    
+    // 🔒 v2.11.0: Cargar y aplicar ajustes persistentes en arranque
+    Logger::info("System init: Cargando configuración persistente");
+    if (!EEPROMPersistence::init()) {
+        Logger::warn("System init: EEPROM persistence init failed, using defaults");
+    }
+    
+    // Cargar configuración general
+    EEPROMPersistence::GeneralSettings settings;
+    if (EEPROMPersistence::loadGeneralSettings(settings)) {
+        Logger::info("System init: Configuración general cargada");
+        
+        // Aplicar toggles de módulos
+        ABSSystem::setEnabled(settings.absEnabled);
+        Logger::infof("System init: ABS %s", settings.absEnabled ? "enabled" : "disabled");
+        
+        TCSSystem::setEnabled(settings.tcsEnabled);
+        Logger::infof("System init: TCS %s", settings.tcsEnabled ? "enabled" : "disabled");
+        
+        RegenAI::setEnabled(settings.regenEnabled);
+        Logger::infof("System init: Regen %s", settings.regenEnabled ? "enabled" : "disabled");
+    } else {
+        Logger::warn("System init: No se pudo cargar configuración general, usando defaults");
+    }
+    
+    // Cargar y aplicar configuración de LEDs
+    EEPROMPersistence::LEDConfig ledConfig;
+    if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
+        Logger::info("System init: Configuración LED cargada");
+        LEDController::setEnabled(ledConfig.enabled);
+        LEDController::setBrightness(ledConfig.brightness);
+        
+        auto &cfgLed = LEDController::getConfig();
+        cfgLed.updateRateMs = 50; // Default update rate
+        
+        Logger::infof("System init: LEDs %s, brightness %d", 
+                      ledConfig.enabled ? "enabled" : "disabled", 
+                      ledConfig.brightness);
+    } else {
+        Logger::warn("System init: No se pudo cargar configuración LED, usando defaults");
+    }
+    
+    // Habilitar características de seguridad de obstáculos
+    // Usar configuración por defecto ya que no hay persistencia específica para esto
+    ObstacleSafety::enableParkingAssist(true);
+    ObstacleSafety::enableCollisionAvoidance(true);
+    ObstacleSafety::enableBlindSpot(true);
+    Logger::info("System init: Seguridad de obstáculos habilitada");
 }
 
 System::Health System::selfTest() {
@@ -48,16 +102,17 @@ System::Health System::selfTest() {
         }
         
         // 🔒 v2.4.0: Verificar motor dirección también
+        // 🔒 v2.11.0: Motor dirección NO es crítico - se registra como advertencia
         // NOTA CRÍTICA: El motor de dirección NO es crítico para arranque inicial porque:
         // 1. Puede inicializarse tardíamente una vez que I2C esté estable
         // 2. El vehículo está PARADO durante selfTest (marcha P obligatoria)
         // 3. El sistema de relés cortará potencia si hay fallo grave
         // Sin embargo, se marca h.steeringOK = false para indicar problema parcial
         if(!SteeringMotor::initOK()) {
-            System::logError(250);
-            Logger::errorf("SelfTest: motor dirección no responde (no crítico en arranque)");
+            Logger::warn("SelfTest: motor dirección no responde (no crítico en arranque)");
             h.steeringOK = false;
-            // h.ok permanece true - vehículo puede arrancar pero con precaución
+            // NO registrar como error crítico ni marcar h.ok = false
+            // El vehículo puede arrancar pero con precaución
         }
     }
 
@@ -99,16 +154,20 @@ System::Health System::selfTest() {
     }
     
     // 🔒 v2.4.0: Tracción (no crítico pero loggear)
+    // 🔒 v2.11.0: Tracción NO bloquea arranque - solo advertencia
     if(cfg.tractionEnabled) {
         if(!Traction::initOK()) {
-            Logger::warn("SelfTest: módulo tracción no inicializado");
-            // No marcar como fallo crítico
+            Logger::warn("SelfTest: módulo tracción no inicializado (no crítico)");
+            // No marcar como fallo crítico - vehículo puede arrancar
+            // El sistema de tracción puede recuperarse después
         }
     }
 
-    // DFPlayer (no crítico)
+    // 🔒 v2.11.0: DFPlayer (no crítico) - NO bloquea arranque
+    // El audio es importante pero no esencial para operación del vehículo
     if(!Audio::initOK()) {
-        Logger::warn("SelfTest: DFPlayer no inicializado");
+        Logger::warn("SelfTest: DFPlayer no inicializado (no crítico)");
+        // No marcar como fallo crítico - vehículo puede operar sin audio
     }
 
     return h;
