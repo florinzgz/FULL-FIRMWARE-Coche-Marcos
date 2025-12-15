@@ -16,6 +16,9 @@ void init() {
     // while (!Serial && (millis() - start < 2000)) { delay(1); }
     if(!Serial) {
         warn("Serial no reporta disponibilidad inmediata");
+    } else {
+        // 🔒 v2.10.8: Confirm logger initialization
+        info("Logger init: Serial comunicación establecida");
     }
 }
 

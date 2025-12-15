@@ -18,6 +18,14 @@ static System::State currentState = System::OFF;
 void System::init() {
     Logger::info("System init: entrando en PRECHECK");
     currentState = PRECHECK;
+    
+    // 🔒 v2.10.8: Enhanced diagnostic information
+    Logger::infof("System init: Estado inicial OK");
+    Logger::infof("System init: Free heap: %u bytes", ESP.getFreeHeap());
+    
+    #ifdef ARDUINO_ESP32S3_DEV
+    Logger::info("System init: Platform ESP32-S3 detected");
+    #endif
 }
 
 System::Health System::selfTest() {

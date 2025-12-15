@@ -612,6 +612,38 @@ void loop() {
 #else
   // CRITICAL: Feed watchdog at start of every loop iteration
   Watchdog::feed();
+  
+  // 🔒 v2.10.8: Stack health monitoring (every 10 seconds)
+  // Stack threshold constants for monitoring
+  // Rationale:
+  // - 512 bytes: Critical threshold based on typical ISR stack usage (256-384 bytes)
+  //   plus safety margin for nested calls. Below this risks immediate overflow.
+  // - 1024 bytes: Low threshold - minimum safe operational level for complex
+  //   operations (sensor reads, I2C transactions, string formatting).
+  // - 2048 bytes: Acceptable threshold - comfortable margin for normal operations
+  //   including debug logging and error handling.
+  // ESP32-S3 configured stack sizes: Loop=32KB, Main=20KB, IPC=2KB
+  static constexpr UBaseType_t STACK_CRITICAL_THRESHOLD = 512;   // Critical: <512 bytes
+  static constexpr UBaseType_t STACK_LOW_THRESHOLD = 1024;       // Low: <1KB
+  static constexpr UBaseType_t STACK_ACCEPTABLE_THRESHOLD = 2048; // Acceptable: <2KB
+  static constexpr uint32_t STACK_CHECK_INTERVAL_MS = 10000;     // Check every 10 seconds
+  
+  static unsigned long lastStackCheck = 0;
+  if (now - lastStackCheck > STACK_CHECK_INTERVAL_MS) {
+    lastStackCheck = now;
+    
+    UBaseType_t stackFree = uxTaskGetStackHighWaterMark(NULL);
+    
+    // Log stack status based on thresholds
+    if (stackFree < STACK_CRITICAL_THRESHOLD) {
+      Logger::errorf("🚨 STACK CRÍTICO: Solo %u bytes libres! Overflow inminente", stackFree);
+    } else if (stackFree < STACK_LOW_THRESHOLD) {
+      Logger::warnf("⚠️ STACK BAJO: %u bytes libres (aumentar CONFIG_ARDUINO_LOOP_STACK_SIZE)", stackFree);
+    } else if (stackFree < STACK_ACCEPTABLE_THRESHOLD) {
+      Debug::printf(DEBUG, "Loop stack: %u bytes libres (aceptable)", stackFree);
+    }
+    // Si >2KB, no loggear para no saturar serial
+  }
 
   // PRIORITY 1: Bluetooth Emergency Override (HIGHEST PRIORITY)
   BluetoothController::update();
