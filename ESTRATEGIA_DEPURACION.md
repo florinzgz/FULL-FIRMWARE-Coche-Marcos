@@ -10,7 +10,7 @@ Esta guía proporciona una estrategia sistemática para identificar y resolver p
 
 Antes de comenzar la depuración, verifica:
 
-- [ ] **Firmware actualizado** a v2.10.7 o superior
+- [ ] **Firmware actualizado** a v2.10.8 o superior
 - [ ] **CONFIG_ESP_IPC_TASK_STACK_SIZE=2048** presente en TODOS los entornos
 - [ ] **Watchdog alimentado** durante inicialización
 - [ ] **Stack sizes** adecuados en platformio.ini
@@ -771,7 +771,7 @@ pio device monitor --port COM4 --filter esp32_exception_decoder
 
 **Versión:** 1.0  
 **Fecha:** 2025-12-15  
-**Compatible con:** Firmware v2.10.7+  
+**Compatible con:** Firmware v2.10.8+  
 **Autor:** Sistema de desarrollo
 
 **¡Usa esta guía para diagnosticar y resolver cualquier problema de boot! 🔧**

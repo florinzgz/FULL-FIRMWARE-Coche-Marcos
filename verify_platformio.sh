@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}======================================"
 echo "Verificación de platformio.ini"
-echo "Firmware ESP32-S3 v2.10.7+"
+echo "Firmware ESP32-S3 v2.10.8+"
 echo -e "======================================${NC}"
 echo ""
 
