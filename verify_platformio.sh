@@ -39,7 +39,8 @@ echo -e "${BLUE}1. Verificando entorno base...${NC}"
 echo ""
 
 # Verificar que el entorno base tiene CONFIG_ESP_IPC_TASK_STACK_SIZE
-if grep -q "CONFIG_ESP_IPC_TASK_STACK_SIZE=2048" platformio.ini; then
+# Buscar solo en la sección [env:esp32-s3-devkitc] hasta el próximo [env:
+if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "^\s*-DCONFIG_ESP_IPC_TASK_STACK_SIZE=2048"; then
     echo -e "${GREEN}✅ Base environment tiene CONFIG_ESP_IPC_TASK_STACK_SIZE=2048${NC}"
 else
     echo -e "${RED}❌ Base environment NO tiene CONFIG_ESP_IPC_TASK_STACK_SIZE=2048${NC}"
