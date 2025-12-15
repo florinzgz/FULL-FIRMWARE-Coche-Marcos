@@ -84,7 +84,6 @@ static const float DEMO_TEMP_WARNING_THRESHOLD =
 #include "system.h"
 #include "telemetry.h" // 🆕 v2.8.0: Sistema de telemetría
 #include "watchdog.h"
-#include "wifi_manager.h"
 
 // Entradas
 #include "buttons.h"
@@ -353,13 +352,6 @@ void setup() {
   Serial.printf("[STACK] After I2CRecovery::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after I2C init
-
-  // Initialize WiFi and OTA (before sensors for telemetry)
-  Serial.println("[BOOT] Initializing WiFi Manager...");
-  WiFiManager::init();
-  Serial.printf("[STACK] After WiFiManager::init - Free: %d bytes\n",
-                uxTaskGetStackHighWaterMark(NULL));
-  Watchdog::feed();  // Feed after WiFi init (non-blocking but important)
 
   Serial.println("[BOOT] Initializing Relays...");
   Relays::init();
@@ -704,9 +696,6 @@ void loop() {
 
   // Audio
   Audio::AudioQueue::update();
-
-  // WiFi and OTA
-  WiFiManager::update();
 
   // Sistema
   System::update();

@@ -18,7 +18,6 @@
 #include "tcs_system.h"
 #include "i2c_recovery.h"
 #include "bluetooth_controller.h"
-#include "wifi_manager.h"
 #include "storage.h"
 #include "pins.h"
 #include <TFT_eSPI.h>
@@ -148,7 +147,6 @@ bool runCategoryTests(TestCategory category) {
             Logger::info("\n--- Communication Tests ---");
             categoryPassed &= executeTest("I2C Bus", testI2CBus);
             categoryPassed &= executeTest("Bluetooth", testBluetoothConnection);
-            categoryPassed &= executeTest("WiFi", testWiFiConnection);
             break;
             
         case TestCategory::STORAGE:
@@ -380,13 +378,7 @@ bool testBluetoothConnection() {
     return btOk;
 }
 
-bool testWiFiConnection() {
-    // Test WiFi system
-    // Note: May not have network in test environment
-    
-    // Just verify WiFi system is initialized, don't require connection
-    return true;  // WiFi init happens in setup
-}
+
 
 // ============================================================================
 // Storage Tests
