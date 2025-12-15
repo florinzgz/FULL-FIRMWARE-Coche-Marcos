@@ -50,6 +50,13 @@ pio run -t upload
 → Ajusta `Z_THRESHOLD=250` en platformio.ini  
 → Lee `docs/TOUCH_TROUBLESHOOTING.md`
 
+### 🐛 Sistema crashea o entra en bucle (NUEVO v2.10.9)
+→ Usa el build de debug:
+```bash
+pio run -e esp32-s3-devkitc-debug -t upload --upload-port COM4
+```
+→ Lee `INSTRUCCIONES_DEBUG_BUILD_v2.10.9.md` para más detalles
+
 ---
 
-**v2.9.4** | **2024-12-05** | **✅ Listo para usar**
+**v2.10.9** | **2025-12-15** | **✅ Debug build disponible**
