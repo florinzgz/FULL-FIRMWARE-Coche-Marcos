@@ -20,7 +20,8 @@ echo "Firmware ESP32-S3 v2.10.8+"
 echo -e "======================================${NC}"
 echo ""
 
-# Lista de entornos a verificar
+# Lista de entornos a verificar (solo los presentes en platformio.ini actual;
+# OTA y predeployment se eliminaron en la configuración v2.11.0)
 ENVIRONMENTS=(
     "esp32-s3-devkitc"
     "esp32-s3-devkitc-release"
@@ -84,16 +85,18 @@ echo -e "${BLUE}3. Verificando configuraciones de stack adicionales...${NC}"
 echo ""
 
 # Verificar configuraciones de stack en entorno base
-if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "CONFIG_ARDUINO_LOOP_STACK_SIZE"; then
-    loop_stack=$(sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep "CONFIG_ARDUINO_LOOP_STACK_SIZE" | head -1)
+base_env_section=$(sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini)
+
+if echo "$base_env_section" | grep -q "CONFIG_ARDUINO_LOOP_STACK_SIZE"; then
+    loop_stack=$(echo "$base_env_section" | grep "CONFIG_ARDUINO_LOOP_STACK_SIZE" | head -1)
     echo -e "${GREEN}✅ Base tiene configuración de loop stack:${NC}"
     echo "   $loop_stack"
 else
     echo -e "${YELLOW}⚠️  Base NO tiene CONFIG_ARDUINO_LOOP_STACK_SIZE (usando default)${NC}"
 fi
 
-if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "CONFIG_ESP_MAIN_TASK_STACK_SIZE"; then
-    main_stack=$(sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep "CONFIG_ESP_MAIN_TASK_STACK_SIZE" | head -1)
+if echo "$base_env_section" | grep -q "CONFIG_ESP_MAIN_TASK_STACK_SIZE"; then
+    main_stack=$(echo "$base_env_section" | grep "CONFIG_ESP_MAIN_TASK_STACK_SIZE" | head -1)
     echo -e "${GREEN}✅ Base tiene configuración de main task stack:${NC}"
     echo "   $main_stack"
 else
