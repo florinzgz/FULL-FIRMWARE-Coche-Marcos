@@ -24,9 +24,7 @@ echo ""
 ENVIRONMENTS=(
     "esp32-s3-devkitc"
     "esp32-s3-devkitc-release"
-    "esp32-s3-devkitc-ota"
     "esp32-s3-devkitc-touch-debug"
-    "esp32-s3-devkitc-predeployment"
     "esp32-s3-devkitc-no-touch"
 )
 
@@ -40,11 +38,11 @@ echo ""
 
 # Verificar que el entorno base tiene CONFIG_ESP_IPC_TASK_STACK_SIZE
 # Buscar solo en la sección [env:esp32-s3-devkitc] hasta el próximo [env:
-if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "^\s*-DCONFIG_ESP_IPC_TASK_STACK_SIZE=2048"; then
-    echo -e "${GREEN}✅ Base environment tiene CONFIG_ESP_IPC_TASK_STACK_SIZE=2048${NC}"
+if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "^\s*-DCONFIG_ESP_IPC_TASK_STACK_SIZE=3072"; then
+    echo -e "${GREEN}✅ Base environment tiene CONFIG_ESP_IPC_TASK_STACK_SIZE=3072${NC}"
 else
-    echo -e "${RED}❌ Base environment NO tiene CONFIG_ESP_IPC_TASK_STACK_SIZE=2048${NC}"
-    echo -e "${YELLOW}   Acción requerida: Agregar -DCONFIG_ESP_IPC_TASK_STACK_SIZE=2048 al [env:esp32-s3-devkitc]${NC}"
+    echo -e "${RED}❌ Base environment NO tiene CONFIG_ESP_IPC_TASK_STACK_SIZE=3072${NC}"
+    echo -e "${YELLOW}   Acción requerida: Agregar -DCONFIG_ESP_IPC_TASK_STACK_SIZE=3072 al [env:esp32-s3-devkitc]${NC}"
 fi
 
 echo ""
@@ -85,21 +83,21 @@ echo ""
 echo -e "${BLUE}3. Verificando configuraciones de stack adicionales...${NC}"
 echo ""
 
-# Verificar configuraciones de stack en predeployment
-if grep -A 20 "\[env:esp32-s3-devkitc-predeployment\]" platformio.ini | grep -q "CONFIG_ARDUINO_LOOP_STACK_SIZE"; then
-    loop_stack=$(grep -A 20 "\[env:esp32-s3-devkitc-predeployment\]" platformio.ini | grep "CONFIG_ARDUINO_LOOP_STACK_SIZE" | head -1)
-    echo -e "${GREEN}✅ Predeployment tiene configuración de loop stack:${NC}"
+# Verificar configuraciones de stack en entorno base
+if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "CONFIG_ARDUINO_LOOP_STACK_SIZE"; then
+    loop_stack=$(sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep "CONFIG_ARDUINO_LOOP_STACK_SIZE" | head -1)
+    echo -e "${GREEN}✅ Base tiene configuración de loop stack:${NC}"
     echo "   $loop_stack"
 else
-    echo -e "${YELLOW}⚠️  Predeployment NO tiene CONFIG_ARDUINO_LOOP_STACK_SIZE (usando default)${NC}"
+    echo -e "${YELLOW}⚠️  Base NO tiene CONFIG_ARDUINO_LOOP_STACK_SIZE (usando default)${NC}"
 fi
 
-if grep -A 20 "\[env:esp32-s3-devkitc-predeployment\]" platformio.ini | grep -q "CONFIG_ESP_MAIN_TASK_STACK_SIZE"; then
-    main_stack=$(grep -A 20 "\[env:esp32-s3-devkitc-predeployment\]" platformio.ini | grep "CONFIG_ESP_MAIN_TASK_STACK_SIZE" | head -1)
-    echo -e "${GREEN}✅ Predeployment tiene configuración de main task stack:${NC}"
+if sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep -q "CONFIG_ESP_MAIN_TASK_STACK_SIZE"; then
+    main_stack=$(sed -n '/^\[env:esp32-s3-devkitc\]/,/^\[env:/p' platformio.ini | grep "CONFIG_ESP_MAIN_TASK_STACK_SIZE" | head -1)
+    echo -e "${GREEN}✅ Base tiene configuración de main task stack:${NC}"
     echo "   $main_stack"
 else
-    echo -e "${YELLOW}⚠️  Predeployment NO tiene CONFIG_ESP_MAIN_TASK_STACK_SIZE (usando default)${NC}"
+    echo -e "${YELLOW}⚠️  Base NO tiene CONFIG_ESP_MAIN_TASK_STACK_SIZE (usando default)${NC}"
 fi
 
 echo ""
@@ -142,7 +140,7 @@ if [ $PASSED -eq $TOTAL ]; then
     echo -e "${GREEN}✅ TODAS LAS VERIFICACIONES PASARON${NC}"
     echo ""
     echo "El firmware está correctamente configurado para:"
-    echo "  • IPC stack de 2KB en todos los entornos"
+    echo "  • IPC stack de 3KB en todos los entornos"
     echo "  • Herencia correcta de build_flags"
     echo "  • Watchdog inicializado y alimentado"
     echo "  • Stack monitoring presente"
