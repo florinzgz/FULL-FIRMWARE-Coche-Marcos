@@ -539,7 +539,8 @@ void loop() {
   uint32_t now = millis();
 
 #ifdef STANDALONE_DISPLAY
-  // Feed watchdog every loop iteration in standalone mode to avoid resets
+  // Feed watchdog at loop entry for consistency with full mode and to tolerate
+  // any heavy rendering paths in standalone mode
   Watchdog::feed();
   
   // 🧪 STANDALONE MODE: Update HUD with animated simulated values
