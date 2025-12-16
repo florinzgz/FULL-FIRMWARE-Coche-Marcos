@@ -1,0 +1,81 @@
+name: Firmware CI + CodeRabbit
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+  push:
+    branches: [ main, dev ]
+
+jobs:
+  build-firmware:
+    name: Compile PlatformIO environments
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-platformio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-platformio-
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Compile all environments
+        run: |
+          pio run -e release
+          pio run -e ota
+          pio run -e test
+          pio run -e touch_debug
+          pio run -e no_touch
+
+  lint-format:
+    name: Check formatting with clang-format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Run clang-format check
+        run: |
+          find src include -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
+
+  static-analysis:
+    name: Run cppcheck for static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: cppcheck --enable=all --inconclusive --quiet --error-exitcode=1 src include
+
+  coderabbit-review:
+    name: AI Review with CodeRabbit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: CodeRabbit AI Review
+        uses: coderabbitai/action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          language: "es"
+          review_level: "detailed"
