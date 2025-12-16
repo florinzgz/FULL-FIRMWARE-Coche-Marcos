@@ -539,6 +539,9 @@ void loop() {
   uint32_t now = millis();
 
 #ifdef STANDALONE_DISPLAY
+  // Feed watchdog every loop iteration in standalone mode to avoid resets
+  Watchdog::feed();
+  
   // 🧪 STANDALONE MODE: Update HUD with animated simulated values
   if (now - lastHudUpdate >= HUD_UPDATE_INTERVAL) {
     lastHudUpdate = now;
