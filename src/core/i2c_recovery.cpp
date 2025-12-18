@@ -14,6 +14,10 @@ static DeviceState devices[MAX_DEVICES];
 static uint8_t pinSDA = PIN_I2C_SDA;
 static uint8_t pinSCL = PIN_I2C_SCL;
 
+// I2C bus recovery uses slower speed for maximum compatibility
+// Normal operations use I2C_FREQUENCY (400kHz), but recovery uses standard mode
+constexpr uint32_t I2C_RECOVERY_FREQUENCY = 100000;  // 100 kHz (I2C standard mode)
+
 void init() {
     // 🔒 v2.11.1: Initialize Wire FIRST to prevent IPC stack issues
     // Wire.begin() must be called early to avoid conflicts with other init code
@@ -91,9 +95,10 @@ bool recoverBus() {
     
     bool recovered = (digitalRead(pinSDA) == HIGH) && (digitalRead(pinSCL) == HIGH);
     
-    // 7. Re-inicializar Wire
+    // 7. Re-inicializar Wire con frecuencia reducida para máxima compatibilidad
+    // Recovery mode uses slower speed to ensure reliability after bus issues
     Wire.begin(pinSDA, pinSCL);
-    Wire.setClock(100000);  // 100 kHz (modo estándar)
+    Wire.setClock(I2C_RECOVERY_FREQUENCY);  // 100 kHz for recovery reliability
     
     if (recovered) {
         Serial.println("[I2CRecovery] Bus recovery exitoso");
