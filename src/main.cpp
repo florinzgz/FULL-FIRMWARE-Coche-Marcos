@@ -174,10 +174,12 @@ void setup() {
     Serial.println("PSRAM: Not available or not enabled");
   }
   
+  // 🔒 v2.11.1: Enhanced stack diagnostics for IPC fix verification
   Serial.printf("Stack high water mark: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Serial.printf("Configured loop stack: %d bytes\n", CONFIG_ARDUINO_LOOP_STACK_SIZE);
   Serial.printf("Configured main task stack: %d bytes\n", CONFIG_ESP_MAIN_TASK_STACK_SIZE);
+  Serial.printf("Configured IPC task stack: %d bytes\n", CONFIG_ESP_IPC_TASK_STACK_SIZE);
   Serial.println("Boot sequence starting...");
   Serial.flush();
 
