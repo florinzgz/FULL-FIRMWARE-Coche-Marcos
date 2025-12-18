@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <math.h> // For sinf() in demo mode
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 // Configuración
 #include "pins.h"
@@ -178,6 +180,14 @@ void setup() {
                 uxTaskGetStackHighWaterMark(NULL));
   Serial.printf("Configured loop stack: %d bytes\n", CONFIG_ARDUINO_LOOP_STACK_SIZE);
   Serial.printf("Configured main task stack: %d bytes\n", CONFIG_ESP_MAIN_TASK_STACK_SIZE);
+  TaskHandle_t ipcTaskHandle = xTaskGetHandle("ipc0");
+  if (ipcTaskHandle != nullptr) {
+    Serial.printf("IPC0 stack high water mark: %u bytes\n",
+                  uxTaskGetStackHighWaterMark(ipcTaskHandle));
+  } else {
+    Serial.println("IPC0 stack high water mark: unavailable (handle not found)");
+  }
+  Serial.printf("Configured IPC task stack: %d bytes\n", CONFIG_ESP_IPC_TASK_STACK_SIZE);
   Serial.println("Boot sequence starting...");
   Serial.flush();
 

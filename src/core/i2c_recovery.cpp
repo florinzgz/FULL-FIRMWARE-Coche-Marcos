@@ -4,6 +4,10 @@
 #include "watchdog.h"
 #include <Wire.h>
 
+#ifndef I2C_FREQUENCY
+#error "I2C_FREQUENCY must be defined via build flags (e.g., -DI2C_FREQUENCY=400000)"
+#endif
+
 namespace I2CRecovery {
 
 // Estados de hasta 16 dispositivos I²C
@@ -13,8 +17,13 @@ static DeviceState devices[MAX_DEVICES];
 // Pines I²C (de pins.h)
 static uint8_t pinSDA = PIN_I2C_SDA;
 static uint8_t pinSCL = PIN_I2C_SCL;
+static constexpr uint32_t RECOVERY_FREQUENCY = 100000;  // 100 kHz (modo estándar)
 
 void init() {
+    Wire.begin(pinSDA, pinSCL);
+    Wire.setClock(I2C_FREQUENCY);
+    Serial.printf("[I2CRecovery] I2C initialized at %u Hz\n", I2C_FREQUENCY);
+
     // Inicializar estados
     for (uint8_t i = 0; i < MAX_DEVICES; i++) {
         devices[i].online = true;  // Asumir online hasta que fallen
@@ -86,10 +95,11 @@ bool recoverBus() {
     
     // 7. Re-inicializar Wire
     Wire.begin(pinSDA, pinSCL);
-    Wire.setClock(100000);  // 100 kHz (modo estándar)
+    Wire.setClock(RECOVERY_FREQUENCY);  // 100 kHz (modo estándar)
     
     if (recovered) {
         Serial.println("[I2CRecovery] Bus recovery exitoso");
+        Wire.setClock(I2C_FREQUENCY);  // Restaurar frecuencia normal
     } else {
         Logger::error("I2CRecovery: Bus recovery FALLIDO - Hardware problem");
     }

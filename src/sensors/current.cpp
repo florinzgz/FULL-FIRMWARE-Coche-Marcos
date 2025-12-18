@@ -8,6 +8,10 @@
 #include "i2c_recovery.h"  // Sistema de recuperación I²C
 #include "pins.h"     // 🔒 Para PIN_I2C_SDA y PIN_I2C_SCL
 
+#ifndef I2C_FREQUENCY
+#error "I2C_FREQUENCY must be defined in build flags for I2C sensor operation"
+#endif
+
 // 🔒 CORRECCIÓN CRÍTICA: Mutex para proteger acceso I2C concurrente
 static SemaphoreHandle_t i2cMutex = nullptr;
 
@@ -75,6 +79,7 @@ static bool tcaSelect(uint8_t channel) {
 }
 
 void Sensors::initCurrent() {
+    // DEPENDENCY: I2C bus MUST be initialized by I2CRecovery::init() before calling this function.
     // 🔒 CORRECCIÓN CRÍTICA: Crear mutex I2C si no existe
     if (i2cMutex == nullptr) {
         i2cMutex = xSemaphoreCreateMutex();
@@ -85,9 +90,6 @@ void Sensors::initCurrent() {
         }
     }
     
-    // 🔒 CORRECCIÓN CRÍTICA: Configurar pines I2C antes de begin()
-    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-
     bool allOk = true;
 
     for(int i=0; i<NUM_CURRENTS; i++) {
