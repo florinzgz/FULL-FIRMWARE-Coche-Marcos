@@ -15,6 +15,13 @@ static uint8_t pinSDA = PIN_I2C_SDA;
 static uint8_t pinSCL = PIN_I2C_SCL;
 
 void init() {
+    // 🔒 v2.11.1: Initialize Wire FIRST to prevent IPC stack issues
+    // Wire.begin() must be called early to avoid conflicts with other init code
+    Serial.println("[I2CRecovery] Initializing I2C bus...");
+    Wire.begin(pinSDA, pinSCL);
+    Wire.setClock(400000);  // 400 kHz as configured in platformio.ini
+    Serial.println("[I2CRecovery] I2C bus initialized");
+    
     // Inicializar estados
     for (uint8_t i = 0; i < MAX_DEVICES; i++) {
         devices[i].online = true;  // Asumir online hasta que fallen

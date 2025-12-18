@@ -85,8 +85,9 @@ void Sensors::initCurrent() {
         }
     }
     
-    // 🔒 CORRECCIÓN CRÍTICA: Configurar pines I2C antes de begin()
-    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+    // 🔒 v2.11.1: Wire.begin() now called in I2CRecovery::init() (earlier in boot sequence)
+    // This prevents duplicate initialization and reduces IPC stack pressure
+    // Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);  // REMOVED - done in I2CRecovery::init()
 
     bool allOk = true;
 
