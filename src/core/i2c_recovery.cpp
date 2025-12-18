@@ -23,7 +23,14 @@ void init() {
     // Wire.begin() must be called early to avoid conflicts with other init code
     Serial.println("[I2CRecovery] Initializing I2C bus...");
     Wire.begin(pinSDA, pinSCL);
-    Wire.setClock(I2C_FREQUENCY);  // Use frequency defined in platformio.ini
+    
+    // I2C_FREQUENCY is defined in platformio.ini build flags (-DI2C_FREQUENCY=400000)
+    #ifdef I2C_FREQUENCY
+        Wire.setClock(I2C_FREQUENCY);
+    #else
+        Wire.setClock(400000);  // Fallback to 400kHz if not defined
+    #endif
+    
     Serial.println("[I2CRecovery] I2C bus initialized");
     
     // Inicializar estados
