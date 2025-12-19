@@ -94,7 +94,7 @@ static const char* const MENU_ITEMS[NUM_MENU_ITEMS] = {
     "2) Calibrar encoder",
     "3) Calibrar touch",      // 🔒 v2.9.0: Nueva opción
     "4) Ajuste regen (%)",
-    "5) Modulos ON/OFF",
+    "5) Modulos/Sensores",
     "6) Guardar y salir",
     "7) Restaurar fabrica",
     "8) Ver errores",
@@ -478,6 +478,9 @@ static void applyModules(bool lights, bool media, bool traction) {
 static bool tempLightsEnabled = false;
 static bool tempMultimediaEnabled = false;
 static bool tempTractionEnabled = false;
+static bool tempCurrentSensorsEnabled = false;
+static bool tempTempSensorsEnabled = false;
+static bool tempWheelSensorsEnabled = false;
 
 static void drawModulesConfigScreen() {
     if (tft == nullptr) return;
@@ -495,44 +498,65 @@ static void drawModulesConfigScreen() {
     
     tft->setTextDatum(TC_DATUM);
     tft->setTextColor(TFT_CYAN, TFT_BLACK);
-    tft->drawString("CONFIGURACIÓN DE MÓDULOS", 240, 50, 4);
-    
-    // Module toggle buttons
-    const int btnY = 90;
-    const int btnSpacing = 40;
-    
-    // Lights button
-    uint16_t lightsColor = tempLightsEnabled ? TFT_GREEN : TFT_RED;
-    tft->fillRect(100, btnY, 280, 30, lightsColor);
-    tft->drawRect(100, btnY, 280, 30, TFT_WHITE);
-    tft->setTextDatum(MC_DATUM);
-    tft->setTextColor(TFT_WHITE, lightsColor);
-    tft->drawString(tempLightsEnabled ? "LUCES: ON" : "LUCES: OFF", 240, btnY + 15, 2);
-    
-    // Media button
-    uint16_t mediaColor = tempMultimediaEnabled ? TFT_GREEN : TFT_RED;
-    tft->fillRect(100, btnY + btnSpacing, 280, 30, mediaColor);
-    tft->drawRect(100, btnY + btnSpacing, 280, 30, TFT_WHITE);
-    tft->setTextColor(TFT_WHITE, mediaColor);
-    tft->drawString(tempMultimediaEnabled ? "MULTIMEDIA: ON" : "MULTIMEDIA: OFF", 240, btnY + btnSpacing + 15, 2);
-    
-    // Traction button
-    uint16_t tractionColor = tempTractionEnabled ? TFT_GREEN : TFT_RED;
-    tft->fillRect(100, btnY + 2*btnSpacing, 280, 30, tractionColor);
-    tft->drawRect(100, btnY + 2*btnSpacing, 280, 30, TFT_WHITE);
-    tft->setTextColor(TFT_WHITE, tractionColor);
-    tft->drawString(tempTractionEnabled ? "TRACCIÓN: ON" : "TRACCIÓN: OFF", 240, btnY + 2*btnSpacing + 15, 2);
+    tft->drawString("CONFIG. MÓDULOS Y SENSORES", 240, 50, 4);
+
+    // Layout
+    const int btnW = 140;
+    const int btnH = 30;
+    const int col1X = 70;
+    const int col2X = 250;
+    const int startY = 90;
+    const int rowSpacing = 40;
+
+    auto drawToggle = [](int x, int y, int w, int h, const char* label, bool enabled) {
+        uint16_t color = enabled ? TFT_GREEN : TFT_RED;
+        tft->fillRect(x, y, w, h, color);
+        tft->drawRect(x, y, w, h, TFT_WHITE);
+        tft->setTextDatum(MC_DATUM);
+        tft->setTextColor(TFT_WHITE, color);
+        tft->drawString(label, x + w / 2, y + h / 2, 2);
+    };
+
+    tft->setTextDatum(TL_DATUM);
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->drawString("Módulos:", col1X, startY - 20, 2);
+    tft->drawString("Sensores:", col2X, startY - 20, 2);
+
+    char label[32];
+    // Helper: formats label text into the provided buffer (side effect only)
+    auto makeLabel = [](char* dest, size_t size, const char* name, bool enabled) {
+        snprintf(dest, size, "%s: %s", name, enabled ? "ON" : "OFF");
+    };
+
+    makeLabel(label, sizeof(label), "LUCES", tempLightsEnabled);
+    drawToggle(col1X, startY, btnW, btnH, label, tempLightsEnabled);
+
+    makeLabel(label, sizeof(label), "MEDIA", tempMultimediaEnabled);
+    drawToggle(col1X, startY + rowSpacing, btnW, btnH, label, tempMultimediaEnabled);
+
+    makeLabel(label, sizeof(label), "TRACCIÓN", tempTractionEnabled);
+    drawToggle(col1X, startY + 2 * rowSpacing, btnW, btnH, label, tempTractionEnabled);
+
+    makeLabel(label, sizeof(label), "INA226", tempCurrentSensorsEnabled);
+    drawToggle(col2X, startY, btnW, btnH, label, tempCurrentSensorsEnabled);
+
+    makeLabel(label, sizeof(label), "TEMP", tempTempSensorsEnabled);
+    drawToggle(col2X, startY + rowSpacing, btnW, btnH, label, tempTempSensorsEnabled);
+
+    makeLabel(label, sizeof(label), "RUEDAS", tempWheelSensorsEnabled);
+    drawToggle(col2X, startY + 2 * rowSpacing, btnW, btnH, label, tempWheelSensorsEnabled);
     
     // Save button
-    tft->fillRect(140, 220, 200, 40, TFT_BLUE);
-    tft->drawRect(140, 220, 200, 40, TFT_WHITE);
+    tft->fillRect(140, 230, 200, 40, TFT_BLUE);
+    tft->drawRect(140, 230, 200, 40, TFT_WHITE);
+    tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, TFT_BLUE);
-    tft->drawString("GUARDAR Y VOLVER", 240, 240, 2);
+    tft->drawString("GUARDAR Y VOLVER", 240, 250, 2);
     
     // Instructions
     tft->setTextDatum(BC_DATUM);
     tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft->drawString("Toca para activar/desactivar", 240, 275, 1);
+    tft->drawString("Toca para activar/desactivar módulos y sensores", 240, 300, 1);
 }
 
 static void updateModulesConfig(int touchX, int touchY, bool touched) {
@@ -547,43 +571,63 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
         return;  // Don't redraw unless there's a touch
     }
     
-    const int btnY = 90;
-    const int btnSpacing = 40;
+    const int btnW = 140;
+    const int btnH = 30;
+    const int col1X = 70;
+    const int col2X = 250;
+    const int startY = 90;
+    const int rowSpacing = 40;
     bool stateChanged = false;
     
+    auto inButton = [](int touchXCoord, int touchYCoord, int buttonX, int buttonY, int buttonWidth, int buttonHeight) {
+        return touchXCoord >= buttonX && touchXCoord <= buttonX + buttonWidth &&
+               touchYCoord >= buttonY && touchYCoord <= buttonY + buttonHeight;
+    };
+
     // Check which button was touched
-    if (touchX >= 100 && touchX <= 380) {
-        // Lights toggle
-        if (touchY >= btnY && touchY <= btnY + 30) {
-            tempLightsEnabled = !tempLightsEnabled;
-            Logger::infof("Luces: %s", tempLightsEnabled ? "ON" : "OFF");
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
-            stateChanged = true;
-        }
-        // Media toggle
-        else if (touchY >= btnY + btnSpacing && touchY <= btnY + btnSpacing + 30) {
-            tempMultimediaEnabled = !tempMultimediaEnabled;
-            Logger::infof("Multimedia: %s", tempMultimediaEnabled ? "ON" : "OFF");
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
-            stateChanged = true;
-        }
-        // Traction toggle
-        else if (touchY >= btnY + 2*btnSpacing && touchY <= btnY + 2*btnSpacing + 30) {
-            tempTractionEnabled = !tempTractionEnabled;
-            Logger::infof("Tracción: %s", tempTractionEnabled ? "ON" : "OFF");
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
-            stateChanged = true;
-        }
+    if (inButton(touchX, touchY, col1X, startY, btnW, btnH)) {
+        tempLightsEnabled = !tempLightsEnabled;
+        Logger::infof("Luces: %s", tempLightsEnabled ? "ON" : "OFF");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        stateChanged = true;
+    } else if (inButton(touchX, touchY, col1X, startY + rowSpacing, btnW, btnH)) {
+        tempMultimediaEnabled = !tempMultimediaEnabled;
+        Logger::infof("Multimedia: %s", tempMultimediaEnabled ? "ON" : "OFF");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        stateChanged = true;
+    } else if (inButton(touchX, touchY, col1X, startY + 2 * rowSpacing, btnW, btnH)) {
+        tempTractionEnabled = !tempTractionEnabled;
+        Logger::infof("Tracción: %s", tempTractionEnabled ? "ON" : "OFF");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        stateChanged = true;
+    } else if (inButton(touchX, touchY, col2X, startY, btnW, btnH)) {
+        tempCurrentSensorsEnabled = !tempCurrentSensorsEnabled;
+        Logger::infof("Sensores INA226: %s", tempCurrentSensorsEnabled ? "ON" : "OFF");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        stateChanged = true;
+    } else if (inButton(touchX, touchY, col2X, startY + rowSpacing, btnW, btnH)) {
+        tempTempSensorsEnabled = !tempTempSensorsEnabled;
+        Logger::infof("Sensores temperatura: %s", tempTempSensorsEnabled ? "ON" : "OFF");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        stateChanged = true;
+    } else if (inButton(touchX, touchY, col2X, startY + 2 * rowSpacing, btnW, btnH)) {
+        tempWheelSensorsEnabled = !tempWheelSensorsEnabled;
+        Logger::infof("Sensores rueda: %s", tempWheelSensorsEnabled ? "ON" : "OFF");
+        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+        stateChanged = true;
     }
     
     // Save button
-    if (touchX >= 140 && touchX <= 340 && touchY >= 220 && touchY <= 260) {
+    if (touchX >= 140 && touchX <= 340 && touchY >= 230 && touchY <= 270) {
         // Apply temp values to config and save
         cfg.lightsEnabled = tempLightsEnabled;
         cfg.multimediaEnabled = tempMultimediaEnabled;
         cfg.tractionEnabled = tempTractionEnabled;
+        cfg.currentSensorsEnabled = tempCurrentSensorsEnabled;
+        cfg.tempSensorsEnabled = tempTempSensorsEnabled;
+        cfg.wheelSensorsEnabled = tempWheelSensorsEnabled;
         safeSaveConfig();
-        Logger::info("Configuración de módulos guardada");
+        Logger::info("Configuración de módulos/sensores guardada");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
         
         // 🔒 v2.10.0: Clear screen when exiting modules config
@@ -605,10 +649,14 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
 // Interactive module configuration screen
 static void startModulesConfig() {
     calibState = CalibrationState::MODULES_CONFIG;
+    modulesConfigFirstCall = true;
     // Initialize temp values from current config
     tempLightsEnabled = cfg.lightsEnabled;
     tempMultimediaEnabled = cfg.multimediaEnabled;
     tempTractionEnabled = cfg.tractionEnabled;
+    tempCurrentSensorsEnabled = cfg.currentSensorsEnabled;
+    tempTempSensorsEnabled = cfg.tempSensorsEnabled;
+    tempWheelSensorsEnabled = cfg.wheelSensorsEnabled;
     Logger::info("Iniciando configuración de módulos");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     drawModulesConfigScreen();

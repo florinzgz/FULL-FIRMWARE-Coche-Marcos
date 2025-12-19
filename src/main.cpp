@@ -725,6 +725,18 @@ void loop() {
     Logger::infof("4x4 button toggled: %s", new4x4State ? "ON" : "OFF");
   }
 
+  if (Buttons::toggledLights()) {
+    bool lightsOn = cfg.lightsEnabled && Buttons::get().lights;
+    Relays::setLights(lightsOn);
+    Logger::infof("Lights button toggled: %s", lightsOn ? "ON" : "OFF");
+  }
+
+  if (Buttons::toggledMultimedia()) {
+    bool mediaOn = cfg.multimediaEnabled && Buttons::get().multimedia;
+    Relays::setMedia(mediaOn);
+    Logger::infof("Multimedia button toggled: %s", mediaOn ? "ON" : "OFF");
+  }
+
   // Sensores
   Sensors::updateCurrent();
   Sensors::updateTemperature();
