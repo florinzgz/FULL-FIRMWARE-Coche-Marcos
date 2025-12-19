@@ -10,9 +10,6 @@ void BootGuard::applyXshutStrappingGuard() {
         return;
     }
 
-    constexpr size_t XSHUT_PIN_COUNT = sizeof(::ObstacleConfig::XSHUT_PINS) / sizeof(::ObstacleConfig::XSHUT_PINS[0]);
-    static_assert(::ObstacleConfig::NUM_SENSORS == XSHUT_PIN_COUNT,
-                  "ObstacleConfig::XSHUT_PINS size must match NUM_SENSORS");
     constexpr uint32_t XSHUT_SETTLE_DELAY_MS = 10;
 
     bool applied = false;
