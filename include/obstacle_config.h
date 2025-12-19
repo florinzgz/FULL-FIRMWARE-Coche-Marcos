@@ -20,7 +20,7 @@ namespace ObstacleConfig {
     //            el trasero mantiene GPIO 19 (estable). GPIO 18 queda libre para LEDs.
     constexpr uint8_t PIN_XSHUT_FRONT = 46;         // Front sensor (strapping, mantener HIGH en boot)
     constexpr uint8_t PIN_XSHUT_REAR = 19;          // Rear sensor (GPIO libre)
-    inline constexpr uint8_t XSHUT_PINS[NUM_SENSORS] = { PIN_XSHUT_FRONT, PIN_XSHUT_REAR };
+    constexpr uint8_t XSHUT_PINS[NUM_SENSORS] = { PIN_XSHUT_FRONT, PIN_XSHUT_REAR };
     
     // PCA9548A multiplexer channels
     constexpr uint8_t MUX_CHANNEL_FRONT = 0;        // Front sensor

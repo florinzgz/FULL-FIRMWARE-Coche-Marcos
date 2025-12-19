@@ -153,7 +153,7 @@ void init() {
     hardwarePresent = false;
     placeholderMode = true;
     
-    // 0. Ensure strapping pin (GPIO 46) stays HIGH before any reconfiguration
+    // 0. Ensure strapping pin (PIN_XSHUT_FRONT) stays HIGH before any reconfiguration
     pinMode(::ObstacleConfig::PIN_XSHUT_FRONT, OUTPUT);
     digitalWrite(::ObstacleConfig::PIN_XSHUT_FRONT, HIGH);
     delay(10);
