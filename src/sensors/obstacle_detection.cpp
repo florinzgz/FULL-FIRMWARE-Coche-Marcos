@@ -153,10 +153,17 @@ void init() {
     hardwarePresent = false;
     placeholderMode = true;
     
-    // 0. Ensure strapping pin (PIN_XSHUT_FRONT) stays HIGH before any reconfiguration
-    pinMode(::ObstacleConfig::PIN_XSHUT_FRONT, OUTPUT);
-    digitalWrite(::ObstacleConfig::PIN_XSHUT_FRONT, HIGH);
-    delay(10);
+    // 0. Ensure any XSHUT strapping pin stays HIGH before any reconfiguration
+    bool strappingGuarded = false;
+    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
+        const uint8_t pin = OBSTACLE_XSHUT_PINS[i];
+        if (pin_is_strapping(pin)) {
+            pinMode(pin, OUTPUT);
+            digitalWrite(pin, HIGH);
+            strappingGuarded = true;
+        }
+    }
+    if (strappingGuarded) delay(10);
 
     // 1. Test I2C bus health
     if (!testI2CBus()) {
