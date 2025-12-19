@@ -60,8 +60,11 @@ void MenuEncoderCalibration::update() {
         auto steer = Steering::get();
         int32_t newValue = steer.ticks;
         
+        // On any encoder change, perform partial, non-blocking redraws of only the
+        // changing elements to maintain accurate feedback and ~20Hz responsiveness.
         if (newValue != liveEncoderValue) {
             liveEncoderValue = newValue;
+            
             drawLiveValue();
             drawVisualIndicator();
         }
@@ -313,9 +316,22 @@ void MenuEncoderCalibration::handleSetCenter() {
     needsRedraw = true;
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     Logger::infof("Encoder center set: %ld", tempCenter);
+    
+    // Validate center is within reasonable bounds
+    if (tempCenter < -2000 || tempCenter > 4000) {
+        Logger::warnf("Encoder center value unusual: %ld (expected range -2000 to 4000)", tempCenter);
+    }
 }
 
 void MenuEncoderCalibration::handleSetLeft() {
+    // Validate left limit is less than center before setting
+    if (liveEncoderValue >= tempCenter) {
+        Logger::errorf("Invalid left limit: %ld >= center %ld. Please turn wheel LEFT from center.", 
+                      liveEncoderValue, tempCenter);
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
+        return; // Don't advance step or set invalid value
+    }
+    
     tempLeftLimit = liveEncoderValue;
     currentStep = STEP_RIGHT;
     needsRedraw = true;
@@ -324,7 +340,25 @@ void MenuEncoderCalibration::handleSetLeft() {
 }
 
 void MenuEncoderCalibration::handleSetRight() {
+    // Validate right limit is greater than center before setting
+    if (liveEncoderValue <= tempCenter) {
+        Logger::errorf("Invalid right limit: %ld <= center %ld. Please turn wheel RIGHT from center.", 
+                      liveEncoderValue, tempCenter);
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
+        return; // Don't advance step or set invalid value
+    }
+    
     tempRightLimit = liveEncoderValue;
+    
+    // Validate the range is reasonable (at least 100 ticks on each side)
+    int32_t leftRange = tempCenter - tempLeftLimit;
+    int32_t rightRange = tempRightLimit - tempCenter;
+    
+    if (leftRange < 100 || rightRange < 100) {
+        Logger::warnf("Calibration range seems small: left=%ld, right=%ld (expected >100 each)", 
+                     leftRange, rightRange);
+    }
+    
     currentStep = STEP_COMPLETE;
     needsRedraw = true;
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
@@ -383,16 +417,63 @@ void MenuEncoderCalibration::loadCurrentCalibration() {
 }
 
 void MenuEncoderCalibration::saveCalibration() {
+    // Final validation before saving
+    if (tempLeftLimit >= tempCenter || tempRightLimit <= tempCenter) {
+        Logger::errorf("Invalid calibration: left=%ld, center=%ld, right=%ld", 
+                      tempLeftLimit, tempCenter, tempRightLimit);
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
+        return;
+    }
+    
+    // Check for reasonable range
+    int32_t totalRange = tempRightLimit - tempLeftLimit;
+    if (totalRange < 200) {
+        Logger::warnf("Calibration range too small: %ld (expected >200)", totalRange);
+    }
+
+    // Ensure values fit into int16_t before saving to config to avoid truncation
+    if (tempCenter < -32768 || tempCenter > 32767 ||
+        tempLeftLimit < -32768 || tempLeftLimit > 32767 ||
+        tempRightLimit < -32768 || tempRightLimit > 32767) {
+        Logger::errorf("Calibration values out of int16_t range: left=%ld, center=%ld, right=%ld",
+                       tempLeftLimit, tempCenter, tempRightLimit);
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
+        return;
+    }
+    
     auto& config = ConfigStorage::getCurrentConfig();
-    config.encoder_center = tempCenter;
-    config.encoder_left_limit = tempLeftLimit;
-    config.encoder_right_limit = tempRightLimit;
-    ConfigStorage::save(config);
+    config.encoder_center = static_cast<int16_t>(tempCenter);
+    config.encoder_left_limit = static_cast<int16_t>(tempLeftLimit);
+    config.encoder_right_limit = static_cast<int16_t>(tempRightLimit);
+    
+    // Save to EEPROM with error handling
+    bool saveSuccess = ConfigStorage::save(config);
+    
+    if (!saveSuccess) {
+        Logger::error("Failed to save encoder calibration to EEPROM");
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+        return;
+    }
+    
+    // Verify the save by reading back from EEPROM
+    ConfigStorage::Config verifyConfig;
+    if (!ConfigStorage::load(verifyConfig)) {
+        Logger::error("EEPROM verification failed - could not read back values");
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+        return;
+    }
+    if (verifyConfig.encoder_center != tempCenter ||
+        verifyConfig.encoder_left_limit != tempLeftLimit ||
+        verifyConfig.encoder_right_limit != tempRightLimit) {
+        Logger::error("EEPROM verification failed - saved values don't match");
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+        return;
+    }
     
     // Apply to steering module
     Steering::setZeroOffset(tempCenter);
     
-    Logger::infof("Encoder calibration saved: C=%ld, L=%ld, R=%ld", 
+    Logger::infof("Encoder calibration saved and verified: C=%ld, L=%ld, R=%ld", 
                   tempCenter, tempLeftLimit, tempRightLimit);
 }
 

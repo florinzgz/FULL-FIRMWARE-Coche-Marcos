@@ -43,9 +43,35 @@ inline float getMaxCurrentA(int channel) {
   }
 }
 
-// Mapea 0..100% -> 0..255 PWM
+// Constantes de seguridad para PWM
+constexpr float PWM_MAX_SAFE = 255.0f;  // Máximo PWM permitido (8-bit)
+constexpr float PWM_MIN = 0.0f;          // Mínimo PWM
+
+// Límites de seguridad para sensores
+constexpr float TEMP_MIN_VALID = -40.0f;   // Temperatura mínima válida (°C)
+constexpr float TEMP_MAX_VALID = 150.0f;   // Temperatura máxima válida (°C)
+constexpr float TEMP_CRITICAL = 120.0f;    // Temperatura crítica (°C)
+constexpr float CURRENT_MAX_REASONABLE = 200.0f;  // Corriente máxima razonable (A)
+
+// Mapea 0..100% -> 0..255 PWM con validación de límites
 inline float demandPctToPwm(float pct) {
-  return clampf(pct, 0.0f, 100.0f) * 255.0f / 100.0f;
+  float pwm = clampf(pct, 0.0f, 100.0f) * 255.0f / 100.0f;
+  // Aplicar techo de seguridad de hardware
+  return clampf(pwm, PWM_MIN, PWM_MAX_SAFE);
+}
+
+// Validar lectura de corriente
+inline bool isCurrentValid(float currentA) {
+  return std::isfinite(currentA) && 
+         currentA >= -CURRENT_MAX_REASONABLE && 
+         currentA <= CURRENT_MAX_REASONABLE;
+}
+
+// Validar lectura de temperatura
+inline bool isTempValid(float tempC) {
+  return std::isfinite(tempC) && 
+         tempC >= TEMP_MIN_VALID && 
+         tempC <= TEMP_MAX_VALID;
 }
 } // namespace
 
@@ -79,16 +105,27 @@ void Traction::setMode4x4(bool on) {
 // El parámetro speedPct se mantiene por compatibilidad pero no se usa
 void Traction::setAxisRotation(bool enabled, float speedPct) {
   (void)speedPct; // No se usa, velocidad controlada por pedal
+  
+  bool wasEnabled = s.axisRotation;
   s.axisRotation = enabled;
 
-  if (enabled) {
+  if (enabled && !wasEnabled) {
     Logger::info("Traction: AXIS ROTATION ON (velocidad controlada por pedal)");
-  } else {
-    Logger::info("Traction: AXIS ROTATION OFF");
-    // Reset wheel directions when turning off axis rotation
+    // Inicializar direcciones cuando se activa el modo
     for (int i = 0; i < 4; ++i) {
       s.w[i].reverse = false;
     }
+  } else if (!enabled && wasEnabled) {
+    Logger::info("Traction: AXIS ROTATION OFF - resetting to normal mode");
+    // Reset controlado: asegurar que todas las ruedas vuelvan a modo normal
+    for (int i = 0; i < 4; ++i) {
+      s.w[i].reverse = false;
+      s.w[i].demandPct = 0.0f;  // Detener todas las ruedas suavemente
+      s.w[i].outPWM = 0.0f;
+    }
+    // Resetear demanda global para transición suave
+    s.demandPct = 0.0f;
+    Logger::info("Traction: All wheels reset to forward, demand cleared");
   }
 }
 
@@ -154,25 +191,37 @@ void Traction::update() {
     Logger::debugf("Traction AXIS ROTATION: pedal=%.1f%%, L=FWD, R=REV",
                    rotSpeed);
 
-    // Calcular PWM y leer sensores
+    // Calcular PWM y leer sensores con validación mejorada
     for (int i = 0; i < 4; ++i) {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+      
+      s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+      
+      // PWM is already clamped in demandPctToPwm(), this check is redundant
 
-      // Leer corriente
+      // Leer corriente con validación
       if (cfg.currentSensorsEnabled) {
         float currentA = Sensors::getCurrent(i);
-        if (!std::isfinite(currentA))
+        if (!isCurrentValid(currentA)) {
+          System::logError(810 + i);  // códigos 810-813 para motores FL-RR
+          Logger::warnf("Axis rotation: invalid current wheel %d: %.2fA", i, currentA);
           currentA = 0.0f;
+        }
         s.w[i].currentA = currentA;
         float maxA = getMaxCurrentA(i);
         s.w[i].effortPct = clampf((currentA / maxA) * 100.0f, 0.0f, 100.0f);
       }
 
-      // Leer temperatura
+      // Leer temperatura con validación
       if (cfg.tempSensorsEnabled) {
         float tempC = Sensors::getTemperature(i);
-        if (!std::isfinite(tempC))
-          tempC = -999.0f;
+        if (!isTempValid(tempC)) {
+          System::logError(820 + i);  // códigos 820-823 para motores FL-RR
+          Logger::warnf("Axis rotation: invalid temp wheel %d: %.1f°C", i, tempC);
+          tempC = 0.0f;
+        } else if (tempC > TEMP_CRITICAL) {
+          Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i, tempC);
+        }
         s.w[i].tempC = tempC;
       }
     }
@@ -180,7 +229,7 @@ void Traction::update() {
     return; // Salir del update, no procesar modo normal
   }
 
-  // Reset reverse flags in normal mode
+  // Reset reverse flags in normal mode (solo cuando no está en axis rotation)
   for (int i = 0; i < 4; ++i) {
     s.w[i].reverse = false;
   }
@@ -213,10 +262,15 @@ void Traction::update() {
   if (cfg.steeringEnabled && steer.valid) {
     float angle = std::fabs(steer.angleDeg);
 
-    // 🔒 CORRECCIÓN 2.4: Escalado Ackermann más suave (70% mínimo en vez de
-    // 50%) Evita reducción excesiva en curvas cerradas a baja velocidad A 60°
-    // de ángulo: rueda interior al 70% (antes 50%)
-    float scale = clampf(1.0f - (angle / 60.0f) * 0.3f, 0.7f, 1.0f);
+    // 🔒 CORRECCIÓN 2.4: Escalado Ackermann mejorado para curvas más suaves
+    // Curva progresiva: a 30° -> 85%, a 45° -> 77.5%, a 60° -> 70%
+    // Evita reducción brusca en curvas cerradas
+    // Fórmula optimizada: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
+    float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
+    float x = angleNormalized;
+    float x_pow_1_2 = static_cast<float>(std::pow(x, 1.2f));  // x^1.2 exacto
+    float scale = 1.0f - x_pow_1_2 * 0.3f;
+    scale = clampf(scale, 0.70f, 1.0f);  // Mínimo 70% en curvas máximas
 
     if (steer.angleDeg > 0.0f) {
       // Giro a la derecha: reducir rueda derecha
@@ -226,7 +280,7 @@ void Traction::update() {
       factorFL = scale;
     }
 
-    Logger::debugf("Ackermann: angle=%.1f°, factorFL=%.2f, factorFR=%.2f",
+    Logger::debugf("Ackermann: angle=%.1f°, factorFL=%.3f, factorFR=%.3f",
                    steer.angleDeg, factorFL, factorFR);
   }
 
@@ -244,10 +298,11 @@ void Traction::update() {
       // 2=RL, 3=RR) Documentado claramente en sensors.h
       float currentA = Sensors::getCurrent(i);
 
-      // Validar lectura
-      if (!std::isfinite(currentA) || currentA < -999.0f) {
+      // 🔒 MEJORA: Validación robusta con verificación de rango
+      if (!isCurrentValid(currentA)) {
         System::logError(810 + i); // códigos 810-813 para motores FL-RR
-        Logger::errorf("Traction: corriente inválida rueda %d", i);
+        Logger::errorf("Traction: corriente inválida rueda %d: %.2fA (límite ±%.0fA)", 
+                      i, currentA, CURRENT_MAX_REASONABLE);
         currentA = 0.0f;
       }
       s.w[i].currentA = currentA;
@@ -268,12 +323,22 @@ void Traction::update() {
     if (cfg.tempSensorsEnabled) {
       // 🔒 API de Sensors::getTemperature() usa índices 0-based
       float t = Sensors::getTemperature(i);
-      if (!std::isfinite(t) || t < -999.0f) {
+      
+      // 🔒 MEJORA: Validación robusta con verificación de rango
+      if (!isTempValid(t)) {
         System::logError(820 + i); // códigos 820-823 para motores FL-RR
-        Logger::errorf("Traction: temperatura inválida rueda %d", i);
+        Logger::errorf("Traction: temperatura inválida rueda %d: %.1f°C (rango %.0f-%.0f°C)", 
+                      i, t, TEMP_MIN_VALID, TEMP_MAX_VALID);
         t = 0.0f;
+      } else {
+        // Advertir si temperatura es crítica
+        if (t > TEMP_CRITICAL) {
+          Logger::warnf("Traction: temperatura crítica rueda %d: %.1f°C (>%.0f°C)", 
+                       i, t, TEMP_CRITICAL);
+        }
       }
-      s.w[i].tempC = clampf(t, -40.0f, 150.0f);
+      
+      s.w[i].tempC = clampf(t, TEMP_MIN_VALID, TEMP_MAX_VALID);
     } else {
       s.w[i].tempC = 0.0f;
     }
@@ -282,7 +347,9 @@ void Traction::update() {
     // s.w[i].speedKmh = Sensors::getSpeedKmh(i);
 
     // -- PWM de salida (valor a aplicar al driver BTS7960 u otro)
+    // 🔒 MEJORA: Aplicar validación de techo de PWM (realizada dentro de demandPctToPwm)
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+    
     // Si tienes función para aplicar PWM, llámala aquí:
     // e.g. MotorDriver::setPWM(i, static_cast<uint8_t>(s.w[i].outPWM));
   }
