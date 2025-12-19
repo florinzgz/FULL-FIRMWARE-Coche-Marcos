@@ -28,19 +28,22 @@ namespace TouchCalibration {
     static uint16_t point2_rawX = 0, point2_rawY = 0;  // Bottom-right corner
     
     // Touch sampling
-    static const int SAMPLE_COUNT = 10;        // Number of samples to average
-    static const uint32_t SAMPLE_INTERVAL = 50; // ms between samples
+    // 🔒 v2.11.1: Optimized for faster calibration response
+    // Reduced from 10 samples @ 50ms = 500ms to 5 samples @ 10ms = 50ms (10× faster)
+    static const int SAMPLE_COUNT = 5;         // Number of samples to average (was 10)
+    static const uint32_t SAMPLE_INTERVAL = 10; // ms between samples (was 50)
     static int samplesCollected = 0;
     static uint32_t sumX = 0, sumY = 0;
     static uint32_t lastSampleTime = 0;
     
     // Timeout constants
-    static const uint32_t INSTRUCTION_TIMEOUT = 30000;  // 30 seconds
-    static const uint32_t POINT_TIMEOUT = 30000;         // 30 seconds per point
+    // 🔒 v2.11.1: Increased from 30s to 60s for better user experience
+    static const uint32_t INSTRUCTION_TIMEOUT = 60000;  // 60 seconds (was 30)
+    static const uint32_t POINT_TIMEOUT = 60000;         // 60 seconds per point (was 30)
     
     // Touch controller constants
     static const uint16_t MAX_TOUCH_VALUE = 4095;        // 12-bit ADC maximum
-    static const uint32_t TOUCH_RELEASE_WAIT = 500;      // ms to wait for touch release
+    static const uint32_t TOUCH_RELEASE_WAIT = 200;      // ms to wait for touch release (was 500)
     
     // Forward declarations
     static void drawCalibrationPoint(int x, int y, uint16_t color);
@@ -326,6 +329,28 @@ namespace TouchCalibration {
                     // Calculate average
                     avgX = sumX / samplesCollected;
                     avgY = sumY / samplesCollected;
+                    
+                    // 🔒 v2.11.1: Validate sample is within reasonable range
+                    // Reject samples that are clearly invalid (hardware issue or weak touch)
+                    // Valid range is typically 100-4000 for XPT2046
+                    if (avgX < 100 || avgX > 4000 || avgY < 100 || avgY > 4000) {
+                        Logger::warnf("TouchCalibration: Sample out of expected range X=%d Y=%d", avgX, avgY);
+                        Logger::warn("TouchCalibration: Touch harder or check hardware connection");
+                        Logger::warn("TouchCalibration: Resetting sample collection, please try again");
+                        
+                        // Reset and try again
+                        samplesCollected = 0;
+                        sumX = sumY = 0;
+                        
+                        // Visual feedback - flash the target
+                        int targetX = (state == CalibrationState::Point1) ? CALIB_MARGIN : (480 - CALIB_MARGIN);
+                        int targetY = (state == CalibrationState::Point1) ? CALIB_MARGIN : (320 - CALIB_MARGIN);
+                        drawCalibrationPoint(targetX, targetY, TFT_YELLOW);
+                        delay(100);
+                        drawCalibrationPoint(targetX, targetY, TFT_RED);
+                        
+                        return false;  // Sample rejected, try again
+                    }
                     
                     // Reset for next point
                     samplesCollected = 0;
