@@ -4,7 +4,7 @@
 // Forward declarations to avoid hard dependency on obstacle_config.h
 namespace ObstacleConfig {
     extern const uint8_t NUM_SENSORS;
-    extern const uint8_t XSHUT_PINS[];
+    extern const uint8_t XSHUT_PINS[2];
 }
 
 // ============================================================================
