@@ -70,10 +70,9 @@ void Storage::defaults(Config &cfg) {
   cfg.tractionEnabled = true; // Módulo de tracción habilitado por defecto
 
   // Nuevos flags de tolerancia a fallos
-  // ⚙️ Temperatura habilitada por defecto (5x DS18B20: 4 motores + ambiente)
-  // Otros sensores permanecen deshabilitados hasta que se confirme hardware
+  // ⚙️ Sensores deshabilitados por defecto hasta confirmar hardware presente
   cfg.wheelSensorsEnabled = false;
-  cfg.tempSensorsEnabled = true;
+  cfg.tempSensorsEnabled = false;
   cfg.currentSensorsEnabled = false;
   cfg.steeringEnabled = false;
 

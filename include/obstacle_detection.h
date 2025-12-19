@@ -83,8 +83,8 @@ namespace ObstacleDetection {
         ObstacleLevel overallLevel;     // Worst proximity level
         uint16_t minDistanceFront;      // Front min distance
         uint16_t minDistanceRear;       // Rear min distance
-        uint16_t minDistanceLeft;       // DEPRECATED: reserved placeholder (no lateral sensor)
-        uint16_t minDistanceRight;      // DEPRECATED: reserved placeholder (no lateral sensor)
+        uint16_t minDistanceLeft;       // RESERVED: no lateral sensor, always DISTANCE_INVALID
+        uint16_t minDistanceRight;      // RESERVED: no lateral sensor, always DISTANCE_INVALID
         bool emergencyStopActive;       // Emergency stop triggered
         bool parkingAssistActive;       // Parking assist active
         uint32_t lastUpdateMs;          // Last system update

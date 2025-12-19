@@ -730,13 +730,15 @@ void loop() {
   }
 
   if (Buttons::toggledLights()) {
-    bool lightsOn = cfg.lightsEnabled && Buttons::get().lights;
+    bool desiredLightsOn = !Relays::get().lightsOn;
+    bool lightsOn = cfg.lightsEnabled && desiredLightsOn;
     Relays::setLights(lightsOn);
     Logger::infof("Lights button toggled: %s", lightsOn ? "ON" : "OFF");
   }
 
   if (Buttons::toggledMultimedia()) {
-    bool mediaOn = cfg.multimediaEnabled && Buttons::get().multimedia;
+    bool desiredMediaOn = !Relays::get().mediaOn;
+    bool mediaOn = cfg.multimediaEnabled && desiredMediaOn;
     Relays::setMedia(mediaOn);
     Logger::infof("Multimedia button toggled: %s", mediaOn ? "ON" : "OFF");
   }
