@@ -1,13 +1,19 @@
 # 📚 Documentación del Firmware - ESP32-S3 Car Control System
 
-**Versión Firmware:** 2.9.5  
+**Versión Firmware:** 2.11.0  
 **Placa:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2025-12-05
+**Última actualización:** 2025-12-19
 
 ---
 
-## 🆕 NOVEDAD: Documentación de Códigos de Error (v2.9.5)
+## 🆕 NOVEDADES v2.11.0
 
+### 🔒 Seguridad y Estabilidad Mejoradas
+- **Eliminación de WiFi/OTA**: Firmware ahora standalone sin conectividad de red
+- **Librerías pinned**: Versiones exactas de todas las dependencias para builds reproducibles
+- **Mayor seguridad**: Sin superficie de ataque de red, solo actualizaciones por USB
+
+### 📋 Códigos de Error y Diagnóstico
 **¿No entiendes los códigos de error del menú oculto?**
 
 ### ⚡ Consulta:
@@ -19,7 +25,7 @@
 
 ---
 
-## 🎯 Calibración Touch Sin Pantalla Funcional (v2.9.4)
+## 🎯 Calibración Touch Sin Pantalla Funcional
 
 **¿El touch no funciona y no puedes acceder al menú de calibración?**
 
@@ -51,8 +57,8 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 | Archivo | Descripción |
 |---------|-------------|
-| [CODIGOS_ERROR.md](CODIGOS_ERROR.md) | 🆕 **v2.9.5** Documentación completa de códigos de error (100-999) |
-| [FIRMWARE_FINAL_STATUS.md](FIRMWARE_FINAL_STATUS.md) | Estado final del firmware v2.9.5 - Sistema 100% operativo |
+| [CODIGOS_ERROR.md](CODIGOS_ERROR.md) | Documentación completa de códigos de error (100-999) |
+| [FIRMWARE_FINAL_STATUS.md](FIRMWARE_FINAL_STATUS.md) | Estado final del firmware v2.11.0 - Sistema 100% operativo standalone |
 | [INFORME_AUDITORIA.md](INFORME_AUDITORIA.md) | Auditoría completa del firmware con verificación de todos los módulos |
 | [INFORME_CHECKLIST.md](INFORME_CHECKLIST.md) | Checklist de verificación del sistema completo |
 | [CAMBIOS_RECIENTES.md](CAMBIOS_RECIENTES.md) | Historial de cambios y novedades del firmware |
@@ -64,8 +70,8 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 | Archivo | Descripción |
 |---------|-------------|
 | [MANUAL_COMPLETO_CONEXIONES.md](MANUAL_COMPLETO_CONEXIONES.md) | **📘 MANUAL COMPLETO** - Guía detallada de conexiones cable por cable, organizada por módulos y componentes |
-| [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | **📌 Referencia principal del hardware** - Componentes, especificaciones, arquitectura y conexiones GPIO actualizadas (v2.8.9) |
-| [PIN_MAPPING_DEVKITC1.md](PIN_MAPPING_DEVKITC1.md) | **📌 Mapeo oficial de pines GPIO** - Asignación completa de pines para ESP32-S3-DevKitC-1 (v2.8.9) |
+| [REFERENCIA_HARDWARE.md](REFERENCIA_HARDWARE.md) | **📌 Referencia principal del hardware** - Componentes, especificaciones, arquitectura y conexiones GPIO actualizadas |
+| [PIN_MAPPING_DEVKITC1.md](PIN_MAPPING_DEVKITC1.md) | **📌 Mapeo oficial de pines GPIO** - Asignación completa de pines para ESP32-S3-DevKitC-1 |
 | [HARDWARE_CONFIGURACION_COMPLETA.md](HARDWARE_CONFIGURACION_COMPLETA.md) | Configuración completa del hardware del sistema |
 | [HY-M158_MAPPING.md](HY-M158_MAPPING.md) | Mapeo de canales de los módulos optoacopladores HY-M158 |
 
@@ -81,21 +87,13 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 ---
 
-## 📡 Conectividad
-
-| Archivo | Descripción |
-|---------|-------------|
-| [CONFIGURACION_WIFI_OTA.md](CONFIGURACION_WIFI_OTA.md) | Guía de configuración WiFi y actualizaciones OTA |
-
----
-
 ## ⚙️ Arquitectura del Firmware
 
 | Archivo | Descripción |
 |---------|-------------|
 | [NON_BLOCKING_TIMING.md](NON_BLOCKING_TIMING.md) | Arquitectura de temporización non-blocking con millis() |
 | [STANDALONE_MODE.md](STANDALONE_MODE.md) | Modo standalone para pruebas de pantalla sin hardware |
-| [GUIA_PRUEBAS_INCREMENTALES.md](GUIA_PRUEBAS_INCREMENTALES.md) | **🆕 Guía paso a paso** - Cómo probar pantalla y añadir funcionalidades gradualmente |
+| [GUIA_PRUEBAS_INCREMENTALES.md](GUIA_PRUEBAS_INCREMENTALES.md) | Guía paso a paso - Cómo probar pantalla y añadir funcionalidades gradualmente |
 
 ---
 
@@ -111,11 +109,11 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 
 | Archivo | Descripción |
 |---------|-------------|
-| [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md) | **🆕 v2.9.4 SOLUCIÓN DEFINITIVA** - Calibrar touch usando botón físico (sin necesidad de touch funcional) |
-| [CALIBRACION_TOUCH_SIN_PANTALLA.md](CALIBRACION_TOUCH_SIN_PANTALLA.md) | **🆕 v2.9.4** - Guía técnica para calibración por botón físico 4X4 (5 segundos) |
+| [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md) | SOLUCIÓN DEFINITIVA - Calibrar touch usando botón físico (sin necesidad de touch funcional) |
+| [CALIBRACION_TOUCH_SIN_PANTALLA.md](CALIBRACION_TOUCH_SIN_PANTALLA.md) | Guía técnica para calibración por botón físico 4X4 (5 segundos) |
 | [TOUCH_FIX_v2.9.3.md](TOUCH_FIX_v2.9.3.md) | Fix del bug de calibración y mejoras de sensibilidad (v2.9.3) |
 | [TOUCH_QUICK_FIX.md](TOUCH_QUICK_FIX.md) | **⚡ Soluciones rápidas** - Las 3 correcciones más comunes para problemas de touch |
-| [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) | **🆕 Guía completa de resolución de problemas** - Diagnóstico y solución de problemas de touch XPT2046 |
+| [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) | Guía completa de resolución de problemas - Diagnóstico y solución de problemas de touch XPT2046 |
 | [TOUCH_CALIBRATION.md](TOUCH_CALIBRATION.md) | Guía de calibración del touchscreen |
 | [TOUCH_CALIBRATION_GUIDE.md](TOUCH_CALIBRATION_GUIDE.md) | Guía detallada de calibración paso a paso |
 | [TOUCH_CALIBRATION_IMPLEMENTATION.md](TOUCH_CALIBRATION_IMPLEMENTATION.md) | Implementación técnica del sistema de calibración |
@@ -126,7 +124,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 | [VERIFICACION_DISPLAY_FUNCIONAL.md](VERIFICACION_DISPLAY_FUNCIONAL.md) | Verificación funcional del display |
 
 > ⚠️ **PROBLEMAS CON TOUCH?** 
-> - **🆕 SIN TOUCH FUNCIONAL**: [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md) - Calibra con botón físico
+> - **SIN TOUCH FUNCIONAL**: [SOLUCION_COMPLETA_TOUCH_v2.9.4.md](SOLUCION_COMPLETA_TOUCH_v2.9.4.md) - Calibra con botón físico
 > - **Solución rápida**: [TOUCH_QUICK_FIX.md](TOUCH_QUICK_FIX.md) - 90% de problemas resueltos bajando SPI frequency
 > - **Diagnóstico completo**: [TOUCH_TROUBLESHOOTING.md](TOUCH_TROUBLESHOOTING.md) - Guía paso a paso
 
@@ -178,10 +176,12 @@ Para descargar el firmware compilado más reciente:
 3. **Descargar** los artefactos (Artifacts) en la sección inferior de la página del workflow:
    - `firmware-esp32-s3-devkitc` - Versión de desarrollo
    - `firmware-esp32-s3-devkitc-release` - **Versión de producción (recomendada)**
-   - `firmware-esp32-s3-devkitc-ota` - Versión con soporte OTA
-   - `firmware-esp32-s3-devkitc-test` - Versión de test
+   - `firmware-esp32-s3-devkitc-touch-debug` - Debug de touch
+   - `firmware-esp32-s3-devkitc-no-touch` - Sin touch (diagnóstico)
 
 > ⚠️ **Nota:** Los artefactos de GitHub Actions expiran después de 90 días. Para versiones permanentes, consulta la sección de Releases.
+> 
+> **v2.11.0:** Las actualizaciones OTA fueron eliminadas por seguridad. Todas las actualizaciones deben hacerse por USB.
 
 ---
 
@@ -211,9 +211,11 @@ pio device monitor
 | Entorno | Descripción |
 |---------|-------------|
 | `esp32-s3-devkitc` | Desarrollo con debug habilitado |
-| `esp32-s3-devkitc-release` | Producción optimizada |
-| `esp32-s3-devkitc-ota` | Con soporte para actualizaciones WiFi |
-| `esp32-s3-devkitc-test` | Modo test con standalone display |
+| `esp32-s3-devkitc-release` | Producción optimizada (recomendado) |
+| `esp32-s3-devkitc-touch-debug` | Debug de touch con logs verbosos |
+| `esp32-s3-devkitc-no-touch` | Sin soporte touch (para diagnóstico SPI) |
+
+> **Nota v2.11.0:** Entornos WiFi/OTA y test fueron removidos. El firmware ahora es 100% standalone.
 
 ---
 
@@ -266,6 +268,6 @@ pio device monitor
 
 ---
 
-**Firmware 100% Operativo y Listo para Producción** ✅
+**Firmware v2.11.0 - 100% Operativo, Standalone y Seguro** ✅
 
-*Documentación actualizada: 2025-12-02*
+*Documentación actualizada: 2025-12-19*

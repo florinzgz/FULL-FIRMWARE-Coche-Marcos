@@ -34,8 +34,8 @@ pio run -t upload
 
 ## DOCUMENTACIÓN COMPLETA
 
-📖 **Ver:** `SOLUCION_v2.9.4.md`  
-📖 **Ver:** `docs/SOLUCION_COMPLETA_TOUCH_v2.9.4.md`
+📖 **Ver:** `docs/SOLUCION_COMPLETA_TOUCH_v2.9.4.md`  
+📖 **Ver:** `docs/TOUCH_CALIBRATION_QUICK_GUIDE.md`
 
 ---
 
@@ -50,13 +50,10 @@ pio run -t upload
 → Ajusta `Z_THRESHOLD=250` en platformio.ini  
 → Lee `docs/TOUCH_TROUBLESHOOTING.md`
 
-### 🐛 Sistema crashea o entra en bucle (NUEVO v2.10.9)
-→ Usa el build de debug:
-```bash
-pio run -e esp32-s3-devkitc-debug -t upload --upload-port COM4
-```
-→ Lee `INSTRUCCIONES_DEBUG_BUILD_v2.10.9.md` para más detalles
+### 🐛 Sistema crashea o entra en bucle
+→ Revisa los logs de sistema  
+→ Lee `BUILD_INSTRUCTIONS_v2.11.0.md` para compilar y depurar
 
 ---
 
-**v2.10.9** | **2025-12-15** | **✅ Debug build disponible**
+**v2.11.0** | **2025-12-19** | **✅ Firmware standalone y seguro**
