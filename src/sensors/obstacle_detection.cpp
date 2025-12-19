@@ -37,7 +37,7 @@ constexpr uint16_t VL53L5CX_DEVICE_ID_REG = 0x0000;  // Device ID register addre
 constexpr uint8_t VL53L5CX_EXPECTED_ID = 0xF0;       // Expected device ID for VL53L5CX
 
 // XSHUT pins for sensors
-static constexpr const uint8_t (&OBSTACLE_XSHUT_PINS)[::ObstacleConfig::NUM_SENSORS] = ::ObstacleConfig::XSHUT_PINS;
+static constexpr auto& OBSTACLE_XSHUT_PINS = ::ObstacleConfig::XSHUT_PINS;
 
 static const char* SENSOR_NAMES[::ObstacleConfig::NUM_SENSORS] = {
     "FRONT", "REAR"
@@ -153,7 +153,7 @@ void init() {
     hardwarePresent = false;
     placeholderMode = true;
     
-    // 0. Asegurar estado seguro del strapping pin (GPIO 46) antes de cualquier cambio
+    // 0. Ensure strapping pin (GPIO 46) stays HIGH before any reconfiguration
     pinMode(::ObstacleConfig::PIN_XSHUT_FRONT, OUTPUT);
     digitalWrite(::ObstacleConfig::PIN_XSHUT_FRONT, HIGH);
     delay(10);

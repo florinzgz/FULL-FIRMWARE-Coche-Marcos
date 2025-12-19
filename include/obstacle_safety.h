@@ -25,8 +25,8 @@ struct SafetyConfig {
 struct SafetyState {
     bool parkingAssistActive;
     bool collisionImminent;
-    bool blindSpotLeft;   // Reservado: sin sensores laterales, siempre false
-    bool blindSpotRight;  // Reservado: sin sensores laterales, siempre false
+    bool blindSpotLeft;   // Reserved: no lateral sensors, always false
+    bool blindSpotRight;  // Reserved: no lateral sensors, always false
     bool adaptiveCruiseActive;
     bool emergencyBrakeApplied;
     
