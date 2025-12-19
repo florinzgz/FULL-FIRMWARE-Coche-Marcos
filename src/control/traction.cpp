@@ -349,15 +349,8 @@ void Traction::update() {
     // s.w[i].speedKmh = Sensors::getSpeedKmh(i);
 
     // -- PWM de salida (valor a aplicar al driver BTS7960 u otro)
-    // 🔒 MEJORA: Aplicar validación de techo de PWM
+    // 🔒 MEJORA: Aplicar validación de techo de PWM (realizada dentro de demandPctToPwm)
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
-    
-    // Validar que PWM no exceda límite de hardware
-    if (s.w[i].outPWM > PWM_MAX_SAFE) {
-      Logger::errorf("Traction: PWM excede límite seguro rueda %d: %.0f (max %.0f)", 
-                    i, s.w[i].outPWM, PWM_MAX_SAFE);
-      s.w[i].outPWM = PWM_MAX_SAFE;
-    }
     
     // Si tienes función para aplicar PWM, llámala aquí:
     // e.g. MotorDriver::setPWM(i, static_cast<uint8_t>(s.w[i].outPWM));
