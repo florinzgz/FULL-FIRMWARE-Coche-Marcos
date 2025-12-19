@@ -71,7 +71,7 @@ void System::init() {
     if (EEPROMPersistence::loadGeneralSettings(settings)) {
         Logger::info("System init: Configuración general cargada exitosamente");
         
-        // Aplicar toggles de módulos con validación de punteros/estados
+        // Aplicar toggles de módulos según configuración cargada
         ABSSystem::setEnabled(settings.absEnabled);
         Logger::infof("System init: ABS %s", settings.absEnabled ? "enabled" : "disabled");
         
