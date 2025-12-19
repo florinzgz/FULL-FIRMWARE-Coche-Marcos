@@ -232,35 +232,45 @@ bool runAllTests() {
     failedCount = 0;
     
     // Ejecutar todas las pruebas
-    recordTest("All 68 tracks defined in enum", testAllTracksDefinedInEnum(), 
-               testAllTracksDefinedInEnum() ? "OK" : "Enum definition incomplete");
+    bool allTracksOk = testAllTracksDefinedInEnum();
+    recordTest("All 68 tracks defined in enum", allTracksOk, 
+               allTracksOk ? "OK" : "Enum definition incomplete");
                
-    recordTest("Invalid track (0) rejected", testInvalidTrackRejected(),
-               testInvalidTrackRejected() ? "OK" : "Track 0 was accepted");
+    bool invalidRejected = testInvalidTrackRejected();
+    recordTest("Invalid track (0) rejected", invalidRejected,
+               invalidRejected ? "OK" : "Track 0 was accepted");
                
-    recordTest("Out of range tracks rejected", testOutOfRangeTrackRejected(),
-               testOutOfRangeTrackRejected() ? "OK" : "Invalid tracks accepted");
+    bool rangeRejected = testOutOfRangeTrackRejected();
+    recordTest("Out of range tracks rejected", rangeRejected,
+               rangeRejected ? "OK" : "Invalid tracks accepted");
                
-    recordTest("Valid tracks (1-68) accepted", testValidTracksAccepted(),
-               testValidTracksAccepted() ? "OK" : "Some valid tracks rejected");
+    bool validAccepted = testValidTracksAccepted();
+    recordTest("Valid tracks (1-68) accepted", validAccepted,
+               validAccepted ? "OK" : "Some valid tracks rejected");
                
-    recordTest("Queue overflow handling", testQueueOverflow(),
-               testQueueOverflow() ? "OK" : "Queue overflow not handled");
+    bool overflowOk = testQueueOverflow();
+    recordTest("Queue overflow handling", overflowOk,
+               overflowOk ? "OK" : "Queue overflow not handled");
                
-    recordTest("Queue priority levels", testQueuePriorityLevels(),
-               testQueuePriorityLevels() ? "OK" : "Priority levels failed");
+    bool priorityOk = testQueuePriorityLevels();
+    recordTest("Queue priority levels", priorityOk,
+               priorityOk ? "OK" : "Priority levels failed");
                
-    recordTest("All basic tracks (1-38)", testAllBasicTracks(),
-               testAllBasicTracks() ? "OK" : "Some basic tracks failed");
+    bool basicOk = testAllBasicTracks();
+    recordTest("All basic tracks (1-38)", basicOk,
+               basicOk ? "OK" : "Some basic tracks failed");
                
-    recordTest("All advanced tracks (39-68)", testAllAdvancedTracks(),
-               testAllAdvancedTracks() ? "OK" : "Some advanced tracks failed");
+    bool advancedOk = testAllAdvancedTracks();
+    recordTest("All advanced tracks (39-68)", advancedOk,
+               advancedOk ? "OK" : "Some advanced tracks failed");
                
-    recordTest("Alerts::play with valid tracks", testAlertsPlayWithValidTrack(),
-               testAlertsPlayWithValidTrack() ? "OK" : "Alerts::play failed");
+    bool alertsOk = testAlertsPlayWithValidTrack();
+    recordTest("Alerts::play with valid tracks", alertsOk,
+               alertsOk ? "OK" : "Alerts::play failed");
                
-    recordTest("Track enum coverage (1-68)", testTrackEnumCoverage(),
-               testTrackEnumCoverage() ? "OK" : "Enum coverage incomplete");
+    bool coverageOk = testTrackEnumCoverage();
+    recordTest("Track enum coverage (1-68)", coverageOk,
+               coverageOk ? "OK" : "Enum coverage incomplete");
     
     printSummary();
     
@@ -271,9 +281,9 @@ void printSummary() {
     Logger::info("========================================");
     Logger::info("Audio Validation Test Summary");
     Logger::info("========================================");
-    Logger::infof("Total Tests: %lu", testCount);
-    Logger::infof("Passed:      %lu ✅", passedCount);
-    Logger::infof("Failed:      %lu ❌", failedCount);
+    Logger::infof("Total Tests: %u", (unsigned)testCount);
+    Logger::infof("Passed:      %u ✅", (unsigned)passedCount);
+    Logger::infof("Failed:      %u ❌", (unsigned)failedCount);
     Logger::infof("Success Rate: %.1f%%", 
                   testCount > 0 ? (100.0f * passedCount / testCount) : 0.0f);
     Logger::info("========================================");

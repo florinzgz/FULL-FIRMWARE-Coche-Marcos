@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Generador de archivos MP3 placeholder para validación de audio
-Genera archivos placeholder (vacíos) para los tracks 39-68 que faltan
+Generador y validador de archivos MP3 para sistema de audio
+Puede generar archivos placeholder para cualquier rango de tracks (1-68)
+y validar la presencia de todos los archivos necesarios
 """
 
 import os
