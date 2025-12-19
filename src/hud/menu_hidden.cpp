@@ -508,7 +508,7 @@ static void drawModulesConfigScreen() {
     const int startY = 90;
     const int rowSpacing = 40;
 
-    auto drawToggle = [](int x, int y, int w, int h, const char* label, bool enabled) {
+    auto drawToggle = [tft](int x, int y, int w, int h, const char* label, bool enabled) {
         uint16_t color = enabled ? TFT_GREEN : TFT_RED;
         tft->fillRect(x, y, w, h, color);
         tft->drawRect(x, y, w, h, TFT_WHITE);

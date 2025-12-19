@@ -1,11 +1,6 @@
 #pragma once
 #include <stdint.h>
-
-// Forward declarations to avoid hard dependency on obstacle_config.h
-namespace ObstacleConfig {
-    extern const uint8_t NUM_SENSORS;
-    extern const uint8_t XSHUT_PINS[2];
-}
+#include "obstacle_config.h"
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)

@@ -16,7 +16,7 @@ void BootGuard::applyXshutStrappingGuard() {
             pinMode(pin, OUTPUT);
             digitalWrite(pin, HIGH);
             applied = true;
-            Logger::infof("BootGuard: XSHUT strapping pin %u forced HIGH early", pin);
+            Serial.printf("BootGuard: XSHUT strapping pin %u forced HIGH early\n", pin);
         }
     }
     if (applied) {
