@@ -118,6 +118,7 @@ static const float DEMO_TEMP_WARNING_THRESHOLD =
 #include "hud_manager.h"
 #include "menu_hidden.h" // 🆕 v2.9.4: Para calibración táctil directa
 #include "queue.h"
+#include "boot_guard.h"  // 🆕 v2.11.2: Guardia temprana para XSHUT en strapping pins
 
 // Utils
 #include "debug.h"
@@ -177,6 +178,9 @@ void setup() {
   // 🔒 v2.8.1: CRITICAL EARLY BOOT DIAGNOSTICS
   // These must run FIRST to diagnose blank screen / no boot issues
   // ========================================================================
+
+  // 🚨 CRITICAL: Force XSHUT strapping pins HIGH before any peripheral init
+  BootGuard::applyXshutStrappingGuard();
 
   // 1. Initialize Serial IMMEDIATELY for debugging
   Serial.begin(115200);
