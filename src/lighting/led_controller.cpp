@@ -292,9 +292,11 @@ static void updateTurnSignals() {
 void init() {
     // 🔒 CORRECCIÓN 3.1: Validación de pines antes de inicializar FastLED
     if (LED_FRONT_PIN < 0 || LED_REAR_PIN < 0) {
-        Logger::errorf("LED pins inválidos: front=%d, rear=%d", LED_FRONT_PIN, LED_REAR_PIN);
+        Logger::warnf("LEDs deshabilitados por configuración (front=%d, rear=%d)",
+                      LED_FRONT_PIN, LED_REAR_PIN);
         enabled = false;
         hardwareOK = false;
+        Logger::info("LED Controller: Modo DESHABILITADO - sistema continúa sin LEDs");
         return;
     }
     
@@ -316,9 +318,11 @@ void init() {
         return;
     }
     
-    // Initialize FastLED
+#if (LED_FRONT_PIN >= 0) && (LED_REAR_PIN >= 0)
+    // Initialize FastLED solo si los pines son válidos en compilación
     FastLED.addLeds<WS2812B, LED_FRONT_PIN, GRB>(frontLeds, LED_FRONT_COUNT);
     FastLED.addLeds<WS2812B, LED_REAR_PIN, GRB>(rearLeds, LED_REAR_COUNT);
+#endif
     
     // 🔒 CORRECCIÓN 3.2: Limitar brillo máximo para seguridad
     const uint8_t MAX_SAFE_BRIGHTNESS = 200;
