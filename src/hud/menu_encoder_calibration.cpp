@@ -56,23 +56,17 @@ void MenuEncoderCalibration::update() {
     if (now - lastUpdateTime > 50) {
         lastUpdateTime = now;
         
-        // Get live encoder reading (non-blocking)
+        // Get live encoder reading
         auto steer = Steering::get();
         int32_t newValue = steer.ticks;
         
-        // Only update display if value changed significantly (reduces redraws)
-        // Update on any change for accuracy - redraws are already optimized
-        // by only updating the changed portions (drawLiveValue/drawVisualIndicator)
+        // On any encoder change, perform partial, non-blocking redraws of only the
+        // changing elements to maintain accurate feedback and ~20Hz responsiveness.
         if (newValue != liveEncoderValue) {
             liveEncoderValue = newValue;
             
-            // Non-blocking partial updates instead of full redraws
-            // Only redraw the changing parts to maintain responsiveness
             drawLiveValue();
             drawVisualIndicator();
-            
-            // Prevent needsRedraw flag from being set during rapid updates
-            // This ensures UI remains responsive at 20Hz
         }
     }
     
@@ -330,16 +324,15 @@ void MenuEncoderCalibration::handleSetCenter() {
 }
 
 void MenuEncoderCalibration::handleSetLeft() {
-    tempLeftLimit = liveEncoderValue;
-    
-    // Validate left limit is less than center
-    if (tempLeftLimit >= tempCenter) {
+    // Validate left limit is less than center before setting
+    if (liveEncoderValue >= tempCenter) {
         Logger::errorf("Invalid left limit: %ld >= center %ld. Please turn wheel LEFT from center.", 
-                      tempLeftLimit, tempCenter);
+                      liveEncoderValue, tempCenter);
         Alerts::play(Audio::AUDIO_ENCODER_ERROR);
-        return; // Don't advance step
+        return; // Don't advance step or set invalid value
     }
     
+    tempLeftLimit = liveEncoderValue;
     currentStep = STEP_RIGHT;
     needsRedraw = true;
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
@@ -347,15 +340,15 @@ void MenuEncoderCalibration::handleSetLeft() {
 }
 
 void MenuEncoderCalibration::handleSetRight() {
-    tempRightLimit = liveEncoderValue;
-    
-    // Validate right limit is greater than center
-    if (tempRightLimit <= tempCenter) {
+    // Validate right limit is greater than center before setting
+    if (liveEncoderValue <= tempCenter) {
         Logger::errorf("Invalid right limit: %ld <= center %ld. Please turn wheel RIGHT from center.", 
-                      tempRightLimit, tempCenter);
+                      liveEncoderValue, tempCenter);
         Alerts::play(Audio::AUDIO_ENCODER_ERROR);
-        return; // Don't advance step
+        return; // Don't advance step or set invalid value
     }
+    
+    tempRightLimit = liveEncoderValue;
     
     // Validate the range is reasonable (at least 100 ticks on each side)
     int32_t leftRange = tempCenter - tempLeftLimit;
@@ -462,15 +455,16 @@ void MenuEncoderCalibration::saveCalibration() {
         return;
     }
     
-    // Verify the save by reading back
     // Verify the save by reading back from EEPROM
-    Config verifyConfig;
+    ConfigStorage::Config verifyConfig;
     if (!ConfigStorage::load(verifyConfig)) {
         Logger::error("EEPROM verification failed - could not read back values");
         Alerts::play(Audio::AUDIO_ERROR_GENERAL);
         return;
     }
     if (verifyConfig.encoder_center != tempCenter ||
+        verifyConfig.encoder_left_limit != tempLeftLimit ||
+        verifyConfig.encoder_right_limit != tempRightLimit) {
         Logger::error("EEPROM verification failed - saved values don't match");
         Alerts::play(Audio::AUDIO_ERROR_GENERAL);
         return;
