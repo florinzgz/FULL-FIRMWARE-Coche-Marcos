@@ -498,6 +498,22 @@ void setup() {
   Watchdog::feed();  // Feed after Bluetooth init
   bringupCheckpoint("Control Bluetooth");
 
+  // Initial synchronization of inputs/sensors so HUD and checks start with
+  // fresh data and aligned states
+  Serial.println("[BOOT] Synchronizing inputs and sensors...");
+  Pedal::update();
+  Steering::update();
+  Buttons::update();
+  Shifter::update();
+  Sensors::updateCurrent();
+  Sensors::updateTemperature();
+  Sensors::updateWheels();
+  CarData syncedData = CarSensors::readAll();
+  HUDManager::updateCarData(syncedData);
+  HUDManager::update();
+  Watchdog::feed();
+  bringupCheckpoint("Sincronización inicial entradas/sensores");
+
   Serial.println("[BOOT] All modules initialized. Starting self-test...");
   Watchdog::feed();  // Feed before self-test
 
