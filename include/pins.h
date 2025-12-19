@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include "obstacle_config.h"
 
+static_assert(::ObstacleConfig::NUM_SENSORS ==
+                  (sizeof(::ObstacleConfig::XSHUT_PINS) / sizeof(::ObstacleConfig::XSHUT_PINS[0])),
+              "ObstacleConfig::XSHUT_PINS size must match NUM_SENSORS");
+
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
 // 🔒 ACTUALIZADO 2025-11-25 v2.4.0 - Mejoras de fiabilidad y funcionalidad
