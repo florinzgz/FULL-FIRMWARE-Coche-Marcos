@@ -61,8 +61,9 @@ void MenuEncoderCalibration::update() {
         int32_t newValue = steer.ticks;
         
         // Only update display if value changed significantly (reduces redraws)
-        // This prevents excessive screen updates during rapid encoder changes
-        if (abs(newValue - liveEncoderValue) > 0) {  // Update on any change
+        // Update on any change for accuracy - redraws are already optimized
+        // by only updating the changed portions (drawLiveValue/drawVisualIndicator)
+        if (newValue != liveEncoderValue) {
             liveEncoderValue = newValue;
             
             // Non-blocking partial updates instead of full redraws

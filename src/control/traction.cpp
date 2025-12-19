@@ -266,10 +266,13 @@ void Traction::update() {
     // 🔒 CORRECCIÓN 2.4: Escalado Ackermann mejorado para curvas más suaves
     // Curva progresiva: a 30° -> 85%, a 45° -> 77.5%, a 60° -> 70%
     // Evita reducción brusca en curvas cerradas
-    // Fórmula: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
-    // Resultado: transición más suave que mejora la tracción en curvas
+    // Fórmula optimizada: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
+    // Usando multiplicación directa para mejor rendimiento en tiempo real
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
-    float scale = 1.0f - std::pow(angleNormalized, 1.2f) * 0.3f;
+    // Para x^1.2: aproximación eficiente sin pow()
+    float x = angleNormalized;
+    float x_pow_1_2 = x * (1.0f + 0.2f * (x - 1.0f));  // Aproximación lineal
+    float scale = 1.0f - x_pow_1_2 * 0.3f;
     scale = clampf(scale, 0.70f, 1.0f);  // Mínimo 70% en curvas máximas
 
     if (steer.angleDeg > 0.0f) {
