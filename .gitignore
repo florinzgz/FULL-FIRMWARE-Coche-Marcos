@@ -4,3 +4,25 @@
 .vscode/launch.json
 .vscode/ipch
 _codeql_detected_source_root
+
+# Build artifacts
+*.bin
+*.elf
+*.map
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~

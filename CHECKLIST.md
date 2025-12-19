@@ -1,6 +1,6 @@
 # ESP32-S3 Car Control System - Checklist de Verificación
 
-## Versión: 2.11.1
+## Versión: 2.11.0
 ## Fecha: 2025-12-19
 
 ---
@@ -47,7 +47,7 @@
 - [x] `menu_led_control.h` - Control LED (estático)
 - [x] `menu_power_config.h` - Configuración de potencia
 - [x] `menu_sensor_config.h` - Configuración de sensores
-- [x] `menu_wifi_ota.h` - WiFi y OTA
+- [ ] `menu_wifi_ota.h` - ❌ **REMOVIDO en v2.11.0** (WiFi/OTA eliminado por seguridad)
 
 ### Sensores
 - [x] `car_sensors.h` - Sensores del coche
