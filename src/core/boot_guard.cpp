@@ -16,6 +16,7 @@ void BootGuard::applyXshutStrappingGuard() {
     constexpr uint32_t XSHUT_SETTLE_DELAY_MS = 10;
 
     bool applied = false;
+    uint8_t guardedCount = 0;
     for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
         uint8_t pin = ::ObstacleConfig::XSHUT_PINS[i];
         // Drive HIGH immediately if it is a strapping pin
@@ -23,10 +24,12 @@ void BootGuard::applyXshutStrappingGuard() {
             pinMode(pin, OUTPUT);
             digitalWrite(pin, HIGH);
             applied = true;
+            guardedCount++;
         }
     }
     if (applied) {
         delay(XSHUT_SETTLE_DELAY_MS); // allow line to settle before other peripherals
+        Logger::infof("BootGuard: XSHUT strapping pins guarded early (%u)", guardedCount);
     }
     alreadyApplied = true;
 }
