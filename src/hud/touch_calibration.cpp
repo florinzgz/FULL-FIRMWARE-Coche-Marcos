@@ -1,4 +1,5 @@
 #include "touch_calibration.h"
+#include "touch_map.h"  // For TouchConstants::SCREEN_WIDTH/HEIGHT
 #include "logger.h"
 #include "storage.h"
 #include "pins.h"
@@ -136,8 +137,8 @@ namespace TouchCalibration {
                     tft->fillScreen(TFT_BLACK);
                     tft->setTextColor(TFT_WHITE, TFT_BLACK);
                     tft->setTextDatum(TC_DATUM);
-                    tft->drawString("Touch the RED target", 240, 10, 2);
-                    tft->drawString("Point 1 of 2", 240, 30, 2);
+                    tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2, 10, 2);
+                    tft->drawString("Point 1 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
                     drawCalibrationPoint(CALIB_MARGIN, CALIB_MARGIN, TFT_RED);
                 }
                 
@@ -170,9 +171,10 @@ namespace TouchCalibration {
                     tft->fillScreen(TFT_BLACK);
                     tft->setTextColor(TFT_WHITE, TFT_BLACK);
                     tft->setTextDatum(TC_DATUM);
-                    tft->drawString("Touch the RED target", 240, 10, 2);
-                    tft->drawString("Point 2 of 2", 240, 30, 2);
-                    drawCalibrationPoint(480 - CALIB_MARGIN, 320 - CALIB_MARGIN, TFT_RED);
+                    tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2, 10, 2);
+                    tft->drawString("Point 2 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
+                    drawCalibrationPoint(TouchConstants::SCREEN_WIDTH - CALIB_MARGIN, 
+                                       TouchConstants::SCREEN_HEIGHT - CALIB_MARGIN, TFT_RED);
                 }
                 
                 // Check timeout
@@ -296,7 +298,7 @@ namespace TouchCalibration {
         tft->setTextColor(TFT_YELLOW, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
         
-        tft->drawString("TOUCH CALIBRATION", 240, 60, 4);
+        tft->drawString("TOUCH CALIBRATION", TouchConstants::SCREEN_WIDTH / 2, 60, 4);
         
         tft->setTextColor(TFT_WHITE, TFT_BLACK);
         tft->setTextDatum(TL_DATUM);
@@ -310,7 +312,7 @@ namespace TouchCalibration {
         
         tft->setTextColor(TFT_GREEN, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
-        tft->drawString("Touch anywhere to start", 240, 260, 2);
+        tft->drawString("Touch anywhere to start", TouchConstants::SCREEN_WIDTH / 2, 260, 2);
     }
     
     static bool collectTouchSample(uint16_t& avgX, uint16_t& avgY) {
@@ -350,9 +352,13 @@ namespace TouchCalibration {
                         sumX = sumY = 0;
                         
                         // Visual feedback - flash the target
-                        int targetX = (state == CalibrationState::Point1) ? CALIB_MARGIN : (480 - CALIB_MARGIN);
-                        int targetY = (state == CalibrationState::Point1) ? CALIB_MARGIN : (320 - CALIB_MARGIN);
+                        // Use TouchConstants for screen dimensions to avoid hard-coded values
+                        int targetX = (state == CalibrationState::Point1) ? CALIB_MARGIN : (TouchConstants::SCREEN_WIDTH - CALIB_MARGIN);
+                        int targetY = (state == CalibrationState::Point1) ? CALIB_MARGIN : (TouchConstants::SCREEN_HEIGHT - CALIB_MARGIN);
                         drawCalibrationPoint(targetX, targetY, TFT_YELLOW);
+                        // Note: Using delay() here is acceptable as this is a rare error condition
+                        // and the 100ms flash provides important visual feedback to the user
+                        // The non-blocking state machine continues normally after this brief pause
                         delay(100);
                         drawCalibrationPoint(targetX, targetY, TFT_RED);
                         
@@ -374,7 +380,7 @@ namespace TouchCalibration {
     static void calculateCalibration() {
         // Calculate calibration based on two corner points
         // Point 1: Top-left (CALIB_MARGIN, CALIB_MARGIN)
-        // Point 2: Bottom-right (480 - CALIB_MARGIN, 320 - CALIB_MARGIN)
+        // Point 2: Bottom-right (SCREEN_WIDTH - CALIB_MARGIN, SCREEN_HEIGHT - CALIB_MARGIN)
         
         uint16_t minX = point1_rawX;
         uint16_t maxX = point2_rawX;
@@ -395,9 +401,9 @@ namespace TouchCalibration {
         
         // Apply margin compensation
         // The screen coordinates we touched were CALIB_MARGIN from edge
-        // So we need to extrapolate to the actual edges (0, 0) and (480, 320)
-        float scaleX = (float)(480) / (float)(480 - 2 * CALIB_MARGIN);
-        float scaleY = (float)(320) / (float)(320 - 2 * CALIB_MARGIN);
+        // So we need to extrapolate to the actual edges (0, 0) and (SCREEN_WIDTH, SCREEN_HEIGHT)
+        float scaleX = (float)(TouchConstants::SCREEN_WIDTH) / (float)(TouchConstants::SCREEN_WIDTH - 2 * CALIB_MARGIN);
+        float scaleY = (float)(TouchConstants::SCREEN_HEIGHT) / (float)(TouchConstants::SCREEN_HEIGHT - 2 * CALIB_MARGIN);
         
         uint16_t rangeX = maxX - minX;
         uint16_t rangeY = maxY - minY;
@@ -429,7 +435,7 @@ namespace TouchCalibration {
         tft->setTextColor(TFT_GREEN, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
         
-        tft->drawString("CALIBRATION COMPLETE!", 240, 100, 4);
+        tft->drawString("CALIBRATION COMPLETE!", TouchConstants::SCREEN_WIDTH / 2, 100, 4);
         
         tft->setTextColor(TFT_WHITE, TFT_BLACK);
         tft->setTextDatum(TL_DATUM);
@@ -449,7 +455,7 @@ namespace TouchCalibration {
         
         tft->setTextColor(TFT_CYAN, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
-        tft->drawString("Saving calibration...", 240, 280, 2);
+        tft->drawString("Saving calibration...", TouchConstants::SCREEN_WIDTH / 2, 280, 2);
         
         // Apply and save calibration
         applyCalibration(result.calibData);
