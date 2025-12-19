@@ -29,7 +29,7 @@ void init() {
     // Default configuration
     config.parkingAssistEnabled = true;
     config.collisionAvoidanceEnabled = true;
-    config.blindSpotEnabled = true;
+    config.blindSpotEnabled = false;  // Deshabilitado: sin sensores laterales
     config.adaptiveCruiseEnabled = false;  // Disabled by default, enable in menu
     
     config.parkingBrakeDistanceMm = 500;  // 50cm
@@ -50,6 +50,15 @@ void init() {
     state.speedReductionFactor = 1.0f;
     state.closestObstacleDistanceMm = ::ObstacleConfig::DISTANCE_MAX;
     state.closestObstacleSensor = 0xFF;
+    if (!config.blindSpotEnabled) {
+        // Blind spot deshabilitado permanentemente (sin sensores laterales)
+        state.blindSpotLeft = false;
+        state.blindSpotRight = false;
+    }
+    if (!config.blindSpotEnabled) {
+        state.blindSpotLeft = false;
+        state.blindSpotRight = false;
+    }
     
     Logger::info("Obstacle safety systems initialized (placeholder mode)");
 }
@@ -79,21 +88,15 @@ void update() {
     // Get distances
     uint16_t frontDist = obstStatus.minDistanceFront;
     uint16_t rearDist = obstStatus.minDistanceRear;
-    uint16_t leftDist = obstStatus.minDistanceLeft;
-    uint16_t rightDist = obstStatus.minDistanceRight;
     
     // Ignore invalid distances
     if (frontDist >= ::ObstacleConfig::DISTANCE_INVALID) frontDist = ::ObstacleConfig::DISTANCE_MAX;
     if (rearDist >= ::ObstacleConfig::DISTANCE_INVALID) rearDist = ::ObstacleConfig::DISTANCE_MAX;
-    if (leftDist >= ::ObstacleConfig::DISTANCE_INVALID) leftDist = ::ObstacleConfig::DISTANCE_MAX;
-    if (rightDist >= ::ObstacleConfig::DISTANCE_INVALID) rightDist = ::ObstacleConfig::DISTANCE_MAX;
     
     // Find closest obstacle
     uint16_t minDist = ::ObstacleConfig::DISTANCE_MAX;
     if (frontDist < minDist) { minDist = frontDist; state.closestObstacleSensor = 0; }
     if (rearDist < minDist) { minDist = rearDist; state.closestObstacleSensor = 1; }
-    if (leftDist < minDist) { minDist = leftDist; state.closestObstacleSensor = 2; }
-    if (rightDist < minDist) { minDist = rightDist; state.closestObstacleSensor = 3; }
     state.closestObstacleDistanceMm = minDist;
     
     // 1. COLLISION AVOIDANCE (highest priority)
@@ -147,28 +150,7 @@ void update() {
         }
     }
     
-    // 3. BLIND SPOT WARNING
-    if (config.blindSpotEnabled) {
-        if (leftDist < config.blindSpotDistanceMm) {
-            state.blindSpotLeft = true;
-            if (now - lastAlertMs[2] > ALERT_INTERVAL_MS) {
-                Alerts::play(Audio::AUDIO_ERROR_GENERAL);  // Warning beep
-                Logger::infof("Blind spot LEFT: %d mm", leftDist);
-                lastAlertMs[2] = now;
-            }
-        }
-        
-        if (rightDist < config.blindSpotDistanceMm) {
-            state.blindSpotRight = true;
-            if (now - lastAlertMs[3] > ALERT_INTERVAL_MS) {
-                Alerts::play(Audio::AUDIO_ERROR_GENERAL);  // Warning beep
-                Logger::infof("Blind spot RIGHT: %d mm", rightDist);
-                lastAlertMs[3] = now;
-            }
-        }
-    }
-    
-    // 4. ADAPTIVE CRUISE CONTROL (disabled for now - requires speed sensor integration)
+    // 3. ADAPTIVE CRUISE CONTROL (disabled for now - requires speed sensor integration)
     state.adaptiveCruiseActive = false;
 }
 

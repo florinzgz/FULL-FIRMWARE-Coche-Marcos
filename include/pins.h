@@ -228,7 +228,7 @@
 // MCP_PIN_SHIFTER_D1 = 11 (GPIOB3) - Drive 1
 // MCP_PIN_SHIFTER_D2 = 12 (GPIOB4) - Drive 2
 // -----------------------
-// 🆕 GPIOs liberados: 18, 19, 45, 46 ahora disponibles para otras funciones
+// 🆕 GPIOs liberados: 45 queda libre tras deshabilitar sensores laterales
 
 // ============================================================================
 // ENTRADAS DIGITALES - BOTONES
@@ -247,28 +247,19 @@
 // SALIDAS - LEDs WS2812B (Iluminación Inteligente)
 // ============================================================================
 
-// -----------------------
-// Tiras LEDs WS2812B
-// ⚠️ CORRECCIÓN v2.11.1: GPIO 1 es ADC sensible y GPIO 48 no existe en DevKitC-1
-// LEDs deshabilitados hasta reasignación segura (sugeridos: GPIO19/20)
-// -----------------------
-// #define PIN_LED_FRONT     1   // GPIO 1  - LEDs frontales (28 LEDs) ❌ ADC sensible
-// #define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ❌ No existe en DevKitC-1
-#define PIN_LED_FRONT     -1  // LEDs frontales deshabilitados
-#define PIN_LED_REAR      -1  // LEDs traseros deshabilitados
+#define PIN_LED_FRONT     18  // GPIO 18 - LEDs frontales (28 LEDs) ✅ liberado al retirar lateral
+#define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ GPIO libre identificado en placa S3
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales (sin cambio)
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (sin cambio)
 
 // ============================================================================
 // SENSORES OBSTÁCULOS - VL53L5X
 // 🔒 v2.4.1: Los pines XSHUT están definidos en obstacle_config.h
-// Asignados a GPIOs 18, 19, 45, 46 (corrige conflicto con 7, 8, 10, 11)
+// Asignados a GPIOs 46 y 19 (sensores laterales deshabilitados)
 // ============================================================================
 // NOTA: No definir aquí - ver obstacle_config.h:
-// ObstacleConfig::PIN_XSHUT_FRONT = 18
+// ObstacleConfig::PIN_XSHUT_FRONT = 46
 // ObstacleConfig::PIN_XSHUT_REAR = 19
-// ObstacleConfig::PIN_XSHUT_LEFT = 45
-// ObstacleConfig::PIN_XSHUT_RIGHT = 46
 
 // ============================================================================
 // TABLA RESUMEN DE USO DE PINES v2.4.1
@@ -278,7 +269,7 @@
 │ GPIO │ Función                 │ Tipo      │ Notas                           │
 ├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
 │  0   │ KEY_SYSTEM              │ Input     │ ⚠️ Strapping (Boot), pull-up ext │
-│  1   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
+│  1   │ 🆓 LIBRE (ADC)          │ -         │ ADC sensible, evitar cargas WS2812 │
 │  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
 │  3   │ WHEEL_FL                │ Input     │ Sensor rueda delantera izq      │
 │  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
@@ -295,7 +286,7 @@
 │ 15   │ WHEEL_RR                │ Input     │ Sensor rueda trasera derecha    │
 │ 16   │ TFT_CS                  │ Output    │ Chip Select TFT                 │
 │ 17   │ WHEEL_RL                │ Input     │ Sensor rueda trasera izquierda  │
-│ 18   │ XSHUT_FRONT (VL53L5X)   │ Output    │ Sensor obstáculos frontal       │
+│ 18   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
 │ 19   │ XSHUT_REAR (VL53L5X)    │ Output    │ Sensor obstáculos trasero       │
 │ 20   │ ONEWIRE                 │ I/O       │ 4x DS18B20 temperatura          │
 │ 21   │ TOUCH_CS                │ Output    │ ✅ CS Touch (seguro)             │
@@ -309,8 +300,8 @@
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
 │ 43   │ DFPLAYER_TX             │ Output    │ ⚠️ UART0 nativo                  │
 │ 44   │ DFPLAYER_RX             │ Input     │ ⚠️ UART0 nativo                  │
-│ 45   │ XSHUT_LEFT (VL53L5X)    │ Output    │ ⚠️ Strapping, sensor obstáculos  │
-│ 46   │ XSHUT_RIGHT (VL53L5X)   │ Output    │ ⚠️ Strapping, sensor obstáculos  │
+│ 45   │ 🆓 LIBRE                │ -         │ Disponible (sin sensor lateral)  │
+│ 46   │ XSHUT_FRONT (VL53L5X)   │ Output    │ ⚠️ Strapping, sensor obstáculos  │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
@@ -411,14 +402,12 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_DFPLAYER_TX:
         case PIN_DFPLAYER_RX:
         // VL53L5X XSHUT: Listed as raw GPIO numbers (defined in obstacle_config.h)
-        // (GPIOs 18, 19, 45, 46)
+        // (GPIOs 46, 19)
         // NOTA: Shifter ahora en MCP23017, no en GPIOs directos
             return true;
         // Incluir GPIOs de VL53L5X XSHUT manualmente
-        case 18:  // ObstacleConfig::PIN_XSHUT_FRONT
+        case 46:  // ObstacleConfig::PIN_XSHUT_FRONT
         case 19:  // ObstacleConfig::PIN_XSHUT_REAR
-        case 45:  // ObstacleConfig::PIN_XSHUT_LEFT
-        case 46:  // ObstacleConfig::PIN_XSHUT_RIGHT
             return true;
         default:
             return false;
