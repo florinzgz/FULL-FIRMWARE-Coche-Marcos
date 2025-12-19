@@ -437,11 +437,21 @@ void MenuEncoderCalibration::saveCalibration() {
     if (totalRange < 200) {
         Logger::warnf("Calibration range too small: %ld (expected >200)", totalRange);
     }
+
+    // Ensure values fit into int16_t before saving to config to avoid truncation
+    if (tempCenter < -32768 || tempCenter > 32767 ||
+        tempLeftLimit < -32768 || tempLeftLimit > 32767 ||
+        tempRightLimit < -32768 || tempRightLimit > 32767) {
+        Logger::errorf("Calibration values out of int16_t range: left=%ld, center=%ld, right=%ld",
+                       tempLeftLimit, tempCenter, tempRightLimit);
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
+        return;
+    }
     
     auto& config = ConfigStorage::getCurrentConfig();
-    config.encoder_center = tempCenter;
-    config.encoder_left_limit = tempLeftLimit;
-    config.encoder_right_limit = tempRightLimit;
+    config.encoder_center = static_cast<int16_t>(tempCenter);
+    config.encoder_left_limit = static_cast<int16_t>(tempLeftLimit);
+    config.encoder_right_limit = static_cast<int16_t>(tempRightLimit);
     
     // Save to EEPROM with error handling
     bool saveSuccess = ConfigStorage::save(config);
