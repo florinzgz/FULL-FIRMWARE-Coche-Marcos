@@ -144,6 +144,30 @@ static constexpr uint32_t TFT_RESET_PULSE_MS =
 static constexpr uint32_t TFT_RESET_RECOVERY_MS =
     50; // Post-reset recovery time (min 5ms, using 50ms for margin)
 
+#if defined(PROGRESSIVE_BRINGUP)
+static constexpr bool kProgressiveBringup [[maybe_unused]] =
+    true; // compile-time hint
+static constexpr uint32_t BRINGUP_STEP_PAUSE_MS = 400; // short pause per step
+#else
+static constexpr bool kProgressiveBringup [[maybe_unused]] = false;
+static constexpr uint32_t BRINGUP_STEP_PAUSE_MS = 0;
+#endif
+
+static inline void bringupCheckpoint(const char *step) {
+#if defined(PROGRESSIVE_BRINGUP)
+  Serial.printf("[BRINGUP] %s completado. Verifica y añade el siguiente módulo...\n",
+                step);
+  unsigned long pauseStart = millis();
+  while (millis() - pauseStart < BRINGUP_STEP_PAUSE_MS) {
+    Watchdog::feed();
+    delay(5);
+    yield();
+  }
+#else
+  (void)step;
+#endif
+}
+
 void setup() {
   // ========================================================================
   // 🔒 v2.8.1: CRITICAL EARLY BOOT DIAGNOSTICS
@@ -362,12 +386,14 @@ void setup() {
   Serial.printf("[STACK] After I2CRecovery::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after I2C init
+  bringupCheckpoint("Bus I2C recuperado");
 
   Serial.println("[BOOT] Initializing Relays...");
   Relays::init();
   Serial.printf("[STACK] After Relays::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after relays init
+  bringupCheckpoint("Relés principales");
 
   // Initialize unified sensor reader
   Serial.println("[BOOT] Initializing Car Sensors...");
@@ -375,6 +401,7 @@ void setup() {
   Serial.printf("[STACK] After CarSensors::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after car sensors init
+  bringupCheckpoint("Gestor de sensores base");
 
   // Initialize advanced HUD manager
   Serial.println("[BOOT] Initializing HUD Manager...");
@@ -382,6 +409,7 @@ void setup() {
   Serial.printf("[STACK] After HUDManager::init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after HUD init
+  bringupCheckpoint("Pantalla/HUD activo");
 
   Serial.println("[BOOT] Initializing DFPlayer Audio...");
   Audio::DFPlayer::init();
@@ -389,24 +417,28 @@ void setup() {
   Serial.printf("[STACK] After Audio init - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after audio init
+  bringupCheckpoint("Audio DFPlayer");
 
   Serial.println("[BOOT] Initializing Current Sensors (INA226)...");
   Sensors::initCurrent();
   Serial.printf("[STACK] After Current Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after current sensors init (I2C operations)
+  bringupCheckpoint("Sensores de corriente INA226");
 
   Serial.println("[BOOT] Initializing Temperature Sensors (DS18B20)...");
   Sensors::initTemperature();
   Serial.printf("[STACK] After Temperature Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after temperature sensors init
+  bringupCheckpoint("Sensores de temperatura DS18B20");
 
   Serial.println("[BOOT] Initializing Wheel Sensors...");
   Sensors::initWheels();
   Serial.printf("[STACK] After Wheel Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after wheel sensors init
+  bringupCheckpoint("Sensores de rueda");
 
   Serial.println("[BOOT] Initializing Pedal...");
   Pedal::init();
@@ -417,12 +449,14 @@ void setup() {
   Serial.println("[BOOT] Initializing Shifter...");
   Shifter::init();
   Watchdog::feed();  // Feed after input devices init
+  bringupCheckpoint("Entradas: pedal, dirección, botones, palanca");
 
   Serial.println("[BOOT] Initializing Traction...");
   Traction::init();
   Serial.println("[BOOT] Initializing Steering Motor...");
   SteeringMotor::init();
   Watchdog::feed();  // Feed after control systems init
+  bringupCheckpoint("Control tracción y motor dirección");
 
   // --- Advanced Safety Systems ---
   Serial.println("[BOOT] Initializing ABS System...");
@@ -432,6 +466,7 @@ void setup() {
   Serial.println("[BOOT] Initializing Regen AI...");
   RegenAI::init();
   Watchdog::feed();  // Feed after safety systems init
+  bringupCheckpoint("ABS / TCS / Regenerativo");
 
   // --- Obstacle Detection System ---
   Serial.println("[BOOT] Initializing Obstacle Detection...");
@@ -443,11 +478,13 @@ void setup() {
   Serial.println("[BOOT] Initializing Obstacle Safety...");
   ObstacleSafety::init();
   Watchdog::feed();  // Feed after obstacle safety init
+  bringupCheckpoint("Seguridad de obstáculos");
 
   // --- Telemetry System ---
   Serial.println("[BOOT] Initializing Telemetry...");
   Telemetry::init(); // 🆕 v2.8.0: Sistema de telemetría
   Watchdog::feed();  // Feed after telemetry init
+  bringupCheckpoint("Telemetría");
 
   // --- Bluetooth Emergency Override Controller ---
   Serial.println("[BOOT] Initializing Bluetooth Controller...");
@@ -455,6 +492,7 @@ void setup() {
   Serial.printf("[STACK] After Bluetooth - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after Bluetooth init
+  bringupCheckpoint("Control Bluetooth");
 
   Serial.println("[BOOT] All modules initialized. Starting self-test...");
   Watchdog::feed();  // Feed before self-test
