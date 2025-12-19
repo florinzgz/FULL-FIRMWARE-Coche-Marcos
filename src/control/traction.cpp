@@ -195,12 +195,9 @@ void Traction::update() {
     for (int i = 0; i < 4; ++i) {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
       
-      // Validar PWM no exceda límite
-      if (s.w[i].outPWM > PWM_MAX_SAFE) {
-        Logger::warnf("Axis rotation PWM limited for wheel %d: %.0f->%.0f", 
-                     i, s.w[i].outPWM, PWM_MAX_SAFE);
-        s.w[i].outPWM = PWM_MAX_SAFE;
-      }
+      s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+      
+      // PWM is already clamped in demandPctToPwm(), this check is redundant
 
       // Leer corriente con validación
       if (cfg.currentSensorsEnabled) {
