@@ -356,11 +356,11 @@ namespace TouchCalibration {
                         int targetX = (state == CalibrationState::Point1) ? CALIB_MARGIN : (TouchConstants::SCREEN_WIDTH - CALIB_MARGIN);
                         int targetY = (state == CalibrationState::Point1) ? CALIB_MARGIN : (TouchConstants::SCREEN_HEIGHT - CALIB_MARGIN);
                         drawCalibrationPoint(targetX, targetY, TFT_YELLOW);
-                        // Note: Using delay() here is acceptable as this is a rare error condition
-                        // and the 100ms flash provides important visual feedback to the user
-                        // The non-blocking state machine continues normally after this brief pause
-                        delay(100);
+                        // Note: Previously this used delay(100) to create a visible flash.
+                        // To keep the calibration state machine non-blocking, we immediately
+                        // restore the calibration point color here without blocking.
                         drawCalibrationPoint(targetX, targetY, TFT_RED);
+                        
                         
                         return false;  // Sample rejected, try again
                     }
