@@ -55,10 +55,6 @@ void init() {
         state.blindSpotLeft = false;
         state.blindSpotRight = false;
     }
-    if (!config.blindSpotEnabled) {
-        state.blindSpotLeft = false;
-        state.blindSpotRight = false;
-    }
     
     Logger::info("Obstacle safety systems initialized (placeholder mode)");
 }
