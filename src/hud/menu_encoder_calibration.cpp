@@ -335,7 +335,7 @@ void MenuEncoderCalibration::handleSetLeft() {
     if (tempLeftLimit >= tempCenter) {
         Logger::errorf("Invalid left limit: %ld >= center %ld. Please turn wheel LEFT from center.", 
                       tempLeftLimit, tempCenter);
-        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
         return; // Don't advance step
     }
     
@@ -352,7 +352,7 @@ void MenuEncoderCalibration::handleSetRight() {
     if (tempRightLimit <= tempCenter) {
         Logger::errorf("Invalid right limit: %ld <= center %ld. Please turn wheel RIGHT from center.", 
                       tempRightLimit, tempCenter);
-        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
         return; // Don't advance step
     }
     
@@ -427,7 +427,7 @@ void MenuEncoderCalibration::saveCalibration() {
     if (tempLeftLimit >= tempCenter || tempRightLimit <= tempCenter) {
         Logger::errorf("Invalid calibration: left=%ld, center=%ld, right=%ld", 
                       tempLeftLimit, tempCenter, tempRightLimit);
-        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_ENCODER_ERROR);
         return;
     }
     
@@ -447,7 +447,7 @@ void MenuEncoderCalibration::saveCalibration() {
     
     if (!saveSuccess) {
         Logger::error("Failed to save encoder calibration to EEPROM");
-        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
         return;
     }
     
@@ -457,7 +457,7 @@ void MenuEncoderCalibration::saveCalibration() {
         verifyConfig.encoder_left_limit != tempLeftLimit ||
         verifyConfig.encoder_right_limit != tempRightLimit) {
         Logger::error("EEPROM verification failed - saved values don't match");
-        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
         return;
     }
     
