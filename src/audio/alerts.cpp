@@ -21,8 +21,9 @@ void Alerts::play(const Audio::Item &item) {
         return;
     }
 
-    if(item.track == 0) {
-        Logger::warn("Alerts play(item): track inválido");
+    // Validar rango de tracks (1-68)
+    if(item.track == 0 || item.track > 68) {
+        Logger::warnf("Alerts play(item): track inválido (%u). Rango válido: 1-68", (unsigned)item.track);
         System::logError(721); // código reservado: track inválido
         return;
     }
@@ -46,8 +47,9 @@ void Alerts::play(Audio::Track t) {
     }
 
     uint16_t trackId = static_cast<uint16_t>(t);
-    if(trackId == 0) {
-        Logger::warn("Alerts play(Track): track inválido");
+    // Validar rango de tracks (1-68)
+    if(trackId == 0 || trackId > 68) {
+        Logger::warnf("Alerts play(Track): track inválido (%u). Rango válido: 1-68", (unsigned)trackId);
         System::logError(721);
         return;
     }

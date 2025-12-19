@@ -22,6 +22,10 @@
 #include "watchdog_tests.h"
 #endif
 
+#ifdef ENABLE_AUDIO_VALIDATION_TESTS
+#include "audio_validation_tests.h"
+#endif
+
 namespace TestRunner {
 
 // ============================================================================
@@ -54,13 +58,46 @@ bool runPreDeploymentTests() {
   bool allPassed = true;
 
   // ========================================================================
+  // 0. AUDIO VALIDATION TESTS
+  // ========================================================================
+#ifdef ENABLE_AUDIO_VALIDATION_TESTS
+  Logger::info(
+      "\n┌────────────────────────────────────────────────────────────┐");
+  Logger::info(
+      "│ 0/5: AUDIO VALIDATION TESTING (68 Tracks)                 │");
+  Logger::info(
+      "└────────────────────────────────────────────────────────────┘");
+
+  AudioValidationTests::init();
+  bool audioOk = AudioValidationTests::runAllTests();
+
+  uint32_t audioCount = 0;
+  const AudioValidationTests::TestResult* audioResults = 
+      AudioValidationTests::getResults(audioCount);
+  
+  uint32_t audioPassed = 0, audioFailed = 0;
+  for (uint32_t i = 0; i < audioCount; i++) {
+    if (audioResults[i].passed) audioPassed++;
+    else audioFailed++;
+  }
+
+  totalPassed += audioPassed;
+  totalFailed += audioFailed;
+  totalTests += audioCount;
+
+  allPassed &= audioOk;
+#else
+  Logger::info("\n⏭️  AUDIO VALIDATION TESTS: Skipped (not enabled)");
+#endif
+
+  // ========================================================================
   // 1. FUNCTIONAL TESTS
   // ========================================================================
 #ifdef ENABLE_FUNCTIONAL_TESTS
   Logger::info(
       "\n┌────────────────────────────────────────────────────────────┐");
   Logger::info(
-      "│ 1/4: FUNCTIONAL TESTING                                    │");
+      "│ 1/5: FUNCTIONAL TESTING                                    │");
   Logger::info(
       "└────────────────────────────────────────────────────────────┘");
 
@@ -84,7 +121,7 @@ bool runPreDeploymentTests() {
   Logger::info(
       "\n┌────────────────────────────────────────────────────────────┐");
   Logger::info(
-      "│ 2/4: MEMORY STRESS TESTING                                 │");
+      "│ 2/5: MEMORY STRESS TESTING                                 │");
   Logger::info(
       "└────────────────────────────────────────────────────────────┘");
 
@@ -108,7 +145,7 @@ bool runPreDeploymentTests() {
   Logger::info(
       "\n┌────────────────────────────────────────────────────────────┐");
   Logger::info(
-      "│ 3/4: HARDWARE FAILURE SCENARIO TESTING                     │");
+      "│ 3/5: HARDWARE FAILURE SCENARIO TESTING                     │");
   Logger::info(
       "└────────────────────────────────────────────────────────────┘");
 
@@ -132,7 +169,7 @@ bool runPreDeploymentTests() {
   Logger::info(
       "\n┌────────────────────────────────────────────────────────────┐");
   Logger::info(
-      "│ 4/4: WATCHDOG TIMER VERIFICATION                           │");
+      "│ 4/5: WATCHDOG TIMER VERIFICATION                           │");
   Logger::info(
       "└────────────────────────────────────────────────────────────┘");
 
@@ -159,7 +196,8 @@ bool runPreDeploymentTests() {
 
 bool isTestModeEnabled() {
 #if defined(ENABLE_FUNCTIONAL_TESTS) || defined(ENABLE_MEMORY_STRESS_TESTS) || \
-    defined(ENABLE_HARDWARE_FAILURE_TESTS) || defined(ENABLE_WATCHDOG_TESTS)
+    defined(ENABLE_HARDWARE_FAILURE_TESTS) || defined(ENABLE_WATCHDOG_TESTS) || \
+    defined(ENABLE_AUDIO_VALIDATION_TESTS)
   return true;
 #else
   return false;

@@ -16,8 +16,9 @@ void AudioQueue::init() noexcept {
 }
 
 bool AudioQueue::push(uint16_t track, Priority prio) noexcept {
-    if (track == 0) {
-        Logger::warn("AudioQueue: track inválido (0)");
+    // Validar rango de tracks (1-68)
+    if (track == 0 || track > 68) {
+        Logger::warnf("AudioQueue: track inválido (%u). Rango válido: 1-68", (unsigned)track);
         System::logError(730); // código reservado: track inválido
         return false;
     }
