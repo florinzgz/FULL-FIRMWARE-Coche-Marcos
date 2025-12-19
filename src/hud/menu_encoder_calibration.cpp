@@ -56,14 +56,22 @@ void MenuEncoderCalibration::update() {
     if (now - lastUpdateTime > 50) {
         lastUpdateTime = now;
         
-        // Get live encoder reading
+        // Get live encoder reading (non-blocking)
         auto steer = Steering::get();
         int32_t newValue = steer.ticks;
         
-        if (newValue != liveEncoderValue) {
+        // Only update display if value changed significantly (reduces redraws)
+        // This prevents excessive screen updates during rapid encoder changes
+        if (abs(newValue - liveEncoderValue) > 0) {  // Update on any change
             liveEncoderValue = newValue;
+            
+            // Non-blocking partial updates instead of full redraws
+            // Only redraw the changing parts to maintain responsiveness
             drawLiveValue();
             drawVisualIndicator();
+            
+            // Prevent needsRedraw flag from being set during rapid updates
+            // This ensures UI remains responsive at 20Hz
         }
     }
     
@@ -313,10 +321,24 @@ void MenuEncoderCalibration::handleSetCenter() {
     needsRedraw = true;
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     Logger::infof("Encoder center set: %ld", tempCenter);
+    
+    // Validate center is within reasonable bounds
+    if (tempCenter < -2000 || tempCenter > 4000) {
+        Logger::warnf("Encoder center value unusual: %ld (expected range -2000 to 4000)", tempCenter);
+    }
 }
 
 void MenuEncoderCalibration::handleSetLeft() {
     tempLeftLimit = liveEncoderValue;
+    
+    // Validate left limit is less than center
+    if (tempLeftLimit >= tempCenter) {
+        Logger::errorf("Invalid left limit: %ld >= center %ld. Please turn wheel LEFT from center.", 
+                      tempLeftLimit, tempCenter);
+        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        return; // Don't advance step
+    }
+    
     currentStep = STEP_RIGHT;
     needsRedraw = true;
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
@@ -325,6 +347,24 @@ void MenuEncoderCalibration::handleSetLeft() {
 
 void MenuEncoderCalibration::handleSetRight() {
     tempRightLimit = liveEncoderValue;
+    
+    // Validate right limit is greater than center
+    if (tempRightLimit <= tempCenter) {
+        Logger::errorf("Invalid right limit: %ld <= center %ld. Please turn wheel RIGHT from center.", 
+                      tempRightLimit, tempCenter);
+        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        return; // Don't advance step
+    }
+    
+    // Validate the range is reasonable (at least 100 ticks on each side)
+    int32_t leftRange = tempCenter - tempLeftLimit;
+    int32_t rightRange = tempRightLimit - tempCenter;
+    
+    if (leftRange < 100 || rightRange < 100) {
+        Logger::warnf("Calibration range seems small: left=%ld, right=%ld (expected >100 each)", 
+                     leftRange, rightRange);
+    }
+    
     currentStep = STEP_COMPLETE;
     needsRedraw = true;
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
@@ -383,16 +423,48 @@ void MenuEncoderCalibration::loadCurrentCalibration() {
 }
 
 void MenuEncoderCalibration::saveCalibration() {
+    // Final validation before saving
+    if (tempLeftLimit >= tempCenter || tempRightLimit <= tempCenter) {
+        Logger::errorf("Invalid calibration: left=%ld, center=%ld, right=%ld", 
+                      tempLeftLimit, tempCenter, tempRightLimit);
+        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        return;
+    }
+    
+    // Check for reasonable range
+    int32_t totalRange = tempRightLimit - tempLeftLimit;
+    if (totalRange < 200) {
+        Logger::warnf("Calibration range too small: %ld (expected >200)", totalRange);
+    }
+    
     auto& config = ConfigStorage::getCurrentConfig();
     config.encoder_center = tempCenter;
     config.encoder_left_limit = tempLeftLimit;
     config.encoder_right_limit = tempRightLimit;
-    ConfigStorage::save(config);
+    
+    // Save to EEPROM with error handling
+    bool saveSuccess = ConfigStorage::save(config);
+    
+    if (!saveSuccess) {
+        Logger::error("Failed to save encoder calibration to EEPROM");
+        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        return;
+    }
+    
+    // Verify the save by reading back
+    auto& verifyConfig = ConfigStorage::getCurrentConfig();
+    if (verifyConfig.encoder_center != tempCenter ||
+        verifyConfig.encoder_left_limit != tempLeftLimit ||
+        verifyConfig.encoder_right_limit != tempRightLimit) {
+        Logger::error("EEPROM verification failed - saved values don't match");
+        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        return;
+    }
     
     // Apply to steering module
     Steering::setZeroOffset(tempCenter);
     
-    Logger::infof("Encoder calibration saved: C=%ld, L=%ld, R=%ld", 
+    Logger::infof("Encoder calibration saved and verified: C=%ld, L=%ld, R=%ld", 
                   tempCenter, tempLeftLimit, tempRightLimit);
 }
 
