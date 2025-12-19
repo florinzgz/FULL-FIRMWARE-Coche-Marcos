@@ -27,6 +27,7 @@ static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
 
 // 🔒 v2.11.2: Umbral mínimo de heap para inicialización segura
 static constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;  // 50KB mínimo
+static constexpr uint32_t MIN_HEAP_AFTER_INIT = MIN_HEAP_FOR_INIT / 2;  // 25KB mínimo después de init
 
 void System::init() {
     // 🔒 v2.11.2: VALIDACIÓN 1 - Prevenir doble inicialización
@@ -66,9 +67,8 @@ void System::init() {
     
     // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
     EEPROMPersistence::GeneralSettings settings;
-    bool settingsLoaded = EEPROMPersistence::loadGeneralSettings(settings);
     
-    if (settingsLoaded) {
+    if (EEPROMPersistence::loadGeneralSettings(settings)) {
         Logger::info("System init: Configuración general cargada exitosamente");
         
         // Aplicar toggles de módulos con validación de punteros/estados
@@ -91,9 +91,8 @@ void System::init() {
     
     // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
     EEPROMPersistence::LEDConfig ledConfig;
-    bool ledConfigLoaded = EEPROMPersistence::loadLEDConfig(ledConfig);
     
-    if (ledConfigLoaded) {
+    if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
         Logger::info("System init: Configuración LED cargada exitosamente");
         
         // 🔒 Validar valores de configuración antes de aplicar
@@ -131,7 +130,7 @@ void System::init() {
     uint32_t heapUsed = freeHeap - finalHeap;
     Logger::infof("System init: Heap usado en init: %u bytes, restante: %u bytes", heapUsed, finalHeap);
     
-    if (finalHeap < (MIN_HEAP_FOR_INIT / 2)) {
+    if (finalHeap < MIN_HEAP_AFTER_INIT) {
         Logger::warnf("System init: ADVERTENCIA - Heap bajo después de init (%u bytes)", finalHeap);
     }
     
