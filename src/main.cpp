@@ -145,22 +145,26 @@ static constexpr uint32_t TFT_RESET_RECOVERY_MS =
     50; // Post-reset recovery time (min 5ms, using 50ms for margin)
 
 #if defined(PROGRESSIVE_BRINGUP)
-static constexpr bool kProgressiveBringup [[maybe_unused]] =
-    true; // compile-time hint
 static constexpr uint32_t BRINGUP_STEP_PAUSE_MS = 400; // short pause per step
+static constexpr uint32_t BRINGUP_FEED_INTERVAL_MS =
+    20; // feed watchdog while waiting checkpoints
 #else
-static constexpr bool kProgressiveBringup [[maybe_unused]] = false;
 static constexpr uint32_t BRINGUP_STEP_PAUSE_MS = 0;
+static constexpr uint32_t BRINGUP_FEED_INTERVAL_MS = 0;
 #endif
 
 static inline void bringupCheckpoint(const char *step) {
 #if defined(PROGRESSIVE_BRINGUP)
-  Serial.printf("[BRINGUP] %s completado. Verifica y añade el siguiente módulo...\n",
+  Serial.printf("[BRINGUP] %s completado. Verifica y agrega el siguiente módulo...\n",
                 step);
-  unsigned long pauseStart = millis();
-  while (millis() - pauseStart < BRINGUP_STEP_PAUSE_MS) {
+  const uint32_t cycles =
+      (BRINGUP_STEP_PAUSE_MS == 0 || BRINGUP_FEED_INTERVAL_MS == 0)
+          ? 0
+          : (BRINGUP_STEP_PAUSE_MS + BRINGUP_FEED_INTERVAL_MS - 1) /
+                BRINGUP_FEED_INTERVAL_MS;
+  for (uint32_t i = 0; i < cycles; ++i) {
     Watchdog::feed();
-    delay(5);
+    delay(BRINGUP_FEED_INTERVAL_MS);
     yield();
   }
 #else

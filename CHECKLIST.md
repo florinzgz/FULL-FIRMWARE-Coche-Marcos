@@ -6,7 +6,7 @@
 ---
 
 ## 🔎 Modo de arranque progresivo y validaciones críticas
-- [x] Flag opcional `PROGRESSIVE_BRINGUP` para arrancar pantalla/HUD primero y pausar tras cada módulo (I2C, relés, sensores, entradas, control, seguridad, telemetría).
+- [x] Flag opcional `PROGRESSIVE_BRINGUP` para inicializar pantalla/HUD primero y pausar tras cada módulo (I2C, relés, sensores, entradas, control, seguridad, telemetría).
 - [x] Autotest obliga palanca en **PARK** y pedal en reposo (<5%) antes de habilitar potencia.
 - [x] Úsalo para añadir sensores y módulos uno a uno comprobando que cada paso está bien configurado.
 

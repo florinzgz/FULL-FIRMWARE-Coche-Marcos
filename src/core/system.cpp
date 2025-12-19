@@ -21,6 +21,8 @@
 extern Storage::Config cfg;
 
 static System::State currentState = System::OFF;
+static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
+    5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal en reposo antes de dar potencia
 
 void System::init() {
     Logger::info("System init: entrando en PRECHECK");
@@ -97,8 +99,9 @@ System::Health System::selfTest() {
         Logger::errorf("SelfTest: pedal no responde");
         h.ok = false;
     } else {
-        if(Pedal::get().percent > 5.0f) {
-            Logger::warnf("SelfTest: pedal no está en reposo (%.1f%%)", Pedal::get().percent);
+        const auto &pedalState = Pedal::get();
+        if(pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
+            Logger::errorf("SelfTest: pedal no está en reposo (%.1f%%)", pedalState.percent);
             h.ok = false;
         }
     }
