@@ -453,10 +453,14 @@ void MenuEncoderCalibration::saveCalibration() {
     }
     
     // Verify the save by reading back
-    auto& verifyConfig = ConfigStorage::getCurrentConfig();
+    // Verify the save by reading back from EEPROM
+    Config verifyConfig;
+    if (!ConfigStorage::load(verifyConfig)) {
+        Logger::error("EEPROM verification failed - could not read back values");
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+        return;
+    }
     if (verifyConfig.encoder_center != tempCenter ||
-        verifyConfig.encoder_left_limit != tempLeftLimit ||
-        verifyConfig.encoder_right_limit != tempRightLimit) {
         Logger::error("EEPROM verification failed - saved values don't match");
         Alerts::play(Audio::AUDIO_ERROR_GENERAL);
         return;
