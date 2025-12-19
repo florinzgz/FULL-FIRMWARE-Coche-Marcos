@@ -194,7 +194,7 @@ void HUD::init() {
                 Logger::infof("Touch: Using stored calibration [min_x=%d, max_x=%d, min_y=%d, max_y=%d, rotation=%d]",
                              calData[0], calData[1], calData[2], calData[3], calData[4]);
                 
-                // 🔒 v2.11.1: Validate rotation matches display rotation
+                // v2.11.1: Validate rotation matches display rotation
                 uint8_t currentRotation = tft.getRotation();
                 if (calData[4] != currentRotation) {
                     Logger::warnf("Touch: Calibration rotation (%d) != display rotation (%d)",

@@ -28,7 +28,7 @@ namespace TouchCalibration {
     static uint16_t point2_rawX = 0, point2_rawY = 0;  // Bottom-right corner
     
     // Touch sampling
-    // 🔒 v2.11.1: Optimized for faster calibration response
+    // v2.11.1: Optimized for faster calibration response
     // Reduced from 10 samples @ 50ms = 500ms to 5 samples @ 10ms = 50ms (10× faster)
     static const int SAMPLE_COUNT = 5;         // Number of samples to average (was 10)
     static const uint32_t SAMPLE_INTERVAL = 10; // ms between samples (was 50)
@@ -37,13 +37,19 @@ namespace TouchCalibration {
     static uint32_t lastSampleTime = 0;
     
     // Timeout constants
-    // 🔒 v2.11.1: Increased from 30s to 60s for better user experience
+    // v2.11.1: Increased from 30s to 60s for better user experience
     static const uint32_t INSTRUCTION_TIMEOUT = 60000;  // 60 seconds (was 30)
     static const uint32_t POINT_TIMEOUT = 60000;         // 60 seconds per point (was 30)
     
     // Touch controller constants
     static const uint16_t MAX_TOUCH_VALUE = 4095;        // 12-bit ADC maximum
     static const uint32_t TOUCH_RELEASE_WAIT = 200;      // ms to wait for touch release (was 500)
+    
+    // v2.11.1: Sample validation ranges for XPT2046
+    // Valid touch samples should be within this range
+    // Below 100 or above 4000 indicates weak touch or hardware issue
+    static const uint16_t TOUCH_SAMPLE_MIN = 100;        // Minimum valid sample value
+    static const uint16_t TOUCH_SAMPLE_MAX = 4000;       // Maximum valid sample value
     
     // Forward declarations
     static void drawCalibrationPoint(int x, int y, uint16_t color);
@@ -330,10 +336,11 @@ namespace TouchCalibration {
                     avgX = sumX / samplesCollected;
                     avgY = sumY / samplesCollected;
                     
-                    // 🔒 v2.11.1: Validate sample is within reasonable range
+                    // v2.11.1: Validate sample is within reasonable range
                     // Reject samples that are clearly invalid (hardware issue or weak touch)
                     // Valid range is typically 100-4000 for XPT2046
-                    if (avgX < 100 || avgX > 4000 || avgY < 100 || avgY > 4000) {
+                    if (avgX < TOUCH_SAMPLE_MIN || avgX > TOUCH_SAMPLE_MAX || 
+                        avgY < TOUCH_SAMPLE_MIN || avgY > TOUCH_SAMPLE_MAX) {
                         Logger::warnf("TouchCalibration: Sample out of expected range X=%d Y=%d", avgX, avgY);
                         Logger::warn("TouchCalibration: Touch harder or check hardware connection");
                         Logger::warn("TouchCalibration: Resetting sample collection, please try again");
