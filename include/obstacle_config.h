@@ -9,28 +9,21 @@
 
 namespace ObstacleConfig {
     // Hardware configuration
-    constexpr uint8_t NUM_SENSORS = 4;              // Front, Rear, Left, Right
+    constexpr uint8_t NUM_SENSORS = 2;              // Front, Rear (laterales deshabilitados)
     constexpr uint8_t PCA9548A_ADDR = 0x71;         // I2C multiplexer address
     constexpr uint8_t VL53L5X_DEFAULT_ADDR = 0x29;  // VL53L5X default I2C address
     
     // GPIO pins for XSHUT (power control)
-    // 🔒 v2.4.1: CORRECCIÓN CRÍTICA - Pines reubicados a GPIOs libres
-    // Los pines anteriores (7,8,10,11) tenían conflicto con:
-    // - GPIO 7: PIN_RELAY_SPARE (relé auxiliar)
-    // - GPIO 8: PIN_I2C_SDA (bus I2C)
-    // - GPIO 10: PIN_TFT_SCK (SPI pantalla)
-    // - GPIO 11: PIN_TFT_MOSI (SPI pantalla)
-    // Ahora usan GPIOs libres según pins.h: 18, 19, 45, 46
-    constexpr uint8_t PIN_XSHUT_FRONT = 18;         // Front sensor (GPIO libre)
+    // 🔒 v2.11.1: Sensores laterales eliminados para liberar GPIOs de las tiras LED
+    //            Mantener solo detección frontal y trasera.
+    //            Frente mueve su XSHUT a GPIO 46 (liberado tras eliminar sensor lateral derecho) y
+    //            el trasero mantiene GPIO 19 (estable). GPIO 18 queda libre para LEDs.
+    constexpr uint8_t PIN_XSHUT_FRONT = 46;         // Front sensor (strapping, mantener HIGH en boot)
     constexpr uint8_t PIN_XSHUT_REAR = 19;          // Rear sensor (GPIO libre)
-    constexpr uint8_t PIN_XSHUT_LEFT = 45;          // Left sensor (GPIO libre, strapping)
-    constexpr uint8_t PIN_XSHUT_RIGHT = 46;         // Right sensor (GPIO libre, strapping)
     
     // PCA9548A multiplexer channels
     constexpr uint8_t MUX_CHANNEL_FRONT = 0;        // Front sensor
     constexpr uint8_t MUX_CHANNEL_REAR = 1;         // Rear sensor
-    constexpr uint8_t MUX_CHANNEL_LEFT = 2;         // Left sensor
-    constexpr uint8_t MUX_CHANNEL_RIGHT = 3;        // Right sensor
     
     // VL53L5X configuration
     constexpr uint8_t ZONES_PER_SENSOR = 64;        // 8x8 grid

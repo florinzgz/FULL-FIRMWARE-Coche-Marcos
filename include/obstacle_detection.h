@@ -10,13 +10,11 @@
 
 namespace ObstacleDetection {
     
-    // Sensor identifiers
+    // Sensor identifiers (solo frontal y trasero)
     enum SensorID : uint8_t {
         SENSOR_FRONT = 0,
         SENSOR_REAR = 1,
-        SENSOR_LEFT = 2,
-        SENSOR_RIGHT = 3,
-        SENSOR_COUNT = 4
+        SENSOR_COUNT = 2
     };
     
     // Proximity levels based on distance
@@ -85,8 +83,6 @@ namespace ObstacleDetection {
         ObstacleLevel overallLevel;     // Worst proximity level
         uint16_t minDistanceFront;      // Front min distance
         uint16_t minDistanceRear;       // Rear min distance
-        uint16_t minDistanceLeft;       // Left min distance
-        uint16_t minDistanceRight;      // Right min distance
         bool emergencyStopActive;       // Emergency stop triggered
         bool parkingAssistActive;       // Parking assist active
         uint32_t lastUpdateMs;          // Last system update
@@ -95,8 +91,6 @@ namespace ObstacleDetection {
                           overallLevel(LEVEL_INVALID),
                           minDistanceFront(::ObstacleConfig::DISTANCE_INVALID),
                           minDistanceRear(::ObstacleConfig::DISTANCE_INVALID),
-                          minDistanceLeft(::ObstacleConfig::DISTANCE_INVALID),
-                          minDistanceRight(::ObstacleConfig::DISTANCE_INVALID),
                           emergencyStopActive(false), parkingAssistActive(false),
                           lastUpdateMs(0) {}
     };

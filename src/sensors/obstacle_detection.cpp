@@ -39,13 +39,11 @@ constexpr uint8_t VL53L5CX_EXPECTED_ID = 0xF0;       // Expected device ID for V
 // XSHUT pins for sensors
 static const uint8_t OBSTACLE_XSHUT_PINS[::ObstacleConfig::NUM_SENSORS] = {
     ::ObstacleConfig::PIN_XSHUT_FRONT,
-    ::ObstacleConfig::PIN_XSHUT_REAR,
-    ::ObstacleConfig::PIN_XSHUT_LEFT,
-    ::ObstacleConfig::PIN_XSHUT_RIGHT
+    ::ObstacleConfig::PIN_XSHUT_REAR
 };
 
 static const char* SENSOR_NAMES[::ObstacleConfig::NUM_SENSORS] = {
-    "FRONT", "REAR", "LEFT", "RIGHT"
+    "FRONT", "REAR"
 };
 
 // Verify I2C bus is operational
@@ -152,9 +150,8 @@ static bool initSensor(uint8_t idx) {
 void init() {
     Logger::info("Initializing VL53L5X obstacle detection system...");
     Logger::infof("  PCA9548A multiplexer address: 0x%02X", ::ObstacleConfig::PCA9548A_ADDR);
-    Logger::infof("  XSHUT pins: FRONT=%d, REAR=%d, LEFT=%d, RIGHT=%d",
-                 ::ObstacleConfig::PIN_XSHUT_FRONT, ::ObstacleConfig::PIN_XSHUT_REAR,
-                 ::ObstacleConfig::PIN_XSHUT_LEFT, ::ObstacleConfig::PIN_XSHUT_RIGHT);
+    Logger::infof("  XSHUT pins: FRONT=%d, REAR=%d",
+                 ::ObstacleConfig::PIN_XSHUT_FRONT, ::ObstacleConfig::PIN_XSHUT_REAR);
     
     hardwarePresent = false;
     placeholderMode = true;
@@ -254,8 +251,6 @@ void getStatus(ObstacleStatus& status) {
     status.overallLevel = LEVEL_INVALID;
     status.minDistanceFront = ::ObstacleConfig::DISTANCE_INVALID;
     status.minDistanceRear = ::ObstacleConfig::DISTANCE_INVALID;
-    status.minDistanceLeft = ::ObstacleConfig::DISTANCE_INVALID;
-    status.minDistanceRight = ::ObstacleConfig::DISTANCE_INVALID;
     status.emergencyStopActive = false;
     status.parkingAssistActive = false;
     status.lastUpdateMs = millis();
@@ -270,12 +265,8 @@ void getStatus(ObstacleStatus& status) {
         ObstacleLevel level = getProximityLevel(i);
         
         // Store per-direction distances
-        switch (i) {
-            case SENSOR_FRONT: status.minDistanceFront = dist; break;
-            case SENSOR_REAR:  status.minDistanceRear = dist; break;
-            case SENSOR_LEFT:  status.minDistanceLeft = dist; break;
-            case SENSOR_RIGHT: status.minDistanceRight = dist; break;
-        }
+        if (i == SENSOR_FRONT) status.minDistanceFront = dist;
+        if (i == SENSOR_REAR)  status.minDistanceRear = dist;
         
         // Track worst level
         if (level != LEVEL_INVALID && level > worstLevel) {
