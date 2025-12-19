@@ -219,6 +219,7 @@ void Traction::update() {
       if (cfg.tempSensorsEnabled) {
         float tempC = Sensors::getTemperature(i);
         if (!isTempValid(tempC)) {
+          System::logError(820 + i);  // códigos 820-823 para motores FL-RR
           Logger::warnf("Axis rotation: invalid temp wheel %d: %.1f°C", i, tempC);
           tempC = 0.0f;
         } else if (tempC > TEMP_CRITICAL) {
