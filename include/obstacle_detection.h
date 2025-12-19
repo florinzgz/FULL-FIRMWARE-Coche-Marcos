@@ -83,16 +83,20 @@ namespace ObstacleDetection {
         ObstacleLevel overallLevel;     // Worst proximity level
         uint16_t minDistanceFront;      // Front min distance
         uint16_t minDistanceRear;       // Rear min distance
+        uint16_t minDistanceLeft;       // Left min distance (reserved - no lateral sensor)
+        uint16_t minDistanceRight;      // Right min distance (reserved - no lateral sensor)
         bool emergencyStopActive;       // Emergency stop triggered
         bool parkingAssistActive;       // Parking assist active
         uint32_t lastUpdateMs;          // Last system update
         
         ObstacleStatus() : sensorsHealthy(0), sensorsEnabled(0), 
-                          overallLevel(LEVEL_INVALID),
-                          minDistanceFront(::ObstacleConfig::DISTANCE_INVALID),
-                          minDistanceRear(::ObstacleConfig::DISTANCE_INVALID),
-                          emergencyStopActive(false), parkingAssistActive(false),
-                          lastUpdateMs(0) {}
+                           overallLevel(LEVEL_INVALID),
+                           minDistanceFront(::ObstacleConfig::DISTANCE_INVALID),
+                           minDistanceRear(::ObstacleConfig::DISTANCE_INVALID),
+                           minDistanceLeft(::ObstacleConfig::DISTANCE_INVALID),
+                           minDistanceRight(::ObstacleConfig::DISTANCE_INVALID),
+                           emergencyStopActive(false), parkingAssistActive(false),
+                           lastUpdateMs(0) {}
     };
     
     // ========================================================================
