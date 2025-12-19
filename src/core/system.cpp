@@ -16,10 +16,13 @@
 #include "regen_ai.h"            // 🔒 v2.11.0: Freno regenerativo
 #include "obstacle_safety.h"     // 🔒 v2.11.0: Seguridad obstáculos
 #include "led_controller.h"      // 🔒 v2.11.0: Control LEDs
+#include "shifter.h"             // 🔒 v2.11.1: Validación de palanca de cambios
 
 extern Storage::Config cfg;
 
 static System::State currentState = System::OFF;
+static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
+    5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal en reposo antes de dar potencia
 
 void System::init() {
     Logger::info("System init: entrando en PRECHECK");
@@ -85,11 +88,22 @@ void System::init() {
 System::Health System::selfTest() {
     Health h{true,true,true,true,true};
 
+    // Actualizar entradas críticas antes de validar estados
+    Pedal::update();
+    Shifter::update();
+    Steering::update();
+
     // Pedal (crítico)
     if(!Pedal::initOK()) {
         System::logError(100);
         Logger::errorf("SelfTest: pedal no responde");
         h.ok = false;
+    } else {
+        const auto &pedalState = Pedal::get();
+        if(pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
+            Logger::errorf("SelfTest: pedal no está en reposo (%.1f%%)", pedalState.percent);
+            h.ok = false;
+        }
     }
 
     // Dirección (encoder)
@@ -113,6 +127,20 @@ System::Health System::selfTest() {
             h.steeringOK = false;
             // NO registrar como error crítico ni marcar h.ok = false
             // El vehículo puede arrancar pero con precaución
+        }
+    }
+
+    // Palanca de cambios (crítico para arranque seguro)
+    if(!Shifter::initOK()) {
+        System::logError(650);
+        Logger::error("SelfTest: palanca de cambios no inicializada");
+        h.ok = false;
+    } else {
+        auto gear = Shifter::get().gear;
+        if(gear != Shifter::P) {
+            System::logError(651);
+            Logger::errorf("SelfTest: palanca debe estar en PARK para arrancar (gear=%d)", static_cast<int>(gear));
+            h.ok = false;
         }
     }
 

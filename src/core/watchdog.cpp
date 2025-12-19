@@ -7,7 +7,7 @@
 namespace Watchdog {
 
 // Configuración
-constexpr uint32_t WDT_TIMEOUT_SECONDS = 10;  // 10 segundos antes de panic
+constexpr uint32_t WDT_TIMEOUT_SECONDS = 30;  // Aumentado para inicialización larga
 static bool initialized = false;
 static uint32_t lastFeedTime = 0;
 static uint32_t feedCount = 0;
@@ -24,7 +24,8 @@ void init() {
     lastFeedTime = millis();
     feedCount = 0;
     
-    Logger::infof("Watchdog: WDT inicializado - Timeout: 10s, panic habilitado");
+    Logger::infof("Watchdog: WDT inicializado - Timeout: %lus, panic habilitado",
+                  (unsigned long)WDT_TIMEOUT_SECONDS);
 }
 
 void feed() {
@@ -44,7 +45,7 @@ void feed() {
     }
     
     // Alerta si el intervalo es muy largo (>80% del timeout)
-    if (interval > (WDT_TIMEOUT_SECONDS * 800)) {  // 8 segundos
+    if (interval > (WDT_TIMEOUT_SECONDS * 800)) {  // 80% del timeout
         Logger::warn("Watchdog: Feed interval demasiado largo - Riesgo de reset WDT");
     }
 }

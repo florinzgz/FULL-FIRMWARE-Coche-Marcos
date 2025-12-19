@@ -249,12 +249,15 @@
 
 // -----------------------
 // Tiras LEDs WS2812B
-// ✅ v2.3.0: Conflicto GPIO 19 resuelto, LED_REAR movido a GPIO 48
+// ⚠️ CORRECCIÓN v2.11.1: GPIO 1 es ADC sensible y GPIO 48 no existe en DevKitC-1
+// LEDs deshabilitados hasta reasignación segura (sugeridos: GPIO19/20)
 // -----------------------
-#define PIN_LED_FRONT     1   // GPIO 1  - LEDs frontales (28 LEDs)
-#define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ Reubicado v2.3.0
-#define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales
-#define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (3L + 10C + 3R)
+// #define PIN_LED_FRONT     1   // GPIO 1  - LEDs frontales (28 LEDs) ❌ ADC sensible
+// #define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ❌ No existe en DevKitC-1
+#define PIN_LED_FRONT     -1  // LEDs frontales deshabilitados
+#define PIN_LED_REAR      -1  // LEDs traseros deshabilitados
+#define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales (sin cambio)
+#define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (sin cambio)
 
 // ============================================================================
 // SENSORES OBSTÁCULOS - VL53L5X
