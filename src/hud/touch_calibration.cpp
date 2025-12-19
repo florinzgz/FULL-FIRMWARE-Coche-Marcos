@@ -1,4 +1,5 @@
 #include "touch_calibration.h"
+#include "touch_map.h"  // For TouchConstants::SCREEN_WIDTH/HEIGHT
 #include "logger.h"
 #include "storage.h"
 #include "pins.h"
@@ -28,19 +29,28 @@ namespace TouchCalibration {
     static uint16_t point2_rawX = 0, point2_rawY = 0;  // Bottom-right corner
     
     // Touch sampling
-    static const int SAMPLE_COUNT = 10;        // Number of samples to average
-    static const uint32_t SAMPLE_INTERVAL = 50; // ms between samples
+    // v2.11.1: Optimized for faster calibration response
+    // Reduced from 10 samples @ 50ms = 500ms to 5 samples @ 10ms = 50ms (10× faster)
+    static const int SAMPLE_COUNT = 5;         // Number of samples to average (was 10)
+    static const uint32_t SAMPLE_INTERVAL = 10; // ms between samples (was 50)
     static int samplesCollected = 0;
     static uint32_t sumX = 0, sumY = 0;
     static uint32_t lastSampleTime = 0;
     
     // Timeout constants
-    static const uint32_t INSTRUCTION_TIMEOUT = 30000;  // 30 seconds
-    static const uint32_t POINT_TIMEOUT = 30000;         // 30 seconds per point
+    // v2.11.1: Increased from 30s to 60s for better user experience
+    static const uint32_t INSTRUCTION_TIMEOUT = 60000;  // 60 seconds (was 30)
+    static const uint32_t POINT_TIMEOUT = 60000;         // 60 seconds per point (was 30)
     
     // Touch controller constants
     static const uint16_t MAX_TOUCH_VALUE = 4095;        // 12-bit ADC maximum
-    static const uint32_t TOUCH_RELEASE_WAIT = 500;      // ms to wait for touch release
+    static const uint32_t TOUCH_RELEASE_WAIT = 200;      // ms to wait for touch release (was 500)
+    
+    // v2.11.1: Sample validation ranges for XPT2046
+    // Valid touch samples should be within this range
+    // Below 100 or above 4000 indicates weak touch or hardware issue
+    static const uint16_t TOUCH_SAMPLE_MIN = 100;        // Minimum valid sample value
+    static const uint16_t TOUCH_SAMPLE_MAX = 4000;       // Maximum valid sample value
     
     // Forward declarations
     static void drawCalibrationPoint(int x, int y, uint16_t color);
@@ -127,8 +137,8 @@ namespace TouchCalibration {
                     tft->fillScreen(TFT_BLACK);
                     tft->setTextColor(TFT_WHITE, TFT_BLACK);
                     tft->setTextDatum(TC_DATUM);
-                    tft->drawString("Touch the RED target", 240, 10, 2);
-                    tft->drawString("Point 1 of 2", 240, 30, 2);
+                    tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2, 10, 2);
+                    tft->drawString("Point 1 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
                     drawCalibrationPoint(CALIB_MARGIN, CALIB_MARGIN, TFT_RED);
                 }
                 
@@ -161,9 +171,10 @@ namespace TouchCalibration {
                     tft->fillScreen(TFT_BLACK);
                     tft->setTextColor(TFT_WHITE, TFT_BLACK);
                     tft->setTextDatum(TC_DATUM);
-                    tft->drawString("Touch the RED target", 240, 10, 2);
-                    tft->drawString("Point 2 of 2", 240, 30, 2);
-                    drawCalibrationPoint(480 - CALIB_MARGIN, 320 - CALIB_MARGIN, TFT_RED);
+                    tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2, 10, 2);
+                    tft->drawString("Point 2 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
+                    drawCalibrationPoint(TouchConstants::SCREEN_WIDTH - CALIB_MARGIN, 
+                                       TouchConstants::SCREEN_HEIGHT - CALIB_MARGIN, TFT_RED);
                 }
                 
                 // Check timeout
@@ -287,7 +298,7 @@ namespace TouchCalibration {
         tft->setTextColor(TFT_YELLOW, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
         
-        tft->drawString("TOUCH CALIBRATION", 240, 60, 4);
+        tft->drawString("TOUCH CALIBRATION", TouchConstants::SCREEN_WIDTH / 2, 60, 4);
         
         tft->setTextColor(TFT_WHITE, TFT_BLACK);
         tft->setTextDatum(TL_DATUM);
@@ -301,7 +312,7 @@ namespace TouchCalibration {
         
         tft->setTextColor(TFT_GREEN, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
-        tft->drawString("Touch anywhere to start", 240, 260, 2);
+        tft->drawString("Touch anywhere to start", TouchConstants::SCREEN_WIDTH / 2, 260, 2);
     }
     
     static bool collectTouchSample(uint16_t& avgX, uint16_t& avgY) {
@@ -327,6 +338,33 @@ namespace TouchCalibration {
                     avgX = sumX / samplesCollected;
                     avgY = sumY / samplesCollected;
                     
+                    // v2.11.1: Validate sample is within reasonable range
+                    // Reject samples that are clearly invalid (hardware issue or weak touch)
+                    // Valid range is typically 100-4000 for XPT2046
+                    if (avgX < TOUCH_SAMPLE_MIN || avgX > TOUCH_SAMPLE_MAX || 
+                        avgY < TOUCH_SAMPLE_MIN || avgY > TOUCH_SAMPLE_MAX) {
+                        Logger::warnf("TouchCalibration: Sample out of expected range X=%d Y=%d", avgX, avgY);
+                        Logger::warn("TouchCalibration: Touch harder or check hardware connection");
+                        Logger::warn("TouchCalibration: Resetting sample collection, please try again");
+                        
+                        // Reset and try again
+                        samplesCollected = 0;
+                        sumX = sumY = 0;
+                        
+                        // Visual feedback - flash the target
+                        // Use TouchConstants for screen dimensions to avoid hard-coded values
+                        int targetX = (state == CalibrationState::Point1) ? CALIB_MARGIN : (TouchConstants::SCREEN_WIDTH - CALIB_MARGIN);
+                        int targetY = (state == CalibrationState::Point1) ? CALIB_MARGIN : (TouchConstants::SCREEN_HEIGHT - CALIB_MARGIN);
+                        drawCalibrationPoint(targetX, targetY, TFT_YELLOW);
+                        // Note: Previously this used delay(100) to create a visible flash.
+                        // To keep the calibration state machine non-blocking, we immediately
+                        // restore the calibration point color here without blocking.
+                        drawCalibrationPoint(targetX, targetY, TFT_RED);
+                        
+                        
+                        return false;  // Sample rejected, try again
+                    }
+                    
                     // Reset for next point
                     samplesCollected = 0;
                     sumX = sumY = 0;
@@ -342,7 +380,7 @@ namespace TouchCalibration {
     static void calculateCalibration() {
         // Calculate calibration based on two corner points
         // Point 1: Top-left (CALIB_MARGIN, CALIB_MARGIN)
-        // Point 2: Bottom-right (480 - CALIB_MARGIN, 320 - CALIB_MARGIN)
+        // Point 2: Bottom-right (SCREEN_WIDTH - CALIB_MARGIN, SCREEN_HEIGHT - CALIB_MARGIN)
         
         uint16_t minX = point1_rawX;
         uint16_t maxX = point2_rawX;
@@ -363,9 +401,9 @@ namespace TouchCalibration {
         
         // Apply margin compensation
         // The screen coordinates we touched were CALIB_MARGIN from edge
-        // So we need to extrapolate to the actual edges (0, 0) and (480, 320)
-        float scaleX = (float)(480) / (float)(480 - 2 * CALIB_MARGIN);
-        float scaleY = (float)(320) / (float)(320 - 2 * CALIB_MARGIN);
+        // So we need to extrapolate to the actual edges (0, 0) and (SCREEN_WIDTH, SCREEN_HEIGHT)
+        float scaleX = (float)(TouchConstants::SCREEN_WIDTH) / (float)(TouchConstants::SCREEN_WIDTH - 2 * CALIB_MARGIN);
+        float scaleY = (float)(TouchConstants::SCREEN_HEIGHT) / (float)(TouchConstants::SCREEN_HEIGHT - 2 * CALIB_MARGIN);
         
         uint16_t rangeX = maxX - minX;
         uint16_t rangeY = maxY - minY;
@@ -397,7 +435,7 @@ namespace TouchCalibration {
         tft->setTextColor(TFT_GREEN, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
         
-        tft->drawString("CALIBRATION COMPLETE!", 240, 100, 4);
+        tft->drawString("CALIBRATION COMPLETE!", TouchConstants::SCREEN_WIDTH / 2, 100, 4);
         
         tft->setTextColor(TFT_WHITE, TFT_BLACK);
         tft->setTextDatum(TL_DATUM);
@@ -417,7 +455,7 @@ namespace TouchCalibration {
         
         tft->setTextColor(TFT_CYAN, TFT_BLACK);
         tft->setTextDatum(TC_DATUM);
-        tft->drawString("Saving calibration...", 240, 280, 2);
+        tft->drawString("Saving calibration...", TouchConstants::SCREEN_WIDTH / 2, 280, 2);
         
         // Apply and save calibration
         applyCalibration(result.calibData);
