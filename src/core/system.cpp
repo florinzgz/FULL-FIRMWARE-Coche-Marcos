@@ -21,33 +21,57 @@
 extern Storage::Config cfg;
 
 static System::State currentState = System::OFF;
+static bool systemInitialized = false;  // 🔒 v2.11.2: Guard contra re-inicialización
 static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
     5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal en reposo antes de dar potencia
 
+// 🔒 v2.11.2: Umbral mínimo de heap para inicialización segura
+static constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;  // 50KB mínimo
+static constexpr uint32_t MIN_HEAP_AFTER_INIT = MIN_HEAP_FOR_INIT / 2;  // 25KB mínimo después de init
+
 void System::init() {
+    // 🔒 v2.11.2: VALIDACIÓN 1 - Prevenir doble inicialización
+    if (systemInitialized) {
+        Logger::warn("System init: Sistema ya inicializado, ignorando llamada duplicada");
+        return;
+    }
+    
     Logger::info("System init: entrando en PRECHECK");
     currentState = PRECHECK;
     
+    // 🔒 v2.11.2: VALIDACIÓN 2 - Verificar heap disponible antes de inicializar módulos
+    uint32_t freeHeap = ESP.getFreeHeap();
+    Logger::infof("System init: Free heap: %u bytes", freeHeap);
+    
+    if (freeHeap < MIN_HEAP_FOR_INIT) {
+        Logger::errorf("System init: CRÍTICO - Heap insuficiente (%u bytes < %u bytes requeridos)", 
+                      freeHeap, MIN_HEAP_FOR_INIT);
+        Logger::error("System init: Abortando inicialización - memoria insuficiente");
+        currentState = ERROR;
+        return;  // 🔒 Abortar inicialización si no hay suficiente memoria
+    }
+    
     // 🔒 v2.10.8: Enhanced diagnostic information
     Logger::infof("System init: Estado inicial OK");
-    Logger::infof("System init: Free heap: %u bytes", ESP.getFreeHeap());
     
     #ifdef ARDUINO_ESP32S3_DEV
     Logger::info("System init: Platform ESP32-S3 detected");
     #endif
     
-    // 🔒 v2.11.0: Cargar y aplicar ajustes persistentes en arranque
+    // 🔒 v2.11.2: VALIDACIÓN 3 - Cargar y validar configuración persistente
     Logger::info("System init: Cargando configuración persistente");
     if (!EEPROMPersistence::init()) {
         Logger::warn("System init: EEPROM persistence init failed, using defaults");
+        // 🔒 No es crítico - continuamos con valores por defecto
     }
     
-    // Cargar configuración general
+    // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
     EEPROMPersistence::GeneralSettings settings;
+    
     if (EEPROMPersistence::loadGeneralSettings(settings)) {
-        Logger::info("System init: Configuración general cargada");
+        Logger::info("System init: Configuración general cargada exitosamente");
         
-        // Aplicar toggles de módulos
+        // Aplicar toggles de módulos según configuración cargada
         ABSSystem::setEnabled(settings.absEnabled);
         Logger::infof("System init: ABS %s", settings.absEnabled ? "enabled" : "disabled");
         
@@ -58,12 +82,25 @@ void System::init() {
         Logger::infof("System init: Regen %s", settings.regenEnabled ? "enabled" : "disabled");
     } else {
         Logger::warn("System init: No se pudo cargar configuración general, usando defaults");
+        // 🔒 Aplicar configuración segura por defecto
+        ABSSystem::setEnabled(false);  // Deshabilitado por seguridad
+        TCSSystem::setEnabled(false);  // Deshabilitado por seguridad
+        RegenAI::setEnabled(false);    // Deshabilitado por seguridad
+        Logger::info("System init: Módulos avanzados deshabilitados (modo seguro)");
     }
     
-    // Cargar y aplicar configuración de LEDs
+    // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
     EEPROMPersistence::LEDConfig ledConfig;
+    
     if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
-        Logger::info("System init: Configuración LED cargada");
+        Logger::info("System init: Configuración LED cargada exitosamente");
+        
+        // 🔒 Validar valores de configuración antes de aplicar
+        if (ledConfig.brightness > 255) {
+            Logger::warnf("System init: Brillo LED inválido (%d), usando default (128)", ledConfig.brightness);
+            ledConfig.brightness = 128;
+        }
+        
         LEDController::setEnabled(ledConfig.enabled);
         LEDController::setBrightness(ledConfig.brightness);
         
@@ -75,6 +112,10 @@ void System::init() {
                       ledConfig.brightness);
     } else {
         Logger::warn("System init: No se pudo cargar configuración LED, usando defaults");
+        // 🔒 Aplicar configuración segura por defecto
+        LEDController::setEnabled(false);  // Deshabilitado por defecto si no hay config
+        LEDController::setBrightness(128); // Brillo medio
+        Logger::info("System init: LEDs en modo seguro (deshabilitados)");
     }
     
     // Habilitar características de seguridad de obstáculos
@@ -83,10 +124,30 @@ void System::init() {
     ObstacleSafety::enableCollisionAvoidance(true);
     ObstacleSafety::enableBlindSpot(true);
     Logger::info("System init: Seguridad de obstáculos habilitada");
+    
+    // 🔒 v2.11.2: VALIDACIÓN 6 - Verificar heap después de inicialización
+    uint32_t finalHeap = ESP.getFreeHeap();
+    uint32_t heapUsed = freeHeap - finalHeap;
+    Logger::infof("System init: Heap usado en init: %u bytes, restante: %u bytes", heapUsed, finalHeap);
+    
+    if (finalHeap < MIN_HEAP_AFTER_INIT) {
+        Logger::warnf("System init: ADVERTENCIA - Heap bajo después de init (%u bytes)", finalHeap);
+    }
+    
+    // 🔒 v2.11.2: Marcar sistema como inicializado
+    systemInitialized = true;
+    Logger::info("System init: Inicialización completada exitosamente");
 }
 
 System::Health System::selfTest() {
     Health h{true,true,true,true,true};
+    
+    // 🔒 v2.11.2: VALIDACIÓN - Verificar que System::init() fue llamado
+    if (!systemInitialized) {
+        Logger::error("SelfTest: Sistema no inicializado - llamar System::init() primero");
+        h.ok = false;
+        return h;
+    }
 
     // Actualizar entradas críticas antes de validar estados
     Pedal::update();
