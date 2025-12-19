@@ -37,10 +37,7 @@ constexpr uint16_t VL53L5CX_DEVICE_ID_REG = 0x0000;  // Device ID register addre
 constexpr uint8_t VL53L5CX_EXPECTED_ID = 0xF0;       // Expected device ID for VL53L5CX
 
 // XSHUT pins for sensors
-static const uint8_t OBSTACLE_XSHUT_PINS[::ObstacleConfig::NUM_SENSORS] = {
-    ::ObstacleConfig::PIN_XSHUT_FRONT,
-    ::ObstacleConfig::PIN_XSHUT_REAR
-};
+static constexpr const uint8_t (&OBSTACLE_XSHUT_PINS)[::ObstacleConfig::NUM_SENSORS] = ::ObstacleConfig::XSHUT_PINS;
 
 static const char* SENSOR_NAMES[::ObstacleConfig::NUM_SENSORS] = {
     "FRONT", "REAR"
@@ -156,6 +153,11 @@ void init() {
     hardwarePresent = false;
     placeholderMode = true;
     
+    // 0. Asegurar estado seguro del strapping pin (GPIO 46) antes de cualquier cambio
+    pinMode(::ObstacleConfig::PIN_XSHUT_FRONT, OUTPUT);
+    digitalWrite(::ObstacleConfig::PIN_XSHUT_FRONT, HIGH);
+    delay(10);
+
     // 1. Test I2C bus health
     if (!testI2CBus()) {
         Logger::error("Obstacle: I2C bus test failed, aborting initialization");
@@ -251,6 +253,8 @@ void getStatus(ObstacleStatus& status) {
     status.overallLevel = LEVEL_INVALID;
     status.minDistanceFront = ::ObstacleConfig::DISTANCE_INVALID;
     status.minDistanceRear = ::ObstacleConfig::DISTANCE_INVALID;
+    status.minDistanceLeft = ::ObstacleConfig::DISTANCE_INVALID;
+    status.minDistanceRight = ::ObstacleConfig::DISTANCE_INVALID;
     status.emergencyStopActive = false;
     status.parkingAssistActive = false;
     status.lastUpdateMs = millis();

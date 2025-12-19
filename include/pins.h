@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "obstacle_config.h"
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
@@ -357,6 +358,12 @@ TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
  * @note El shifter ahora usa MCP23017, no GPIOs directos
  */
 static inline bool pin_is_assigned(uint8_t gpio) {
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
+        if (gpio == ObstacleConfig::XSHUT_PINS[i]) {
+            return true;
+        }
+    }
+
     switch (gpio) {
         // Sistema y Boot
         case PIN_KEY_SYSTEM:
@@ -401,13 +408,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         // Audio
         case PIN_DFPLAYER_TX:
         case PIN_DFPLAYER_RX:
-        // VL53L5X XSHUT: Listed as raw GPIO numbers (defined in obstacle_config.h)
-        // (GPIOs 46, 19)
         // NOTA: Shifter ahora en MCP23017, no en GPIOs directos
-            return true;
-        // Incluir GPIOs de VL53L5X XSHUT manualmente
-        case 46:  // ObstacleConfig::PIN_XSHUT_FRONT
-        case 19:  // ObstacleConfig::PIN_XSHUT_REAR
             return true;
         default:
             return false;
