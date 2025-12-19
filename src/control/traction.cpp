@@ -206,6 +206,7 @@ void Traction::update() {
       if (cfg.currentSensorsEnabled) {
         float currentA = Sensors::getCurrent(i);
         if (!isCurrentValid(currentA)) {
+          System::logError(810 + i);  // códigos 810-813 para motores FL-RR
           Logger::warnf("Axis rotation: invalid current wheel %d: %.2fA", i, currentA);
           currentA = 0.0f;
         }
