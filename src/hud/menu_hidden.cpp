@@ -476,14 +476,23 @@ static void applyModules(bool lights, bool media, bool traction) {
 // Module configuration screen functions
 // Track module states locally until save
 struct ModuleToggleState {
-    bool lightsEnabled = false;
-    bool multimediaEnabled = false;
-    bool tractionEnabled = false;
-    bool currentSensorsEnabled = false;
-    bool tempSensorsEnabled = false;
-    bool wheelSensorsEnabled = false;
+    bool lightsEnabled;
+    bool multimediaEnabled;
+    bool tractionEnabled;
+    bool currentSensorsEnabled;
+    bool tempSensorsEnabled;
+    bool wheelSensorsEnabled;
 };
 static ModuleToggleState tempModulesState;
+
+static void syncModulesStateFromConfig() {
+    tempModulesState.lightsEnabled = cfg.lightsEnabled;
+    tempModulesState.multimediaEnabled = cfg.multimediaEnabled;
+    tempModulesState.tractionEnabled = cfg.tractionEnabled;
+    tempModulesState.currentSensorsEnabled = cfg.currentSensorsEnabled;
+    tempModulesState.tempSensorsEnabled = cfg.tempSensorsEnabled;
+    tempModulesState.wheelSensorsEnabled = cfg.wheelSensorsEnabled;
+}
 
 static void drawModulesConfigScreen() {
     if (tft == nullptr) return;
@@ -654,12 +663,7 @@ static void startModulesConfig() {
     calibState = CalibrationState::MODULES_CONFIG;
     modulesConfigFirstCall = true;
     // Initialize temp values from current config
-    tempModulesState.lightsEnabled = cfg.lightsEnabled;
-    tempModulesState.multimediaEnabled = cfg.multimediaEnabled;
-    tempModulesState.tractionEnabled = cfg.tractionEnabled;
-    tempModulesState.currentSensorsEnabled = cfg.currentSensorsEnabled;
-    tempModulesState.tempSensorsEnabled = cfg.tempSensorsEnabled;
-    tempModulesState.wheelSensorsEnabled = cfg.wheelSensorsEnabled;
+    syncModulesStateFromConfig();
     Logger::info("Iniciando configuración de módulos");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
     drawModulesConfigScreen();

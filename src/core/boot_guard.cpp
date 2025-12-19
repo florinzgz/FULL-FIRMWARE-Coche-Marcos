@@ -14,8 +14,8 @@ void BootGuard::applyXshutStrappingGuard() {
 
     bool applied = false;
     uint8_t guardedCount = 0;
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
-        uint8_t pin = ::ObstacleConfig::XSHUT_PINS[i];
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
+        uint8_t pin = ObstacleConfig::XSHUT_PINS[i];
         // Drive HIGH immediately if it is a strapping pin
         if (pin_is_strapping(pin)) {
             pinMode(pin, OUTPUT);

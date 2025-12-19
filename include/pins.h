@@ -1,9 +1,11 @@
 #pragma once
+#include <stddef.h>
 #include <stdint.h>
 #include "obstacle_config.h"
 
-static_assert(::ObstacleConfig::NUM_SENSORS ==
-                  (sizeof(::ObstacleConfig::XSHUT_PINS) / sizeof(::ObstacleConfig::XSHUT_PINS[0])),
+constexpr size_t kXshutPinCount =
+    sizeof(::ObstacleConfig::XSHUT_PINS) / sizeof(::ObstacleConfig::XSHUT_PINS[0]);
+static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
               "ObstacleConfig::XSHUT_PINS size must match NUM_SENSORS");
 
 // ============================================================================
