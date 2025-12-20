@@ -28,6 +28,13 @@ void Audio::DFPlayer::play(uint16_t track) {
         return;
     }
 
+    // Validar rango de tracks (1-68)
+    if(track == 0 || track > 68) {
+        Logger::warnf("DFPlayer play(): track inválido (%u). Rango válido: 1-68", (unsigned)track);
+        System::logError(721); // track inválido
+        return;
+    }
+
     bool ready = true; // placeholder
     if (!ready) {
         Logger::warnf("DFPlayer not ready, cannot play track %u", (unsigned)track);

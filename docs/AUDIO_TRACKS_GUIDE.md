@@ -1,7 +1,7 @@
 # 🔊 Guía de Audios para DFPlayer Mini
 
-**Versión:** 2.8.0  
-**Última actualización:** 2025-11-27
+**Versión:** 2.12.0  
+**Última actualización:** 2025-12-19
 
 ---
 
@@ -413,6 +413,89 @@ Si prefieres grabar tu propia voz:
 
 ---
 
+## 🧪 Validación y Pruebas de Audios
+
+### Script de Validación Automática
+
+Se incluye el script `validate_audio_tracks.py` en la raíz del proyecto para facilitar la validación de los 68 tracks de audio.
+
+**Uso del script:**
+
+```bash
+# Validar tracks existentes
+python3 validate_audio_tracks.py validate
+
+# Generar placeholders para tracks 39-68 (avanzados)
+python3 validate_audio_tracks.py generate
+
+# Generar placeholders para todos los tracks (1-68)
+python3 validate_audio_tracks.py generate-all
+```
+
+**Qué hace el script:**
+- ✅ Verifica que todos los 68 archivos MP3 estén presentes
+- ⚠️  Identifica archivos placeholder (0 bytes) que necesitan contenido real
+- ❌ Lista archivos faltantes
+- 📊 Genera un reporte completo de validación
+
+### Pruebas del Sistema de Audio
+
+El firmware incluye un módulo de pruebas automatizadas en `src/test/audio_validation_tests.cpp` que valida:
+
+1. **Definición de Tracks**: Todos los 68 tracks están correctamente definidos en el enum `Audio::Track`
+2. **Validación de Rango**: Los tracks fuera de rango (0, >68) son rechazados correctamente
+3. **Cola de Audio**: El sistema de cola funciona correctamente con todos los tracks
+4. **Gestión de Errores**: Códigos de error apropiados para tracks inválidos, cola llena, etc.
+
+**Para ejecutar las pruebas:**
+
+Las pruebas se ejecutan automáticamente si está habilitado `ENABLE_AUDIO_VALIDATION_TESTS` en `platformio.ini`.
+
+### Códigos de Error de Audio
+
+Los siguientes códigos de error están implementados (ver `docs/CODIGOS_ERROR.md`):
+
+- **700**: Fallo inicialización DFPlayer
+- **701**: Error comunicación DFPlayer  
+- **702+**: Códigos internos de DFPlayer
+- **720**: Sistema de alertas sin inicializar
+- **721**: Track de alerta inválido (fuera de rango 1-68)
+- **722**: Cola de alertas llena
+- **730**: Track de cola inválido
+- **731**: Cola de reproducción llena
+- **732**: DFPlayer no listo
+
+### Procedimiento de Validación Completa
+
+1. **Generar archivos MP3:**
+   ```bash
+   # Usar TTSMaker.com o el script Python con gTTS
+   python3 validate_audio_tracks.py generate-all
+   ```
+
+2. **Reemplazar placeholders con MP3 reales:**
+   - Usar TTSMaker.com para generar cada track
+   - O usar el script Python incluido en la documentación
+   - Copiar archivos generados a la carpeta `audio/`
+
+3. **Validar estructura:**
+   ```bash
+   python3 validate_audio_tracks.py validate
+   ```
+
+4. **Copiar a tarjeta SD:**
+   - Formatear tarjeta SD en FAT32
+   - Copiar todos los archivos MP3 a la raíz (no en carpetas)
+   - Verificar que los nombres sean exactos: `0001.mp3`, `0002.mp3`, ..., `0068.mp3`
+
+5. **Prueba con hardware:**
+   - Insertar SD en DFPlayer Mini
+   - Compilar y cargar firmware con `ENABLE_AUDIO_VALIDATION_TESTS`
+   - Revisar logs serie para resultados de pruebas
+   - Probar reproducción de algunos tracks manualmente
+
+---
+
 ## ✅ Checklist de Grabación
 
 - [ ] Tracks 1-38 (Básicos)
@@ -428,5 +511,7 @@ Si prefieres grabar tu propia voz:
 
 ---
 
-*Documento actualizado: 2025-11-27*  
-*Constantes implementadas en: `include/alerts.h`*
+*Documento actualizado: 2025-12-19*  
+*Constantes implementadas en: `include/alerts.h`*  
+*Sistema de validación: `validate_audio_tracks.py`*  
+*Pruebas automatizadas: `src/test/audio_validation_tests.cpp`*
