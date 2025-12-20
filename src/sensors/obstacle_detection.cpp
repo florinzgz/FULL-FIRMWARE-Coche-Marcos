@@ -3,6 +3,7 @@
 // Author: Copilot AI Assistant
 // Date: 2025-11-23
 // Updated: 2025-12-01 - Added I2C recovery and improved initialization
+// Updated: 2025-12-20 - Added watchdog feeding during initialization (v2.11.3)
 
 #include "obstacle_detection.h"
 #include "obstacle_config.h"
@@ -10,6 +11,7 @@
 #include "logger.h"
 #include "system.h"
 #include "i2c_recovery.h"
+#include "watchdog.h"
 #include <Wire.h>
 
 namespace ObstacleDetection {
@@ -172,6 +174,9 @@ void init() {
         return;
     }
     
+    // 🔒 v2.11.3: Feed watchdog after I2C bus test to prevent timeout during sensor init
+    Watchdog::feed();
+    
     // 2. Reset all sensors via XSHUT
     resetAllSensors();
     
@@ -181,11 +186,16 @@ void init() {
         // Continue in placeholder mode
     }
     
+    // 🔒 v2.11.3: Feed watchdog after multiplexer verification (I2C operation)
+    Watchdog::feed();
+    
     // 4. Initialize each sensor sequentially
     for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
         if (!initSensor(i)) {
             sensorData[i].healthy = false;
         }
+        // 🔒 v2.11.3: Feed watchdog after each sensor init (prevents timeout on multi-sensor setup)
+        Watchdog::feed();
     }
     
     // Set initialized based on I2C bus availability (placeholder mode is OK)
