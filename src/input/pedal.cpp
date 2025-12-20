@@ -81,6 +81,8 @@ void Pedal::update() {
     
     // 🔒 IMPROVEMENT: Detectar desconexión de hardware (ADC siempre en 0 o siempre en 4095)
     // Esto puede indicar cable suelto o sensor dañado
+    // THREAD SAFETY NOTE: These static counters are safe because Pedal::update() 
+    // is only called from the main loop (single-threaded context), never from ISRs or multiple tasks
     static uint8_t zeroCount = 0;
     static uint8_t maxCount = 0;
     

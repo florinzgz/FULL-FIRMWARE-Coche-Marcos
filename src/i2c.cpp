@@ -1,6 +1,7 @@
 // src/i2c.cpp
 #include <Wire.h>
 #include "pins.h"   // Use centralized I2C addresses from pins.h
+#include "logger.h" // 🔒 IMPROVEMENT: Use Logger for consistent error reporting
 
 // Implementación segura de helper I2C para TCA9548A y acceso básico a INA226.
 // Este módulo no hace suposiciones sobre Wire.begin(); System::init() debe
@@ -9,7 +10,7 @@
 void select_tca9548a_channel(uint8_t channel) {
     // 🔒 CRITICAL FIX: Validate channel and log errors
     if (channel > 7) {
-        Serial.printf("[ERROR] I2C: Invalid TCA9548A channel %d (must be 0-7)\n", channel);
+        Logger::errorf("I2C: Invalid TCA9548A channel %d (must be 0-7)", channel);
         return;
     }
     
@@ -19,7 +20,7 @@ void select_tca9548a_channel(uint8_t channel) {
     
     // 🔒 IMPROVEMENT: Log TCA9548A communication failures
     if (result != 0) {
-        Serial.printf("[WARN] I2C: TCA9548A channel select failed ch=%d err=%d\n", channel, result);
+        Logger::warnf("I2C: TCA9548A channel select failed ch=%d err=%d", channel, result);
     }
     // Non-blocking: removed 1ms delay - I2C hardware handles timing
     // If instability occurs, caller should add delayMicroseconds(10) if needed
@@ -31,7 +32,7 @@ void select_tca9548a_channel(uint8_t channel) {
 bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint16_t &out) {
     // 🔒 CRITICAL FIX: Validate channel before use
     if (tca_channel > 7) {
-        Serial.printf("[ERROR] I2C: Invalid TCA channel %d (must be 0-7)\n", tca_channel);
+        Logger::errorf("I2C: Invalid TCA channel %d (must be 0-7)", tca_channel);
         return false;
     }
     
@@ -42,7 +43,7 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
     uint8_t result = Wire.endTransmission(false); // keep bus for read
     if (result != 0) {
         // 🔒 IMPROVEMENT: Log I2C error for debugging
-        Serial.printf("[WARN] I2C: Write failed on ch%d addr=0x%02X reg=0x%02X err=%d\n", 
+        Logger::warnf("I2C: Write failed on ch%d addr=0x%02X reg=0x%02X err=%d", 
                      tca_channel, dev_addr, reg, result);
         return false;
     }
@@ -50,7 +51,7 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
     uint8_t received = Wire.requestFrom(static_cast<int>(dev_addr), 2);
     if (received < 2) {
         // 🔒 IMPROVEMENT: Log when not enough bytes received
-        Serial.printf("[WARN] I2C: Read failed on ch%d addr=0x%02X, got %d bytes\n", 
+        Logger::warnf("I2C: Read failed on ch%d addr=0x%02X, got %d bytes", 
                      tca_channel, dev_addr, received);
         return false;
     }
@@ -66,7 +67,7 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
 bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint16_t value) {
     // 🔒 CRITICAL FIX: Validate channel before use
     if (tca_channel > 7) {
-        Serial.printf("[ERROR] I2C: Invalid TCA channel %d (must be 0-7)\n", tca_channel);
+        Logger::errorf("I2C: Invalid TCA channel %d (must be 0-7)", tca_channel);
         return false;
     }
     
@@ -80,7 +81,7 @@ bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint
     
     // 🔒 IMPROVEMENT: Log write failures for debugging
     if (result != 0) {
-        Serial.printf("[WARN] I2C: Write failed on ch%d addr=0x%02X reg=0x%02X err=%d\n", 
+        Logger::warnf("I2C: Write failed on ch%d addr=0x%02X reg=0x%02X err=%d", 
                      tca_channel, dev_addr, reg, result);
     }
     
