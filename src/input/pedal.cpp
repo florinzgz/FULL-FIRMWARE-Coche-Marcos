@@ -89,17 +89,17 @@ void Pedal::update() {
     if (raw == 0) {
         zeroCount++;
         maxCount = 0;
-        if (zeroCount > 10) {  // 10 lecturas consecutivas en 0
+        if (zeroCount == 10) {  // Only warn once at threshold
             Logger::warn("Pedal: posible desconexión (ADC=0)");
-            zeroCount = 10;  // Cap to prevent overflow
         }
+        if (zeroCount < 255) zeroCount++;  // Cap to prevent overflow
     } else if (raw == 4095) {
         maxCount++;
         zeroCount = 0;
-        if (maxCount > 10) {  // 10 lecturas consecutivas en 4095
+        if (maxCount == 10) {  // Only warn once at threshold
             Logger::warn("Pedal: posible cortocircuito (ADC=4095)");
-            maxCount = 10;  // Cap to prevent overflow
         }
+        if (maxCount < 255) maxCount++;  // Cap to prevent overflow
     } else {
         zeroCount = 0;
         maxCount = 0;
