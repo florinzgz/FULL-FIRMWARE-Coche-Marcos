@@ -7,10 +7,11 @@
 // ============================================================================
 
 // Firmware version string (semantic versioning)
-#define FIRMWARE_VERSION "2.11.0"
+// v2.11.3: Stack overflow fixes - IPC stack increase, logger buffer reduction, watchdog feeds
+#define FIRMWARE_VERSION "2.11.3"
 #define FIRMWARE_VERSION_MAJOR 2
 #define FIRMWARE_VERSION_MINOR 11
-#define FIRMWARE_VERSION_PATCH 0
+#define FIRMWARE_VERSION_PATCH 3
 
 // Build date (automatically set at compile time)
 #define FIRMWARE_BUILD_DATE __DATE__
