@@ -59,8 +59,11 @@ void error(uint16_t code, const char *msg) {
 }
 
 // --- Helpers de formato ---
+// 🔒 v2.11.3: Buffer size reduced from 256 to 128 bytes to prevent stack overflow
+// during complex initialization sequences with nested logging calls.
+// 128 bytes is sufficient for most log messages while reducing stack pressure.
 void infof(const char *fmt, ...) {
-    constexpr size_t BUF_SZ = 256;
+    constexpr size_t BUF_SZ = 128;
     char buf[BUF_SZ];
     va_list ap;
     va_start(ap, fmt);
@@ -70,7 +73,7 @@ void infof(const char *fmt, ...) {
 }
 
 void warnf(const char *fmt, ...) {
-    constexpr size_t BUF_SZ = 256;
+    constexpr size_t BUF_SZ = 128;
     char buf[BUF_SZ];
     va_list ap;
     va_start(ap, fmt);
@@ -80,7 +83,7 @@ void warnf(const char *fmt, ...) {
 }
 
 void errorf(uint16_t code, const char *fmt, ...) {
-    constexpr size_t BUF_SZ = 256;
+    constexpr size_t BUF_SZ = 128;
     char buf[BUF_SZ];
     va_list ap;
     va_start(ap, fmt);
@@ -90,7 +93,7 @@ void errorf(uint16_t code, const char *fmt, ...) {
 }
 
 void errorf(const char *fmt, ...) {
-    constexpr size_t BUF_SZ = 256;
+    constexpr size_t BUF_SZ = 128;
     char buf[BUF_SZ];
     va_list ap;
     va_start(ap, fmt);
@@ -111,7 +114,7 @@ void debug(const char *msg) {
 
 void debugf(const char *fmt, ...) {
     if (debugLevel < 2) return;
-    constexpr size_t BUF_SZ = 256;
+    constexpr size_t BUF_SZ = 128;
     char buf[BUF_SZ];
     va_list ap;
     va_start(ap, fmt);
