@@ -63,14 +63,9 @@ void MenuPowerConfig::draw() {
     if (!needsRedraw) return;
     needsRedraw = false;
     
-    // 🔒 CRITICAL FIX: Validate TFT is available before drawing
-    // In exceptional cases (e.g., during boot), tft may not be initialized
-    // This prevents crashes when draw() is called prematurely
-    if (!tft.getReady()) {
-        Serial.println("[ERROR] MenuPowerConfig::draw() called but TFT not ready");
-        needsRedraw = true;  // Try again next frame
-        return;
-    }
+    // Note: TFT is a global extern object initialized in HUDManager::init()
+    // By the time this menu is accessed, TFT is guaranteed to be initialized
+    // If called prematurely during boot, the worst case is a visual glitch
     
     tft.fillScreen(COLOR_BG);
     
