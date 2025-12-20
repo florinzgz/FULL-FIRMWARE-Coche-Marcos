@@ -71,7 +71,10 @@ bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint
         return false;
     }
     
-    select_tca9548a_channel(tca_channel);
+    if (!select_tca9548a_channel(tca_channel)) {
+        Logger::errorf("I2C: Failed to select channel %d", tca_channel);
+        return false;
+    }
 
     Wire.beginTransmission(dev_addr);
     Wire.write(reg);
