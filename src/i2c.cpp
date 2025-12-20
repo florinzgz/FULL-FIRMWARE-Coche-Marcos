@@ -7,10 +7,20 @@
 // inicializar el bus I2C antes de usar estas funciones.
 
 void select_tca9548a_channel(uint8_t channel) {
-    if (channel > 7) return;
+    // 🔒 CRITICAL FIX: Validate channel and log errors
+    if (channel > 7) {
+        Serial.printf("[ERROR] I2C: Invalid TCA9548A channel %d (must be 0-7)\n", channel);
+        return;
+    }
+    
     Wire.beginTransmission(I2C_ADDR_TCA9548A);
     Wire.write(static_cast<uint8_t>(1u << channel));
-    Wire.endTransmission();
+    uint8_t result = Wire.endTransmission();
+    
+    // 🔒 IMPROVEMENT: Log TCA9548A communication failures
+    if (result != 0) {
+        Serial.printf("[WARN] I2C: TCA9548A channel select failed ch=%d err=%d\n", channel, result);
+    }
     // Non-blocking: removed 1ms delay - I2C hardware handles timing
     // If instability occurs, caller should add delayMicroseconds(10) if needed
 }
@@ -19,15 +29,31 @@ void select_tca9548a_channel(uint8_t channel) {
 // Retorna true si la lectura fue exitosa y escribe el valor en out.
 // No hace reintentos largos para evitar bloqueos; el llamador decide la política.
 bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint16_t &out) {
-    if (tca_channel > 7) return false;
+    // 🔒 CRITICAL FIX: Validate channel before use
+    if (tca_channel > 7) {
+        Serial.printf("[ERROR] I2C: Invalid TCA channel %d (must be 0-7)\n", tca_channel);
+        return false;
+    }
+    
     select_tca9548a_channel(tca_channel);
 
     Wire.beginTransmission(dev_addr);
     Wire.write(reg);
-    if (Wire.endTransmission(false) != 0) return false; // no release bus on failure
+    uint8_t result = Wire.endTransmission(false); // keep bus for read
+    if (result != 0) {
+        // 🔒 IMPROVEMENT: Log I2C error for debugging
+        Serial.printf("[WARN] I2C: Write failed on ch%d addr=0x%02X reg=0x%02X err=%d\n", 
+                     tca_channel, dev_addr, reg, result);
+        return false;
+    }
 
-    Wire.requestFrom(static_cast<int>(dev_addr), 2);
-    if (Wire.available() < 2) return false;
+    uint8_t received = Wire.requestFrom(static_cast<int>(dev_addr), 2);
+    if (received < 2) {
+        // 🔒 IMPROVEMENT: Log when not enough bytes received
+        Serial.printf("[WARN] I2C: Read failed on ch%d addr=0x%02X, got %d bytes\n", 
+                     tca_channel, dev_addr, received);
+        return false;
+    }
 
     uint8_t hi = Wire.read();
     uint8_t lo = Wire.read();
@@ -38,12 +64,25 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
 // Escritura simplificada de un registro de 16 bits en un INA226 en el canal dado.
 // Retorna true en éxito.
 bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint16_t value) {
-    if (tca_channel > 7) return false;
+    // 🔒 CRITICAL FIX: Validate channel before use
+    if (tca_channel > 7) {
+        Serial.printf("[ERROR] I2C: Invalid TCA channel %d (must be 0-7)\n", tca_channel);
+        return false;
+    }
+    
     select_tca9548a_channel(tca_channel);
 
     Wire.beginTransmission(dev_addr);
     Wire.write(reg);
     Wire.write(static_cast<uint8_t>(value >> 8));
     Wire.write(static_cast<uint8_t>(value & 0xFF));
-    return (Wire.endTransmission() == 0);
+    uint8_t result = Wire.endTransmission();
+    
+    // 🔒 IMPROVEMENT: Log write failures for debugging
+    if (result != 0) {
+        Serial.printf("[WARN] I2C: Write failed on ch%d addr=0x%02X reg=0x%02X err=%d\n", 
+                     tca_channel, dev_addr, reg, result);
+    }
+    
+    return (result == 0);
 }

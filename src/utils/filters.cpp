@@ -12,6 +12,8 @@ MovingAverage::MovingAverage(size_t window)
   // 🔒 CRITICAL FIX: Check malloc success
   if (buf == nullptr) {
     // Allocation failed - set window to 0 to prevent crashes
+    // Log error to serial for debugging (Logger may not be initialized yet)
+    Serial.printf("[ERROR] MovingAverage malloc failed for %zu bytes\n", sizeof(float) * win);
     win = 0;
     count = 0;
     return;

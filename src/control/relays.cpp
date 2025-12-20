@@ -134,6 +134,10 @@ void Relays::disablePower() {
 }
 
 void Relays::emergencyStop() {
+    // 🔒 CRITICAL: Emergency stop must ALWAYS work, even if not initialized
+    // This is a safety-critical function that must NEVER fail
+    // If called before init, at least set GPIO states to safe values
+    
     digitalWrite(PIN_RELAY_DIR,   LOW);
     digitalWrite(PIN_RELAY_TRAC,  LOW);
     digitalWrite(PIN_RELAY_MAIN,  LOW);

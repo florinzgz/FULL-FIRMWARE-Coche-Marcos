@@ -63,6 +63,15 @@ void MenuPowerConfig::draw() {
     if (!needsRedraw) return;
     needsRedraw = false;
     
+    // 🔒 CRITICAL FIX: Validate TFT is available before drawing
+    // In exceptional cases (e.g., during boot), tft may not be initialized
+    // This prevents crashes when draw() is called prematurely
+    if (!tft.getReady()) {
+        Serial.println("[ERROR] MenuPowerConfig::draw() called but TFT not ready");
+        needsRedraw = true;  // Try again next frame
+        return;
+    }
+    
     tft.fillScreen(COLOR_BG);
     
     // Header
@@ -315,6 +324,12 @@ void MenuPowerConfig::testRelay(uint8_t relayId) {
 }
 
 uint16_t MenuPowerConfig::mapTouchToValue(uint16_t touchX, uint16_t min, uint16_t max) {
+    // 🔒 CRITICAL FIX: Validate inputs to prevent division by zero and invalid ranges
+    if (max <= min) {
+        Serial.printf("[ERROR] MenuPowerConfig: Invalid range min=%d max=%d\n", min, max);
+        return min;  // Safe fallback
+    }
+    
     if (touchX <= SLIDER_X) return min;
     if (touchX >= SLIDER_X + SLIDER_WIDTH) return max;
     

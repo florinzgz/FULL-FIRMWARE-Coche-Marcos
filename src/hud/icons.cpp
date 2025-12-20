@@ -43,7 +43,11 @@ void Icons::init(TFT_eSPI *display) {
 }
 
 void Icons::drawSystemState(System::State st) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawSystemState called but not initialized");
+        return;
+    }
     if(st == lastSysState) return; // no cambio → no redibujar
     lastSysState = st;
 
@@ -66,7 +70,11 @@ void Icons::drawSystemState(System::State st) {
 // Posición: Centro de pantalla, debajo del triángulo warning (entre warning y coche)
 // Diseño: 3D con efecto de profundidad y tamaño más grande
 void Icons::drawGear(Shifter::Gear g) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawGear called but not initialized");
+        return;
+    }
     if(g == lastGear) return;
     lastGear = g;
 
@@ -178,7 +186,11 @@ void Icons::drawGear(Shifter::Gear g) {
 }
 
 void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawFeatures called but not initialized");
+        return;
+    }
     // Convertir bool a int para comparación con cache (que puede ser -1 = no inicializado)
     int iLights = lights ? 1 : 0;
     int iMedia = media ? 1 : 0;
@@ -270,7 +282,11 @@ void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
 }
 
 void Icons::drawBattery(float volts) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawBattery called but not initialized");
+        return;
+    }
     volts = constrain(volts, 0.0f, 99.9f);
     if(fabs(volts - lastBattery) < 0.1f) return; // no cambio significativo
     lastBattery = volts;
@@ -327,7 +343,11 @@ void Icons::drawBattery(float volts) {
 }
 
 void Icons::drawErrorWarning() {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawErrorWarning called but not initialized");
+        return;
+    }
     int count = System::getErrorCount();
     if(count == lastErrorCount) return;
     lastErrorCount = count;
@@ -360,7 +380,11 @@ void Icons::drawErrorWarning() {
 
 void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
                             uint8_t currentTotal, uint8_t tempTotal, uint8_t wheelTotal) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawSensorStatus called but not initialized");
+        return;
+    }
     
     // Solo redibujar si hay cambios (o primera vez)
     if(sensorsCacheInitialized && 
@@ -436,7 +460,11 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
 }
 
 void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawTempWarning called but not initialized");
+        return;
+    }
     
     // Solo redibujar si hay cambios significativos
     if(tempWarning == lastTempWarning && fabs(maxTemp - lastMaxTemp) < 1.0f) return;
@@ -460,7 +488,11 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
 static float lastAmbientTemp = -999.0f;
 
 void Icons::drawAmbientTemp(float ambientTemp) {
-    if(!initialized) return;
+    // 🔒 CRITICAL FIX: Double-check initialization to prevent crashes
+    if(!initialized || tft == nullptr) {
+        Serial.println("[ERROR] Icons::drawAmbientTemp called but not initialized");
+        return;
+    }
     
     // Solo redibujar si hay cambio significativo (>0.5°C)
     if(fabs(ambientTemp - lastAmbientTemp) < 0.5f) return;
