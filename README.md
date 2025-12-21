@@ -53,6 +53,9 @@ pio device monitor
 | `esp32-s3-devkitc-release` | **Producción** - Optimizado (-O3, sin debug) |
 | `esp32-s3-devkitc-touch-debug` | Debug de touch (logs verbosos) |
 | `esp32-s3-devkitc-no-touch` | Sin touch (diagnóstico SPI) |
+| `esp32-s3-test-incremental` | **Test incremental** - Añadir hardware paso a paso |
+
+> 💡 **Nuevo:** Usa `esp32-s3-test-incremental` para verificar la pantalla primero y luego añadir sensores progresivamente. Ver [docs/TEST_INCREMENTAL.md](docs/TEST_INCREMENTAL.md) para instrucciones detalladas.
 
 ## 📚 Documentación
 
@@ -68,6 +71,7 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 - **Hardware:** [docs/PIN_MAPPING_DEVKITC1.md](docs/PIN_MAPPING_DEVKITC1.md) | [docs/REFERENCIA_HARDWARE.md](docs/REFERENCIA_HARDWARE.md)
 - **Touch:** [docs/TOUCH_CALIBRATION_QUICK_GUIDE.md](docs/TOUCH_CALIBRATION_QUICK_GUIDE.md) | [docs/TOUCH_TROUBLESHOOTING.md](docs/TOUCH_TROUBLESHOOTING.md)
+- **Test Incremental:** [docs/TEST_INCREMENTAL.md](docs/TEST_INCREMENTAL.md) - Verificación paso a paso del hardware
 - **Códigos de Error:** [docs/CODIGOS_ERROR.md](docs/CODIGOS_ERROR.md)
 - **Sistema:** [docs/FIRMWARE_FINAL_STATUS.md](docs/FIRMWARE_FINAL_STATUS.md)
 

@@ -427,26 +427,41 @@ void setup() {
   Watchdog::feed();  // Feed after audio init
   bringupCheckpoint("Audio DFPlayer");
 
+  // Current Sensors - Conditional initialization for incremental testing
+#if defined(ENABLE_I2C_SENSORS) || !defined(STANDALONE_DISPLAY)
   Serial.println("[BOOT] Initializing Current Sensors (INA226)...");
   Sensors::initCurrent();
   Serial.printf("[STACK] After Current Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after current sensors init (I2C operations)
   bringupCheckpoint("Sensores de corriente INA226");
+#else
+  Serial.println("[BOOT] SKIPPING Current Sensors (not enabled in test config)");
+#endif
 
+  // Temperature Sensors - Conditional initialization for incremental testing
+#if defined(ENABLE_TEMP_SENSORS) || !defined(STANDALONE_DISPLAY)
   Serial.println("[BOOT] Initializing Temperature Sensors (DS18B20)...");
   Sensors::initTemperature();
   Serial.printf("[STACK] After Temperature Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after temperature sensors init
   bringupCheckpoint("Sensores de temperatura DS18B20");
+#else
+  Serial.println("[BOOT] SKIPPING Temperature Sensors (not enabled in test config)");
+#endif
 
+  // Wheel Sensors - Conditional initialization for incremental testing
+#if defined(ENABLE_WHEEL_SENSORS) || !defined(STANDALONE_DISPLAY)
   Serial.println("[BOOT] Initializing Wheel Sensors...");
   Sensors::initWheels();
   Serial.printf("[STACK] After Wheel Sensors - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after wheel sensors init
   bringupCheckpoint("Sensores de rueda");
+#else
+  Serial.println("[BOOT] SKIPPING Wheel Sensors (not enabled in test config)");
+#endif
 
   Serial.println("[BOOT] Initializing Pedal...");
   Pedal::init();
@@ -476,7 +491,8 @@ void setup() {
   Watchdog::feed();  // Feed after safety systems init
   bringupCheckpoint("ABS / TCS / Regenerativo");
 
-  // --- Obstacle Detection System ---
+  // --- Obstacle Detection System - Conditional initialization ---
+#if defined(ENABLE_OBSTACLE_DETECTION) || !defined(STANDALONE_DISPLAY)
   Serial.println("[BOOT] Initializing Obstacle Detection...");
   ObstacleDetection::init();
   Serial.printf("[STACK] After Obstacle Detection - Free: %d bytes\n",
@@ -487,6 +503,9 @@ void setup() {
   ObstacleSafety::init();
   Watchdog::feed();  // Feed after obstacle safety init
   bringupCheckpoint("Seguridad de obstáculos");
+#else
+  Serial.println("[BOOT] SKIPPING Obstacle Detection (not enabled in test config)");
+#endif
 
   // --- Telemetry System ---
   Serial.println("[BOOT] Initializing Telemetry...");
@@ -494,13 +513,17 @@ void setup() {
   Watchdog::feed();  // Feed after telemetry init
   bringupCheckpoint("Telemetría");
 
-  // --- Bluetooth Emergency Override Controller ---
+  // --- Bluetooth Emergency Override Controller - Conditional initialization ---
+#if defined(ENABLE_BLUETOOTH) || !defined(STANDALONE_DISPLAY)
   Serial.println("[BOOT] Initializing Bluetooth Controller...");
   BluetoothController::init();
   Serial.printf("[STACK] After Bluetooth - Free: %d bytes\n",
                 uxTaskGetStackHighWaterMark(NULL));
   Watchdog::feed();  // Feed after Bluetooth init
   bringupCheckpoint("Control Bluetooth");
+#else
+  Serial.println("[BOOT] SKIPPING Bluetooth (not enabled in test config)");
+#endif
 
   // Initial synchronization of inputs/sensors so HUD and checks start with
   // fresh data and aligned states
@@ -509,9 +532,15 @@ void setup() {
   Steering::update();
   Buttons::update();
   Shifter::update();
+#if defined(ENABLE_I2C_SENSORS) || !defined(STANDALONE_DISPLAY)
   Sensors::updateCurrent();
+#endif
+#if defined(ENABLE_TEMP_SENSORS) || !defined(STANDALONE_DISPLAY)
   Sensors::updateTemperature();
+#endif
+#if defined(ENABLE_WHEEL_SENSORS) || !defined(STANDALONE_DISPLAY)
   Sensors::updateWheels();
+#endif
   CarData syncedData = CarSensors::readAll();
   HUDManager::updateCarData(syncedData);
   HUDManager::update();
