@@ -119,7 +119,7 @@ class BuildVerifier:
                         continue
                     
                     # Look for definition like: Type ClassName::memberName = ...;
-                    definition_pattern = rf'\b{member_type}\s+{class_name}::{member_name}\s*='
+                    definition_pattern = rf'{re.escape(member_type)}\s+{class_name}::{member_name}\s*='
                     if not re.search(definition_pattern, cpp_content, re.MULTILINE):
                         # Check if it's a template or inline definition
                         inline_pattern = rf'static\s+{member_type}\s+{member_name}\s*='
