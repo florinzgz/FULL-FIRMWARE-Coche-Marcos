@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <project>
     <exclude>
-        <fileName>*FastLED*</fileName>
-        <fileName>*TFT_eSPI*</fileName>
-        <fileName>*.pio/libdeps/*</fileName>
+        <path>*FastLED*</path>
+        <path>*TFT_eSPI*</path>
+        <path>*.pio/libdeps/*</path>
     </exclude>
 </project>
