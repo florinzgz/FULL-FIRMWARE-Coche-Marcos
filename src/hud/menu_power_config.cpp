@@ -320,9 +320,8 @@ void MenuPowerConfig::testRelay(uint8_t relayId) {
 
 uint16_t MenuPowerConfig::mapTouchToValue(uint16_t touchX, uint16_t min, uint16_t max) {
     // 🔒 CRITICAL FIX: Validate inputs to prevent division by zero and invalid ranges
-    // 🔒 CRITICAL FIX: Validate inputs to prevent division by zero and invalid ranges
     if (max <= min) {
-        Logger::errorf("MenuPowerConfig: Invalid range min=%d max=%d", min, max);
+        Logger::errorf("MenuPowerConfig: Invalid range min=%u max=%u", min, max);
         return min;  // Safe fallback
     }
     
