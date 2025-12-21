@@ -248,6 +248,14 @@ void setup() {
     // 8. Initialize HUD Manager (display + touch)
     HUDManager::init();
     Watchdog::feed();
+    if (!HUDManager::initOK()) {
+        Logger::error("HUD initialization failed; entering safe halt state");
+        // Critical failure: stop further initialization to avoid undefined behavior.
+        while (true) {
+            Watchdog::feed();
+            delay(100);
+        }
+    }
     Logger::info("HUD initialized");
     
     // Show logo during initialization
