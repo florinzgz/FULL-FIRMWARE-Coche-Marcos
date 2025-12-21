@@ -17,7 +17,6 @@ Checks performed:
 - Build output integrity (.o files exist)
 """
 
-import os
 import re
 import sys
 from pathlib import Path
