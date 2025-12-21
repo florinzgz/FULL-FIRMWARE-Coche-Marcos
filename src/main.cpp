@@ -136,7 +136,7 @@ static CarData generateSimulatedData(uint32_t now) {
 void setup() {
     // Initialize serial
     Serial.begin(115200);
-    delay(100);
+    yield();  // Allow serial to stabilize without blocking
     Serial.println();
     Serial.println("========================================");
     Serial.println("ESP32-S3 Car Control - STANDALONE MODE");
