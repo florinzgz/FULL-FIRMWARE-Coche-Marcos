@@ -302,8 +302,9 @@ void setup() {
     // 14. Initialize Audio (if enabled)
     if (cfg.audioEnabled) {
         Logger::info("Initializing audio system...");
-        Audio::DFPlayer::init();
-        Alerts::init();
+        Audio::DFPlayer::init();      // Initialize DFPlayer first
+        Audio::AudioQueue::init();    // Initialize audio queue
+        Alerts::init();                // Initialize alerts last
         Watchdog::feed();
     } else {
         Logger::info("Audio disabled by configuration");
@@ -446,6 +447,7 @@ void loop() {
         // Update audio (if enabled)
         if (cfg.audioEnabled) {
             Audio::DFPlayer::update();
+            Audio::AudioQueue::update();
         }
         
         // Update HUD with latest sensor data
