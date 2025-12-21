@@ -94,6 +94,7 @@ Este directorio contiene toda la documentación técnica, manuales y configuraci
 | [NON_BLOCKING_TIMING.md](NON_BLOCKING_TIMING.md) | Arquitectura de temporización non-blocking con millis() |
 | [STANDALONE_MODE.md](STANDALONE_MODE.md) | Modo standalone para pruebas de pantalla sin hardware |
 | [GUIA_PRUEBAS_INCREMENTALES.md](GUIA_PRUEBAS_INCREMENTALES.md) | Guía paso a paso - Cómo probar pantalla y añadir funcionalidades gradualmente |
+| [TEST_INCREMENTAL.md](TEST_INCREMENTAL.md) | **🆕 v2.11.0+** Guía completa de test incremental con environment `esp32-s3-test-incremental` - Verificación paso a paso del hardware |
 
 ---
 
@@ -214,8 +215,11 @@ pio device monitor
 | `esp32-s3-devkitc-release` | Producción optimizada (recomendado) |
 | `esp32-s3-devkitc-touch-debug` | Debug de touch con logs verbosos |
 | `esp32-s3-devkitc-no-touch` | Sin soporte touch (para diagnóstico SPI) |
+| `esp32-s3-test-incremental` | **🆕 v2.11.0+** Test incremental - Añadir hardware paso a paso |
 
 > **Nota v2.11.0:** Entornos WiFi/OTA y test fueron removidos. El firmware ahora es 100% standalone.
+> 
+> **Nuevo:** Usa `esp32-s3-test-incremental` para verificar la pantalla primero y luego añadir sensores progresivamente. Ver [TEST_INCREMENTAL.md](TEST_INCREMENTAL.md).
 
 ---
 
