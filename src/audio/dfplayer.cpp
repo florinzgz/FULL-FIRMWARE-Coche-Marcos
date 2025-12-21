@@ -2,19 +2,27 @@
 #include "logger.h"
 #include "queue.h"
 #include "system.h"   // para logError()
+#include "pins.h"     // para PIN_DFPLAYER_TX y PIN_DFPLAYER_RX
 #include <DFRobotDFPlayerMini.h>
+#include <HardwareSerial.h>
 
 using namespace Audio;
 
-// DFPlayer instance and Serial2 for communication
+// DFPlayer instance and Serial for communication
 static DFRobotDFPlayerMini dfPlayer;
+static HardwareSerial DFSerial(0);  // UART0 for DFPlayer
 
 // Flag de inicialización
 static bool initialized = false;
 
 void Audio::DFPlayer::init() {
+    // Initialize Serial port for DFPlayer on UART0 pins
+    // Note: This uses the same hardware UART as USB Serial (pins 43/44)
+    // In production, Serial debugging may need to be disabled
+    DFSerial.begin(9600, SERIAL_8N1, PIN_DFPLAYER_RX, PIN_DFPLAYER_TX);
+    
     // Initialize DFPlayer with actual hardware check
-    bool ok = dfPlayer.begin(Serial2);  // Actual initialization result
+    bool ok = dfPlayer.begin(DFSerial);  // Actual initialization result
     if (!ok) {
         Logger::errorf("DFPlayer init failed");
         System::logError(700); // código reservado: fallo init
@@ -54,13 +62,21 @@ void Audio::DFPlayer::play(uint16_t track) {
 void Audio::DFPlayer::update() {
     if(!initialized) return;
 
-    // Check for errors from DFPlayer
+    // Check for messages from DFPlayer
     if (dfPlayer.available()) {
-        uint8_t error_code = dfPlayer.readType();  // Read actual error
-        if (error_code == DFPlayerError) {
-            int errorDetail = dfPlayer.read();
-            Logger::errorf("DFPlayer error: %d", errorDetail);
-            System::logError(702 + errorDetail);
+        uint8_t type = dfPlayer.readType();  // Read message type
+        int value = dfPlayer.read();         // Read message value
+        
+        // Log errors (types >= 0x01 are typically errors/notifications)
+        // Common error types: Busy, Sleeping, SerialWrong, CheckSum, FileIndex, etc.
+        if (type != 0 && type != 0x3D && type != 0x3F) {  // Ignore DFPlayerPlayFinished and normal feedback
+            Logger::infof("DFPlayer message - Type: 0x%02X, Value: %d", type, value);
+            
+            // Log specific error codes if they indicate problems
+            if (type == 0x01 || type == 0x02) {  // Error or status messages
+                Logger::errorf("DFPlayer error - Type: 0x%02X, Value: %d", type, value);
+                System::logError(702 + type);
+            }
         }
     }
 
