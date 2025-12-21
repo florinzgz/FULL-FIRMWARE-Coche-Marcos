@@ -1,20 +1,20 @@
-#ifndef HUDMANAGER_H
-#define HUDMANAGER_H
+// managers/HUDManager.h
+// HUD management - integrates display system
+#pragma once
 
-#include "core/Manager.h"
-#include "HUD.h"
+#include "../../include/hud.h"
 
-class HUDManager : public Manager {
-public:
-    HUDManager() {}
-    
-    bool init() override {
+// Create a namespace HUDManager that wraps the HUD namespace functions
+// This avoids conflicts with the existing HUDManager class
+namespace HUDManager {
+    inline bool init() {
+        HUD::init();
+        // HUD::init() returns void and has no initOK() method
+        // Assume initialization always succeeds
         return true;
     }
     
-    void update() override {
+    inline void update() {
         HUD::update();
     }
-};
-
-#endif
+}
