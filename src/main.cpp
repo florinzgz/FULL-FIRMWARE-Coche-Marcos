@@ -176,10 +176,10 @@ void setup() {
         Serial.println("[INIT] Self-test PASSED");
         HUDManager::showReady();
         Relays::enablePower();
-        HUDManager::showMenu(0);  // Show dashboard
+        HUDManager::showMenu(MenuType::DASHBOARD);  // Show dashboard
     } else {
         Serial.println("[INIT] Self-test FAILED");
-        HUDManager::showError();
+        HUDManager::showError("System self-test failed");
     }
     
     Watchdog::feed();
