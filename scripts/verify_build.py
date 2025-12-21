@@ -225,7 +225,9 @@ class BuildVerifier:
             print(f"  {Colors.YELLOW}⚠{Colors.RESET} No build directory found - run 'pio run' first")
             return True
         
-        build_dir = build_dirs[0].parent
+        # Select the most recently modified build/src directory
+        latest_src_dir = max(build_dirs, key=lambda p: p.stat().st_mtime)
+        build_dir = latest_src_dir.parent
         src_cpp_files = list(self.project_root.glob("src/**/*.cpp"))
         missing_objects = []
         
