@@ -13,6 +13,10 @@
 #include "managers/ModeManager.h"
 #include "managers/SafetyManager.h"
 
+// Include core system components for proper boot sequence
+#include "system.h"
+#include "storage.h"
+
 // Forward declarations
 void initializeSystem();
 void handleCriticalError(const char* errorMsg);
@@ -28,11 +32,23 @@ void setup() {
     Serial.print("[BOOT] Firmware version: ");
     Serial.println(FIRMWARE_VERSION);
 
-    // Initialize watchdog timer first
-    Watchdog::init(WATCHDOG_TIMEOUT_MS);
+    // Critical boot sequence - DO NOT CHANGE ORDER
+    // 1. Initialize core system state
+    System::init();
+    
+    // 2. Initialize storage (EEPROM/config)
+    Storage::init();
+    
+    // 3. Initialize watchdog timer
+    Watchdog::init();
+    Watchdog::feed();
+    
+    // 4. Initialize logger
+    Logger::init();
+    Logger::info("Boot sequence started");
     Watchdog::feed();
 
-    // Perform full system initialization
+    // 5. Perform full system initialization
     initializeSystem();
 
     Serial.println("[BOOT] System initialization complete");
@@ -60,20 +76,10 @@ void loop() {
     HUDManager::update();
 
     // Small delay to prevent CPU hogging
-    pinMode(PIN_TFT_RST, OUTPUT);
-    digitalWrite(PIN_TFT_RST, LOW);
-    uint32_t rstStart = millis();
-    while (millis() - rstStart < 10) yield();
-    digitalWrite(PIN_TFT_RST, HIGH);
-    while (millis() - rstStart < 60) yield();
+    delay(SYSTEM_TICK_MS);
+}
+
 void initializeSystem() {
-    Watchdog::feed();
-    
-    // Initialize Logger
-    Serial.println("[INIT] Logger initialization...");
-    Logger::init(LOG_LEVEL);
-    Logger::info("Logger initialized");
-    
     Watchdog::feed();
     
     // Initialize Power Manager
