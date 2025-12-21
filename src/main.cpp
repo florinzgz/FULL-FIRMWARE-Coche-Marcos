@@ -187,6 +187,7 @@ void loop() {
     uint32_t elapsed = now - lastFrameMs;
     if (elapsed < FRAME_TIME_MS) {
         yield();
+        return;
     }
     lastFrameMs = now;
     
