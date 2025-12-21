@@ -23,6 +23,12 @@ enum class OperationMode {
 };
 
 namespace SystemMode {
+    /**
+     * @brief Estado interno del modo de operación actual.
+     * @warning No acceder directamente a esta variable desde el código de usuario.
+     *          Utilizar siempre getMode() y setMode() para leer o modificar el modo.
+     *          La presencia y visibilidad de esta variable pueden cambiar en el futuro.
+     */
     extern OperationMode currentMode;
     
     /**
