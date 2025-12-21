@@ -761,12 +761,6 @@ static void drawSteeringWheel(float angleDeg) {
     tft.drawString(buf, cx, textY, 2);
 }
 
-// DEPRECATED: Mantener compatibilidad con nombre anterior
-// 🔒 v2.10.3: Kept for API stability - wrapper function is lightweight
-static void drawSteeringAngle(float angleDeg) {
-    drawSteeringWheel(angleDeg);
-}
-
 void HUD::drawPedalBar(float pedalPercent) {
     const int y = 300;       // Posición vertical
     const int height = 18;   // Altura de la barra
@@ -1005,7 +999,7 @@ void HUD::update() {
     
     // Mostrar ángulo del volante en grados (promedio de FL/FR)
     float avgSteerAngle = (steerAngleFL + steerAngleFR) / 2.0f;
-    drawSteeringAngle(avgSteerAngle);
+    drawSteeringWheel(avgSteerAngle);
 
     // Iconos y estados
     Icons::drawSystemState(sys);
