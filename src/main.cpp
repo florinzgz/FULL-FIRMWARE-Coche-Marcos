@@ -182,8 +182,7 @@ void loop() {
     // Frame rate limiting
     uint32_t elapsed = now - lastFrameMs;
     if (elapsed < FRAME_TIME_MS) {
-        delay(1);
-        return;
+        yield();
     }
     lastFrameMs = now;
     
