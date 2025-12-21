@@ -11,7 +11,13 @@ namespace SafetyManager {
         ABSSystem::init();
         TCSSystem::init();
         ObstacleSafety::init();
-        return true;
+        
+        // Verify critical safety systems initialized correctly
+        bool absOK = ABSSystem::initOK();
+        bool tcsOK = TCSSystem::initOK();
+        
+        // ObstacleSafety may not have initOK(), so we only check ABS/TCS
+        return absOK && tcsOK;
     }
     
     inline void update() {
