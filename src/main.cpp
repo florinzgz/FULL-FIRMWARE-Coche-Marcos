@@ -549,7 +549,38 @@ void setup() {
   } 
   else if (mode == OperationMode::MODE_SAFE) {
     Serial.println("[BOOT] Self-test FAILED - MODE_SAFE (critical failures)!");
-    HUDManager::showWarning("Modo seguro - funcionalidad limitada");
+    // Construir mensaje más específico para el HUD indicando qué falló
+    String safeMsg = "Modo seguro - ";
+    bool anyFailure = false;
+
+    if (!health.steeringOK || !health.currentOK || !health.tempsOK || !health.wheelsOK) {
+      safeMsg += "fallos en: ";
+      bool first = true;
+      if (!health.steeringOK) {
+        safeMsg += first ? "dirección" : ", dirección";
+        first = false;
+      }
+      if (!health.currentOK) {
+        safeMsg += first ? "corriente" : ", corriente";
+        first = false;
+      }
+      if (!health.tempsOK) {
+        safeMsg += first ? "temperatura" : ", temperatura";
+        first = false;
+      }
+      if (!health.wheelsOK) {
+        safeMsg += first ? "ruedas" : ", ruedas";
+        first = false;
+      }
+      anyFailure = true;
+    }
+
+    if (!anyFailure) {
+      // Fallback al mensaje genérico si no se detecta un fallo específico
+      safeMsg = "Modo seguro - funcionalidad limitada";
+    }
+
+    HUDManager::showWarning(safeMsg);
     Alerts::play(Audio::AUDIO_ERROR);
     // NO habilitar motores, solo monitoreo
     Logger::warn("Sistema en modo seguro - solo monitoreo");
