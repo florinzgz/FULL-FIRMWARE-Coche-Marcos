@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<project version="1">
+    <suppressions>
+        <suppression>
+            <fileName>*FastLED*</fileName>
+        </suppression>
+        <suppression>
+            <fileName>*TFT_eSPI*</fileName>
+        </suppression>
+        <suppression>
+            <fileName>*.pio/libdeps/*</fileName>
+        </suppression>
+        <suppression>
+            <fileName>*.pio/*</fileName>
+        </suppression>
+    </suppressions>
+</project>
