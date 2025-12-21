@@ -9,6 +9,7 @@
 using namespace Audio;
 
 // DFPlayer message type constants (from DFRobotDFPlayerMini library)
+constexpr uint8_t DFPLAYER_MSG_NONE = 0x00;
 constexpr uint8_t DFPLAYER_MSG_ERROR = 0x01;
 constexpr uint8_t DFPLAYER_MSG_STATUS = 0x02;
 constexpr uint8_t DFPLAYER_MSG_PLAY_FINISHED = 0x3D;
@@ -24,8 +25,10 @@ static bool initialized = false;
 void Audio::DFPlayer::init() {
     // Initialize Serial port for DFPlayer on UART0 pins (GPIO 43/44)
     // ⚠️ WARNING: UART0 is shared with USB Serial for debugging
-    // In production deployment with audio enabled, USB Serial debugging may interfere
-    // Consider disabling Serial debug output if audio issues occur
+    // This means:
+    //   - Serial.print() debug output may interfere with DFPlayer communication
+    //   - Serial Monitor must be closed during audio playback in some cases
+    //   - In production deployment, consider disabling Serial debugging entirely
     DFSerial.begin(9600, SERIAL_8N1, PIN_DFPLAYER_RX, PIN_DFPLAYER_TX);
     
     // Initialize DFPlayer with actual hardware check
@@ -76,7 +79,7 @@ void Audio::DFPlayer::update() {
         
         // Log errors (types >= 0x01 are typically errors/notifications)
         // Ignore normal playback feedback messages
-        if (type != 0 && type != DFPLAYER_MSG_PLAY_FINISHED && type != DFPLAYER_MSG_FEEDBACK) {
+        if (type != DFPLAYER_MSG_NONE && type != DFPLAYER_MSG_PLAY_FINISHED && type != DFPLAYER_MSG_FEEDBACK) {
             Logger::infof("DFPlayer message - Type: 0x%02X, Value: %d", type, value);
             
             // Log specific error codes if they indicate problems
