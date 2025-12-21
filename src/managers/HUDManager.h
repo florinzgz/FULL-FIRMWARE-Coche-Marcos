@@ -9,7 +9,7 @@
 namespace HUDManager {
     inline bool init() {
         HUD::init();
-        return true;
+        return HUD::initOK();
     }
     
     inline void update() {
