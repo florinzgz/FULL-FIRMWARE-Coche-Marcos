@@ -7,7 +7,7 @@
 namespace PowerManager {
     inline bool init() {
         PowerMgmt::init();
-        return true;
+        return PowerMgmt::initOK();
     }
     
     inline void update() {
