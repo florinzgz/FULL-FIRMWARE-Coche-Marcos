@@ -38,23 +38,30 @@ void Sensors::initTemperature() {
         Logger::warnf("DS18B20: detectados %d, esperados %d", count, NUM_TEMPS);
     }
 
-    // Timeout para inicialización completa
-    const uint32_t INIT_TIMEOUT_MS = 3000;
-    uint32_t startTime = millis();
+    // Timeout per-sensor para prevenir bloqueo en un sensor lento
+    // pero permitir que sensores subsecuentes se inicialicen
+    const uint32_t PER_SENSOR_TIMEOUT_MS = 500;  // 500ms por sensor
 
     // 🔒 CORRECCIÓN 4.1: Almacenar direcciones ROM específicas
     // Usar el mínimo para evitar buffer overflow
     int sensorsToInit = (count < NUM_TEMPS) ? count : NUM_TEMPS;
 
     for(int i = 0; i < sensorsToInit; i++) {
-        // Verificar timeout global
-        if (millis() - startTime > INIT_TIMEOUT_MS) {
-            Logger::warn("DS18B20 init timeout - continuando con sensores parciales");
-            break;
-        }
+        uint32_t sensorStartTime = millis();  // Tiempo de inicio para este sensor
         
         // Obtener dirección ROM del sensor
-        if (sensors.getAddress(tempSensorAddrs[i], i)) {
+        bool gotAddress = sensors.getAddress(tempSensorAddrs[i], i);
+        uint32_t addressDuration = millis() - sensorStartTime;
+        
+        if (addressDuration > PER_SENSOR_TIMEOUT_MS) {
+            Logger::warnf("DS18B20 %d getAddress timeout (%u ms) - continuando", i, addressDuration);
+            addressesStored[i] = false;
+            sensorOk[i] = false;
+            lastTemp[i] = 0.0f;
+            continue;
+        }
+        
+        if (gotAddress) {
             // Configurar resolución máxima (12-bit = 0.0625°C, 750ms conversión)
             sensors.setResolution(tempSensorAddrs[i], 12);
             

@@ -98,6 +98,11 @@ static const int CAR_BODY_Y = 100;      // Car body top edge
 static const int CAR_BODY_W = 130;      // Car body width
 static const int CAR_BODY_H = 150;      // Car body height
 
+// Operation mode indicator position (centered horizontally, bottom of screen)
+// Position chosen to be below main content but above pedal bar
+static const int MODE_INDICATOR_X = 240;  // Horizontal center of 480px display
+static const int MODE_INDICATOR_Y = 300;  // Above pedal bar (which starts ~305px)
+
 // Car body detail dimensions (used in drawCarBody)
 static const int CAR_HOOD_OFFSET = 15;           // Hood/trunk X offset from body edge
 static const int CAR_HOOD_WIDTH_REDUCTION = 30;  // Hood/trunk width reduction (2x offset)
@@ -1031,7 +1036,7 @@ void HUD::update() {
     if (mode != OperationMode::MODE_FULL) {
         tft.setTextDatum(MC_DATUM);
         tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft.drawString(SystemMode::getModeName(), 240, 300, 2);
+        tft.drawString(SystemMode::getModeName(), MODE_INDICATOR_X, MODE_INDICATOR_Y, 2);
     }
     #endif
 

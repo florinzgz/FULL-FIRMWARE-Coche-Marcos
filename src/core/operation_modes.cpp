@@ -11,7 +11,15 @@ namespace SystemMode {
     }
     
     void setMode(OperationMode mode) {
-        if (currentMode != mode) {
+        // Siempre loggear intentos de cambiar a MODE_SAFE para diagnóstico
+        if (mode == OperationMode::MODE_SAFE) {
+            if (currentMode == OperationMode::MODE_SAFE) {
+                Logger::warn("SystemMode: Intento adicional de cambiar a SAFE (ya en SAFE) - indica fallo crítico múltiple");
+            } else {
+                currentMode = mode;
+                Logger::errorf("SystemMode: Cambiado a %s - fallo crítico detectado", getModeName());
+            }
+        } else if (currentMode != mode) {
             currentMode = mode;
             Logger::infof("SystemMode: Changed to %s", getModeName());
         }
