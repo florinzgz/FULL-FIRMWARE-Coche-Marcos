@@ -128,7 +128,21 @@ void Sensors::initCurrent() {
             sensorOk[i] = false;
             // NO marcar allOk como falso aquí: fallo no crítico, sistema continúa degradado
             // NO llamar a System::logError() - solo warning
-            // El sistema puede continuar sin este sensor específico
+            // El sistema puede continuar sin este sensor específico.
+            //
+            // IMPORTANTE SOBRE RECUPERACIÓN I²C:
+            // Históricamente aquí se intentaba una recuperación del bus
+            // (p.ej. I2CRecovery::reinitSensor()) cuando el INA226 no
+            // inicializaba correctamente. Esa lógica se retiró porque:
+            //   - Podía bloquear la tarea durante demasiado tiempo.
+            //   - Interfiere con otros dispositivos que comparten el bus.
+            //   - La recuperación global del bus se maneja ahora en un
+            //     nivel superior y no en el path de inicialización local.
+            //
+            // Si en el futuro se reintroduce recuperación aquí, debe ser:
+            //   - No bloqueante (o con timeout bien definido).
+            //   - Segura frente a accesos concurrentes (respetar i2cMutex).
+            //   - Limitada en reintentos para evitar bucles infinitos.
         } else {
             // Configurar shunt según canal:
             // Canal 4 = batería (100A), resto = motores (50A)
