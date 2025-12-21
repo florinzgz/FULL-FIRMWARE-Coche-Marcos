@@ -268,7 +268,11 @@ void setup() {
     
     // Show logo during initialization
     HUDManager::showLogo();
-    delay(1000);  // Show logo briefly
+    uint32_t logoStart = millis();
+    while (millis() - logoStart < 1000) {
+        Watchdog::feed();
+        yield();
+    }
     Watchdog::feed();
     
     // 9. Initialize Sensors
