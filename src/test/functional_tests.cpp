@@ -17,7 +17,6 @@
 #include "abs_system.h"
 #include "tcs_system.h"
 #include "i2c_recovery.h"
-#include "bluetooth_controller.h"
 #include "storage.h"
 #include "pins.h"
 #include <TFT_eSPI.h>
@@ -364,18 +363,10 @@ bool testI2CBus() {
 }
 
 bool testBluetoothConnection() {
-    // Test Bluetooth system
-    // Verify BT module is responsive
-    
-    // Check if Bluetooth is connected or at least initialized
-    // We can test connection status (may be false if not paired, but shouldn't crash)
-    bool btOk = true;
-    
-    // Just call isConnected() to verify the function works
-    bool connected = BluetoothController::isConnected();
-    (void)connected;  // Unused variable is OK - we just want to verify it doesn't crash
-    
-    return btOk;
+    // Bluetooth has been removed from firmware
+    // This test is now a no-op and always passes
+    Logger::info("FuncTest: Bluetooth removed - test skipped");
+    return true;
 }
 
 
