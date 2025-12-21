@@ -1,175 +1,89 @@
-// main.cpp - Entry point for the vehicle firmware
-// Handles initialization, mode management, and main control loop
-
 #include <Arduino.h>
-#include "core/SystemConfig.h"
-#include "core/Watchdog.h"
-#include "core/Logger.h"
-#include "managers/PowerManager.h"
-#include "managers/SensorManager.h"
-#include "managers/ControlManager.h"
-#include "managers/TelemetryManager.h"
-#include "managers/HUDManager.h"
-#include "managers/ModeManager.h"
-#include "managers/SafetyManager.h"
+#include "config.h"
+#include "system.h"
+#include "storage.h"
+#include "watchdog.h"
+#include "logger.h"
+#include "network.h"
+#include "mqtt.h"
+#include "sensors.h"
+#include "actuators.h"
+#include "dashboard.h"
 
 // Forward declarations
 void initializeSystem();
-void handleCriticalError(const char* errorMsg);
+void mainLoop();
 
 void setup() {
-    // Initialize serial early for debugging
     Serial.begin(115200);
-    while (!Serial && millis() < 2000) {
-        ; // Wait up to 2 seconds for serial to connect
-    }
+    delay(1000);
     
-    Serial.println("[BOOT] Starting vehicle firmware...");
-    Serial.print("[BOOT] Firmware version: ");
-    Serial.println(FIRMWARE_VERSION);
-
-    // Initialize watchdog timer first
+    Serial.println("=================================");
+    Serial.println("FULL FIRMWARE - Coche Marcos");
+    Serial.println("Version: " FIRMWARE_VERSION);
+    Serial.println("=================================");
+    
+    // Critical initialization sequence
+    System::init();
+    Storage::init();
     Watchdog::init();
     Watchdog::feed();
-
-    // Perform full system initialization
+    Logger::init();
+    Logger::info("Boot sequence started");
+    Watchdog::feed();
+    
     initializeSystem();
-
-    Serial.println("[BOOT] System initialization complete");
-    Logger::info("Vehicle firmware ready");
 }
 
 void loop() {
-    // Feed watchdog at the start of each loop
-    Watchdog::feed();
-
-    // Update all managers in sequence
-    PowerManager::update();
-    SensorManager::update();
-    SafetyManager::update();
-    
-    // Get current mode and execute mode-specific logic
-    VehicleMode currentMode = ModeManager::getCurrentMode();
-    ModeManager::update();
-    
-    // Control updates based on current mode
-    ControlManager::update();
-    
-    // Update telemetry and HUD
-    TelemetryManager::update();
-    HUDManager::update();
-
-    // Small delay to prevent CPU hogging
-    pinMode(PIN_TFT_RST, OUTPUT);
-    digitalWrite(PIN_TFT_RST, LOW);
-    uint32_t rstStart = millis();
-    while (millis() - rstStart < 10) yield();
-    digitalWrite(PIN_TFT_RST, HIGH);
-    while (millis() - rstStart < 60) yield();
+    mainLoop();
 }
 
 void initializeSystem() {
+    Logger::info("Initializing system components...");
     Watchdog::feed();
     
-    // Initialize Logger
-    Serial.println("[INIT] Logger initialization...");
-    Logger::init();
-    Logger::info("Logger initialized");
-    
+    // Initialize network
+    Network::init();
     Watchdog::feed();
     
-    // Initialize Power Manager
-    Serial.println("[INIT] Power Manager initialization...");
-    if (!PowerManager::init()) {
-        handleCriticalError("Power Manager initialization failed");
-    }
-    Logger::info("Power Manager initialized");
-    
+    // Initialize MQTT
+    MQTT::init();
     Watchdog::feed();
     
-    // Initialize Sensor Manager
-    Serial.println("[INIT] Sensor Manager initialization...");
-    if (!SensorManager::init()) {
-        handleCriticalError("Sensor Manager initialization failed");
-    }
-    Logger::info("Sensor Manager initialized");
-    
+    // Initialize sensors
+    Sensors::init();
     Watchdog::feed();
     
-    // Initialize Safety Manager
-    Serial.println("[INIT] Safety Manager initialization...");
-    if (!SafetyManager::init()) {
-        handleCriticalError("Safety Manager initialization failed");
-    }
-    Logger::info("Safety Manager initialized");
-    
+    // Initialize actuators
+    Actuators::init();
     Watchdog::feed();
     
-    // Initialize HUD Manager
-    Serial.println("[INIT] HUD Manager initialization...");
-    if (!HUDManager::init()) {
-        Watchdog::feed();
-        Logger::error("HUD initialization failed; entering safe halt state");
-        // Critical failure: stop further initialization to avoid undefined behavior.
-        uint32_t lastFeed = millis();
-        while (true) {
-            if (millis() - lastFeed >= 100) {
-                lastFeed = millis();
-                Watchdog::feed();
-            }
-            yield();
-        }
-    }
-    Logger::info("HUD initialized");
-    
+    // Initialize dashboard
+    Dashboard::init();
     Watchdog::feed();
     
-    // Initialize Control Manager
-    Serial.println("[INIT] Control Manager initialization...");
-    if (!ControlManager::init()) {
-        handleCriticalError("Control Manager initialization failed");
-    }
-    Logger::info("Control Manager initialized");
-    
-    Watchdog::feed();
-    
-    // Initialize Telemetry Manager
-    Serial.println("[INIT] Telemetry Manager initialization...");
-    if (!TelemetryManager::init()) {
-        handleCriticalError("Telemetry Manager initialization failed");
-    }
-    Logger::info("Telemetry Manager initialized");
-    
-    Watchdog::feed();
-    
-    // Initialize Mode Manager (must be last as it depends on other managers)
-    Serial.println("[INIT] Mode Manager initialization...");
-    if (!ModeManager::init()) {
-        handleCriticalError("Mode Manager initialization failed");
-    }
-    Logger::info("Mode Manager initialized");
-    
-    Watchdog::feed();
+    Logger::info("System initialization complete");
 }
 
-void handleCriticalError(const char* errorMsg) {
+void mainLoop() {
     Watchdog::feed();
     
-    // Log the error
-    Serial.print("[CRITICAL ERROR] ");
-    Serial.println(errorMsg);
-    Logger::error(errorMsg);
+    // Update network connection
+    Network::update();
     
-    // Enter safe state - continuous watchdog feeding to prevent reset
-    // This allows debugging while keeping the system in a known state
-    Serial.println("[CRITICAL ERROR] Entering safe halt state");
+    // Update MQTT connection
+    MQTT::update();
     
-    uint32_t lastFeed = millis();
-    while (true) {
-        if (millis() - lastFeed >= 100) {
-            lastFeed = millis();
-            Watchdog::feed();
-        }
-        yield(); // Allow background tasks
-    }
+    // Read sensors
+    Sensors::update();
+    
+    // Update actuators
+    Actuators::update();
+    
+    // Update dashboard
+    Dashboard::update();
+    
+    Watchdog::feed();
+    delay(10);
 }
