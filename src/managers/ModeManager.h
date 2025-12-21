@@ -8,7 +8,6 @@
 enum class VehicleMode {
     IDLE,
     DRIVE,
-    REVERSE,
     PARK
 };
 
