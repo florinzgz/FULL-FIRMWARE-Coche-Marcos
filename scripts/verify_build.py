@@ -115,7 +115,8 @@ class BuildVerifier:
                 
                 for member_type, member_name in static_members:
                     # Skip constexpr members (defined in header)
-                    if f'constexpr' in class_body and member_name in class_body:
+                    constexpr_pattern = rf'static\s+constexpr\s+{member_type}\s+{member_name}\s*='
+                    if re.search(constexpr_pattern, class_body):
                         continue
                     
                     # Look for definition like: Type ClassName::memberName = ...;
