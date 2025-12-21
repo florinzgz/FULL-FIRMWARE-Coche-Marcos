@@ -90,18 +90,17 @@ void Sensors::initCurrent() {
         }
     }
     
-    // Timeout para inicialización completa
-    const uint32_t INIT_TIMEOUT_MS = 5000;
-    uint32_t startTime = millis();
+    // Nota: se eliminó el timeout global de inicialización para evitar
+    // saltarse la configuración de sensores restantes si algunos canales
+    // inicializan más lento de lo esperado.
     
     bool allOk = true;
 
     for(int i=0; i<NUM_CURRENTS; i++) {
-        // Verificar timeout global
-        if (millis() - startTime > INIT_TIMEOUT_MS) {
-            Logger::warn("INA226 init timeout - continuando con sensores parciales");
-            break;
-        }
+        
+        
+        
+        
         
         // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
         // Delete existing INA226 objects before creating new ones
