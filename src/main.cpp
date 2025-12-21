@@ -393,8 +393,7 @@ void loop() {
     uint32_t elapsed = now - lastFrameMs;
     if (elapsed < FRAME_TIME_MS) {
         // Not time for next frame yet - yield and return
-        delay(1);
-        return;
+        yield();
     }
     lastFrameMs = now;
     
