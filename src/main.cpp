@@ -427,6 +427,15 @@ void setup() {
   Watchdog::feed();  // Feed after audio init
   bringupCheckpoint("Audio DFPlayer");
 
+  // ========================================================================
+  // CONDITIONAL MODULE INITIALIZATION (for esp32-s3-test-incremental)
+  // ========================================================================
+  // Logic: Modules are initialized if:
+  //   - Their specific ENABLE_xxx flag is defined, OR
+  //   - STANDALONE_DISPLAY is NOT defined (full mode)
+  // This allows incremental testing by enabling modules one at a time
+  // ========================================================================
+
   // Current Sensors - Conditional initialization for incremental testing
 #if defined(ENABLE_I2C_SENSORS) || !defined(STANDALONE_DISPLAY)
   Serial.println("[BOOT] Initializing Current Sensors (INA226)...");
