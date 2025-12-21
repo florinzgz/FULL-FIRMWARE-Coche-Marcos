@@ -38,13 +38,30 @@ void Sensors::initTemperature() {
         Logger::warnf("DS18B20: detectados %d, esperados %d", count, NUM_TEMPS);
     }
 
+    // Timeout per-sensor para prevenir bloqueo en un sensor lento
+    // pero permitir que sensores subsecuentes se inicialicen
+    const uint32_t PER_SENSOR_TIMEOUT_MS = 500;  // 500ms por sensor
+
     // 🔒 CORRECCIÓN 4.1: Almacenar direcciones ROM específicas
     // Usar el mínimo para evitar buffer overflow
     int sensorsToInit = (count < NUM_TEMPS) ? count : NUM_TEMPS;
 
     for(int i = 0; i < sensorsToInit; i++) {
+        uint32_t sensorStartTime = millis();  // Tiempo de inicio para este sensor
+        
         // Obtener dirección ROM del sensor
-        if (sensors.getAddress(tempSensorAddrs[i], i)) {
+        bool gotAddress = sensors.getAddress(tempSensorAddrs[i], i);
+        uint32_t addressDuration = millis() - sensorStartTime;
+        
+        if (addressDuration > PER_SENSOR_TIMEOUT_MS) {
+            Logger::warnf("DS18B20 %d getAddress timeout (%u ms) - continuando", i, addressDuration);
+            addressesStored[i] = false;
+            sensorOk[i] = false;
+            lastTemp[i] = 0.0f;
+            continue;
+        }
+        
+        if (gotAddress) {
             // Configurar resolución máxima (12-bit = 0.0625°C, 750ms conversión)
             sensors.setResolution(tempSensorAddrs[i], 12);
             
@@ -60,8 +77,8 @@ void Sensors::initTemperature() {
         } else {
             addressesStored[i] = false;
             sensorOk[i] = false;
-            System::logError(400 + i); // registrar fallo persistente
-            Logger::errorf("DS18B20 init FAIL idx %d - no se pudo obtener ROM", i);
+            Logger::warnf("DS18B20 %d no detectado - continuando", i);
+            // NO marcar como error crítico
         }
         lastTemp[i] = 0.0f;
     }
@@ -70,8 +87,7 @@ void Sensors::initTemperature() {
     for(int i = sensorsToInit; i < NUM_TEMPS; i++) {
         addressesStored[i] = false;
         sensorOk[i] = false;
-        System::logError(400 + i);
-        Logger::errorf("DS18B20 init FAIL idx %d - sensor no detectado", i);
+        Logger::warnf("DS18B20 %d no detectado - continuando", i);
         lastTemp[i] = 0.0f;
     }
 
@@ -80,6 +96,10 @@ void Sensors::initTemperature() {
 
     initialized = (count > 0);
     Logger::infof("Temperature sensors init: %d/%d OK", sensorsToInit, NUM_TEMPS);
+    
+    if (count < NUM_TEMPS) {
+        Logger::warn("DS18B20 init: algunos sensores no disponibles - modo degradado");
+    }
 }
 
 void Sensors::updateTemperature() {

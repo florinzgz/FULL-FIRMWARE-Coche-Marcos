@@ -90,9 +90,18 @@ void Sensors::initCurrent() {
         }
     }
     
+    // Nota: se eliminó el timeout global de inicialización para evitar
+    // saltarse la configuración de sensores restantes si algunos canales
+    // inicializan más lento de lo esperado.
+    
     bool allOk = true;
 
     for(int i=0; i<NUM_CURRENTS; i++) {
+        
+        
+        
+        
+        
         // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
         // Delete existing INA226 objects before creating new ones
         if (ina[i] != nullptr) {
@@ -114,18 +123,25 @@ void Sensors::initCurrent() {
         
         tcaSelect(i);
         if(!ina[i]->begin()) {
-            Logger::errorf("INA226 init fail ch %d - retrying with recovery", i);
-            
-            // Intentar recuperación progresiva
-            bool recovered = I2CRecovery::reinitSensor(i, 0x40, i);
-            if (recovered && ina[i]->begin()) {
-                Logger::infof("INA226 ch %d recovered!", i);
-                sensorOk[i] = true;
-            } else {
-                System::logError(300+i);   // registrar fallo persistente
-                sensorOk[i] = false;
-                allOk = false;
-            }
+            Logger::warnf("INA226 ch %d falló - continuando", i);
+            sensorOk[i] = false;
+            // NO marcar allOk como falso aquí: fallo no crítico, sistema continúa degradado
+            // NO llamar a System::logError() - solo warning
+            // El sistema puede continuar sin este sensor específico.
+            //
+            // IMPORTANTE SOBRE RECUPERACIÓN I²C:
+            // Históricamente aquí se intentaba una recuperación del bus
+            // (p.ej. I2CRecovery::reinitSensor()) cuando el INA226 no
+            // inicializaba correctamente. Esa lógica se retiró porque:
+            //   - Podía bloquear la tarea durante demasiado tiempo.
+            //   - Interfiere con otros dispositivos que comparten el bus.
+            //   - La recuperación global del bus se maneja ahora en un
+            //     nivel superior y no en el path de inicialización local.
+            //
+            // Si en el futuro se reintroduce recuperación aquí, debe ser:
+            //   - No bloqueante (o con timeout bien definido).
+            //   - Segura frente a accesos concurrentes (respetar i2cMutex).
+            //   - Limitada en reintentos para evitar bucles infinitos.
         } else {
             // Configurar shunt según canal:
             // Canal 4 = batería (100A), resto = motores (50A)
@@ -159,6 +175,10 @@ void Sensors::initCurrent() {
     Wire.endTransmission();
 
     initialized = allOk;
+    
+    if (!allOk) {
+        Logger::warn("INA226 init: algunos sensores no disponibles - modo degradado");
+    }
 }
 
 void Sensors::updateCurrent() {

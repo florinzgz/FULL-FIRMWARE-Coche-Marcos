@@ -13,6 +13,7 @@
 #include "touch_map.h"         // 👈 añadido
 #include "display_types.h"     // For GearPosition enum
 #include "sensors.h"           // Para SystemStatus de sensores
+#include "operation_modes.h"   // Sistema de modos de operación
 
 #include "pedal.h"
 #include "steering.h"
@@ -96,6 +97,11 @@ static const int CAR_BODY_X = 175;      // Car body left edge
 static const int CAR_BODY_Y = 100;      // Car body top edge
 static const int CAR_BODY_W = 130;      // Car body width
 static const int CAR_BODY_H = 150;      // Car body height
+
+// Operation mode indicator position (centered horizontally, bottom of screen)
+// Position chosen to be below main content but above pedal bar
+static const int MODE_INDICATOR_X = 240;  // Horizontal center of 480px display
+static const int MODE_INDICATOR_Y = 300;  // Above pedal bar (which starts ~305px)
 
 // Car body detail dimensions (used in drawCarBody)
 static const int CAR_HOOD_OFFSET = 15;           // Hood/trunk X offset from body edge
@@ -1023,6 +1029,16 @@ void HUD::update() {
     
     // Advertencia de temperatura crítica
     Icons::drawTempWarning(tempWarning, maxTemp);
+
+    // Mostrar modo de operación si no es FULL
+    #ifndef STANDALONE_DISPLAY
+    OperationMode mode = SystemMode::getMode();
+    if (mode != OperationMode::MODE_FULL) {
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tft.drawString(SystemMode::getModeName(), MODE_INDICATOR_X, MODE_INDICATOR_Y, 2);
+    }
+    #endif
 
     // Barra de pedal en la parte inferior
     drawPedalBar(pedalPercent);
