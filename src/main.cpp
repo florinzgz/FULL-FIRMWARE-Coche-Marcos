@@ -302,9 +302,9 @@ void setup() {
     // 14. Initialize Audio (if enabled)
     if (cfg.audioEnabled) {
         Logger::info("Initializing audio system...");
-        Audio::DFPlayer::init();      // Initialize DFPlayer first
-        Audio::AudioQueue::init();    // Initialize audio queue
-        Alerts::init();                // Initialize alerts last
+        Audio::DFPlayer::init();      // Initialize DFPlayer first (hardware driver)
+        Audio::AudioQueue::init();    // Initialize audio queue (requires DFPlayer)
+        Alerts::init();                // Initialize alerts last (uses AudioQueue)
         Watchdog::feed();
     } else {
         Logger::info("Audio disabled by configuration");
@@ -445,6 +445,7 @@ void loop() {
         LEDController::update();
         
         // Update audio (if enabled)
+        // DFPlayer handles hardware, AudioQueue dispatches queued tracks
         if (cfg.audioEnabled) {
             Audio::DFPlayer::update();
             Audio::AudioQueue::update();
