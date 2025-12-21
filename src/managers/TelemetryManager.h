@@ -7,7 +7,7 @@
 namespace TelemetryManager {
     inline bool init() {
         Telemetry::init();
-        return true;
+        return Telemetry::initOK();
     }
     
     inline void update() {
