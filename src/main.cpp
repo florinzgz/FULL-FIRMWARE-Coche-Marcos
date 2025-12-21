@@ -53,8 +53,10 @@
 // Input headers
 #include "buttons.h"
 
-// Safety headers (boot_guard doesn't have init function)
-// #include "boot_guard.h"  // Only has applyXshutStrappingGuard()
+// Safety headers
+// Note: boot_guard.h only provides applyXshutStrappingGuard() which is called
+// automatically during VL53L5CX sensor initialization. No explicit init needed here.
+// #include "boot_guard.h"
 
 // Lighting headers
 #include "led_controller.h"
@@ -88,11 +90,43 @@ static constexpr uint32_t TARGET_FPS = 30;
 static constexpr uint32_t FRAME_TIME_MS = 1000 / TARGET_FPS;  // ~33ms per frame
 static constexpr uint32_t WATCHDOG_FEED_INTERVAL_MS = 1000;   // Feed watchdog every 1s
 static constexpr uint32_t SECONDARY_SENSOR_UPDATE_MS = 500;   // Update temps, etc every 500ms
+static constexpr uint32_t MIN_HEAP_THRESHOLD_BYTES = 10000;   // Minimum heap before warning
+
+// Standalone mode simulation constants
+static constexpr float SIMULATION_SPEED_BASE = 25.0f;
+static constexpr float SIMULATION_SPEED_AMPLITUDE = 10.0f;
+static constexpr float SIMULATION_SPEED_PERIOD = 1000.0f;
+static constexpr float SIMULATION_RPM_BASE = 1500.0f;
+static constexpr float SIMULATION_RPM_AMPLITUDE = 500.0f;
+static constexpr float SIMULATION_RPM_PERIOD = 800.0f;
 
 // Frame timing state
 static uint32_t lastFrameMs = 0;
 static uint32_t lastWatchdogFeedMs = 0;
 static uint32_t lastSecondarySensorUpdateMs = 0;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * @brief Generate simulated car data for standalone display mode
+ * @param now Current time in milliseconds
+ * @return CarData structure with simulated values
+ */
+static CarData generateSimulatedData(uint32_t now) {
+    CarData data = {};
+    data.speed = SIMULATION_SPEED_BASE + SIMULATION_SPEED_AMPLITUDE * sin(now / SIMULATION_SPEED_PERIOD);
+    data.rpm = SIMULATION_RPM_BASE + SIMULATION_RPM_AMPLITUDE * sin(now / SIMULATION_RPM_PERIOD);
+    data.voltage = 24.5f;
+    data.batteryPercent = 75.0f;
+    data.current = 15.0f;
+    data.temperature = 35.0f;
+    data.gear = GearPosition::DRIVE1;
+    data.status.lights = (now / 1000) % 2 == 0;  // Blink every second
+    data.status.fourWheelDrive = true;
+    return data;
+}
 
 // ============================================================================
 // STANDALONE DISPLAY MODE - Display diagnostics only
@@ -154,16 +188,7 @@ void loop() {
     lastFrameMs = now;
     
     // Show simulated data on HUD
-    CarData simulatedData = {};
-    simulatedData.speed = 25.0f + 10.0f * sin(now / 1000.0f);
-    simulatedData.rpm = 1500.0f + 500.0f * sin(now / 800.0f);
-    simulatedData.voltage = 24.5f;
-    simulatedData.batteryPercent = 75.0f;
-    simulatedData.current = 15.0f;
-    simulatedData.temperature = 35.0f;
-    simulatedData.gear = GearPosition::DRIVE1;
-    simulatedData.status.lights = (now / 1000) % 2 == 0;  // Blink every second
-    simulatedData.status.fourWheelDrive = true;
+    CarData simulatedData = generateSimulatedData(now);
     HUDManager::updateCarData(simulatedData);
     HUDManager::update();
     
@@ -352,7 +377,7 @@ void loop() {
         
         // Optional: Monitor stack health (warn if low)
         uint32_t freeHeap = ESP.getFreeHeap();
-        if (freeHeap < 10000) {  // Less than 10KB free
+        if (freeHeap < MIN_HEAP_THRESHOLD_BYTES) {
             Logger::warnf("Low heap: %u bytes", freeHeap);
         }
     }
@@ -421,14 +446,7 @@ void loop() {
         HUDManager::updateCarData(carData);
     } else {
         // Standalone mode - show simulated/test data
-        CarData simulatedData = {};
-        simulatedData.speed = 25.0f + 10.0f * sin(now / 1000.0f);
-        simulatedData.rpm = 1500.0f + 500.0f * sin(now / 800.0f);
-        simulatedData.voltage = 24.5f;
-        simulatedData.batteryPercent = 75.0f;
-        simulatedData.current = 15.0f;
-        simulatedData.temperature = 35.0f;
-        simulatedData.gear = GearPosition::DRIVE1;
+        CarData simulatedData = generateSimulatedData(now);
         HUDManager::updateCarData(simulatedData);
     }
     
