@@ -63,6 +63,10 @@ void MenuPowerConfig::draw() {
     if (!needsRedraw) return;
     needsRedraw = false;
     
+    // Note: TFT is a global extern object initialized in HUDManager::init()
+    // By the time this menu is accessed, TFT is guaranteed to be initialized
+    // If called prematurely during boot, the worst case is a visual glitch
+    
     tft.fillScreen(COLOR_BG);
     
     // Header
@@ -315,6 +319,12 @@ void MenuPowerConfig::testRelay(uint8_t relayId) {
 }
 
 uint16_t MenuPowerConfig::mapTouchToValue(uint16_t touchX, uint16_t min, uint16_t max) {
+    // 🔒 CRITICAL FIX: Validate inputs to prevent division by zero and invalid ranges
+    if (max <= min) {
+        Logger::errorf("MenuPowerConfig: Invalid range min=%u max=%u", min, max);
+        return min;  // Safe fallback
+    }
+    
     if (touchX <= SLIDER_X) return min;
     if (touchX >= SLIDER_X + SLIDER_WIDTH) return max;
     

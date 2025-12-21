@@ -59,6 +59,14 @@ void Pedal::update() {
     //     return;
     // }
 
+    // 🔒 CRITICAL FIX: Check initialization FIRST before any processing
+    if (!initialized) {
+        Logger::warn("Pedal::update() llamado sin init");
+        s.valid = false;
+        s.percent = 0.0f;
+        return;
+    }
+
     int raw = analogRead(PIN_PEDAL);
     
     // 🔒 CORRECCIÓN CRÍTICA: analogRead retorna uint16_t (0-4095), no puede ser < 0
@@ -71,6 +79,32 @@ void Pedal::update() {
         return;
     }
     
+    // 🔒 IMPROVEMENT: Detectar desconexión de hardware (ADC siempre en 0 o siempre en 4095)
+    // Esto puede indicar cable suelto o sensor dañado
+    // THREAD SAFETY NOTE: These static counters are safe because Pedal::update() 
+    // is only called from the main loop (single-threaded context), never from ISRs or multiple tasks
+    static uint8_t zeroCount = 0;
+    static uint8_t maxCount = 0;
+    
+    if (raw == 0) {
+        zeroCount++;
+        maxCount = 0;
+        if (zeroCount == 10) {  // Only warn once at threshold
+            Logger::warn("Pedal: posible desconexión (ADC=0)");
+        }
+        if (zeroCount < 255) zeroCount++;  // Cap to prevent overflow
+    } else if (raw == 4095) {
+        maxCount++;
+        zeroCount = 0;
+        if (maxCount == 10) {  // Only warn once at threshold
+            Logger::warn("Pedal: posible cortocircuito (ADC=4095)");
+        }
+        if (maxCount < 255) maxCount++;  // Cap to prevent overflow
+    } else {
+        zeroCount = 0;
+        maxCount = 0;
+    }
+    
     // 🔒 CORRECCIÓN: Aplicar filtro EMA para reducir ruido eléctrico
     if (rawFiltered == 0.0f) {
         rawFiltered = (float)raw;  // Inicializar en primera lectura
@@ -79,15 +113,6 @@ void Pedal::update() {
     }
     
     s.raw = (int)rawFiltered;
-
-    // 🔒 CORRECCIÓN: Validación adicional de hardware
-    // Si el pedal está en reposo (esperado ~200) pero lee muy alto o muy bajo,
-    // podría indicar problema de hardware
-    if (!initialized) {
-        Logger::warn("Pedal::update() llamado sin init");
-        s.valid = false;
-        return;
-    }
 
     // Normalización con valores filtrados
     int clamped = constrain((int)rawFiltered, adcMin, adcMax);

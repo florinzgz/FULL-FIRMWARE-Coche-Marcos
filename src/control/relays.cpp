@@ -134,6 +134,19 @@ void Relays::disablePower() {
 }
 
 void Relays::emergencyStop() {
+    // 🔒 CRITICAL: Emergency stop must ALWAYS work, even if not initialized
+    // This is a safety-critical function that must NEVER fail
+    // Ensure pins are configured as outputs even if init() wasn't called
+    if (!initialized) {
+        pinMode(PIN_RELAY_DIR,   OUTPUT);
+        pinMode(PIN_RELAY_TRAC,  OUTPUT);
+        pinMode(PIN_RELAY_MAIN,  OUTPUT);
+        pinMode(PIN_RELAY_SPARE, OUTPUT);
+#ifdef PIN_RELAY_MEDIA
+        pinMode(PIN_RELAY_MEDIA, OUTPUT);
+#endif
+    }
+    
     digitalWrite(PIN_RELAY_DIR,   LOW);
     digitalWrite(PIN_RELAY_TRAC,  LOW);
     digitalWrite(PIN_RELAY_MAIN,  LOW);
