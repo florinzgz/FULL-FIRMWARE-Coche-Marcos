@@ -29,7 +29,7 @@ void setup() {
     Serial.println(FIRMWARE_VERSION);
 
     // Initialize watchdog timer first
-    Watchdog::init(WATCHDOG_TIMEOUT_MS);
+    Watchdog::init();
     Watchdog::feed();
 
     // Perform full system initialization
@@ -66,12 +66,14 @@ void loop() {
     while (millis() - rstStart < 10) yield();
     digitalWrite(PIN_TFT_RST, HIGH);
     while (millis() - rstStart < 60) yield();
+}
+
 void initializeSystem() {
     Watchdog::feed();
     
     // Initialize Logger
     Serial.println("[INIT] Logger initialization...");
-    Logger::init(LOG_LEVEL);
+    Logger::init();
     Logger::info("Logger initialized");
     
     Watchdog::feed();
