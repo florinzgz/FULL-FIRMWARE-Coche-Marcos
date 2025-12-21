@@ -164,7 +164,11 @@ void setup() {
     // Initialize HUD for display
     HUDManager::init();
     HUDManager::showLogo();
-    delay(1000);
+    uint32_t logoStart = millis();
+    while (millis() - logoStart < 1000) {
+        Watchdog::feed();
+        yield();
+    }
     HUDManager::showReady();
     
     Serial.println("[STANDALONE] Setup complete - showing simulated data");
