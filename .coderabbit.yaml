@@ -69,13 +69,39 @@ chat:
 
 # Conocimiento del dominio
 knowledge_base:
-  - "ABS = Anti-lock Braking System"
-  - "TCS = Traction Control System"
-  - "HUD = Head-Up Display"
-  - "INA226 = Sensor de corriente I2C"
-  - "DS18B20 = Sensor de temperatura 1-Wire"
-  - "WS2812B = LEDs RGB direccionables"
-  - "TFT_eSPI = Librería para pantallas TFT"
-  - "El sistema usa arquitectura de managers para organizar subsistemas"
-  - "PowerManager gestiona relays y secuencia de encendido"
-  - "SafetyManager coordina ABS, TCS y detección de obstáculos"
+  learnings:
+    - path: "src/core"
+      content: |
+        ESP32-S3 firmware con arquitectura de managers para vehículo eléctrico.
+        
+        Arquitectura de managers:
+        - PowerManager: Gestión de relays y secuencia de encendido seguro
+        - SafetyManager: Coordina ABS, TCS y detección de obstáculos
+        - SensorManager: Inicializa y actualiza sensores (INA226, DS18B20, encoders)
+        - ControlManager: Gestiona tracción, dirección y actuadores
+        - HUDManager: Interfaz de usuario en pantalla TFT 480x320
+        
+        Sistemas de seguridad:
+        - Tolerancia a fallos en sensores críticos
+        - Watchdog timer para prevenir bloqueos
+        - Sistema de logging de errores
+        - Gestión de errores no bloqueante
+        
+    - path: "**/*.cpp"
+      content: |
+        Tecnologías y componentes clave:
+        - ABS (Anti-lock Braking System): Sistema antibloqueo de frenos
+        - TCS (Traction Control System): Control de tracción 4x4
+        - HUD (Head-Up Display): Pantalla TFT ST7796S 480x320
+        - INA226: Sensor de corriente/voltaje I2C de alta precisión
+        - DS18B20: Sensor de temperatura 1-Wire (5 unidades: 4 motores + ambiente)
+        - WS2812B: LEDs RGB direccionables (FastLED)
+        - TFT_eSPI: Librería optimizada para pantallas TFT en ESP32
+        - XPT2046: Controlador táctil resistivo
+        
+        Periféricos y comunicación:
+        - I2C: INA226 (sensores de corriente), MCP23017 (expansores GPIO)
+        - SPI: Pantalla TFT, touch XPT2046
+        - 1-Wire: DS18B20 (sensores temperatura)
+        - PWM: Control de motores, LEDs, steering servo
+        - UART: DFPlayer (audio), telemetría
