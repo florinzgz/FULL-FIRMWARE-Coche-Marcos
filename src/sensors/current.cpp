@@ -126,7 +126,7 @@ void Sensors::initCurrent() {
         if(!ina[i]->begin()) {
             Logger::warnf("INA226 ch %d falló - continuando", i);
             sensorOk[i] = false;
-            allOk = false;
+            // NO marcar allOk como falso aquí: fallo no crítico, sistema continúa degradado
             // NO llamar a System::logError() - solo warning
             // El sistema puede continuar sin este sensor específico
         } else {
