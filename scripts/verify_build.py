@@ -299,7 +299,7 @@ class BuildVerifier:
         
         self.print_summary()
         
-        return len(self.errors) == 0
+        return all_passed and len(self.errors) == 0
 
 def main():
     """Main entry point"""
