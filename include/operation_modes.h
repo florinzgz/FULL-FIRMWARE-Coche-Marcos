@@ -9,7 +9,7 @@
  * bucles de reinicio y mejorando la estabilidad del sistema.
  * 
  * Modos de operación:
- * - MODE_FULL: Todos los sistemas operativos (estado ideal)
+ * - MODE_FULL: Todos los sistemas funcionando (estado ideal)
  * - MODE_DEGRADED: Algunos sensores fallaron, continuar con funcionalidad reducida
  * - MODE_SAFE: Solo funciones críticas (sin motores, solo monitoreo)
  * - MODE_STANDALONE: Solo pantalla (modo diagnóstico)
