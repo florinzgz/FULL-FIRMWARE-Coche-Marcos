@@ -60,9 +60,12 @@ void loop() {
     HUDManager::update();
 
     // Small delay to prevent CPU hogging
-    delay(MAIN_LOOP_DELAY_MS);
-}
-
+    pinMode(PIN_TFT_RST, OUTPUT);
+    digitalWrite(PIN_TFT_RST, LOW);
+    uint32_t rstStart = millis();
+    while (millis() - rstStart < 10) yield();
+    digitalWrite(PIN_TFT_RST, HIGH);
+    while (millis() - rstStart < 60) yield();
 void initializeSystem() {
     Watchdog::feed();
     
