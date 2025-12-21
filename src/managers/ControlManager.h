@@ -11,7 +11,13 @@ namespace ControlManager {
         Traction::init();
         SteeringMotor::init();
         Relays::init();
-        return Relays::initOK() && SteeringMotor::initOK();
+        
+        // Verify all subsystems initialized correctly
+        bool tractionOK = Traction::initOK();
+        bool steeringOK = SteeringMotor::initOK();
+        bool relaysOK = Relays::initOK();
+        
+        return tractionOK && steeringOK && relaysOK;
     }
     
     inline void update() {
