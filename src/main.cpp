@@ -399,14 +399,10 @@ void loop() {
         uint32_t freeHeap = ESP.getFreeHeap();
         if (freeHeap < MIN_HEAP_THRESHOLD_BYTES) {
             Logger::warnf("Low heap: %u bytes", freeHeap);
-        }
-    }
-    
-    // Frame rate limiting - target 30 FPS (~33ms per frame)
-    uint32_t elapsed = now - lastFrameMs;
-    if (elapsed < FRAME_TIME_MS) {
-        // Not time for next frame yet - yield and return
-        yield();
+if (elapsed < FRAME_TIME_MS) {
+    yield();
+    return;  // Actually skip this frame
+}
         return;
     }
     lastFrameMs = now;
