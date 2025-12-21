@@ -38,11 +38,21 @@ void Sensors::initTemperature() {
         Logger::warnf("DS18B20: detectados %d, esperados %d", count, NUM_TEMPS);
     }
 
+    // Timeout para inicialización completa
+    const uint32_t INIT_TIMEOUT_MS = 3000;
+    uint32_t startTime = millis();
+
     // 🔒 CORRECCIÓN 4.1: Almacenar direcciones ROM específicas
     // Usar el mínimo para evitar buffer overflow
     int sensorsToInit = (count < NUM_TEMPS) ? count : NUM_TEMPS;
 
     for(int i = 0; i < sensorsToInit; i++) {
+        // Verificar timeout global
+        if (millis() - startTime > INIT_TIMEOUT_MS) {
+            Logger::warn("DS18B20 init timeout - continuando con sensores parciales");
+            break;
+        }
+        
         // Obtener dirección ROM del sensor
         if (sensors.getAddress(tempSensorAddrs[i], i)) {
             // Configurar resolución máxima (12-bit = 0.0625°C, 750ms conversión)
@@ -60,8 +70,8 @@ void Sensors::initTemperature() {
         } else {
             addressesStored[i] = false;
             sensorOk[i] = false;
-            System::logError(400 + i); // registrar fallo persistente
-            Logger::errorf("DS18B20 init FAIL idx %d - no se pudo obtener ROM", i);
+            Logger::warnf("DS18B20 %d no detectado - continuando", i);
+            // NO marcar como error crítico
         }
         lastTemp[i] = 0.0f;
     }
@@ -70,8 +80,7 @@ void Sensors::initTemperature() {
     for(int i = sensorsToInit; i < NUM_TEMPS; i++) {
         addressesStored[i] = false;
         sensorOk[i] = false;
-        System::logError(400 + i);
-        Logger::errorf("DS18B20 init FAIL idx %d - sensor no detectado", i);
+        Logger::warnf("DS18B20 %d no detectado - continuando", i);
         lastTemp[i] = 0.0f;
     }
 
@@ -80,6 +89,10 @@ void Sensors::initTemperature() {
 
     initialized = (count > 0);
     Logger::infof("Temperature sensors init: %d/%d OK", sensorsToInit, NUM_TEMPS);
+    
+    if (count < NUM_TEMPS) {
+        Logger::warn("DS18B20 init: algunos sensores no disponibles - modo degradado");
+    }
 }
 
 void Sensors::updateTemperature() {

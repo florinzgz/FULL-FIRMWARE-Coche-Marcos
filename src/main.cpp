@@ -79,13 +79,13 @@ static const float DEMO_TEMP_WARNING_THRESHOLD =
 #endif
 
 // Núcleo
-#include "bluetooth_controller.h"
 #include "i2c_recovery.h"
 #include "logger.h"
 #include "storage.h"
 #include "system.h"
 #include "telemetry.h" // 🆕 v2.8.0: Sistema de telemetría
 #include "watchdog.h"
+#include "operation_modes.h"  // Sistema de modos de operación
 
 // Entradas
 #include "buttons.h"
@@ -494,14 +494,6 @@ void setup() {
   Watchdog::feed();  // Feed after telemetry init
   bringupCheckpoint("Telemetría");
 
-  // --- Bluetooth Emergency Override Controller ---
-  Serial.println("[BOOT] Initializing Bluetooth Controller...");
-  BluetoothController::init();
-  Serial.printf("[STACK] After Bluetooth - Free: %d bytes\n",
-                uxTaskGetStackHighWaterMark(NULL));
-  Watchdog::feed();  // Feed after Bluetooth init
-  bringupCheckpoint("Control Bluetooth");
-
   // Initial synchronization of inputs/sensors so HUD and checks start with
   // fresh data and aligned states
   Serial.println("[BOOT] Synchronizing inputs and sensors...");
@@ -531,23 +523,43 @@ void setup() {
   // --- Chequeo rápido ---
   auto health = System::selfTest();
   Watchdog::feed();  // Feed after self-test
-  if (health.ok) {
-    Serial.println("[BOOT] Self-test PASSED!");
+  
+  OperationMode mode = SystemMode::getMode();
+  
+  if (mode == OperationMode::MODE_FULL) {
+    Serial.println("[BOOT] Self-test PASSED - MODE_FULL!");
     Steering::center();
     HUDManager::showReady();
     Relays::enablePower();
     Alerts::play(Audio::AUDIO_MODULO_OK);
-  } else {
-    Serial.println("[BOOT] Self-test FAILED!");
-    HUDManager::showError("System check failed");
-    Alerts::play(Audio::AUDIO_ERROR_GENERAL);
-
-    // Opcional: imprimir detalle de qué falló
-    Serial.println("---- SELFTEST FAIL ----");
+  } 
+  else if (mode == OperationMode::MODE_DEGRADED) {
+    Serial.println("[BOOT] Self-test - MODE_DEGRADED (some sensors unavailable)");
+    HUDManager::showWarning("Sistema en modo degradado");
+    Alerts::play(Audio::AUDIO_WARNING);
+    Relays::enablePower();  // CONTINUAR operando
+    Logger::warn("Sistema operando en modo degradado - algunos sensores no disponibles");
+    
+    // Imprimir detalle de qué falló
+    Serial.println("---- DEGRADED MODE DETAILS ----");
     Serial.printf("Steering OK: %s\n", health.steeringOK ? "YES" : "NO");
-    Serial.printf("Current OK: %s\n", health.currentOK ? "YES" : "NO");
-    Serial.printf("Temps OK: %s\n", health.tempsOK ? "YES" : "NO");
-    Serial.printf("Wheels OK: %s\n", health.wheelsOK ? "YES" : "NO");
+    Serial.printf("Current Sensors OK: %s\n", health.currentOK ? "YES" : "NO");
+    Serial.printf("Temp Sensors OK: %s\n", health.tempsOK ? "YES" : "NO");
+    Serial.printf("Wheel Sensors OK: %s\n", health.wheelsOK ? "YES" : "NO");
+  } 
+  else if (mode == OperationMode::MODE_SAFE) {
+    Serial.println("[BOOT] Self-test FAILED - MODE_SAFE (critical failures)!");
+    HUDManager::showWarning("Modo seguro - funcionalidad limitada");
+    Alerts::play(Audio::AUDIO_ERROR);
+    // NO habilitar motores, solo monitoreo
+    Logger::warn("Sistema en modo seguro - solo monitoreo");
+    
+    // Imprimir detalle de qué falló
+    Serial.println("---- SAFE MODE - CRITICAL FAILURES ----");
+    Serial.printf("Steering OK: %s\n", health.steeringOK ? "YES" : "NO");
+    Serial.printf("Current Sensors OK: %s\n", health.currentOK ? "YES" : "NO");
+    Serial.printf("Temp Sensors OK: %s\n", health.tempsOK ? "YES" : "NO");
+    Serial.printf("Wheel Sensors OK: %s\n", health.wheelsOK ? "YES" : "NO");
   }
 
   // Show advanced dashboard
@@ -712,9 +724,6 @@ void loop() {
     }
     // Si >2KB, no loggear para no saturar serial
   }
-
-  // PRIORITY 1: Bluetooth Emergency Override (HIGHEST PRIORITY)
-  BluetoothController::update();
 
   // Entradas
   Pedal::update();

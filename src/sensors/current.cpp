@@ -90,9 +90,19 @@ void Sensors::initCurrent() {
         }
     }
     
+    // Timeout para inicialización completa
+    const uint32_t INIT_TIMEOUT_MS = 5000;
+    uint32_t startTime = millis();
+    
     bool allOk = true;
 
     for(int i=0; i<NUM_CURRENTS; i++) {
+        // Verificar timeout global
+        if (millis() - startTime > INIT_TIMEOUT_MS) {
+            Logger::warn("INA226 init timeout - continuando con sensores parciales");
+            break;
+        }
+        
         // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
         // Delete existing INA226 objects before creating new ones
         if (ina[i] != nullptr) {
@@ -114,18 +124,11 @@ void Sensors::initCurrent() {
         
         tcaSelect(i);
         if(!ina[i]->begin()) {
-            Logger::errorf("INA226 init fail ch %d - retrying with recovery", i);
-            
-            // Intentar recuperación progresiva
-            bool recovered = I2CRecovery::reinitSensor(i, 0x40, i);
-            if (recovered && ina[i]->begin()) {
-                Logger::infof("INA226 ch %d recovered!", i);
-                sensorOk[i] = true;
-            } else {
-                System::logError(300+i);   // registrar fallo persistente
-                sensorOk[i] = false;
-                allOk = false;
-            }
+            Logger::warnf("INA226 ch %d falló - continuando", i);
+            sensorOk[i] = false;
+            allOk = false;
+            // NO llamar a System::logError() - solo warning
+            // El sistema puede continuar sin este sensor específico
         } else {
             // Configurar shunt según canal:
             // Canal 4 = batería (100A), resto = motores (50A)
@@ -159,6 +162,10 @@ void Sensors::initCurrent() {
     Wire.endTransmission();
 
     initialized = allOk;
+    
+    if (!allOk) {
+        Logger::warn("INA226 init: algunos sensores no disponibles - modo degradado");
+    }
 }
 
 void Sensors::updateCurrent() {

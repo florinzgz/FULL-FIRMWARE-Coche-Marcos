@@ -17,6 +17,7 @@
 #include "obstacle_safety.h"     // 🔒 v2.11.0: Seguridad obstáculos
 #include "led_controller.h"      // 🔒 v2.11.0: Control LEDs
 #include "shifter.h"             // 🔒 v2.11.1: Validación de palanca de cambios
+#include "operation_modes.h"     // Sistema de modos de operación con tolerancia a fallos
 
 extern Storage::Config cfg;
 
@@ -35,6 +36,9 @@ void System::init() {
         Logger::warn("System init: Sistema ya inicializado, ignorando llamada duplicada");
         return;
     }
+    
+    // Inicializar sistema de modos de operación
+    SystemMode::init();
     
     Logger::info("System init: entrando en PRECHECK");
     currentState = PRECHECK;
@@ -141,11 +145,13 @@ void System::init() {
 
 System::Health System::selfTest() {
     Health h{true,true,true,true,true};
+    OperationMode mode = OperationMode::MODE_FULL;
     
     // 🔒 v2.11.2: VALIDACIÓN - Verificar que System::init() fue llamado
     if (!systemInitialized) {
         Logger::error("SelfTest: Sistema no inicializado - llamar System::init() primero");
         h.ok = false;
+        SystemMode::setMode(OperationMode::MODE_SAFE);
         return h;
     }
 
@@ -154,111 +160,128 @@ System::Health System::selfTest() {
     Shifter::update();
     Steering::update();
 
-    // Pedal (crítico)
-    if(!Pedal::initOK()) {
-        System::logError(100);
-        Logger::errorf("SelfTest: pedal no responde");
-        h.ok = false;
-    } else {
-        const auto &pedalState = Pedal::get();
-        if(pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
-            Logger::errorf("SelfTest: pedal no está en reposo (%.1f%%)", pedalState.percent);
-            h.ok = false;
+    // ========================================================================
+    // SENSORES OPCIONALES (NO bloquean arranque - modo degradado)
+    // ========================================================================
+    
+    // Corriente (opcional)
+    if(cfg.currentSensorsEnabled) {
+        if(!Sensors::currentInitOK()) {
+            Logger::warn("SelfTest: Sensores corriente no disponibles - modo degradado");
+            mode = OperationMode::MODE_DEGRADED;
+            h.currentOK = false;
+            // NO marcar h.ok = false - continuar operación
         }
     }
 
-    // Dirección (encoder)
+    // Temperatura (opcional)
+    if(cfg.tempSensorsEnabled) {
+        if(!Sensors::temperatureInitOK()) {
+            Logger::warn("SelfTest: Sensores temperatura no disponibles - modo degradado");
+            mode = OperationMode::MODE_DEGRADED;
+            h.tempsOK = false;
+            // NO marcar h.ok = false - continuar operación
+        }
+    }
+
+    // Ruedas (opcional)
+    if(cfg.wheelSensorsEnabled) {
+        if(!Sensors::wheelsInitOK()) {
+            Logger::warn("SelfTest: Sensores rueda limitados - modo degradado");
+            mode = OperationMode::MODE_DEGRADED;
+            h.wheelsOK = false;
+            // NO marcar h.ok = false - continuar operación
+        }
+    }
+
+    // ========================================================================
+    // COMPONENTES CRÍTICOS (bloquean arranque si fallan)
+    // ========================================================================
+
+    // Pedal (crítico)
+    if(!Pedal::initOK()) {
+        System::logError(100);
+        Logger::error("SelfTest: CRÍTICO - pedal no responde");
+        h.ok = false;
+        mode = OperationMode::MODE_SAFE;
+    } else {
+        const auto &pedalState = Pedal::get();
+        if(pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
+            Logger::errorf("SelfTest: CRÍTICO - pedal no está en reposo (%.1f%%)", pedalState.percent);
+            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
+        }
+    }
+
+    // Dirección (encoder) - crítico
     if(cfg.steeringEnabled) {
         if(!Steering::initOK()) {
             System::logError(200);
-            Logger::errorf("SelfTest: encoder dirección no responde");
+            Logger::error("SelfTest: CRÍTICO - encoder dirección no responde");
             h.steeringOK = false;
             h.ok = false;
+            mode = OperationMode::MODE_SAFE;
         }
         
-        // 🔒 v2.4.0: Verificar motor dirección también
-        // 🔒 v2.11.0: Motor dirección NO es crítico - se registra como advertencia
-        // NOTA CRÍTICA: El motor de dirección NO es crítico para arranque inicial porque:
-        // 1. Puede inicializarse tardíamente una vez que I2C esté estable
-        // 2. El vehículo está PARADO durante selfTest (marcha P obligatoria)
-        // 3. El sistema de relés cortará potencia si hay fallo grave
-        // Sin embargo, se marca h.steeringOK = false para indicar problema parcial
+        // Motor dirección - advertencia pero no crítico
         if(!SteeringMotor::initOK()) {
             Logger::warn("SelfTest: motor dirección no responde (no crítico en arranque)");
             h.steeringOK = false;
-            // NO registrar como error crítico ni marcar h.ok = false
-            // El vehículo puede arrancar pero con precaución
+            if (mode == OperationMode::MODE_FULL) {
+                mode = OperationMode::MODE_DEGRADED;
+            }
         }
     }
 
     // Palanca de cambios (crítico para arranque seguro)
     if(!Shifter::initOK()) {
         System::logError(650);
-        Logger::error("SelfTest: palanca de cambios no inicializada");
+        Logger::error("SelfTest: CRÍTICO - palanca de cambios no inicializada");
         h.ok = false;
+        mode = OperationMode::MODE_SAFE;
     } else {
         auto gear = Shifter::get().gear;
         if(gear != Shifter::P) {
             System::logError(651);
-            Logger::errorf("SelfTest: palanca debe estar en PARK para arrancar (gear=%d)", static_cast<int>(gear));
+            Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK para arrancar (gear=%d)", static_cast<int>(gear));
             h.ok = false;
-        }
-    }
-
-    // Corriente
-    if(cfg.currentSensorsEnabled) {
-        if(!Sensors::currentInitOK()) {
-            System::logError(300);
-            Logger::errorf("SelfTest: INA226 no responde");
-            h.currentOK = false;
-            h.ok = false;
-        }
-    }
-
-    // Temperatura
-    if(cfg.tempSensorsEnabled) {
-        if(!Sensors::temperatureInitOK()) {
-            System::logError(400);
-            Logger::errorf("SelfTest: DS18B20 no responde");
-            h.tempsOK = false;
-            h.ok = false;
-        }
-    }
-
-    // Ruedas
-    if(cfg.wheelSensorsEnabled) {
-        if(!Sensors::wheelsInitOK()) {
-            System::logError(500);
-            Logger::errorf("SelfTest: sensores de rueda no responden");
-            h.wheelsOK = false;
-            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
         }
     }
 
     // Relés (crítico)
     if(!Relays::initOK()) {
         System::logError(600);
-        Logger::errorf("SelfTest: relés no responden");
+        Logger::error("SelfTest: CRÍTICO - Relés no responden - modo seguro");
         h.ok = false;
+        mode = OperationMode::MODE_SAFE;
     }
     
-    // 🔒 v2.4.0: Tracción (no crítico pero loggear)
-    // 🔒 v2.11.0: Tracción NO bloquea arranque - solo advertencia
+    // ========================================================================
+    // COMPONENTES NO CRÍTICOS (solo advertencias)
+    // ========================================================================
+    
+    // Tracción (no crítico)
     if(cfg.tractionEnabled) {
         if(!Traction::initOK()) {
             Logger::warn("SelfTest: módulo tracción no inicializado (no crítico)");
-            // No marcar como fallo crítico - vehículo puede arrancar
-            // El sistema de tracción puede recuperarse después
+            if (mode == OperationMode::MODE_FULL) {
+                mode = OperationMode::MODE_DEGRADED;
+            }
         }
     }
 
-    // 🔒 v2.11.0: DFPlayer (no crítico) - NO bloquea arranque
-    // El audio es importante pero no esencial para operación del vehículo
+    // DFPlayer (no crítico)
     if(!Audio::initOK()) {
         Logger::warn("SelfTest: DFPlayer no inicializado (no crítico)");
-        // No marcar como fallo crítico - vehículo puede operar sin audio
+        if (mode == OperationMode::MODE_FULL) {
+            mode = OperationMode::MODE_DEGRADED;
+        }
     }
 
+    // Establecer modo de operación según resultados
+    SystemMode::setMode(mode);
+    
     return h;
 }
 

@@ -13,6 +13,7 @@
 #include "touch_map.h"         // 👈 añadido
 #include "display_types.h"     // For GearPosition enum
 #include "sensors.h"           // Para SystemStatus de sensores
+#include "operation_modes.h"   // Sistema de modos de operación
 
 #include "pedal.h"
 #include "steering.h"
@@ -1023,6 +1024,16 @@ void HUD::update() {
     
     // Advertencia de temperatura crítica
     Icons::drawTempWarning(tempWarning, maxTemp);
+
+    // Mostrar modo de operación si no es FULL
+    #ifndef STANDALONE_DISPLAY
+    OperationMode mode = SystemMode::getMode();
+    if (mode != OperationMode::MODE_FULL) {
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tft.drawString(SystemMode::getModeName(), 240, 300, 2);
+    }
+    #endif
 
     // Barra de pedal en la parte inferior
     drawPedalBar(pedalPercent);
