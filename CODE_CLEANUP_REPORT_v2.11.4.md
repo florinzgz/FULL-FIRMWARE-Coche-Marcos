@@ -36,9 +36,9 @@ void drawSteeringAngle(float angle) {
 ---
 
 #### Verification:
-- ✅ No remaining calls to `drawSteeringAngle()` in codebase (verified via grep)
+- ✅ No remaining calls to `drawSteeringAngle()` in codebase (verified via `grep -r "drawSteeringAngle"`)
 - ✅ Direct calls to `drawSteeringWheel()` work correctly
-- ✅ Syntax verified (minimal change)
+- ✅ Syntax verified (minimal change, low risk)
 
 ### Changes Made
 
@@ -117,9 +117,9 @@ While static analysis confirms correctness, runtime testing is recommended to ve
 
 ## ✅ Validation Results
 ### Manual Verification
-✅ Grep search confirms no calls to drawSteeringAngle() remain
-✅ Thread safety analysis shows single-threaded architecture
-✅ Syntax changes verified correct
+- ✅ Grep search confirms no calls to `drawSteeringAngle()` remain
+- ✅ Thread safety analysis shows single-threaded architecture
+- ✅ Syntax changes verified correct
 
 ---
 
