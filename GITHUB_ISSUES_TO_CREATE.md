@@ -63,7 +63,7 @@ Implement audio mode cycling functionality when the MULTIMEDIA button is held fo
 
 ## Location
 - File: `src/input/buttons.cpp`
-- Lines: 105-110
+- Line: 109
 - Code reference:
   ```cpp
   Logger::info("Buttons: MULTIMEDIA long-press detectado - cambio de modo de audio");

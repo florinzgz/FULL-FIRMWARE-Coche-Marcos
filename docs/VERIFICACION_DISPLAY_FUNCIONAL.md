@@ -211,7 +211,7 @@ Este documento verifica que el código del display está bien organizado y funci
 | 2 | `Gauges::drawSpeed()` | Izquierda | ✅ OK |
 | 3 | `Gauges::drawRPM()` | Derecha | ✅ OK |
 | 4 | `WheelsDisplay::drawWheel()` x4 | Centro | ✅ OK |
-| 5 | `drawSteeringAngle()` | Centro | ✅ OK |
+| 5 | `drawSteeringWheel()` | Centro | ✅ OK |
 | 6 | `Icons::drawSystemState()` | Sup-Izq | ✅ OK |
 | 7 | `Icons::drawGear()` | Sup-Der | ✅ OK |
 | 8 | `Icons::drawFeatures()` | Varios | ✅ OK |
