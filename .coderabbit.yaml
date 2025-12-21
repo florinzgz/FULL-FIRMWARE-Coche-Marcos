@@ -1,0 +1,81 @@
+# .coderabbit.yaml
+# Configuración de CodeRabbit para firmware ESP32-S3
+
+language: "es"  # Comentarios en español
+
+reviews:
+  # Activar reviews automáticos
+  auto_review:
+    enabled: true
+    drafts: false  # No revisar PRs en draft
+  
+  # Mostrar estado de review
+  review_status: true
+  
+  # Nivel de detalle en reviews
+  profile: "assertive"  # chill | cautious | assertive
+  
+  # Configuración de verificaciones
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "**Resumen de cambios**"
+  poem: false  # Sin poemas al final
+  review_status_comment: true
+  
+  # Collapse walks para PRs grandes
+  collapse_walkthrough: false
+  
+  # Auto-incrementar al hacer cambios
+  auto_incremental_review: true
+  
+  # Verificaciones de código
+  tools:
+    ruff:
+      enabled: false  # Python linter - no necesario
+    shellcheck:
+      enabled: true   # Para scripts .sh
+    
+# Filtros de archivos - ignorar binarios y builds
+path_filters:
+  - "!**/*.bin"
+  - "!**/*.hex"
+  - "!**/*.elf"
+  - "!**/*.o"
+  - "!**/*.a"
+  - "!.pio/**"
+  - "!.vscode/**"
+  - "!.platformio/**"
+  - "!**/.pio/**"
+  - "!**/build/**"
+  - "!audio/**/*.mp3"
+  - "!audio/**/*.wav"
+  
+# Instrucciones personalizadas para el bot
+instructions:
+  - "Este es firmware embebido para ESP32-S3 usando PlatformIO y Arduino framework"
+  - "Prioridad en seguridad, manejo de errores y uso eficiente de memoria"
+  - "Revisar correcta inicialización de periféricos (I2C, SPI, PWM)"
+  - "Verificar uso apropiado del Watchdog timer"
+  - "Detectar posibles memory leaks, stack overflows o buffer overruns"
+  - "Validar manejo de fallos en sensores y sistemas críticos"
+  - "Revisar sincronización entre tasks y uso de delays"
+  - "Verificar que los managers inicialicen correctamente sus subsistemas"
+  - "Comprobar que los punteros y referencias sean válidos antes de usar"
+  - "Validar rangos de arrays y tamaños de buffers"
+  
+# Configuración de chat
+chat:
+  auto_reply: false  # No responder automáticamente
+
+# Conocimiento del dominio
+knowledge_base:
+  - "ABS = Anti-lock Braking System"
+  - "TCS = Traction Control System"
+  - "HUD = Head-Up Display"
+  - "INA226 = Sensor de corriente I2C"
+  - "DS18B20 = Sensor de temperatura 1-Wire"
+  - "WS2812B = LEDs RGB direccionables"
+  - "TFT_eSPI = Librería para pantallas TFT"
+  - "El sistema usa arquitectura de managers para organizar subsistemas"
+  - "PowerManager gestiona relays y secuencia de encendido"
+  - "SafetyManager coordina ABS, TCS y detección de obstáculos"
