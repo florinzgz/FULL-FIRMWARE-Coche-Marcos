@@ -150,7 +150,7 @@ System::Health System::selfTest() {
     // 🔒 v2.11.2: VALIDACIÓN - Verificar que System::init() fue llamado
     if (!systemInitialized) {
         Logger::error("SelfTest: Sistema no inicializado - llamar System::init() primero");
-        h.ok = false;
+        h = Health{false,false,false,false,false};
         SystemMode::setMode(OperationMode::MODE_SAFE);
         return h;
     }
