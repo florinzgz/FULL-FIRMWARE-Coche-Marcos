@@ -407,6 +407,7 @@ void loop() {
     if (elapsed < FRAME_TIME_MS) {
         // Not time for next frame yet - yield and return
         yield();
+        return;
     }
     lastFrameMs = now;
     
