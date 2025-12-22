@@ -23,6 +23,7 @@ static const uint8_t  kChannelFwd = PCA_STEER_CH_PWM_FWD; // canal PCA para dire
 static const uint8_t  kChannelRev = PCA_STEER_CH_PWM_REV; // canal PCA para dirección reverse
 static const float kDeadbandDeg = 0.5f;  // Zona muerta para evitar oscilación del motor
 static const float kMaxCurrentA = 30.0f; // 🔒 v2.4.0: Límite de corriente para protección motor
+static const uint32_t kRetryIntervalMs = 50;  // Non-blocking retry interval for I2C init
 
 static uint16_t pctToTicks(float pct) {
     pct = constrain(pct, 0.0f, 100.0f);
@@ -57,7 +58,7 @@ void SteeringMotor::init() {
         }
     }
     
-    if (pcaRetrying && (millis() - pcaRetryTime >= 50)) {
+    if (pcaRetrying && (millis() - pcaRetryTime >= kRetryIntervalMs)) {
         pcaOK = pca.begin();
         pcaRetrying = false;
         

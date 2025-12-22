@@ -128,6 +128,9 @@ constexpr float TEMP_MAX_VALID = 150.0f;   // Temperatura máxima válida (°C)
 constexpr float TEMP_CRITICAL = 120.0f;    // Temperatura crítica (°C)
 constexpr float CURRENT_MAX_REASONABLE = 200.0f;  // Corriente máxima razonable (A)
 
+// Retry timing for I2C device initialization
+constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;  // Non-blocking retry interval
+
 // Mapea 0..100% -> 0..255 PWM con validación de límites
 inline float demandPctToPwm(float pct) {
   float pwm = clampf(pct, 0.0f, 100.0f) * 255.0f / 100.0f;
@@ -184,7 +187,7 @@ void Traction::init() {
     }
   }
   
-  if (pcaFrontRetrying && (millis() - pcaFrontRetryTime >= 50)) {
+  if (pcaFrontRetrying && (millis() - pcaFrontRetryTime >= I2C_RETRY_INTERVAL_MS)) {
     pcaFrontOK = pcaFront.begin();
     pcaFrontRetrying = false;
     
@@ -217,7 +220,7 @@ void Traction::init() {
     }
   }
   
-  if (pcaRearRetrying && (millis() - pcaRearRetryTime >= 50)) {
+  if (pcaRearRetrying && (millis() - pcaRearRetryTime >= I2C_RETRY_INTERVAL_MS)) {
     pcaRearOK = pcaRear.begin();
     pcaRearRetrying = false;
     
