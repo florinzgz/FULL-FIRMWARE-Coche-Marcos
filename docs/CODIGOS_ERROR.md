@@ -375,7 +375,11 @@ Para acceder al menú de errores:
   - Verificar bus I²C (SDA=GPIO8, SCL=GPIO9)
   - Verificar alimentación 5V del MCP23017
   - Realizar test I²C scanner
-  - NOTA: Este chip también controla el shifter (GPIOB)
+- **IMPORTANTE:** Este chip también controla el shifter (GPIOB0-B4)
+  - Si falla, TANTO el control de tracción COMO el shifter dejarán de funcionar
+  - Los motores de tracción no recibirán señales de dirección (IN1/IN2)
+  - El cambio de marchas (P/R/N/D1/D2) no será detectado
+  - Ambos sistemas quedarán inoperativos hasta que se restaure el MCP23017
 
 ---
 

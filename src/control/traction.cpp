@@ -44,14 +44,17 @@ inline float clampf(float v, float lo, float hi) {
 }
 
 // Constante de conversión PWM a ticks PCA9685
-// PCA9685 usa 12 bits (0-4095), PWM interno es 8 bits (0-255)
-// Multiplicador: 4096/256 = 16.0
+// PCA9685 usa 12 bits (0-4095 = 4096 valores totales)
+// PWM interno es 8 bits (0-255 = 256 valores totales)
+// Multiplicador: 16.0 proporciona mapeo conservador (255*16=4080, deja margen de 15 ticks)
+// Para mapeo exacto usar 4095/255≈16.06, pero 16.0 es más seguro y evita saturación
 constexpr float PWM_TO_TICKS_MULTIPLIER = 16.0f;
 
 // Helper: Convertir PWM (0-255) a ticks PCA9685 (0-4095)
 inline uint16_t pwmToTicks(float pwm) {
   uint16_t ticks = static_cast<uint16_t>(pwm * PWM_TO_TICKS_MULTIPLIER);
-  return constrain(ticks, 0, 4095);
+  // Arduino constrain() function: clamps value to range [0, 4095]
+  return constrain(ticks, static_cast<uint16_t>(0), static_cast<uint16_t>(4095));
 }
 
 // Helper: Aplicar PWM y dirección a hardware según rueda
@@ -232,6 +235,8 @@ void Traction::init() {
   // SAFETY: Strict initialization required - all I2C devices must be functional
   // Partial operation is not allowed to prevent unpredictable vehicle behavior
   // (e.g., unbalanced traction if one axle fails could cause loss of control)
+  // Future enhancement: Could implement graceful degradation with FWD-only mode
+  // if rear PCA9685 fails, but would require extensive testing for safety
   initialized = (pcaFrontOK && pcaRearOK && mcpOK);
   Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
