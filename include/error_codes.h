@@ -121,6 +121,7 @@ constexpr uint16_t TRACTION_MOTOR_RR_PWM_INVALID = 823;
 constexpr uint16_t TRACTION_PCA9685_FRONT_FAIL = 830;
 constexpr uint16_t TRACTION_PCA9685_REAR_FAIL = 831;
 constexpr uint16_t TRACTION_MCP23017_FAIL = 832;
+constexpr uint16_t MCP23017_SHARED_INIT_FAIL = 833;  // MCP23017 shared manager init fail
 
 // --- Storage System (900-999) ---
 constexpr uint16_t STORAGE_OPEN_FAIL = 970;
@@ -255,6 +256,7 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == TRACTION_PCA9685_FRONT_FAIL) return "PCA9685 Front (0x40) fallo";
     if (code == TRACTION_PCA9685_REAR_FAIL) return "PCA9685 Rear (0x41) fallo";
     if (code == TRACTION_MCP23017_FAIL) return "MCP23017 (0x20) fallo";
+    if (code == MCP23017_SHARED_INIT_FAIL) return "MCP23017 manager init fallo";
     
     // Storage System (900-999)
     if (code == STORAGE_OPEN_FAIL) return "Apertura storage fallo";

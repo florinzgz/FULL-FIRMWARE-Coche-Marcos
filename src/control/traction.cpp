@@ -9,10 +9,10 @@
 #include "storage.h"
 #include "system.h"
 #include "wheels.h"
+#include "mcp23017_manager.h"
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
-#include <Adafruit_MCP23X17.h>
 #include <algorithm> // std::min, std::max
 #include <cmath>     // std::isfinite, std::fabs
 #include <cstdint>
@@ -26,9 +26,8 @@ static Adafruit_PWMServoDriver pcaRear = Adafruit_PWMServoDriver(I2C_ADDR_PCA968
 static bool pcaFrontOK = false;
 static bool pcaRearOK = false;
 
-// MCP23017 object for motor direction control (IN1/IN2)
-static Adafruit_MCP23X17 mcp;
-static bool mcpOK = false;
+// MCP23017 manager for shared motor direction control (IN1/IN2)
+static MCP23017Manager* mcpManager = nullptr;
 
 static Traction::State s;
 static bool initialized = false;
@@ -59,42 +58,48 @@ inline uint16_t pwmToTicks(float pwm) {
 
 // Helper: Aplicar PWM y dirección a hardware según rueda
 inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
+  // ✅ Validación añadida: verificar índice válido
+  if (wheelIndex < 0 || wheelIndex >= 4) {
+    Logger::errorf("Traction: Invalid wheel index %d", wheelIndex);
+    return;
+  }
+  
   // Apply according to wheel position
   if (wheelIndex == Traction::FL) {
     if (pcaFrontOK) {
       pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
       pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
+    if (mcpManager && mcpManager->isOK()) {
+      mcpManager->digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
+      mcpManager->digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
     }
   } else if (wheelIndex == Traction::FR) {
     if (pcaFrontOK) {
       pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
       pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
+    if (mcpManager && mcpManager->isOK()) {
+      mcpManager->digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
+      mcpManager->digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
     }
   } else if (wheelIndex == Traction::RL) {
     if (pcaRearOK) {
       pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
       pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
+    if (mcpManager && mcpManager->isOK()) {
+      mcpManager->digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
+      mcpManager->digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
     }
   } else if (wheelIndex == Traction::RR) {
     if (pcaRearOK) {
       pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
       pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
+    if (mcpManager && mcpManager->isOK()) {
+      mcpManager->digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
+      mcpManager->digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
     }
   }
 }
@@ -122,6 +127,9 @@ constexpr float TEMP_MIN_VALID = -40.0f;   // Temperatura mínima válida (°C)
 constexpr float TEMP_MAX_VALID = 150.0f;   // Temperatura máxima válida (°C)
 constexpr float TEMP_CRITICAL = 120.0f;    // Temperatura crítica (°C)
 constexpr float CURRENT_MAX_REASONABLE = 200.0f;  // Corriente máxima razonable (A)
+
+// Retry timing for I2C device initialization
+constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;  // Non-blocking retry interval
 
 // Mapea 0..100% -> 0..255 PWM con validación de límites
 inline float demandPctToPwm(float pct) {
@@ -165,12 +173,23 @@ void Traction::init() {
   // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
   // No llamar Wire.begin() aquí para evitar resetear configuración I2C
 
-  // Initialize PCA9685 front axle (0x40) with retry
-  pcaFrontOK = pcaFront.begin();
-  if (!pcaFrontOK) {
-    Logger::error("Traction: PCA9685 Front (0x40) init FAIL - retrying...");
-    delay(50);
+  // Non-blocking retry state for PCA9685 front
+  static uint32_t pcaFrontRetryTime = 0;
+  static bool pcaFrontRetrying = false;
+
+  // Initialize PCA9685 front axle (0x40) with non-blocking retry
+  if (!pcaFrontOK && !pcaFrontRetrying) {
     pcaFrontOK = pcaFront.begin();
+    if (!pcaFrontOK) {
+      Logger::error("Traction: PCA9685 Front (0x40) init FAIL - will retry asynchronously");
+      pcaFrontRetrying = true;
+      pcaFrontRetryTime = millis();
+    }
+  }
+  
+  if (pcaFrontRetrying && (millis() - pcaFrontRetryTime >= I2C_RETRY_INTERVAL_MS)) {
+    pcaFrontOK = pcaFront.begin();
+    pcaFrontRetrying = false;
     
     if (!pcaFrontOK) {
       Logger::error("Traction: PCA9685 Front (0x40) init FAIL definitivo");
@@ -187,12 +206,23 @@ void Traction::init() {
     Logger::info("Traction: PCA9685 Front (0x40) init OK");
   }
 
-  // Initialize PCA9685 rear axle (0x41) with retry
-  pcaRearOK = pcaRear.begin();
-  if (!pcaRearOK) {
-    Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - retrying...");
-    delay(50);
+  // Non-blocking retry state for PCA9685 rear
+  static uint32_t pcaRearRetryTime = 0;
+  static bool pcaRearRetrying = false;
+
+  // Initialize PCA9685 rear axle (0x41) with non-blocking retry
+  if (!pcaRearOK && !pcaRearRetrying) {
     pcaRearOK = pcaRear.begin();
+    if (!pcaRearOK) {
+      Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - will retry asynchronously");
+      pcaRearRetrying = true;
+      pcaRearRetryTime = millis();
+    }
+  }
+  
+  if (pcaRearRetrying && (millis() - pcaRearRetryTime >= I2C_RETRY_INTERVAL_MS)) {
+    pcaRearOK = pcaRear.begin();
+    pcaRearRetrying = false;
     
     if (!pcaRearOK) {
       Logger::error("Traction: PCA9685 Rear (0x41) init FAIL definitivo");
@@ -209,26 +239,18 @@ void Traction::init() {
     Logger::info("Traction: PCA9685 Rear (0x41) init OK");
   }
 
-  // Initialize MCP23017 for motor direction control (IN1/IN2)
-  mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
-  if (!mcpOK) {
-    Logger::error("Traction: MCP23017 (0x20) init FAIL - retrying...");
-    delay(50);
-    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
-    
-    if (!mcpOK) {
-      Logger::error("Traction: MCP23017 (0x20) init FAIL definitivo");
-      System::logError(832);  // Error code: MCP23017 init failure
-    }
-  }
+  // Get shared MCP23017 manager instance (initialized by ControlManager)
+  mcpManager = &MCP23017Manager::getInstance();
   
-  if (mcpOK) {
+  if (mcpManager && mcpManager->isOK()) {
     // Configure GPIOA0-A7 as OUTPUT for IN1/IN2 control
     for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
-      mcp.pinMode(pin, OUTPUT);
-      mcp.digitalWrite(pin, LOW);  // Initialize to LOW for safety
+      mcpManager->pinMode(pin, OUTPUT);
+      mcpManager->digitalWrite(pin, LOW);  // Initialize to LOW for safety
     }
-    Logger::info("Traction: MCP23017 (0x20) GPIOA init OK");
+    Logger::info("Traction: MCP23017 (0x20) GPIOA configured via manager");
+  } else {
+    Logger::error("Traction: MCP23017 manager not available");
   }
 
   // System is initialized if all hardware components are OK
@@ -237,7 +259,7 @@ void Traction::init() {
   // (e.g., unbalanced traction if one axle fails could cause loss of control)
   // Future enhancement: Could implement graceful degradation with FWD-only mode
   // if rear PCA9685 fails, but would require extensive testing for safety
-  initialized = (pcaFrontOK && pcaRearOK && mcpOK);
+  initialized = (pcaFrontOK && pcaRearOK && mcpManager && mcpManager->isOK());
   Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
 
@@ -281,9 +303,9 @@ void Traction::setAxisRotation(bool enabled, float speedPct) {
         pcaRear.setPWM(ch, 0, 0);
       }
     }
-    if (mcpOK) {
+    if (mcpManager && mcpManager->isOK()) {
       for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
-        mcp.digitalWrite(pin, LOW);
+        mcpManager->digitalWrite(pin, LOW);
       }
     }
     // Resetear demanda global para transición suave
@@ -426,7 +448,7 @@ void Traction::update() {
     float angle = std::fabs(steer.angleDeg);
 
     // 🔒 CORRECCIÓN 2.4: Escalado Ackermann mejorado para curvas más suaves
-    // Curva progresiva: a 30° -> 85%, a 45% -> 77.5%, a 60° -> 70%
+    // Curva progresiva: a 30° -> 85%, a 45° -> 77.5%, a 60° -> 70%
     // Evita reducción brusca en curvas cerradas
     // Fórmula optimizada: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
