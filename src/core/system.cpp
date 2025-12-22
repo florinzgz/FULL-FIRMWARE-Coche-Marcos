@@ -1,250 +1,368 @@
-// System core implementation
 #include "system.h"
-#include "config.h"
-#include <Arduino.h>
+#include "dfplayer.h"
+#include "current.h"
+#include "temperature.h"
+#include "wheels.h"
+#include "pedal.h"
+#include "steering.h"
+#include "relays.h"
+#include "logger.h"
+#include "storage.h"
+#include "steering_motor.h"   // 🔒 v2.4.0: Para verificar motor dirección
+#include "traction.h"         // 🔒 v2.4.0: Para verificar tracción
+#include "eeprom_persistence.h"  // 🔒 v2.11.0: Persistencia de configuración
+#include "abs_system.h"          // 🔒 v2.11.0: Sistema ABS
+#include "tcs_system.h"          // 🔒 v2.11.0: Sistema TCS
+#include "regen_ai.h"            // 🔒 v2.11.0: Freno regenerativo
+#include "obstacle_safety.h"     // 🔒 v2.11.0: Seguridad obstáculos
+#include "led_controller.h"      // 🔒 v2.11.0: Control LEDs
+#include "shifter.h"             // 🔒 v2.11.1: Validación de palanca de cambios
+#include "operation_modes.h"     // Sistema de modos de operación con tolerancia a fallos
 
-// Global system instance
-System* System::instance = nullptr;
+extern Storage::Config cfg;
 
-System::System() {
-    // Initialize system state
-    systemState = STATE_INIT;
-    errorCount = 0;
-    lastErrorCode = 0;
-}
+static System::State currentState = System::OFF;
+static bool systemInitialized = false;  // 🔒 v2.11.2: Guard contra re-inicialización
+static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
+    5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal en reposo antes de dar potencia
 
-System* System::getInstance() {
-    if (instance == nullptr) {
-        instance = new System();
-    }
-    return instance;
-}
+// 🔒 v2.11.2: Umbral mínimo de heap para inicialización segura
+static constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;  // 50KB mínimo
+static constexpr uint32_t MIN_HEAP_AFTER_INIT = MIN_HEAP_FOR_INIT / 2;  // 25KB mínimo después de init
 
 void System::init() {
-    Serial.println("Initializing system...");
-    
-    // Initialize subsystems
-    initHardware();
-    initCommunication();
-    initSensors();
-    
-    systemState = STATE_READY;
-    Serial.println("System initialized successfully");
-}
-
-void System::initHardware() {
-    // Hardware initialization code
-    pinMode(LED_BUILTIN, OUTPUT);
-    digitalWrite(LED_BUILTIN, LOW);
-}
-
-void System::initCommunication() {
-    // Communication initialization code
-    Serial.begin(115200);
-    while (!Serial) {
-        ; // Wait for serial port to connect
+    // 🔒 v2.11.2: VALIDACIÓN 1 - Prevenir doble inicialización
+    if (systemInitialized) {
+        Logger::warn("System init: Sistema ya inicializado, ignorando llamada duplicada");
+        return;
     }
+    
+    // Inicializar sistema de modos de operación
+    SystemMode::init();
+    
+    Logger::info("System init: entrando en PRECHECK");
+    currentState = PRECHECK;
+    
+    // 🔒 v2.11.2: VALIDACIÓN 2 - Verificar heap disponible antes de inicializar módulos
+    uint32_t freeHeap = ESP.getFreeHeap();
+    Logger::infof("System init: Free heap: %u bytes", freeHeap);
+    
+    if (freeHeap < MIN_HEAP_FOR_INIT) {
+        Logger::errorf("System init: CRÍTICO - Heap insuficiente (%u bytes < %u bytes requeridos)", 
+                      freeHeap, MIN_HEAP_FOR_INIT);
+        Logger::error("System init: Abortando inicialización - memoria insuficiente");
+        currentState = ERROR;
+        return;  // 🔒 Abortar inicialización si no hay suficiente memoria
+    }
+    
+    // 🔒 v2.10.8: Enhanced diagnostic information
+    Logger::infof("System init: Estado inicial OK");
+    
+    #ifdef ARDUINO_ESP32S3_DEV
+    Logger::info("System init: Platform ESP32-S3 detected");
+    #endif
+    
+    // 🔒 v2.11.2: VALIDACIÓN 3 - Cargar y validar configuración persistente
+    Logger::info("System init: Cargando configuración persistente");
+    if (!EEPROMPersistence::init()) {
+        Logger::warn("System init: EEPROM persistence init failed, using defaults");
+        // 🔒 No es crítico - continuamos con valores por defecto
+    }
+    
+    // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
+    EEPROMPersistence::GeneralSettings settings;
+    
+    if (EEPROMPersistence::loadGeneralSettings(settings)) {
+        Logger::info("System init: Configuración general cargada exitosamente");
+        
+        // Aplicar toggles de módulos según configuración cargada
+        ABSSystem::setEnabled(settings.absEnabled);
+        Logger::infof("System init: ABS %s", settings.absEnabled ? "enabled" : "disabled");
+        
+        TCSSystem::setEnabled(settings.tcsEnabled);
+        Logger::infof("System init: TCS %s", settings.tcsEnabled ? "enabled" : "disabled");
+        
+        RegenAI::setEnabled(settings.regenEnabled);
+        Logger::infof("System init: Regen %s", settings.regenEnabled ? "enabled" : "disabled");
+    } else {
+        Logger::warn("System init: No se pudo cargar configuración general, usando defaults");
+        // 🔒 Aplicar configuración segura por defecto
+        ABSSystem::setEnabled(false);  // Deshabilitado por seguridad
+        TCSSystem::setEnabled(false);  // Deshabilitado por seguridad
+        RegenAI::setEnabled(false);    // Deshabilitado por seguridad
+        Logger::info("System init: Módulos avanzados deshabilitados (modo seguro)");
+    }
+    
+    // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
+    EEPROMPersistence::LEDConfig ledConfig;
+    
+    if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
+        Logger::info("System init: Configuración LED cargada exitosamente");
+        
+        // 🔒 Validar valores de configuración antes de aplicar
+        if (ledConfig.brightness > 255) {
+            Logger::warnf("System init: Brillo LED inválido (%d), usando default (128)", ledConfig.brightness);
+            ledConfig.brightness = 128;
+        }
+        
+        LEDController::setEnabled(ledConfig.enabled);
+        LEDController::setBrightness(ledConfig.brightness);
+        
+        if (LEDController::initOK()) {
+            auto &cfgLed = LEDController::getConfig();
+            cfgLed.updateRateMs = 50; // Default update rate
+        } else {
+            Logger::warn("System init: LEDController not initialized, skipping config");
+        }
+        
+        Logger::infof("System init: LEDs %s, brightness %d", 
+                      ledConfig.enabled ? "enabled" : "disabled", 
+                      ledConfig.brightness);
+    } else {
+        Logger::warn("System init: No se pudo cargar configuración LED, usando defaults");
+        // 🔒 Aplicar configuración segura por defecto
+        LEDController::setEnabled(false);  // Deshabilitado por defecto si no hay config
+        LEDController::setBrightness(128); // Brillo medio
+        Logger::info("System init: LEDs en modo seguro (deshabilitados)");
+    }
+    
+    // Habilitar características de seguridad de obstáculos
+    // Usar configuración por defecto ya que no hay persistencia específica para esto
+    ObstacleSafety::enableParkingAssist(true);
+    ObstacleSafety::enableCollisionAvoidance(true);
+    ObstacleSafety::enableBlindSpot(true);
+    Logger::info("System init: Seguridad de obstáculos habilitada");
+    
+    // 🔒 v2.11.2: VALIDACIÓN 6 - Verificar heap después de inicialización
+    uint32_t finalHeap = ESP.getFreeHeap();
+    uint32_t heapUsed = freeHeap - finalHeap;
+    Logger::infof("System init: Heap usado en init: %u bytes, restante: %u bytes", heapUsed, finalHeap);
+    
+    if (finalHeap < MIN_HEAP_AFTER_INIT) {
+        Logger::warnf("System init: ADVERTENCIA - Heap bajo después de init (%u bytes)", finalHeap);
+    }
+    
+    // 🔒 v2.11.2: Marcar sistema como inicializado
+    systemInitialized = true;
+    Logger::info("System init: Inicialización completada exitosamente");
 }
 
-void System::initSensors() {
-    // Sensor initialization code
-    Serial.println("Initializing sensors...");
+System::Health System::selfTest() {
+    Health h{true,true,true,true,true};
+    OperationMode mode = OperationMode::MODE_FULL;
+    
+    // 🔒 v2.11.2: VALIDACIÓN - Verificar que System::init() fue llamado
+    if (!systemInitialized) {
+        Logger::error("SelfTest: Sistema no inicializado - llamar System::init() primero");
+        h = Health{false,false,false,false,false};
+        SystemMode::setMode(OperationMode::MODE_SAFE);
+        return h;
+    }
+
+    // Actualizar entradas críticas antes de validar estados
+    Pedal::update();
+    Shifter::update();
+    Steering::update();
+
+    // ========================================================================
+    // SENSORES OPCIONALES (NO bloquean arranque - modo degradado)
+    // ========================================================================
+    
+    // Corriente (opcional)
+    if(cfg.currentSensorsEnabled) {
+        if(!Sensors::currentInitOK()) {
+            Logger::warn("SelfTest: Sensores corriente no disponibles - modo degradado");
+            mode = OperationMode::MODE_DEGRADED;
+            h.currentOK = false;
+            // NO marcar h.ok = false - continuar operación
+        }
+    }
+
+    // Temperatura (opcional)
+    if(cfg.tempSensorsEnabled) {
+        if(!Sensors::temperatureInitOK()) {
+            Logger::warn("SelfTest: Sensores temperatura no disponibles - modo degradado");
+            mode = OperationMode::MODE_DEGRADED;
+            h.tempsOK = false;
+            // NO marcar h.ok = false - continuar operación
+        }
+    }
+
+    // Ruedas (opcional)
+    if(cfg.wheelSensorsEnabled) {
+        if(!Sensors::wheelsInitOK()) {
+            Logger::warn("SelfTest: Sensores rueda limitados - modo degradado");
+            mode = OperationMode::MODE_DEGRADED;
+            h.wheelsOK = false;
+            // NO marcar h.ok = false - continuar operación
+        }
+    }
+
+    // ========================================================================
+    // COMPONENTES CRÍTICOS (bloquean arranque si fallan)
+    // ========================================================================
+
+    // Pedal (crítico)
+    if(!Pedal::initOK()) {
+        System::logError(100);
+        Logger::error("SelfTest: CRÍTICO - pedal no responde");
+        h.ok = false;
+        mode = OperationMode::MODE_SAFE;
+    } else {
+        const auto &pedalState = Pedal::get();
+        if(pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
+            Logger::errorf("SelfTest: CRÍTICO - pedal no está en reposo (%.1f%%)", pedalState.percent);
+            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
+        }
+    }
+
+    // Dirección (encoder) - crítico
+    if(cfg.steeringEnabled) {
+        if(!Steering::initOK()) {
+            System::logError(200);
+            Logger::error("SelfTest: CRÍTICO - encoder dirección no responde");
+            h.steeringOK = false;
+            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
+        }
+        
+        // Motor dirección - advertencia pero no crítico
+        if(!SteeringMotor::initOK()) {
+            Logger::warn("SelfTest: motor dirección no responde (no crítico en arranque)");
+            h.steeringOK = false;
+            if (mode == OperationMode::MODE_FULL) {
+                mode = OperationMode::MODE_DEGRADED;
+            }
+        }
+    }
+
+    // Palanca de cambios (crítico para arranque seguro)
+    if(!Shifter::initOK()) {
+        System::logError(650);
+        Logger::error("SelfTest: CRÍTICO - palanca de cambios no inicializada");
+        h.ok = false;
+        mode = OperationMode::MODE_SAFE;
+    } else {
+        auto gear = Shifter::get().gear;
+        
+        // Validate gear is in valid range
+        if(gear < Shifter::P || gear > Shifter::R) {
+            System::logError(652);
+            Logger::error("SelfTest: CRÍTICO - palanca en estado inválido");
+            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
+        } else if(gear != Shifter::P) {
+            System::logError(651);
+            Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK (gear=%d)", static_cast<int>(gear));
+            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
+        }
+    }
+
+    // Relés (crítico)
+    if(!Relays::initOK()) {
+        System::logError(600);
+        Logger::error("SelfTest: CRÍTICO - Relés no responden - modo seguro");
+        h.ok = false;
+        mode = OperationMode::MODE_SAFE;
+    }
+    
+    // ========================================================================
+    // COMPONENTES NO CRÍTICOS (solo advertencias)
+    // ========================================================================
+    
+    // Tracción (no crítico)
+    if(cfg.tractionEnabled) {
+        if(!Traction::initOK()) {
+            Logger::warn("SelfTest: módulo tracción no inicializado (no crítico)");
+            if (mode == OperationMode::MODE_FULL) {
+                mode = OperationMode::MODE_DEGRADED;
+            }
+        }
+    }
+
+    // DFPlayer (no crítico)
+    if(!Audio::initOK()) {
+        Logger::warn("SelfTest: DFPlayer no inicializado (no crítico)");
+        if (mode == OperationMode::MODE_FULL) {
+            mode = OperationMode::MODE_DEGRADED;
+        }
+    }
+
+    // Establecer modo de operación según resultados
+    SystemMode::setMode(mode);
+    
+    return h;
 }
 
 void System::update() {
-    // Main system update loop
-    checkHealth();
-    updateSensors();
-    updateCommunication();
-}
+    switch(currentState) {
+        case PRECHECK: {
+            auto h = selfTest();
+            if(h.ok) {
+                Logger::info("SelfTest OK → READY");
+                currentState = READY;
+            } else {
+                Logger::errorf("SelfTest FAIL → ERROR");
+                currentState = ERROR;
+            }
+        } break;
 
-void System::checkHealth() {
-    // System health monitoring
-    if (errorCount > MAX_ERROR_COUNT) {
-        systemState = STATE_ERROR;
-        handleCriticalError();
+        case READY:
+            Logger::info("System READY → RUN");
+            currentState = RUN;
+            break;
+
+        case RUN:
+            // Aquí se puede añadir lógica de watchdog o monitorización
+            break;
+
+        case ERROR:
+            Relays::disablePower();
+            break;
+
+        case OFF:
+        default:
+            break;
     }
 }
 
-void System::updateSensors() {
-    // Sensor update code
+System::State System::getState() {
+    return currentState;
 }
 
-void System::updateCommunication() {
-    // Communication update code
+// --- API de diagnóstico persistente ---
+void System::logError(uint16_t code) {
+    for(int i=0; i<cfg.errorCount; i++) {
+        if(cfg.errors[i].code == code) return;
+    }
+    if(cfg.errorCount < Storage::Config::MAX_ERRORS) {
+        cfg.errors[cfg.errorCount++] = {code, millis()};
+    } else {
+        for(int i=1; i<Storage::Config::MAX_ERRORS; i++)
+            cfg.errors[i-1] = cfg.errors[i];
+        cfg.errors[Storage::Config::MAX_ERRORS-1] = {code, millis()};
+    }
+    Storage::save(cfg);
 }
 
-void System::handleCriticalError() {
-    Serial.println("CRITICAL ERROR: System entering safe mode");
-    systemState = STATE_SAFE_MODE;
-}
-
-void System::logError(int errorCode) {
-    lastErrorCode = errorCode;
-    errorCount++;
-    Serial.print("Error logged: ");
-    Serial.println(errorCode);
-}
-
-void System::resetErrors() {
-    errorCount = 0;
-    lastErrorCode = 0;
-}
-
-int System::getState() {
-    return systemState;
+const Storage::ErrorLog* System::getErrors() {
+    return cfg.errors;
 }
 
 int System::getErrorCount() {
-    return errorCount;
+    return cfg.errorCount;
 }
 
-int System::getLastError() {
-    return lastErrorCode;
-}
-
-// HUD Error Handling Functions
-void System::validateHudData() {
-    // Validate speed data
-    if (!isValidSpeed()) {
-        logError(640); // Speed validation error
-        return;
+void System::clearErrors() {
+    cfg.errorCount = 0;
+    for(int i=0; i<Storage::Config::MAX_ERRORS; i++) {
+        cfg.errors[i] = {0,0};
     }
-    
-    // Validate RPM data
-    if (!isValidRpm()) {
-        logError(641); // RPM validation error
-        return;
-    }
-    
-    // Validate temperature data
-    if (!isValidTemperature()) {
-        logError(642); // Temperature validation error
-        return;
-    }
-    
-    // Validate fuel level
-    if (!isValidFuelLevel()) {
-        logError(643); // Fuel level validation error
-        return;
-    }
-    
-    // Validate battery voltage
-    if (!isValidBatteryVoltage()) {
-        logError(644); // Battery voltage validation error
-        return;
-    }
-    
-    // Validate oil pressure
-    if (!isValidOilPressure()) {
-        logError(645); // Oil pressure validation error
-        return;
-    }
-    
-    // Validate coolant temperature
-    if (!isValidCoolantTemp()) {
-        logError(646); // Coolant temperature validation error
-        return;
-    }
-    
-    // Validate boost pressure
-    if (!isValidBoostPressure()) {
-        logError(647); // Boost pressure validation error
-        return;
-    }
-    
-    // Validate air/fuel ratio
-    if (!isValidAirFuelRatio()) {
-        logError(648); // Air/fuel ratio validation error
-        return;
-    }
-    
-    // Validate throttle position
-    if (!isValidThrottlePosition()) {
-        logError(649); // Throttle position validation error
-        return;
-    }
-    
-    // Validate brake pressure
-    if (!isValidBrakePressure()) {
-        logError(650); // Brake pressure validation error
-        return;
-    }
-    
-    // Validate steering angle
-    if (!isValidSteeringAngle()) {
-        logError(651); // Steering angle validation error
-        return;
-    }
-    
-    // Validate gear range
-    if (!isValidGearRange()) {
-        logError(652); // Gear range validation error (updated from 650)
-        return;
-    }
+    Storage::save(cfg);
 }
 
-bool System::isValidSpeed() {
-    // Speed validation logic
-    return true;
-}
-
-bool System::isValidRpm() {
-    // RPM validation logic
-    return true;
-}
-
-bool System::isValidTemperature() {
-    // Temperature validation logic
-    return true;
-}
-
-bool System::isValidFuelLevel() {
-    // Fuel level validation logic
-    return true;
-}
-
-bool System::isValidBatteryVoltage() {
-    // Battery voltage validation logic
-    return true;
-}
-
-bool System::isValidOilPressure() {
-    // Oil pressure validation logic
-    return true;
-}
-
-bool System::isValidCoolantTemp() {
-    // Coolant temperature validation logic
-    return true;
-}
-
-bool System::isValidBoostPressure() {
-    // Boost pressure validation logic
-    return true;
-}
-
-bool System::isValidAirFuelRatio() {
-    // Air/fuel ratio validation logic
-    return true;
-}
-
-bool System::isValidThrottlePosition() {
-    // Throttle position validation logic
-    return true;
-}
-
-bool System::isValidBrakePressure() {
-    // Brake pressure validation logic
-    return true;
-}
-
-bool System::isValidSteeringAngle() {
-    // Steering angle validation logic
-    return true;
-}
-
-bool System::isValidGearRange() {
-    // Gear range validation logic
-    return true;
+bool System::hasError() {
+    return currentState == ERROR || cfg.errorCount > 0;
 }
