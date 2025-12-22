@@ -4,6 +4,7 @@
 #include "dfplayer.h"
 #include "alerts.h"
 #include "mcp23017_manager.h"
+#include "system.h"
 
 static Shifter::State s = {Shifter::P, false};
 
@@ -69,7 +70,8 @@ void Shifter::init() {
     } else {
         mcpAvailable = false;
         initialized = false;  // Initialization failed
-        Logger::error(700, "Shifter: MCP23017 manager not available!");
+        System::logError(700);
+        Logger::error("Shifter: MCP23017 manager not available!");
     }
     
     Logger::info("Shifter init completado (via MCP23017Manager)");
