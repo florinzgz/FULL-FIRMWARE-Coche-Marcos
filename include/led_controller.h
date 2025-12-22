@@ -68,6 +68,9 @@ namespace LEDController {
     // Initialize LED system
     void init();
     
+    // Check if LED system initialized successfully
+    bool initOK();
+    
     // Update LED animations (call in main loop)
     void update();
     

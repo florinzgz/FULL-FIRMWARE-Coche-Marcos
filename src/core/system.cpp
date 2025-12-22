@@ -108,8 +108,12 @@ void System::init() {
         LEDController::setEnabled(ledConfig.enabled);
         LEDController::setBrightness(ledConfig.brightness);
         
-        auto &cfgLed = LEDController::getConfig();
-        cfgLed.updateRateMs = 50; // Default update rate
+        if (LEDController::initOK()) {
+            auto &cfgLed = LEDController::getConfig();
+            cfgLed.updateRateMs = 50; // Default update rate
+        } else {
+            Logger::warn("System init: LEDController not initialized, skipping config");
+        }
         
         Logger::infof("System init: LEDs %s, brightness %d", 
                       ledConfig.enabled ? "enabled" : "disabled", 
@@ -241,9 +245,16 @@ System::Health System::selfTest() {
         mode = OperationMode::MODE_SAFE;
     } else {
         auto gear = Shifter::get().gear;
-        if(gear != Shifter::P) {
+        
+        // Validate gear is in valid range
+        if(gear < Shifter::P || gear > Shifter::R) {
+            System::logError(652);
+            Logger::error("SelfTest: CRÍTICO - palanca en estado inválido");
+            h.ok = false;
+            mode = OperationMode::MODE_SAFE;
+        } else if(gear != Shifter::P) {
             System::logError(651);
-            Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK para arrancar (gear=%d)", static_cast<int>(gear));
+            Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK (gear=%d)", static_cast<int>(gear));
             h.ok = false;
             mode = OperationMode::MODE_SAFE;
         }

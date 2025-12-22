@@ -112,19 +112,9 @@ void initializeSystem() {
     // Initialize HUD Manager
     Serial.println("[INIT] HUD Manager initialization...");
     if (!HUDManager::init()) {
-        Watchdog::feed();
-        Logger::error("HUD initialization failed; entering safe halt state");
-        // Critical failure: stop further initialization to avoid undefined behavior.
-        uint32_t lastFeed = millis();
-        while (true) {
-            if (millis() - lastFeed >= 100) {
-                lastFeed = millis();
-                Watchdog::feed();
-            }
-            yield();
-        }
+        handleCriticalError("HUD Manager initialization failed");
     }
-    Logger::info("HUD initialized");
+    Logger::info("HUD Manager initialized");
     
     Watchdog::feed();
     
