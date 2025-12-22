@@ -33,6 +33,11 @@ struct SafetyState {
     float speedReductionFactor;           // Speed reduction multiplier (0.0-1.0)
     uint16_t closestObstacleDistanceMm;   // Distance to closest obstacle
     uint8_t closestObstacleSensor;        // Sensor with closest detection (0-3)
+    
+    // 🔒 v2.12.0: Child reaction detection for intelligent obstacle avoidance
+    bool pedalReactionDetected;           // True if child has reduced pedal recently
+    uint32_t lastPedalChangeMs;           // Timestamp of last significant pedal change
+    float lastPedalValue;                 // Last pedal value for change detection
 };
 
 // Initialization
