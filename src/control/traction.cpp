@@ -1,165 +1,115 @@
 #include "traction.h"
-#include <Arduino.h>
+#include "shifter.h"
+#include "logger.h"
+#include "pedal.h"
+#include "steering.h"
+#include "config.h"
+#include <algorithm>
+#include <cmath>
 
-// Pin definitions
-#define MOTOR_PWM_PIN 9
-#define MOTOR_DIR_PIN 8
-#define BRAKE_PIN 7
+namespace Control {
 
-// Power limiting constants
-#define POWER_LIMIT_D1 0.70  // 70% power in D1
-#define POWER_LIMIT_D2 1.00  // 100% power in D2
-#define POWER_LIMIT_REVERSE 0.80  // 80% power in reverse
-
-// Ramping constants
-#define POWER_RAMP_STEP 0.02  // 2% change per update
-#define MIN_SPEED_FOR_PARK 0.5  // km/h - minimum speed to allow Park
-
-// Global variables
-static GearPosition currentGear = GEAR_PARK;
-static float currentPower = 0.0;
-static float targetPower = 0.0;
-static float currentSpeed = 0.0;
-static unsigned long lastRampUpdate = 0;
-static const unsigned long RAMP_UPDATE_INTERVAL = 20; // ms
-
-void Traction_Init() {
-    pinMode(MOTOR_PWM_PIN, OUTPUT);
-    pinMode(MOTOR_DIR_PIN, OUTPUT);
-    pinMode(BRAKE_PIN, OUTPUT);
-    
-    // Initialize in safe state
-    digitalWrite(MOTOR_DIR_PIN, LOW);
-    analogWrite(MOTOR_PWM_PIN, 0);
-    digitalWrite(BRAKE_PIN, HIGH); // Brake engaged
-    
-    currentPower = 0.0;
-    targetPower = 0.0;
-    currentGear = GEAR_PARK;
+Traction::Traction()
+    : m_state{}
+    , m_lastUpdateTime(0)
+{
 }
 
-bool Traction_SetGear(GearPosition gear) {
-    // Safety check: Don't allow gear change from Park if vehicle is moving
-    if (currentGear == GEAR_PARK && currentSpeed > MIN_SPEED_FOR_PARK) {
-        return false; // Reject gear change
-    }
+Traction& Traction::get() {
+    static Traction instance;
+    return instance;
+}
+
+void Traction::init() {
+    Logger::info("Traction: Initializing");
+    m_state = State{};
+    m_lastUpdateTime = millis();
+}
+
+void Traction::update() {
+    static float rampedDemand = 0.0f;
+    constexpr float RAMP_RATE_PCT_PER_SEC = 50.0f;  // 50% per second
+    constexpr float UPDATE_RATE_HZ = 20.0f;  // Assuming 20Hz update rate
+    constexpr float MAX_DELTA_PER_UPDATE = RAMP_RATE_PCT_PER_SEC / UPDATE_RATE_HZ;  // 2.5% per update
+
+    auto& s = m_state;
     
-    // Safety check: Must go through Neutral when changing between Drive and Reverse
-    if ((currentGear == GEAR_DRIVE_1 || currentGear == GEAR_DRIVE_2) && gear == GEAR_REVERSE) {
-        return false; // Must shift to Neutral first
-    }
-    if (currentGear == GEAR_REVERSE && (gear == GEAR_DRIVE_1 || gear == GEAR_DRIVE_2)) {
-        return false; // Must shift to Neutral first
-    }
+    // Get pedal input
+    float pedalPct = Pedal::get().getPositionPct();
+    s.demandPct = pedalPct;
     
-    // Engage brake during gear change
-    digitalWrite(BRAKE_PIN, HIGH);
-    
-    // Apply gear change
-    currentGear = gear;
-    
-    // Reset power when changing gears
-    targetPower = 0.0;
-    
-    // Set appropriate direction
-    if (gear == GEAR_REVERSE) {
-        digitalWrite(MOTOR_DIR_PIN, HIGH); // Reverse direction
+    // Apply smooth power ramping
+    float targetDemand = s.demandPct;
+    if (targetDemand > rampedDemand) {
+        rampedDemand = std::min(rampedDemand + MAX_DELTA_PER_UPDATE, targetDemand);
     } else {
-        digitalWrite(MOTOR_DIR_PIN, LOW); // Forward direction
+        rampedDemand = std::max(rampedDemand - MAX_DELTA_PER_UPDATE, targetDemand);
     }
     
-    // Release brake if not in Park
-    if (gear != GEAR_PARK) {
-        digitalWrite(BRAKE_PIN, LOW);
-    }
+    // Get steering input
+    float steeringAngle = Steering::get().getAngleDeg();
+    s.steeringAngle = steeringAngle;
     
-    return true;
-}
-
-GearPosition Traction_GetGear() {
-    return currentGear;
-}
-
-void Traction_SetThrottle(float throttle) {
-    // Clamp throttle to valid range
-    if (throttle < 0.0) throttle = 0.0;
-    if (throttle > 1.0) throttle = 1.0;
+    // Check for axis rotation mode
+    bool axisRotationMode = false; // Placeholder for actual axis rotation detection
     
-    // Apply gear-based power limiting
-    float powerLimit = 1.0;
-    
-    switch (currentGear) {
-        case GEAR_PARK:
-        case GEAR_NEUTRAL:
-            powerLimit = 0.0;
-            break;
-            
-        case GEAR_DRIVE_1:
-            powerLimit = POWER_LIMIT_D1;
-            break;
-            
-        case GEAR_DRIVE_2:
-            powerLimit = POWER_LIMIT_D2;
-            break;
-            
-        case GEAR_REVERSE:
-            powerLimit = POWER_LIMIT_REVERSE;
-            break;
-    }
-    
-    // Set target power based on throttle and gear limit
-    targetPower = throttle * powerLimit;
-}
-
-void Traction_Update(float speed) {
-    currentSpeed = speed;
-    unsigned long currentTime = millis();
-    
-    // Check if it's time to update ramp
-    if (currentTime - lastRampUpdate < RAMP_UPDATE_INTERVAL) {
-        return;
-    }
-    lastRampUpdate = currentTime;
-    
-    // Smooth power ramping
-    if (currentPower < targetPower) {
-        // Accelerating
-        currentPower += POWER_RAMP_STEP;
-        if (currentPower > targetPower) {
-            currentPower = targetPower;
+    if (axisRotationMode) {
+        // Axis rotation mode - all wheels reverse with equal power
+        for (int i = 0; i < 4; ++i) {
+            s.w[i].reverse = true;
+            s.w[i].powerPct = s.demandPct;
         }
-    } else if (currentPower > targetPower) {
-        // Decelerating
-        currentPower -= POWER_RAMP_STEP;
-        if (currentPower < targetPower) {
-            currentPower = targetPower;
+    } else {
+        // Normal driving mode
+        // Reverse gear detection from Shifter
+        bool reverseGear = (Shifter::get().gear == Shifter::R);
+        
+        for (int i = 0; i < 4; ++i) {
+            s.w[i].reverse = reverseGear;
+        }
+        
+        // Apply gear-based power limiting
+        float gearMultiplier = 1.0f;
+        auto shifterGear = Shifter::get().gear;
+        if (shifterGear == Shifter::D1) {
+            gearMultiplier = 0.70f;  // 70% power in D1 for terrain
+            Logger::debugf("Traction: D1 mode - limiting to 70%% power");
+        } else if (shifterGear == Shifter::D2) {
+            gearMultiplier = 1.0f;   // 100% power in D2 for speed
+        } else if (shifterGear == Shifter::R) {
+            gearMultiplier = 0.80f;  // 80% power in reverse for safety
+            Logger::debugf("Traction: Reverse mode - limiting to 80%% power");
+        }
+        
+        // Use rampedDemand instead of s.demandPct for calculations
+        const float base = rampedDemand * gearMultiplier;
+        
+        // Simple differential steering
+        // Inside wheels get less power, outside wheels get more
+        float steerFactor = steeringAngle / 45.0f; // Normalize to +/- 1.0 at 45 degrees
+        steerFactor = std::max(-1.0f, std::min(1.0f, steerFactor));
+        
+        if (steerFactor > 0) {
+            // Turning right
+            s.w[0].powerPct = base * (1.0f - steerFactor * 0.5f); // Front left (inside)
+            s.w[1].powerPct = base * (1.0f + steerFactor * 0.3f); // Front right (outside)
+            s.w[2].powerPct = base * (1.0f - steerFactor * 0.5f); // Rear left (inside)
+            s.w[3].powerPct = base * (1.0f + steerFactor * 0.3f); // Rear right (outside)
+        } else {
+            // Turning left
+            float absSteerFactor = -steerFactor;
+            s.w[0].powerPct = base * (1.0f + absSteerFactor * 0.3f); // Front left (outside)
+            s.w[1].powerPct = base * (1.0f - absSteerFactor * 0.5f); // Front right (inside)
+            s.w[2].powerPct = base * (1.0f + absSteerFactor * 0.3f); // Rear left (outside)
+            s.w[3].powerPct = base * (1.0f - absSteerFactor * 0.5f); // Rear right (inside)
         }
     }
     
-    // Apply power to motor
-    int pwmValue = (int)(currentPower * 255.0);
-    
-    // Safety: Ensure Park and Neutral have no power
-    if (currentGear == GEAR_PARK || currentGear == GEAR_NEUTRAL) {
-        pwmValue = 0;
-        currentPower = 0.0;
-        targetPower = 0.0;
-        digitalWrite(BRAKE_PIN, HIGH);
-    } else {
-        digitalWrite(BRAKE_PIN, LOW);
-    }
-    
-    analogWrite(MOTOR_PWM_PIN, pwmValue);
+    m_lastUpdateTime = millis();
 }
 
-float Traction_GetCurrentPower() {
-    return currentPower;
+const Traction::State& Traction::getState() const {
+    return m_state;
 }
 
-void Traction_EmergencyStop() {
-    targetPower = 0.0;
-    currentPower = 0.0;
-    analogWrite(MOTOR_PWM_PIN, 0);
-    digitalWrite(BRAKE_PIN, HIGH);
-    currentGear = GEAR_PARK;
-}
+} // namespace Control
