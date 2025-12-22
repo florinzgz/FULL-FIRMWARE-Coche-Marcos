@@ -1,175 +1,165 @@
-#include "steering_motor.h"
-#include "pins.h"
-#include "pwm_channels.h"  // 🔒 v2.8.5: PWM channel validation
-#include "current.h"
-#include "steering.h"
-#include "logger.h"
-#include "system.h"      // 🔒 v2.4.0: Para logError()
-#include "mcp23017_manager.h"
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
-#include <cmath>         // 🔒 v2.4.0: Para std::isfinite()
+// Steering Motor Control Implementation
+#include "control/steering_motor.h"
+#include <Arduino.h>
 
-// PCA9685 para motor dirección (I²C 0x42 según pins.h I2C_ADDR_PCA9685_STEERING)
-static Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_STEERING);
-// MCP23017 manager for shared control IN1/IN2 (I²C 0x20)
-static MCP23017Manager* mcpManager = nullptr;
-static SteeringMotor::State s;
-static bool initialized = false;
-static bool pcaOK = false;  // 🔒 v2.4.0: Track PCA9685 initialization status
+// Constructor
+SteeringMotor::SteeringMotor(uint8_t pwmChannel, uint8_t in1Pin, uint8_t in2Pin, 
+                             uint8_t encoderPinA, uint8_t encoderPinB,
+                             float gearRatio, uint16_t ppr)
+    : pwmChannel(pwmChannel), in1Pin(in1Pin), in2Pin(in2Pin),
+      encoderPinA(encoderPinA), encoderPinB(encoderPinB),
+      gearRatio(gearRatio), ppr(ppr),
+      currentAngle(0), targetAngle(0), centerAngle(0),
+      minAngle(-45), maxAngle(45),
+      kp(2.0), ki(0.1), kd(0.5),
+      integral(0), lastError(0), lastUpdateTime(0),
+      initialized(false), pcaOK(false), mcpManager(nullptr) {}
 
-static const uint16_t kFreqHz = 1000;  // PWM estable para BTS7960
-static const uint8_t  kChannelFwd = PCA_STEER_CH_PWM_FWD; // canal PCA para dirección forward
-static const uint8_t  kChannelRev = PCA_STEER_CH_PWM_REV; // canal PCA para dirección reverse
-static const float kDeadbandDeg = 0.5f;  // Zona muerta para evitar oscilación del motor
-static const float kMaxCurrentA = 30.0f; // 🔒 v2.4.0: Límite de corriente para protección motor
-static const uint32_t kRetryIntervalMs = 50;  // Non-blocking retry interval for I2C init
-
-static uint16_t pctToTicks(float pct) {
-    pct = constrain(pct, 0.0f, 100.0f);
-    // PCA9685 usa 12-bit (0..4095). Mapear 0..100% → 0..4095 duty
-    return (uint16_t)(pct * 40.95f);
+// Initialize the steering motor
+bool SteeringMotor::begin(Adafruit_PWMServoDriver* pca, MCP23017Manager* mcp) {
+    if (!pca || !mcp) {
+        Serial.println("Error: PCA9685 or MCP23017Manager pointer is null");
+        return false;
+    }
+    
+    this->pca = pca;
+    this->mcpManager = mcp;
+    
+    // Initialize PCA9685 PWM
+    pcaOK = true; // Assume PCA is initialized externally
+    
+    // Configure MCP23017 pins for motor control
+    if (!mcpManager->pinMode(in1Pin, OUTPUT) || !mcpManager->pinMode(in2Pin, OUTPUT)) {
+        Serial.println("Error: Failed to configure MCP23017 pins for steering motor");
+        return false;
+    }
+    
+    // Initialize encoder
+    pinMode(encoderPinA, INPUT_PULLUP);
+    pinMode(encoderPinB, INPUT_PULLUP);
+    
+    // Stop motor initially
+    stop();
+    
+    initialized = true;
+    lastUpdateTime = millis();
+    
+    Serial.println("Steering motor initialized successfully");
+    return true;
 }
 
-void SteeringMotor::init() {
-    // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
-    // No llamar Wire.begin() aquí para evitar resetear configuración I2C
-    
-    // 🔒 v2.8.5: Validate PWM channels match expected steering configuration
-    if (!pwm_channels_match_steering_config(kChannelFwd, kChannelRev)) {
-        Logger::errorf("SteeringMotor: PWM channel config mismatch FWD=%d REV=%d", kChannelFwd, kChannelRev);
-        System::logError(252);  // Código: PWM channel inválido
-        initialized = false;
-        pcaOK = false;
-        return;
-    }
-    
-    // Non-blocking retry state for PCA9685
-    static uint32_t pcaRetryTime = 0;
-    static bool pcaRetrying = false;
-    
-    // 🔒 v2.4.0: Validar inicialización PCA9685 con retry no bloqueante
-    if (!pcaOK && !pcaRetrying) {
-        pcaOK = pca.begin();
-        if (!pcaOK) {
-            Logger::error("SteeringMotor: PCA9685 init FAIL - will retry asynchronously");
-            pcaRetrying = true;
-            pcaRetryTime = millis();
-        }
-    }
-    
-    if (pcaRetrying && (millis() - pcaRetryTime >= kRetryIntervalMs)) {
-        pcaOK = pca.begin();
-        pcaRetrying = false;
-        
-        if (!pcaOK) {
-            Logger::error("SteeringMotor: PCA9685 init FAIL definitivo");
-            System::logError(250);  // Código: PCA9685 dirección no responde
-            initialized = false;
-            return;
-        }
-    }
-    
-    if (pcaOK) {
-        pca.setPWMFreq(kFreqHz);
-        
-        // 🔒 v2.4.0: Inicializar canales en estado apagado por seguridad
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
-    }
-
-    // Get shared MCP23017 manager instance (initialized by ControlManager)
-    mcpManager = &MCP23017Manager::getInstance();
-    
-    if (mcpManager->isOK()) {
-        mcpManager->pinMode(MCP_PIN_STEER_IN1, OUTPUT);
-        mcpManager->pinMode(MCP_PIN_STEER_IN2, OUTPUT);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN1, LOW);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN2, LOW);
-        Logger::info("SteeringMotor: MCP23017 IN1/IN2 configured via manager");
-    } else {
-        Logger::error("SteeringMotor: MCP23017 manager not available");
-        System::logError(254);
-    }
-
-    s = {0, 0, 0};
-    initialized = (pcaOK && mcpManager && mcpManager->isOK());
-    Logger::infof("SteeringMotor init: %s", initialized ? "OK" : "FAIL");
+// Set the target steering angle
+void SteeringMotor::setAngle(float angle) {
+    targetAngle = constrain(angle, minAngle, maxAngle);
 }
 
-void SteeringMotor::setDemandAngle(float deg) {
-    s.demandDeg = deg;
+// Get current steering angle
+float SteeringMotor::getAngle() {
+    return currentAngle;
 }
 
+// Set angle limits
+void SteeringMotor::setLimits(float minAngle, float maxAngle) {
+    this->minAngle = minAngle;
+    this->maxAngle = maxAngle;
+}
+
+// Calibrate center position
+void SteeringMotor::calibrateCenter() {
+    centerAngle = currentAngle;
+    Serial.print("Steering center calibrated at: ");
+    Serial.println(centerAngle);
+}
+
+// Set PID parameters
+void SteeringMotor::setPID(float kp, float ki, float kd) {
+    this->kp = kp;
+    this->ki = ki;
+    this->kd = kd;
+}
+
+// Update steering control (PID loop)
 void SteeringMotor::update() {
-    // 🔒 CORRECCIÓN CRÍTICA: Verificar inicialización antes de actualizar
-    if (!initialized || !pcaOK || !mcpManager || !mcpManager->isOK()) {
-        Logger::warn("SteeringMotor update llamado sin init");
-        // NOTA: No intentamos parada de emergencia aquí porque pca.begin() 
-        // no ha sido llamado y el objeto PCA9685 no está configurado.
-        // El control de potencia debe hacerse vía relés (Relays::disablePower())
+    if (!initialized || !mcpManager || !mcpManager->isOK()) {
         return;
     }
     
-    // 🔒 v2.4.0: Protección por sobrecorriente
-    float currentA = Sensors::getCurrent(5);  // Canal 5 = motor dirección
-    if (currentA > kMaxCurrentA && std::isfinite(currentA)) {
-        Logger::errorf("SteeringMotor: OVERCURRENT %.1fA (límite %.0fA)", currentA, kMaxCurrentA);
-        System::logError(251);  // Código: overcurrent motor dirección
-        // Detener motor inmediatamente
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN1, LOW);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN2, LOW);
-        s.pwmOut = 0;
-        s.currentA = currentA;
-        return;
-    }
+    unsigned long currentTime = millis();
+    float dt = (currentTime - lastUpdateTime) / 1000.0; // Convert to seconds
     
-    // Control sencillo: seguir el ángulo de mando (puede venir de alg. superior)
-    float target = s.demandDeg;
-    float actual = Steering::get().angleDeg;
-    float error = target - actual;
-    float absError = fabs(error);
-
-    // PID muy básico (proporcional)
-    float kp = 1.2f;
-    float cmdPct = constrain(absError * kp, 0.0f, 100.0f);
-
-    // Control bidireccional usando canales FWD/REV según signo del error
-    // 🔒 CORRECCIÓN: Zona muerta para evitar oscilación del motor con errores pequeños
-    uint16_t ticks = pctToTicks(cmdPct);
-    if (absError < kDeadbandDeg) {
-        // Error dentro de zona muerta: parar motor para evitar oscilación
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN1, LOW);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN2, LOW);
-    } else if (error > 0) {
-        // Girar hacia la derecha: activar canal FWD, desactivar REV
-        pca.setPWM(kChannelFwd, 0, ticks);
-        pca.setPWM(kChannelRev, 0, 0);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN1, HIGH);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN2, LOW);
+    if (dt < 0.01) return; // Update at most every 10ms
+    
+    // Calculate error
+    float error = targetAngle - currentAngle;
+    
+    // PID calculations
+    integral += error * dt;
+    integral = constrain(integral, -100, 100); // Anti-windup
+    
+    float derivative = (error - lastError) / dt;
+    
+    float output = kp * error + ki * integral + kd * derivative;
+    
+    // Apply output to motor
+    if (abs(error) < 0.5) {
+        stop();
+    } else if (output > 0) {
+        setSpeed(constrain(abs(output), 0, 100));
+        setDirection(CLOCKWISE);
     } else {
-        // Girar hacia la izquierda: activar canal REV, desactivar FWD
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, ticks);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN1, LOW);
-        mcpManager->digitalWrite(MCP_PIN_STEER_IN2, HIGH);
+        setSpeed(constrain(abs(output), 0, 100));
+        setDirection(COUNTERCLOCKWISE);
     }
-    s.pwmOut = cmdPct;
-
-    // Corriente de dirección (canal INA226 = 5)
-    s.currentA = Sensors::getCurrent(5);
+    
+    // Update for next iteration
+    lastError = error;
+    lastUpdateTime = currentTime;
 }
 
-// 🔒 v2.4.0: Estado de inicialización
+// Stop the steering motor
+void SteeringMotor::stop() {
+    if (!initialized || !mcpManager) return;
+    
+    // Set PWM to 0
+    if (pca && pcaOK) {
+        pca->setPWM(pwmChannel, 0, 0);
+    }
+    
+    // Set both direction pins LOW
+    mcpManager->digitalWrite(in1Pin, LOW);
+    mcpManager->digitalWrite(in2Pin, LOW);
+}
+
+// Set motor direction
+void SteeringMotor::setDirection(MotorDirection dir) {
+    if (!initialized || !mcpManager) return;
+    
+    switch (dir) {
+        case CLOCKWISE:
+            mcpManager->digitalWrite(in1Pin, HIGH);
+            mcpManager->digitalWrite(in2Pin, LOW);
+            break;
+        case COUNTERCLOCKWISE:
+            mcpManager->digitalWrite(in1Pin, LOW);
+            mcpManager->digitalWrite(in2Pin, HIGH);
+            break;
+        case BRAKE:
+            mcpManager->digitalWrite(in1Pin, HIGH);
+            mcpManager->digitalWrite(in2Pin, HIGH);
+            break;
+    }
+}
+
+// Set motor speed (0-100%)
+void SteeringMotor::setSpeed(float speed) {
+    if (!initialized || !pca || !pcaOK) return;
+    
+    speed = constrain(speed, 0, 100);
+    uint16_t pwmValue = map(speed, 0, 100, 0, 4095);
+    pca->setPWM(pwmChannel, 0, pwmValue);
+}
+
+// Check if initialization was successful
 bool SteeringMotor::initOK() {
-    return initialized && pcaOK && mcpOK;
-}
-
-// 🔒 v2.4.0: Obtener estado actual del motor de dirección
-const SteeringMotor::State& SteeringMotor::get() {
-    return s;
+    return initialized && pcaOK && mcpManager && mcpManager->isOK();
 }
