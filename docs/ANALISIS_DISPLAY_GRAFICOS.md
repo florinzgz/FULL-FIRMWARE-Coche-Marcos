@@ -66,7 +66,7 @@ Vista superior del vehículo dibujada en el centro del dashboard:
 | 223 | Línea lateral izq | (195, 115) a (195, 235) | TFT_DARKGREY | Rail lateral izquierdo |
 | 224 | Línea lateral der | (285, 115) a (285, 235) | TFT_DARKGREY | Rail lateral derecho |
 
-### 1.6 Indicador de Ángulo del Volante (drawSteeringAngle) - v2.8.3
+### 1.6 Indicador de Ángulo del Volante (drawSteeringWheel) - v2.8.3
 
 Muestra el ángulo del volante en grados en el centro del coche:
 
