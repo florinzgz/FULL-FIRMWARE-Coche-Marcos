@@ -9,12 +9,13 @@
 #include "storage.h"
 #include "system.h"
 #include "wheels.h"
+#include "mcp_shared.h"
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <Adafruit_MCP23X17.h>
 #include <algorithm> // std::min, std::max
-#include <cmath>     // std::isfinite, std::fabs
+#include <cmath>     // std::isfinite, std::fabs, std::round
 #include <cstdint>
 #include <cstring>
 
@@ -25,10 +26,6 @@ static Adafruit_PWMServoDriver pcaFront = Adafruit_PWMServoDriver(I2C_ADDR_PCA96
 static Adafruit_PWMServoDriver pcaRear = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_REAR);
 static bool pcaFrontOK = false;
 static bool pcaRearOK = false;
-
-// MCP23017 object for motor direction control (IN1/IN2)
-static Adafruit_MCP23X17 mcp;
-static bool mcpOK = false;
 
 static Traction::State s;
 static bool initialized = false;
@@ -43,18 +40,23 @@ inline float clampf(float v, float lo, float hi) {
   return v;
 }
 
+// Pin range constants for motor direction control
+constexpr int FIRST_DIR_PIN = MCP_PIN_FL_IN1;
+constexpr int LAST_DIR_PIN = MCP_PIN_RR_IN2;
+
 // Constante de conversión PWM a ticks PCA9685
 // PCA9685 usa 12 bits (0-4095 = 4096 valores totales)
 // PWM interno es 8 bits (0-255 = 256 valores totales)
-// Multiplicador: 16.0 proporciona mapeo conservador (255*16=4080, deja margen de 15 ticks)
-// Para mapeo exacto usar 4095/255≈16.06, pero 16.0 es más seguro y evita saturación
-constexpr float PWM_TO_TICKS_MULTIPLIER = 16.0f;
+// Multiplicador exacto: 4095/255 ≈ 16.0588 para mapeo perfecto sin pérdida de resolución
+constexpr float PWM_TO_TICKS_MULTIPLIER = 4095.0f / 255.0f;
 
 // Helper: Convertir PWM (0-255) a ticks PCA9685 (0-4095)
 inline uint16_t pwmToTicks(float pwm) {
-  uint16_t ticks = static_cast<uint16_t>(pwm * PWM_TO_TICKS_MULTIPLIER);
-  // Arduino constrain() function: clamps value to range [0, 4095]
-  return constrain(ticks, static_cast<uint16_t>(0), static_cast<uint16_t>(4095));
+  // Guard: constrain input before multiplication to prevent overflow
+  pwm = constrain(pwm, 0.0f, 255.0f);
+  float ticks_f = pwm * PWM_TO_TICKS_MULTIPLIER;
+  // Round instead of truncate for accurate mapping
+  return static_cast<uint16_t>(std::round(ticks_f));
 }
 
 // Helper: Aplicar PWM y dirección a hardware según rueda
@@ -65,36 +67,36 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
       pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
       pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
+    if (MCPShared::initialized) {
+      MCPShared::mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
+      MCPShared::mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
     }
   } else if (wheelIndex == Traction::FR) {
     if (pcaFrontOK) {
       pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
       pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
+    if (MCPShared::initialized) {
+      MCPShared::mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
+      MCPShared::mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
     }
   } else if (wheelIndex == Traction::RL) {
     if (pcaRearOK) {
       pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
       pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
+    if (MCPShared::initialized) {
+      MCPShared::mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
+      MCPShared::mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
     }
   } else if (wheelIndex == Traction::RR) {
     if (pcaRearOK) {
       pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
       pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
     }
-    if (mcpOK) {
-      mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
-      mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
+    if (MCPShared::initialized) {
+      MCPShared::mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
+      MCPShared::mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
     }
   }
 }
@@ -209,27 +211,9 @@ void Traction::init() {
     Logger::info("Traction: PCA9685 Rear (0x41) init OK");
   }
 
-  // Initialize MCP23017 for motor direction control (IN1/IN2)
-  mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
-  if (!mcpOK) {
-    Logger::error("Traction: MCP23017 (0x20) init FAIL - retrying...");
-    delay(50);
-    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
-    
-    if (!mcpOK) {
-      Logger::error("Traction: MCP23017 (0x20) init FAIL definitivo");
-      System::logError(832);  // Error code: MCP23017 init failure
-    }
-  }
-  
-  if (mcpOK) {
-    // Configure GPIOA0-A7 as OUTPUT for IN1/IN2 control
-    for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
-      mcp.pinMode(pin, OUTPUT);
-      mcp.digitalWrite(pin, LOW);  // Initialize to LOW for safety
-    }
-    Logger::info("Traction: MCP23017 (0x20) GPIOA init OK");
-  }
+  // MCP23017 initialization is handled by MCPShared::init() in ControlManager
+  // This ensures single initialization for shared resource between Traction and Shifter
+  // GPIOA0-A7 are configured for traction motor direction control (IN1/IN2)
 
   // System is initialized if all hardware components are OK
   // SAFETY: Strict initialization required - all I2C devices must be functional
@@ -237,7 +221,7 @@ void Traction::init() {
   // (e.g., unbalanced traction if one axle fails could cause loss of control)
   // Future enhancement: Could implement graceful degradation with FWD-only mode
   // if rear PCA9685 fails, but would require extensive testing for safety
-  initialized = (pcaFrontOK && pcaRearOK && mcpOK);
+  initialized = (pcaFrontOK && pcaRearOK && MCPShared::initialized);
   Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
 
@@ -281,9 +265,9 @@ void Traction::setAxisRotation(bool enabled, float speedPct) {
         pcaRear.setPWM(ch, 0, 0);
       }
     }
-    if (mcpOK) {
-      for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
-        mcp.digitalWrite(pin, LOW);
+    if (MCPShared::initialized) {
+      for (int pin = FIRST_DIR_PIN; pin <= LAST_DIR_PIN; pin++) {
+        MCPShared::mcp.digitalWrite(pin, LOW);
       }
     }
     // Resetear demanda global para transición suave

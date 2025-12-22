@@ -3,6 +3,8 @@
 #include "logger.h"
 #include "dfplayer.h"
 #include "alerts.h"
+#include "mcp_shared.h"
+#include "system.h"
 #include <Adafruit_MCP23X17.h>
 
 static Shifter::State s = {Shifter::P, false};
@@ -16,15 +18,11 @@ static uint32_t lastChangeMs = 0;
 static uint8_t stableReadings = 0;
 static Shifter::Gear pendingGear = Shifter::P;
 
-// ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4, pines 8-12 consecutivos)
-static Adafruit_MCP23X17* mcpShifter = nullptr;
-static bool mcpAvailable = false;
-
 // Lee entrada del MCP23017 con pull-up interno (LOW = activo)
 // Los optoacopladores HY-M158 invierten: activo = LED encendido = transistor conduce = LOW
 static bool readMcpPin(uint8_t pin) {
-    if (!mcpAvailable || mcpShifter == nullptr) return false;
-    return mcpShifter->digitalRead(pin) == 0;
+    if (!MCPShared::initialized) return false;
+    return MCPShared::mcp.digitalRead(pin) == 0;
 }
 
 static void announce(Shifter::Gear g) {
@@ -49,54 +47,31 @@ static void announce(Shifter::Gear g) {
 }
 
 void Shifter::init() {
-    // ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4)
-    // Pines consecutivos 8-12 para las 5 posiciones: P, R, N, D1, D2
+    // MCP23017 is initialized by MCPShared::init() in ControlManager
+    // Configure GPIOB pins for shifter inputs
     
-    // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
-    // Delete existing object if init() is called multiple times
-    if (mcpShifter != nullptr) {
-        delete mcpShifter;
-        mcpShifter = nullptr;
-        mcpAvailable = false;
-    }
-    
-    // Using nothrow to explicitly get nullptr on allocation failure
-    mcpShifter = new(std::nothrow) Adafruit_MCP23X17();
-    
-    // 🔒 CRITICAL FIX: Check if allocation succeeded
-    if (mcpShifter == nullptr) {
-        mcpAvailable = false;
-        initialized = false;  // Initialization failed
-        Logger::error(700, "Shifter: Failed to allocate MCP23017 object!");
-        return;
-    }
-    
-    if (mcpShifter->begin_I2C(I2C_ADDR_MCP23017)) {
-        // Configurar todos los pines del shifter como entrada con pull-up
-        mcpShifter->pinMode(MCP_PIN_SHIFTER_P,  INPUT_PULLUP);  // GPIOB0: Park
-        mcpShifter->pinMode(MCP_PIN_SHIFTER_R,  INPUT_PULLUP);  // GPIOB1: Reverse
-        mcpShifter->pinMode(MCP_PIN_SHIFTER_N,  INPUT_PULLUP);  // GPIOB2: Neutral
-        mcpShifter->pinMode(MCP_PIN_SHIFTER_D1, INPUT_PULLUP);  // GPIOB3: Drive 1
-        mcpShifter->pinMode(MCP_PIN_SHIFTER_D2, INPUT_PULLUP);  // GPIOB4: Drive 2
+    if (MCPShared::initialized) {
+        // Configurar GPIOB0-B4 como INPUT con PULLUP para shifter
+        MCPShared::mcp.pinMode(MCP_PIN_SHIFTER_P, INPUT_PULLUP);
+        MCPShared::mcp.pinMode(MCP_PIN_SHIFTER_R, INPUT_PULLUP);
+        MCPShared::mcp.pinMode(MCP_PIN_SHIFTER_N, INPUT_PULLUP);
+        MCPShared::mcp.pinMode(MCP_PIN_SHIFTER_D1, INPUT_PULLUP);
+        MCPShared::mcp.pinMode(MCP_PIN_SHIFTER_D2, INPUT_PULLUP);
         
-        mcpAvailable = true;
-        initialized = true;  // Success
-        Logger::info("Shifter: MCP23017 GPIOB0-B4 configurado (pines 8-12)");
+        Logger::info("Shifter: MCP23017 GPIOB configured");
+        initialized = true;
     } else {
-        mcpAvailable = false;
-        initialized = false;  // Initialization failed
-        Logger::error(700, "Shifter: MCP23017 no disponible!");
-        // Liberar memoria si init falla
-        delete mcpShifter;
-        mcpShifter = nullptr;
+        Logger::error("Shifter: MCP23017 not available");
+        System::logError(700);
+        initialized = false;
     }
     
-    Logger::info("Shifter init completado (via MCP23017)");
+    s = {Gear::P, false};
 }
 
 void Shifter::update() {
     // Si MCP23017 no está disponible, mantener última posición conocida
-    if (!mcpAvailable) {
+    if (!MCPShared::initialized) {
         s.changed = false;
         return;
     }
