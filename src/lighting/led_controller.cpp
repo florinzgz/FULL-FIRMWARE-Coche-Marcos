@@ -355,6 +355,10 @@ void init() {
     Logger::infof("Brightness: %d, Update rate: %dms", config.brightness, config.updateRateMs);
 }
 
+bool initOK() {
+    return hardwareOK;
+}
+
 void update() {
     if (!enabled || !hardwareOK) return;  // 🔒 Verificar hardware OK
     
