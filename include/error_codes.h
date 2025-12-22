@@ -43,6 +43,7 @@ constexpr uint16_t ENCODER_Z_TIMEOUT = 213;
 constexpr uint16_t STEERING_PCA9685_NO_RESPONSE = 250;
 constexpr uint16_t STEERING_OVERCURRENT = 251;
 constexpr uint16_t STEERING_PWM_CHANNEL_INVALID = 252;
+constexpr uint16_t STEERING_MCP23017_FAIL = 254;
 
 // --- Current Sensors (300-399) ---
 constexpr uint16_t CURRENT_SENSOR_FL_FAIL = 300;
@@ -154,6 +155,7 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == STEERING_PCA9685_NO_RESPONSE) return "PCA9685 direccion no responde";
     if (code == STEERING_OVERCURRENT) return "Sobrecorriente motor direccion";
     if (code == STEERING_PWM_CHANNEL_INVALID) return "Canal PWM invalido";
+    if (code == STEERING_MCP23017_FAIL) return "MCP23017 motor direccion fallo";
     
     // Current Sensors (300-399)
     if (code >= 300 && code <= 303) {
