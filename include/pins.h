@@ -163,7 +163,12 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 #define MCP_PIN_SHIFTER_N     10  // GPIOB2: Shifter N (Neutral)
 #define MCP_PIN_SHIFTER_D1    11  // GPIOB3: Shifter D1 (Drive 1 - baja velocidad)
 #define MCP_PIN_SHIFTER_D2    12  // GPIOB4: Shifter D2 (Drive 2 - alta velocidad)
-// GPIOB5-7 (pines 13-15) disponibles para expansión futura
+
+// MCP23017 pines para motor dirección (BTS7960)
+// Usar GPIOB5-B6 (disponibles según tabla línea 333-334)
+#define MCP_PIN_STEER_IN1     13  // GPIOB5: Steering R_EN
+#define MCP_PIN_STEER_IN2     14  // GPIOB6: Steering L_EN
+// GPIOB7 (pin 15) disponible para expansión futura
 
 // ============================================================================
 // MOTOR DIRECCIÓN
@@ -330,8 +335,8 @@ MCP23017 (I²C 0x20) - Expansor GPIO:
 │ B2   │ SHIFTER_N               │ Input     │ ✅ Palanca Neutral               │
 │ B3   │ SHIFTER_D1              │ Input     │ ✅ Palanca Drive 1               │
 │ B4   │ SHIFTER_D2              │ Input     │ ✅ Palanca Drive 2               │
-│ B5   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
-│ B6   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
+│ B5   │ STEER_IN1               │ Output    │ ✅ Motor dirección R_EN         │
+│ B6   │ STEER_IN2               │ Output    │ ✅ Motor dirección L_EN         │
 │ B7   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
 

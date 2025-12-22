@@ -426,7 +426,7 @@ void Traction::update() {
     float angle = std::fabs(steer.angleDeg);
 
     // 🔒 CORRECCIÓN 2.4: Escalado Ackermann mejorado para curvas más suaves
-    // Curva progresiva: a 30° -> 85%, a 45° -> 77.5%, a 60° -> 70%
+    // Curva progresiva: a 30° -> 85%, a 45% -> 77.5%, a 60° -> 70%
     // Evita reducción brusca en curvas cerradas
     // Fórmula optimizada: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
