@@ -6,6 +6,7 @@
 
 // Retry timing for I2C device initialization
 static constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;  // Non-blocking retry interval
+static constexpr uint8_t MAX_RETRY_ATTEMPTS = 3;       // Maximum retry attempts before permanent failure
 
 // Get singleton instance
 MCP23017Manager& MCP23017Manager::getInstance() {
@@ -18,6 +19,7 @@ bool MCP23017Manager::init() {
     // Static variables persist across calls for retry state
     static uint32_t retryTime = 0;
     static bool retrying = false;
+    static uint8_t retryCount = 0;
     
     // If already successfully initialized, return current state
     if (initialized) {
@@ -32,9 +34,11 @@ bool MCP23017Manager::init() {
             Logger::error("MCP23017Manager: Init FAIL - will retry asynchronously");
             retrying = true;
             retryTime = millis();
+            retryCount = 1;  // First retry
         } else {
             Logger::info("MCP23017Manager: Init successful");
             initialized = true;
+            retryCount = 0;
             return true;
         }
     }
@@ -42,15 +46,31 @@ bool MCP23017Manager::init() {
     // Handle scheduled retry
     if (retrying && (millis() - retryTime >= I2C_RETRY_INTERVAL_MS)) {
         mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
-        retrying = false;
         
         if (mcpOK) {
             Logger::info("MCP23017Manager: Init successful on retry");
             initialized = true;
+            retrying = false;
+            retryCount = 0;
             return true;
         } else {
-            Logger::error("MCP23017Manager: Retry FAIL definitivo");
-            System::logError(833);  // MCP23017 shared init fail
+            retryCount++;
+            
+            if (retryCount >= MAX_RETRY_ATTEMPTS) {
+                // Permanent failure after max retries
+                Logger::error("MCP23017Manager: Retry FAIL definitivo after 3 attempts");
+                System::logError(833);  // MCP23017 shared init fail
+                initialized = true;  // Mark as initialized to prevent further retry spam
+                retrying = false;
+                retryCount = 0;
+                return false;
+            } else {
+                // Schedule another retry
+                Logger::warnf("MCP23017Manager: Retry %d/%d failed, scheduling next retry", 
+                             retryCount, MAX_RETRY_ATTEMPTS);
+                retryTime = millis();
+                // Keep retrying = true
+            }
         }
     }
     
