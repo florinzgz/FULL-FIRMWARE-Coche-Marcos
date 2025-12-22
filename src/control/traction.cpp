@@ -58,6 +58,7 @@ inline float getMaxCurrentA(int channel) {
 // Constantes de seguridad para PWM
 constexpr float PWM_MAX_SAFE = 255.0f;  // Máximo PWM permitido (8-bit)
 constexpr float PWM_MIN = 0.0f;          // Mínimo PWM
+constexpr float PWM_8BIT_TO_12BIT_SCALE = 16.0f;  // Factor conversión 8-bit (0-255) a 12-bit (0-4095) para PCA9685
 
 // Límites de seguridad para sensores
 constexpr float TEMP_MIN_VALID = -40.0f;   // Temperatura mínima válida (°C)
@@ -290,7 +291,7 @@ void Traction::update() {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
       
       // Apply PWM and direction to hardware
-      uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * 16.0f);
+      uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * PWM_8BIT_TO_12BIT_SCALE);
       pwmTicks = constrain(pwmTicks, 0, 4095);
       applyMotorControl(i, pwmTicks, s.w[i].reverse);
 
@@ -446,7 +447,7 @@ void Traction::update() {
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
     
     // Apply PWM and direction to hardware
-    uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * 16.0f);
+    uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * PWM_8BIT_TO_12BIT_SCALE);
     pwmTicks = constrain(pwmTicks, 0, 4095);
     applyMotorControl(i, pwmTicks, s.w[i].reverse);
   }
