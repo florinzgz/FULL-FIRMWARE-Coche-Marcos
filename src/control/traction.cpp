@@ -43,6 +43,59 @@ inline float clampf(float v, float lo, float hi) {
   return v;
 }
 
+// Constante de conversión PWM a ticks PCA9685
+// PCA9685 usa 12 bits (0-4095), PWM interno es 8 bits (0-255)
+// Multiplicador: 4096/256 = 16.0
+constexpr float PWM_TO_TICKS_MULTIPLIER = 16.0f;
+
+// Helper: Convertir PWM (0-255) a ticks PCA9685 (0-4095)
+inline uint16_t pwmToTicks(float pwm) {
+  uint16_t ticks = static_cast<uint16_t>(pwm * PWM_TO_TICKS_MULTIPLIER);
+  return constrain(ticks, 0, 4095);
+}
+
+// Helper: Aplicar PWM y dirección a hardware según rueda
+inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
+  // Apply according to wheel position
+  if (wheelIndex == Traction::FL) {
+    if (pcaFrontOK) {
+      pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
+      pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
+    }
+    if (mcpOK) {
+      mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
+      mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
+    }
+  } else if (wheelIndex == Traction::FR) {
+    if (pcaFrontOK) {
+      pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
+      pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
+    }
+    if (mcpOK) {
+      mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
+      mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
+    }
+  } else if (wheelIndex == Traction::RL) {
+    if (pcaRearOK) {
+      pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
+      pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
+    }
+    if (mcpOK) {
+      mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
+      mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
+    }
+  } else if (wheelIndex == Traction::RR) {
+    if (pcaRearOK) {
+      pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
+      pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
+    }
+    if (mcpOK) {
+      mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
+      mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
+    }
+  }
+}
+
 // 🔒 CORRECCIÓN 2.1: Obtener corriente máxima desde configuración
 // En lugar de constante hardcodeada, usar valores configurables
 inline float getMaxCurrentA(int channel) {
@@ -176,6 +229,9 @@ void Traction::init() {
   }
 
   // System is initialized if all hardware components are OK
+  // SAFETY: Strict initialization required - all I2C devices must be functional
+  // Partial operation is not allowed to prevent unpredictable vehicle behavior
+  // (e.g., unbalanced traction if one axle fails could cause loss of control)
   initialized = (pcaFrontOK && pcaRearOK && mcpOK);
   Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
@@ -298,50 +354,8 @@ void Traction::update() {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
       
       // Apply PWM and direction to hardware
-      // Convert PWM (0-255) to PCA9685 ticks (0-4095)
-      uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * 16.0f);
-      pwmTicks = constrain(pwmTicks, 0, 4095);
-      
-      bool reverse = s.w[i].reverse;
-      
-      // Apply PWM and direction according to wheel position
-      if (i == FL) {
-        if (pcaFrontOK) {
-          pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
-          pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
-        }
-        if (mcpOK) {
-          mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
-          mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
-        }
-      } else if (i == FR) {
-        if (pcaFrontOK) {
-          pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
-          pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
-        }
-        if (mcpOK) {
-          mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
-          mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
-        }
-      } else if (i == RL) {
-        if (pcaRearOK) {
-          pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
-          pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
-        }
-        if (mcpOK) {
-          mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
-          mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
-        }
-      } else if (i == RR) {
-        if (pcaRearOK) {
-          pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
-          pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
-        }
-        if (mcpOK) {
-          mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
-          mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
-        }
-      }
+      uint16_t pwmTicks = pwmToTicks(s.w[i].outPWM);
+      applyHardwareControl(i, pwmTicks, s.w[i].reverse);
 
       // Leer corriente con validación
       if (cfg.currentSensorsEnabled) {
@@ -495,50 +509,8 @@ void Traction::update() {
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
     
     // Apply PWM and direction to hardware
-    // Convert PWM (0-255) to PCA9685 ticks (0-4095)
-    uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * 16.0f);
-    pwmTicks = constrain(pwmTicks, 0, 4095);
-    
-    bool reverse = s.w[i].reverse;
-    
-    // Apply PWM and direction according to wheel position
-    if (i == FL) {
-      if (pcaFrontOK) {
-        pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
-        pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
-      }
-      if (mcpOK) {
-        mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
-        mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
-      }
-    } else if (i == FR) {
-      if (pcaFrontOK) {
-        pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
-        pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
-      }
-      if (mcpOK) {
-        mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
-        mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
-      }
-    } else if (i == RL) {
-      if (pcaRearOK) {
-        pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
-        pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
-      }
-      if (mcpOK) {
-        mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
-        mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
-      }
-    } else if (i == RR) {
-      if (pcaRearOK) {
-        pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
-        pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
-      }
-      if (mcpOK) {
-        mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
-        mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
-      }
-    }
+    uint16_t pwmTicks = pwmToTicks(s.w[i].outPWM);
+    applyHardwareControl(i, pwmTicks, s.w[i].reverse);
   }
 
   // 🔒 CORRECCIÓN 2.6: Validación mejorada de reparto anómalo
