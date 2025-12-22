@@ -349,6 +349,34 @@ Para acceder al menú de errores:
 - **Causa:** Error de cálculo o valor NaN/Inf
 - **Solución:** Reportar como bug, reiniciar sistema
 
+#### **830** - Fallo PCA9685 Eje Delantero (0x40)
+- **Descripción:** Driver PWM del eje delantero no responde en I²C
+- **Causa:** Dispositivo desconectado, dirección I²C incorrecta o bus I²C con fallos
+- **Solución:**
+  - Verificar conexión del PCA9685 @ 0x40
+  - Verificar bus I²C (SDA=GPIO8, SCL=GPIO9)
+  - Verificar alimentación 5V del PCA9685
+  - Realizar test I²C scanner
+
+#### **831** - Fallo PCA9685 Eje Trasero (0x41)
+- **Descripción:** Driver PWM del eje trasero no responde en I²C
+- **Causa:** Dispositivo desconectado, dirección I²C incorrecta o bus I²C con fallos
+- **Solución:**
+  - Verificar conexión del PCA9685 @ 0x41
+  - Verificar bus I²C (SDA=GPIO8, SCL=GPIO9)
+  - Verificar alimentación 5V del PCA9685
+  - Realizar test I²C scanner
+
+#### **832** - Fallo MCP23017 Control Motores (0x20)
+- **Descripción:** Expansor GPIO para control IN1/IN2 no responde en I²C
+- **Causa:** Dispositivo desconectado, dirección I²C incorrecta o bus I²C con fallos
+- **Solución:**
+  - Verificar conexión del MCP23017 @ 0x20
+  - Verificar bus I²C (SDA=GPIO8, SCL=GPIO9)
+  - Verificar alimentación 5V del MCP23017
+  - Realizar test I²C scanner
+  - NOTA: Este chip también controla el shifter (GPIOB)
+
 ---
 
 ### 💾 SISTEMA DE ALMACENAMIENTO (900-999)

@@ -2,6 +2,7 @@
 #include "current.h"
 #include "logger.h"
 #include "pedal.h"
+#include "pins.h"
 #include "sensors.h"
 #include "settings.h"
 #include "steering.h"
@@ -9,12 +10,25 @@
 #include "system.h"
 #include "wheels.h"
 
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+#include <Adafruit_MCP23X17.h>
 #include <algorithm> // std::min, std::max
 #include <cmath>     // std::isfinite, std::fabs
 #include <cstdint>
 #include <cstring>
 
 extern Storage::Config cfg;
+
+// PCA9685 objects for traction motor control
+static Adafruit_PWMServoDriver pcaFront = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_FRONT);
+static Adafruit_PWMServoDriver pcaRear = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_REAR);
+static bool pcaFrontOK = false;
+static bool pcaRearOK = false;
+
+// MCP23017 object for motor direction control (IN1/IN2)
+static Adafruit_MCP23X17 mcp;
+static bool mcpOK = false;
 
 static Traction::State s;
 static bool initialized = false;
@@ -76,6 +90,7 @@ inline bool isTempValid(float tempC) {
 } // namespace
 
 void Traction::init() {
+  // Initialize state structure
   s = {};
   for (int i = 0; i < 4; ++i) {
     s.w[i] = {};
@@ -90,8 +105,79 @@ void Traction::init() {
   s.enabled4x4 = false;
   s.demandPct = 0.0f;
   s.axisRotation = false;
-  Logger::info("Traction init");
-  initialized = true;
+
+  // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
+  // No llamar Wire.begin() aquí para evitar resetear configuración I2C
+
+  // Initialize PCA9685 front axle (0x40) with retry
+  pcaFrontOK = pcaFront.begin();
+  if (!pcaFrontOK) {
+    Logger::error("Traction: PCA9685 Front (0x40) init FAIL - retrying...");
+    delay(50);
+    pcaFrontOK = pcaFront.begin();
+    
+    if (!pcaFrontOK) {
+      Logger::error("Traction: PCA9685 Front (0x40) init FAIL definitivo");
+      System::logError(830);  // Error code: PCA9685 Front init failure
+    }
+  }
+  
+  if (pcaFrontOK) {
+    pcaFront.setPWMFreq(1000);  // 1kHz for BTS7960
+    // Initialize all channels to 0 for safety
+    for (int ch = 0; ch < 4; ch++) {
+      pcaFront.setPWM(ch, 0, 0);
+    }
+    Logger::info("Traction: PCA9685 Front (0x40) init OK");
+  }
+
+  // Initialize PCA9685 rear axle (0x41) with retry
+  pcaRearOK = pcaRear.begin();
+  if (!pcaRearOK) {
+    Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - retrying...");
+    delay(50);
+    pcaRearOK = pcaRear.begin();
+    
+    if (!pcaRearOK) {
+      Logger::error("Traction: PCA9685 Rear (0x41) init FAIL definitivo");
+      System::logError(831);  // Error code: PCA9685 Rear init failure
+    }
+  }
+  
+  if (pcaRearOK) {
+    pcaRear.setPWMFreq(1000);  // 1kHz for BTS7960
+    // Initialize all channels to 0 for safety
+    for (int ch = 0; ch < 4; ch++) {
+      pcaRear.setPWM(ch, 0, 0);
+    }
+    Logger::info("Traction: PCA9685 Rear (0x41) init OK");
+  }
+
+  // Initialize MCP23017 for motor direction control (IN1/IN2)
+  mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+  if (!mcpOK) {
+    Logger::error("Traction: MCP23017 (0x20) init FAIL - retrying...");
+    delay(50);
+    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+    
+    if (!mcpOK) {
+      Logger::error("Traction: MCP23017 (0x20) init FAIL definitivo");
+      System::logError(832);  // Error code: MCP23017 init failure
+    }
+  }
+  
+  if (mcpOK) {
+    // Configure GPIOA0-A7 as OUTPUT for IN1/IN2 control
+    for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
+      mcp.pinMode(pin, OUTPUT);
+      mcp.digitalWrite(pin, LOW);  // Initialize to LOW for safety
+    }
+    Logger::info("Traction: MCP23017 (0x20) GPIOA init OK");
+  }
+
+  // System is initialized if all hardware components are OK
+  initialized = (pcaFrontOK && pcaRearOK && mcpOK);
+  Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
 
 void Traction::setMode4x4(bool on) {
@@ -122,6 +208,22 @@ void Traction::setAxisRotation(bool enabled, float speedPct) {
       s.w[i].reverse = false;
       s.w[i].demandPct = 0.0f;  // Detener todas las ruedas suavemente
       s.w[i].outPWM = 0.0f;
+    }
+    // Apagar motores en hardware
+    if (pcaFrontOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaFront.setPWM(ch, 0, 0);
+      }
+    }
+    if (pcaRearOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaRear.setPWM(ch, 0, 0);
+      }
+    }
+    if (mcpOK) {
+      for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
+        mcp.digitalWrite(pin, LOW);
+      }
     }
     // Resetear demanda global para transición suave
     s.demandPct = 0.0f;
@@ -195,9 +297,51 @@ void Traction::update() {
     for (int i = 0; i < 4; ++i) {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
       
-      s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
+      // Apply PWM and direction to hardware
+      // Convert PWM (0-255) to PCA9685 ticks (0-4095)
+      uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * 16.0f);
+      pwmTicks = constrain(pwmTicks, 0, 4095);
       
-      // PWM is already clamped in demandPctToPwm(), this check is redundant
+      bool reverse = s.w[i].reverse;
+      
+      // Apply PWM and direction according to wheel position
+      if (i == FL) {
+        if (pcaFrontOK) {
+          pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
+          pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
+        }
+        if (mcpOK) {
+          mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
+          mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
+        }
+      } else if (i == FR) {
+        if (pcaFrontOK) {
+          pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
+          pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
+        }
+        if (mcpOK) {
+          mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
+          mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
+        }
+      } else if (i == RL) {
+        if (pcaRearOK) {
+          pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
+          pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
+        }
+        if (mcpOK) {
+          mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
+          mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
+        }
+      } else if (i == RR) {
+        if (pcaRearOK) {
+          pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
+          pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
+        }
+        if (mcpOK) {
+          mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
+          mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
+        }
+      }
 
       // Leer corriente con validación
       if (cfg.currentSensorsEnabled) {
@@ -350,8 +494,51 @@ void Traction::update() {
     // 🔒 MEJORA: Aplicar validación de techo de PWM (realizada dentro de demandPctToPwm)
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
     
-    // Si tienes función para aplicar PWM, llámala aquí:
-    // e.g. MotorDriver::setPWM(i, static_cast<uint8_t>(s.w[i].outPWM));
+    // Apply PWM and direction to hardware
+    // Convert PWM (0-255) to PCA9685 ticks (0-4095)
+    uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * 16.0f);
+    pwmTicks = constrain(pwmTicks, 0, 4095);
+    
+    bool reverse = s.w[i].reverse;
+    
+    // Apply PWM and direction according to wheel position
+    if (i == FL) {
+      if (pcaFrontOK) {
+        pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
+      }
+      if (mcpOK) {
+        mcp.digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
+        mcp.digitalWrite(MCP_PIN_FL_IN2, reverse ? HIGH : LOW);
+      }
+    } else if (i == FR) {
+      if (pcaFrontOK) {
+        pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
+      }
+      if (mcpOK) {
+        mcp.digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
+        mcp.digitalWrite(MCP_PIN_FR_IN2, reverse ? HIGH : LOW);
+      }
+    } else if (i == RL) {
+      if (pcaRearOK) {
+        pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
+      }
+      if (mcpOK) {
+        mcp.digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
+        mcp.digitalWrite(MCP_PIN_RL_IN2, reverse ? HIGH : LOW);
+      }
+    } else if (i == RR) {
+      if (pcaRearOK) {
+        pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
+      }
+      if (mcpOK) {
+        mcp.digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
+        mcp.digitalWrite(MCP_PIN_RR_IN2, reverse ? HIGH : LOW);
+      }
+    }
   }
 
   // 🔒 CORRECCIÓN 2.6: Validación mejorada de reparto anómalo
