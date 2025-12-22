@@ -10,22 +10,24 @@
 #include "system.h"
 #include "wheels.h"
 
+#include <Wire.h>
+#include <Adafruit_PWMServoDriver.h>
+#include <Adafruit_MCP23X17.h>
 #include <algorithm> // std::min, std::max
 #include <cmath>     // std::isfinite, std::fabs
 #include <cstdint>
 #include <cstring>
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
-#include <Adafruit_MCP23X17.h>
 
 extern Storage::Config cfg;
 
-// Hardware objects for traction control
+// PCA9685 objects for traction motor control
 static Adafruit_PWMServoDriver pcaFront = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_FRONT);
 static Adafruit_PWMServoDriver pcaRear = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_REAR);
-static Adafruit_MCP23X17 mcp;
 static bool pcaFrontOK = false;
 static bool pcaRearOK = false;
+
+// MCP23017 object for motor direction control (IN1/IN2)
+static Adafruit_MCP23X17 mcp;
 static bool mcpOK = false;
 
 static Traction::State s;
@@ -41,54 +43,23 @@ inline float clampf(float v, float lo, float hi) {
   return v;
 }
 
-// 🔒 CORRECCIÓN 2.1: Obtener corriente máxima desde configuración
-// En lugar de constante hardcodeada, usar valores configurables
-inline float getMaxCurrentA(int channel) {
-  // Canal 4 = batería (típico 100A), resto = motores (típico 50A)
-  // 🔒 v2.10.2: Ahora usa valores configurables desde cfg
-  if (channel == 4) {
-    // Batería: usar valor configurado
-    return cfg.maxBatteryCurrentA;
-  } else {
-    // Motores: usar valor configurado
-    return cfg.maxMotorCurrentA;
-  }
+// Constante de conversión PWM a ticks PCA9685
+// PCA9685 usa 12 bits (0-4095 = 4096 valores totales)
+// PWM interno es 8 bits (0-255 = 256 valores totales)
+// Multiplicador: 16.0 proporciona mapeo conservador (255*16=4080, deja margen de 15 ticks)
+// Para mapeo exacto usar 4095/255≈16.06, pero 16.0 es más seguro y evita saturación
+constexpr float PWM_TO_TICKS_MULTIPLIER = 16.0f;
+
+// Helper: Convertir PWM (0-255) a ticks PCA9685 (0-4095)
+inline uint16_t pwmToTicks(float pwm) {
+  uint16_t ticks = static_cast<uint16_t>(pwm * PWM_TO_TICKS_MULTIPLIER);
+  // Arduino constrain() function: clamps value to range [0, 4095]
+  return constrain(ticks, static_cast<uint16_t>(0), static_cast<uint16_t>(4095));
 }
 
-// Constantes de seguridad para PWM
-constexpr float PWM_MAX_SAFE = 255.0f;  // Máximo PWM permitido (8-bit)
-constexpr float PWM_MIN = 0.0f;          // Mínimo PWM
-constexpr float PWM_8BIT_TO_12BIT_SCALE = 16.0f;  // Factor conversión 8-bit (0-255) a 12-bit (0-4095) para PCA9685
-
-// Límites de seguridad para sensores
-constexpr float TEMP_MIN_VALID = -40.0f;   // Temperatura mínima válida (°C)
-constexpr float TEMP_MAX_VALID = 150.0f;   // Temperatura máxima válida (°C)
-constexpr float TEMP_CRITICAL = 120.0f;    // Temperatura crítica (°C)
-constexpr float CURRENT_MAX_REASONABLE = 200.0f;  // Corriente máxima razonable (A)
-
-// Mapea 0..100% -> 0..255 PWM con validación de límites
-inline float demandPctToPwm(float pct) {
-  float pwm = clampf(pct, 0.0f, 100.0f) * 255.0f / 100.0f;
-  // Aplicar techo de seguridad de hardware
-  return clampf(pwm, PWM_MIN, PWM_MAX_SAFE);
-}
-
-// Validar lectura de corriente
-inline bool isCurrentValid(float currentA) {
-  return std::isfinite(currentA) && 
-         currentA >= -CURRENT_MAX_REASONABLE && 
-         currentA <= CURRENT_MAX_REASONABLE;
-}
-
-// Validar lectura de temperatura
-inline bool isTempValid(float tempC) {
-  return std::isfinite(tempC) && 
-         tempC >= TEMP_MIN_VALID && 
-         tempC <= TEMP_MAX_VALID;
-}
-
-// Apply PWM and direction control to a specific motor
-inline void applyMotorControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
+// Helper: Aplicar PWM y dirección a hardware según rueda
+inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
+  // Apply according to wheel position
   if (wheelIndex == Traction::FL) {
     if (pcaFrontOK) {
       pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
@@ -127,9 +98,55 @@ inline void applyMotorControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
     }
   }
 }
+
+// 🔒 CORRECCIÓN 2.1: Obtener corriente máxima desde configuración
+// En lugar de constante hardcodeada, usar valores configurables
+inline float getMaxCurrentA(int channel) {
+  // Canal 4 = batería (típico 100A), resto = motores (típico 50A)
+  // 🔒 v2.10.2: Ahora usa valores configurables desde cfg
+  if (channel == 4) {
+    // Batería: usar valor configurado
+    return cfg.maxBatteryCurrentA;
+  } else {
+    // Motores: usar valor configurado
+    return cfg.maxMotorCurrentA;
+  }
+}
+
+// Constantes de seguridad para PWM
+constexpr float PWM_MAX_SAFE = 255.0f;  // Máximo PWM permitido (8-bit)
+constexpr float PWM_MIN = 0.0f;          // Mínimo PWM
+
+// Límites de seguridad para sensores
+constexpr float TEMP_MIN_VALID = -40.0f;   // Temperatura mínima válida (°C)
+constexpr float TEMP_MAX_VALID = 150.0f;   // Temperatura máxima válida (°C)
+constexpr float TEMP_CRITICAL = 120.0f;    // Temperatura crítica (°C)
+constexpr float CURRENT_MAX_REASONABLE = 200.0f;  // Corriente máxima razonable (A)
+
+// Mapea 0..100% -> 0..255 PWM con validación de límites
+inline float demandPctToPwm(float pct) {
+  float pwm = clampf(pct, 0.0f, 100.0f) * 255.0f / 100.0f;
+  // Aplicar techo de seguridad de hardware
+  return clampf(pwm, PWM_MIN, PWM_MAX_SAFE);
+}
+
+// Validar lectura de corriente
+inline bool isCurrentValid(float currentA) {
+  return std::isfinite(currentA) && 
+         currentA >= -CURRENT_MAX_REASONABLE && 
+         currentA <= CURRENT_MAX_REASONABLE;
+}
+
+// Validar lectura de temperatura
+inline bool isTempValid(float tempC) {
+  return std::isfinite(tempC) && 
+         tempC >= TEMP_MIN_VALID && 
+         tempC <= TEMP_MAX_VALID;
+}
 } // namespace
 
 void Traction::init() {
+  // Initialize state structure
   s = {};
   for (int i = 0; i < 4; ++i) {
     s.w[i] = {};
@@ -145,46 +162,81 @@ void Traction::init() {
   s.demandPct = 0.0f;
   s.axisRotation = false;
 
-  // Initialize PCA9685 front (0x40)
+  // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
+  // No llamar Wire.begin() aquí para evitar resetear configuración I2C
+
+  // Initialize PCA9685 front axle (0x40) with retry
   pcaFrontOK = pcaFront.begin();
+  if (!pcaFrontOK) {
+    Logger::error("Traction: PCA9685 Front (0x40) init FAIL - retrying...");
+    delay(50);
+    pcaFrontOK = pcaFront.begin();
+    
+    if (!pcaFrontOK) {
+      Logger::error("Traction: PCA9685 Front (0x40) init FAIL definitivo");
+      System::logError(830);  // Error code: PCA9685 Front init failure
+    }
+  }
+  
   if (pcaFrontOK) {
-    pcaFront.setPWMFreq(1000);
+    pcaFront.setPWMFreq(1000);  // 1kHz for BTS7960
+    // Initialize all channels to 0 for safety
     for (int ch = 0; ch < 4; ch++) {
       pcaFront.setPWM(ch, 0, 0);
     }
-    Logger::info("PCA9685 Front (0x40) OK");
-  } else {
-    Logger::error("PCA9685 Front (0x40) FAIL");
-    System::logError(830);
+    Logger::info("Traction: PCA9685 Front (0x40) init OK");
   }
 
-  // Initialize PCA9685 rear (0x41)
+  // Initialize PCA9685 rear axle (0x41) with retry
   pcaRearOK = pcaRear.begin();
+  if (!pcaRearOK) {
+    Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - retrying...");
+    delay(50);
+    pcaRearOK = pcaRear.begin();
+    
+    if (!pcaRearOK) {
+      Logger::error("Traction: PCA9685 Rear (0x41) init FAIL definitivo");
+      System::logError(831);  // Error code: PCA9685 Rear init failure
+    }
+  }
+  
   if (pcaRearOK) {
-    pcaRear.setPWMFreq(1000);
+    pcaRear.setPWMFreq(1000);  // 1kHz for BTS7960
+    // Initialize all channels to 0 for safety
     for (int ch = 0; ch < 4; ch++) {
       pcaRear.setPWM(ch, 0, 0);
     }
-    Logger::info("PCA9685 Rear (0x41) OK");
-  } else {
-    Logger::error("PCA9685 Rear (0x41) FAIL");
-    System::logError(831);
+    Logger::info("Traction: PCA9685 Rear (0x41) init OK");
   }
 
-  // Initialize MCP23017 (0x20)
+  // Initialize MCP23017 for motor direction control (IN1/IN2)
   mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+  if (!mcpOK) {
+    Logger::error("Traction: MCP23017 (0x20) init FAIL - retrying...");
+    delay(50);
+    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+    
+    if (!mcpOK) {
+      Logger::error("Traction: MCP23017 (0x20) init FAIL definitivo");
+      System::logError(832);  // Error code: MCP23017 init failure
+    }
+  }
+  
   if (mcpOK) {
-    // Configure all traction motor IN1/IN2 pins (GPIOA0-A7)
+    // Configure GPIOA0-A7 as OUTPUT for IN1/IN2 control
     for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
       mcp.pinMode(pin, OUTPUT);
-      mcp.digitalWrite(pin, LOW);
+      mcp.digitalWrite(pin, LOW);  // Initialize to LOW for safety
     }
-    Logger::info("MCP23017 (0x20) GPIOA OK");
-  } else {
-    Logger::error("MCP23017 (0x20) FAIL");
-    System::logError(832);
+    Logger::info("Traction: MCP23017 (0x20) GPIOA init OK");
   }
 
+  // System is initialized if all hardware components are OK
+  // SAFETY: Strict initialization required - all I2C devices must be functional
+  // Partial operation is not allowed to prevent unpredictable vehicle behavior
+  // (e.g., unbalanced traction if one axle fails could cause loss of control)
+  // Future enhancement: Could implement graceful degradation with FWD-only mode
+  // if rear PCA9685 fails, but would require extensive testing for safety
   initialized = (pcaFrontOK && pcaRearOK && mcpOK);
   Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
@@ -217,6 +269,22 @@ void Traction::setAxisRotation(bool enabled, float speedPct) {
       s.w[i].reverse = false;
       s.w[i].demandPct = 0.0f;  // Detener todas las ruedas suavemente
       s.w[i].outPWM = 0.0f;
+    }
+    // Apagar motores en hardware
+    if (pcaFrontOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaFront.setPWM(ch, 0, 0);
+      }
+    }
+    if (pcaRearOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaRear.setPWM(ch, 0, 0);
+      }
+    }
+    if (mcpOK) {
+      for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
+        mcp.digitalWrite(pin, LOW);
+      }
     }
     // Resetear demanda global para transición suave
     s.demandPct = 0.0f;
@@ -291,9 +359,8 @@ void Traction::update() {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
       
       // Apply PWM and direction to hardware
-      uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * PWM_8BIT_TO_12BIT_SCALE);
-      pwmTicks = constrain(pwmTicks, 0, 4095);
-      applyMotorControl(i, pwmTicks, s.w[i].reverse);
+      uint16_t pwmTicks = pwmToTicks(s.w[i].outPWM);
+      applyHardwareControl(i, pwmTicks, s.w[i].reverse);
 
       // Leer corriente con validación
       if (cfg.currentSensorsEnabled) {
@@ -359,7 +426,7 @@ void Traction::update() {
     float angle = std::fabs(steer.angleDeg);
 
     // 🔒 CORRECCIÓN 2.4: Escalado Ackermann mejorado para curvas más suaves
-    // Curva progresiva: a 30° -> 85%, a 45° -> 77.5%, a 60° -> 70%
+    // Curva progresiva: a 30° -> 85%, a 45% -> 77.5%, a 60° -> 70%
     // Evita reducción brusca en curvas cerradas
     // Fórmula optimizada: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
@@ -447,9 +514,8 @@ void Traction::update() {
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
     
     // Apply PWM and direction to hardware
-    uint16_t pwmTicks = static_cast<uint16_t>(s.w[i].outPWM * PWM_8BIT_TO_12BIT_SCALE);
-    pwmTicks = constrain(pwmTicks, 0, 4095);
-    applyMotorControl(i, pwmTicks, s.w[i].reverse);
+    uint16_t pwmTicks = pwmToTicks(s.w[i].outPWM);
+    applyHardwareControl(i, pwmTicks, s.w[i].reverse);
   }
 
   // 🔒 CORRECCIÓN 2.6: Validación mejorada de reparto anómalo
