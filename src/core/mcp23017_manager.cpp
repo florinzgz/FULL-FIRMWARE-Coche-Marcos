@@ -2,6 +2,10 @@
 #include "logger.h"
 #include "pins.h"
 #include "system.h"
+#include <Arduino.h>
+
+// Retry timing for I2C device initialization
+static constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;  // Non-blocking retry interval
 
 // Get singleton instance
 MCP23017Manager& MCP23017Manager::getInstance() {
@@ -9,29 +13,49 @@ MCP23017Manager& MCP23017Manager::getInstance() {
     return instance;
 }
 
-// Initialize MCP23017 with non-blocking retry logic
+// Initialize MCP23017 with REAL non-blocking retry logic
 bool MCP23017Manager::init() {
+    // Static variables persist across calls for retry state
+    static uint32_t retryTime = 0;
+    static bool retrying = false;
+    
+    // If already successfully initialized, return current state
     if (initialized) {
-        Logger::warn("MCP23017Manager: Already initialized");
         return mcpOK;
     }
     
-    Logger::info("MCP23017Manager: Initializing shared MCP23017 (0x20)...");
-    
-    // First attempt
-    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
-    
-    if (!mcpOK) {
-        Logger::error("MCP23017Manager: First init attempt FAILED - will retry asynchronously");
-        // Don't use delay() - just mark as failed for now
-        // The retry will happen through subsequent calls or system retry mechanism
-        System::logError(833);  // MCP23017 shared init fail
-    } else {
-        Logger::info("MCP23017Manager: Init successful on first attempt");
+    // First attempt or not currently retrying
+    if (!retrying) {
+        mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+        
+        if (!mcpOK) {
+            Logger::error("MCP23017Manager: Init FAIL - will retry asynchronously");
+            retrying = true;
+            retryTime = millis();
+        } else {
+            Logger::info("MCP23017Manager: Init successful");
+            initialized = true;
+            return true;
+        }
     }
     
-    initialized = true;
-    return mcpOK;
+    // Handle scheduled retry
+    if (retrying && (millis() - retryTime >= I2C_RETRY_INTERVAL_MS)) {
+        mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+        retrying = false;
+        
+        if (mcpOK) {
+            Logger::info("MCP23017Manager: Init successful on retry");
+            initialized = true;
+            return true;
+        } else {
+            Logger::error("MCP23017Manager: Retry FAIL definitivo");
+            System::logError(833);  // MCP23017 shared init fail
+        }
+    }
+    
+    // Not yet initialized successfully
+    return false;
 }
 
 // Get direct access to MCP object (use with caution)
