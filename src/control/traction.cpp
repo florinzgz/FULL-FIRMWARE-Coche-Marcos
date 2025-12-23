@@ -10,6 +10,8 @@
 #include "system.h"
 #include "wheels.h"
 #include "mcp23017_manager.h"
+#include "adaptive_cruise.h"
+#include "obstacle_safety.h"
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
@@ -31,6 +33,7 @@ static MCP23017Manager* mcpManager = nullptr;
 
 static Traction::State s;
 static bool initialized = false;
+static uint32_t lastInterventionLogMs = 0;  // v2.12.0: Throttle intervention logging
 
 namespace {
 // Implementación independiente de std::clamp para máxima compatibilidad
@@ -469,11 +472,59 @@ void Traction::update() {
                    steer.angleDeg, factorFL, factorFR);
   }
 
-  // Aplicar reparto por rueda
-  s.w[FL].demandPct = clampf(front * factorFL, 0.0f, 100.0f);
-  s.w[FR].demandPct = clampf(front * factorFR, 0.0f, 100.0f);
-  s.w[RL].demandPct = clampf(rear, 0.0f, 100.0f);
-  s.w[RR].demandPct = clampf(rear, 0.0f, 100.0f);
+  // v2.12.0: Combined ACC and obstacle safety control
+  float obstacleFactor = 1.0f;
+  float accFactor = 1.0f;
+  
+  // Get obstacle safety state
+  ObstacleSafety::SafetyState safetyState;
+  ObstacleSafety::getState(safetyState);
+  
+  // Emergency stop <20cm with hardware cutoff
+  if (safetyState.closestObstacleDistanceMm < 200) {
+    // Hardware cutoff: set all PWM to 0
+    if (pcaFrontOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaFront.setPWM(ch, 0, 0);
+      }
+    }
+    if (pcaRearOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaRear.setPWM(ch, 0, 0);
+      }
+    }
+    // Throttle emergency stop logging to avoid flooding (max once per second)
+    uint32_t now = millis();
+    if (now - lastInterventionLogMs >= 1000U) {
+      lastInterventionLogMs = now;
+      Logger::warn("Traction: EMERGENCY STOP - obstacle <20cm!");
+    }
+    // Do not continue with normal PWM application logic after an emergency stop
+    return;
+  }
+  
+  // Use obstacle safety reduction factor when not in emergency stop
+  obstacleFactor = safetyState.speedReductionFactor;
+  
+  // Get ACC factor (neutralize if obstacle emergency is active)
+  accFactor = AdaptiveCruise::getSpeedAdjustment();
+  
+  // Calculate combined reduction factor from obstacle safety and ACC
+  float combinedFactor = obstacleFactor * accFactor;
+  
+  // Conditional logging of interventions (throttled to once per second)
+  uint32_t now = millis();
+  if (combinedFactor < 0.95f && (now - lastInterventionLogMs > 1000)) {
+    Logger::debugf("Traction intervention: obstacle=%.2f, ACC=%.2f, combined=%.2f",
+                   obstacleFactor, accFactor, combinedFactor);
+    lastInterventionLogMs = now;
+  }
+
+  // Aplicar reparto por rueda con factores combinados
+  s.w[FL].demandPct = clampf(front * factorFL * combinedFactor, 0.0f, 100.0f);
+  s.w[FR].demandPct = clampf(front * factorFR * combinedFactor, 0.0f, 100.0f);
+  s.w[RL].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
+  s.w[RR].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
 
   // Actualizar sensores y calcular métricas por rueda
   for (int i = 0; i < 4; ++i) {
