@@ -312,7 +312,7 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
 │ 43   │ DFPLAYER_TX             │ Output    │ ⚠️ UART0 nativo                  │
 │ 44   │ DFPLAYER_RX             │ Input     │ ⚠️ UART0 nativo                  │
-│ 45   │ 🆓 LIBRE                │ -         │ Disponible (sin sensor lateral)  │
+│ 45   │ KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI voltage │
 │ 46   │ XSHUT_FRONT (VL53L5X)   │ Output    │ ⚠️ Strapping, sensor obstáculos  │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
