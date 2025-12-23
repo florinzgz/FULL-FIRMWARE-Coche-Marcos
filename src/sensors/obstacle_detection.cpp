@@ -30,8 +30,8 @@ static bool placeholderMode = true;  // True when sensors not detected, used for
 
 // I2CRecovery device ID allocation:
 // - Devices 0-7: Reserved for other I2C devices (INA226, etc.)
-// - Devices 8-11: Obstacle detection sensors (FRONT, REAR, LEFT, RIGHT)
-// - Devices 12-15: Available for future use
+// - Devices 8-9: Obstacle detection sensors (FRONT, REAR)
+// - Devices 10-15: Reserved for future I2C expansion
 constexpr uint8_t OBSTACLE_SENSOR_DEVICE_ID_BASE = 8;
 
 // VL53L5CX device identification

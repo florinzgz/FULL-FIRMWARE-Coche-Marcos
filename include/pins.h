@@ -346,7 +346,7 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
 │ 43   │ DFPLAYER_TX             │ Output    │ ⚠️ UART0 nativo                  │
 │ 44   │ DFPLAYER_RX             │ Input     │ ⚠️ UART0 nativo                  │
-│ 45   │ 🆓 LIBRE                │ -         │ Disponible (sin sensor lateral)  │
+│ 45   │ KEY_DETECT (power_mgmt.cpp línea 19)  ⚠️ STRAPPING PIN: VDD_SPI voltage select - Crítico para boot │
 │ 46   │ XSHUT_FRONT (VL53L5X)   │ Output    │ ⚠️ STRAPPING! Sensor obstáculos  │
 │      │                         │           │ 🔒 Pull-up 10kΩ recomendado     │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │

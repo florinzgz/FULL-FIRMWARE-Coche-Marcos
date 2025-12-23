@@ -435,6 +435,19 @@ GPIO 47 : TOUCH_IRQ (Input) ✅
 GPIO 48 : LED_REAR (Output) ✅
 ```
 
+---
+> ⚠️ **NOTA HISTÓRICA (v2.10.3):**  
+> Este documento refleja la configuración con **4 sensores de obstáculos** (FRONT, REAR, LEFT, RIGHT).  
+> A partir de **v2.11.1**, los sensores laterales fueron eliminados.  
+> 
+> **Configuración actual:**
+> - FRONT: GPIO 46 (XSHUT_FRONT)
+> - REAR: GPIO 19 (XSHUT_REAR)
+> - LEFT/RIGHT: ❌ Eliminados
+> 
+> Ver `docs/DETECTOR_OBSTACULOS.md` para la configuración actualizada.
+---
+
 **Conclusión:** ✅ **SIN CONFLICTOS** - Todos los pines están correctamente asignados sin solapamientos.
 
 ### Conflictos de Dirección I2C ✅ NINGUNO DETECTADO
