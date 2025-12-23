@@ -2,7 +2,9 @@
 
 ## Descripción General
 
-El sistema de detección de obstáculos está basado en sensores VL53L5CX de STMicroelectronics, que son sensores ToF (Time-of-Flight) con matriz de medición 8x8 zonas. Este sistema proporciona detección precisa de obstáculos en las 4 direcciones del vehículo para asistencia en aparcamiento, evitación de colisiones, advertencia de punto ciego y control de crucero adaptativo.
+El sistema de detección de obstáculos está basado en sensores VL53L5CX de STMicroelectronics, que son sensores ToF (Time-of-Flight) con matriz de medición 8x8 zonas. Este sistema proporciona detección precisa de obstáculos en las direcciones **frontal y trasera** del vehículo para asistencia en aparcamiento, evitación de colisiones y control de crucero adaptativo.
+
+> **Nota histórica**: Hasta la versión v2.11.0, el sistema incluía 4 sensores (FRONT, REAR, LEFT, RIGHT). A partir de **v2.11.1**, los sensores laterales fueron eliminados para liberar GPIOs necesarios para las tiras LED WS2812B.
 
 ---
 
@@ -10,12 +12,12 @@ El sistema de detección de obstáculos está basado en sensores VL53L5CX de STM
 
 ### Sensores VL53L5CX
 
-| Sensor | Posición | GPIO XSHUT | Canal MUX | Propósito |
-|--------|----------|------------|-----------|-----------|
-| FRONT  | Frontal  | GPIO 18    | Canal 0   | Detección frontal, evitación de colisiones |
-| REAR   | Trasero  | GPIO 19    | Canal 1   | Detección trasera, asistencia de aparcamiento |
-| LEFT   | Izquierdo| GPIO 45    | Canal 2   | Punto ciego lateral izquierdo |
-| RIGHT  | Derecho  | GPIO 46    | Canal 3   | Punto ciego lateral derecho |
+| Sensor | Posición | Pin XSHUT  | Canal I²C | Función |
+|--------|----------|------------|-----------|---------|
+| FRONT  | Frontal  | GPIO 46    | Canal 0   | Detección frontal, frenado automático |
+| REAR   | Trasero  | GPIO 19    | Canal 1   | Asistencia de aparcamiento, marcha atrás |
+
+**Nota:** Los sensores laterales (LEFT/RIGHT) fueron eliminados en v2.11.1 para liberar GPIOs para las tiras LED WS2812B.
 
 ### Multiplexor I²C (PCA9548A)
 
@@ -23,7 +25,7 @@ El sistema de detección de obstáculos está basado en sensores VL53L5CX de STM
 Dirección I²C: 0x71
 ```
 
-El multiplexor PCA9548A permite conectar los 4 sensores VL53L5CX (todos con dirección por defecto 0x29) en un mismo bus I²C, seleccionando cada sensor a través de canales independientes.
+El multiplexor PCA9548A permite conectar los 2 sensores VL53L5CX (ambos con dirección por defecto 0x29) en un mismo bus I²C, seleccionando cada sensor a través de canales independientes.
 
 ### Diagrama de Conexiones
 
@@ -34,18 +36,16 @@ ESP32-S3
    ├─── I²C SCL (GPIO 9) ──────────────────────┤
    │                                            │
    │    ┌──────────────────────────────────────┤
-   │    │           PCA9548A (0x71)            │
+   │    │         PCA9548A (0x71)              │
+   │    │      I²C Multiplexer                 │
    │    ├──────────────────────────────────────┤
    │    │ Canal 0 ── VL53L5CX FRONT (0x29)     │
    │    │ Canal 1 ── VL53L5CX REAR  (0x29)     │
-   │    │ Canal 2 ── VL53L5CX LEFT  (0x29)     │
-   │    │ Canal 3 ── VL53L5CX RIGHT (0x29)     │
+   │    │ Canales 2-7: Disponibles             │
    │    └──────────────────────────────────────┘
    │
-   ├─── GPIO 18 (XSHUT_FRONT) ───> VL53L5CX FRONT
-   ├─── GPIO 19 (XSHUT_REAR)  ───> VL53L5CX REAR
-   ├─── GPIO 45 (XSHUT_LEFT)  ───> VL53L5CX LEFT
-   └─── GPIO 46 (XSHUT_RIGHT) ───> VL53L5CX RIGHT
+   ├─── GPIO 46 (XSHUT_FRONT) ───> VL53L5CX FRONT
+   └─── GPIO 19 (XSHUT_REAR)  ───> VL53L5CX REAR
 ```
 
 ### Notas sobre los Pines XSHUT
@@ -54,11 +54,12 @@ Los pines XSHUT controlan el encendido/apagado de cada sensor:
 - **LOW (0V)**: Sensor en modo shutdown (desactivado)
 - **HIGH (3.3V)**: Sensor activo y listo para operar
 
-> ⚠️ **Nota v2.4.1**: Los pines GPIO 45 y 46 son "strapping pins" del ESP32-S3:
-> - **GPIO 45**: Controla el voltage de VDD_SPI. Debe estar flotante o LOW durante el boot.
-> - **GPIO 46**: Afecta al modo de boot y ROM log. Debe estar HIGH o flotante durante el boot.
-> 
-> **Recomendación**: Conectar resistencias pull-down (10kΩ) en las líneas XSHUT de LEFT y RIGHT. El firmware configura los pines como OUTPUT después del boot, por lo que no interferirán con la operación normal de los sensores.
+> ⚠️ **IMPORTANTE v2.11.1+**: 
+> - **GPIO 46 (XSHUT_FRONT)**: Es un strapping pin (Boot mode / ROM log). 
+>   - **Recomendación hardware:** Añadir resistencia pull-up **10kΩ a 3.3V** para garantizar estado HIGH durante boot.
+>   - El firmware lo configura como OUTPUT después del arranque.
+> - **GPIO 19 (XSHUT_REAR)**: GPIO estándar, sin restricciones.
+> - **GPIO 45**: Ahora LIBRE (antes usado para XSHUT_LEFT). Reservado para detección de llave (KEY_DETECT).
 
 ---
 
@@ -133,13 +134,13 @@ parkingBrakeDistanceMm = 500;  // 50cm
 ### 3. Advertencia de Punto Ciego (Blind Spot Warning)
 
 ```cpp
-// Configuración por defecto
+// Configuración por defecto (deshabilitado en v2.11.1+)
 blindSpotDistanceMm = 1000;  // 1 metro
 ```
 
-- **Activación**: Cuando se detecta un obstáculo lateral < 1m
-- **Acción**: Activa indicador visual y sonoro
-- **Sensores**: LEFT (izquierdo) y RIGHT (derecho)
+> ⚠️ **Nota v2.11.1+**: Esta función está **deshabilitada** desde la eliminación de los sensores laterales (LEFT/RIGHT).
+> - **Estado**: Código mantenido para compatibilidad futura
+> - **Hardware requerido**: 2 sensores VL53L5CX adicionales en posiciones laterales
 
 ### 4. Control de Crucero Adaptativo (Adaptive Cruise)
 
@@ -304,13 +305,15 @@ struct ObstacleStatus {
     ObstacleLevel overallLevel;     // Nivel de proximidad más crítico
     uint16_t minDistanceFront;      // Distancia mínima frontal
     uint16_t minDistanceRear;       // Distancia mínima trasera
-    uint16_t minDistanceLeft;       // Distancia mínima izquierda
-    uint16_t minDistanceRight;      // Distancia mínima derecha
+    uint16_t minDistanceLeft;       // Distancia mínima izquierda (sin usar en v2.11.1+)
+    uint16_t minDistanceRight;      // Distancia mínima derecha (sin usar en v2.11.1+)
     bool emergencyStopActive;       // Parada de emergencia activada
     bool parkingAssistActive;       // Asistencia de aparcamiento activa
     uint32_t lastUpdateMs;          // Timestamp última actualización
 };
 ```
+
+> **Nota v2.11.1+**: Los campos `minDistanceLeft` y `minDistanceRight` se mantienen en la estructura por compatibilidad binaria, pero siempre contienen `DISTANCE_INVALID` (8191).
 
 ---
 

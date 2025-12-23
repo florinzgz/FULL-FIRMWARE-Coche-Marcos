@@ -18,6 +18,9 @@ namespace ObstacleConfig {
     //            Mantener solo detección frontal y trasera.
     //            Frente mueve su XSHUT a GPIO 46 (liberado tras eliminar sensor lateral derecho) y
     //            el trasero mantiene GPIO 19 (estable). GPIO 18 queda libre para LEDs.
+    // ⚠️ HARDWARE RECOMMENDATION: GPIO 46 is a strapping pin (Boot mode / ROM log)
+    // Add external 10kΩ pull-up resistor to 3.3V to guarantee HIGH state during boot
+    // and prevent unintended download mode. The firmware sets it as OUTPUT after boot.
     constexpr uint8_t PIN_XSHUT_FRONT = 46;         // Front sensor (strapping, mantener HIGH en boot)
     constexpr uint8_t PIN_XSHUT_REAR = 19;          // Rear sensor (GPIO libre)
     constexpr uint8_t XSHUT_PINS[NUM_SENSORS] = { PIN_XSHUT_FRONT, PIN_XSHUT_REAR };
