@@ -1,8 +1,8 @@
-/**
- * @file obstacle_safety.cpp
- * @brief Intelligent 5-zone obstacle avoidance with child reaction detection and ACC coordination
- * @date 2025-12-23
- */
+// Obstacle-based Safety Systems
+// Parking assist, collision avoidance, blind spot warning, adaptive cruise control
+// Author: Copilot AI Assistant
+// Date: 2025-11-23
+// v2.12.0: Intelligent obstacle avoidance with child reaction detection + ACC coordination
 
 #include "obstacle_safety.h"
 #include "obstacle_detection.h"
@@ -16,427 +16,365 @@
 
 namespace ObstacleSafety {
 
-// Static variables
-static ObstacleSafetyConfig config;
-static ObstacleSafetyState state;
-static unsigned long lastUpdateMs = 0;
-static unsigned long lastAlertMs[6] = {0}; // For each zone type
-static const unsigned long ALERT_INTERVAL_MS = 1000;
-static const float PEDAL_REACTION_THRESHOLD = 10.0f;
-static const unsigned long PEDAL_REACTION_WINDOW_MS = 500;
-static const float EARLY_ALERT_DISTANCE_MM = 1500.0f;
+// Safety state
+static SafetyConfig config;
+static SafetyState state;
+static uint32_t lastUpdateMs = 0;
+static uint32_t lastAlertMs[4] = {0};  // Per-sensor alert throttling
 
-/**
- * @brief Initialize obstacle safety system
- */
+// Alert throttling
+static constexpr uint32_t ALERT_INTERVAL_MS = 1000;  // 1 second between same alerts
+
+// 🔒 v2.12.0: Child reaction detection thresholds
+static constexpr float PEDAL_REACTION_THRESHOLD = 10.0f;    // 10% pedal reduction to detect reaction
+static constexpr uint32_t PEDAL_REACTION_WINDOW_MS = 500;   // 500ms window for reaction
+static constexpr uint16_t EARLY_ALERT_DISTANCE_MM = 1500;   // 150cm early warning
+
 void init() {
-    // Initialize config values
-    config.enabled = true;
+    Logger::info("Initializing obstacle safety systems...");
+    
+    // Default configuration
     config.parkingAssistEnabled = true;
-    config.blindSpotEnabled = true;
-    config.emergencyBrakeEnabled = true;
-    config.audioAlertsEnabled = true;
-    config.visualAlertsEnabled = true;
+    config.collisionAvoidanceEnabled = true;
+    config.blindSpotEnabled = false;  // Deshabilitado: sin sensores laterales
+    config.adaptiveCruiseEnabled = false;  // Disabled by default, enable in menu
     
-    // Distance thresholds (in mm)
-    config.criticalDistance = 200;      // 20cm - ZONE 5
-    config.warningDistance = 500;       // 50cm - ZONE 4
-    config.cautionDistance = 1000;      // 100cm - ZONE 3
-    config.earlyAlertDistance = 1500;   // 150cm - ZONE 2
-    config.maxDetectionDistance = 4000; // 400cm - ZONE 1
+    config.parkingBrakeDistanceMm = 500;  // 50cm
+    config.collisionCutoffDistanceMm = 200;  // 20cm
+    config.blindSpotDistanceMm = 1000;  // 1m laterally
+    config.cruiseFollowDistanceMm = 2000;  // 2m for ACC
     
-    // Speed reduction factors
-    config.criticalSpeedFactor = 0.2f;
-    config.warningSpeedFactor = 0.5f;
-    config.cautionSpeedFactor = 0.7f;
-    config.earlyAlertSpeedFactor = 0.9f;
-    
-    // Aggressive factors for child reaction
-    config.aggressiveWarningFactor = 0.3f;
-    config.aggressiveCautionFactor = 0.5f;
+    config.maxBrakeForce = 0.8f;  // 80% max brake
+    config.minCruiseSpeed = 10.0f;  // 10 km/h minimum for ACC
     
     // Initialize state
-    state.collisionImminent = false;
-    state.emergencyBrakeApplied = false;
     state.parkingAssistActive = false;
-    state.blindSpotActive = false;
+    state.collisionImminent = false;
+    state.blindSpotLeft = false;
+    state.blindSpotRight = false;
+    state.adaptiveCruiseActive = false;
+    state.emergencyBrakeApplied = false;
     state.speedReductionFactor = 1.0f;
-    state.frontObstacleDistance = 0xFFFF;
-    state.rearObstacleDistance = 0xFFFF;
-    state.leftBlindSpotDetected = false;
-    state.rightBlindSpotDetected = false;
+    state.closestObstacleDistanceMm = ::ObstacleConfig::DISTANCE_MAX;
+    state.closestObstacleSensor = 0xFF;
     state.pedalReactionDetected = false;
     state.lastPedalChangeMs = 0;
     state.lastPedalValue = 0.0f;
-    state.activeZoneFront = ZONE_CLEAR;
-    state.activeZoneRear = ZONE_CLEAR;
     
-    Logger::info("ObstacleSafety", "Initialized with 5-zone intelligent detection");
-}
-
-/**
- * @brief Update obstacle safety system
- */
-void update() {
-    if (!config.enabled) {
-        return;
+    if (!config.blindSpotEnabled) {
+        // Blind spot deshabilitado permanentemente (sin sensores laterales)
+        state.blindSpotLeft = false;
+        state.blindSpotRight = false;
     }
     
-    unsigned long now = millis();
+    Logger::info("Obstacle safety systems initialized (intelligent mode with ACC coordination)");
+}
+
+void update() {
+    uint32_t now = millis();
+    if (now - lastUpdateMs < 50) return;  // 20Hz update
+    lastUpdateMs = now;
     
-    // Get current pedal position
+    // Get obstacle status
+    ObstacleDetection::ObstacleStatus obstStatus;
+    ObstacleDetection::getStatus(obstStatus);
+    
+    // Get current pedal value for reaction detection
     float currentPedal = Pedal::get().percent;
     
-    // Detect child reaction (sudden pedal release)
+    // 🔒 v2.12.0: CHILD REACTION DETECTION
+    // Detect if child has reduced pedal >10% recently (intelligent braking)
     if (state.lastPedalValue - currentPedal > PEDAL_REACTION_THRESHOLD) {
         state.pedalReactionDetected = true;
         state.lastPedalChangeMs = now;
-        Logger::info("ObstacleSafety", "Child reaction detected - sudden brake");
+        Logger::info("Obstacle: Child pedal reaction detected - allowing control");
     }
     
-    // Reset reaction detection after window expires
-    if (state.pedalReactionDetected && (now - state.lastPedalChangeMs > PEDAL_REACTION_WINDOW_MS)) {
+    // Reset reaction flag if >500ms without changes
+    if (now - state.lastPedalChangeMs > PEDAL_REACTION_WINDOW_MS) {
         state.pedalReactionDetected = false;
     }
     
-    // Update last pedal value
     state.lastPedalValue = currentPedal;
     
-    // Reset state for this update cycle
-    state.collisionImminent = false;
-    state.emergencyBrakeApplied = false;
+    // Reset state
     state.parkingAssistActive = false;
+    state.collisionImminent = false;
+    state.blindSpotLeft = false;
+    state.blindSpotRight = false;
+    state.emergencyBrakeApplied = false;
     state.speedReductionFactor = 1.0f;
-    state.activeZoneFront = ZONE_CLEAR;
-    state.activeZoneRear = ZONE_CLEAR;
+    state.closestObstacleDistanceMm = ::ObstacleConfig::DISTANCE_MAX;
+    state.closestObstacleSensor = 0xFF;
     
-    // Get obstacle distances
-    state.frontObstacleDistance = ObstacleDetection::getFrontDistance();
-    state.rearObstacleDistance = ObstacleDetection::getRearDistance();
+    // Check if obstacle detection system is healthy
+    if (obstStatus.sensorsHealthy == 0) return;
     
-    // Check if ACC is active
-    bool accActive = (AdaptiveCruise::getStatus().state == ACC_ACTIVE);
+    // Get distances
+    uint16_t frontDist = obstStatus.minDistanceFront;
+    uint16_t rearDist = obstStatus.minDistanceRear;
     
-    // ========== FRONT SENSOR 5-ZONE LOGIC ==========
-    if (state.frontObstacleDistance < config.criticalDistance) {
-        // ZONE 5: EMERGENCY (< 20cm)
-        state.activeZoneFront = ZONE_EMERGENCY;
-        state.collisionImminent = true;
-        state.emergencyBrakeApplied = true;
-        state.speedReductionFactor = 0.0f;
+    // Ignore invalid distances
+    if (frontDist >= ::ObstacleConfig::DISTANCE_INVALID) frontDist = ::ObstacleConfig::DISTANCE_MAX;
+    if (rearDist >= ::ObstacleConfig::DISTANCE_INVALID) rearDist = ::ObstacleConfig::DISTANCE_MAX;
+    
+    // Find closest obstacle
+    uint16_t minDist = ::ObstacleConfig::DISTANCE_MAX;
+    if (frontDist < minDist) { minDist = frontDist; state.closestObstacleSensor = 0; }
+    if (rearDist < minDist) { minDist = rearDist; state.closestObstacleSensor = 1; }
+    state.closestObstacleDistanceMm = minDist;
+    
+    // ============================================================================
+    // INTELLIGENT OBSTACLE AVOIDANCE - FRONT SENSOR (5 zones with reaction detection + ACC coordination)
+    // ============================================================================
+    if (config.collisionAvoidanceEnabled && frontDist < ::ObstacleConfig::DISTANCE_MAX) {
         
-        if (now - lastAlertMs[ZONE_EMERGENCY] > ALERT_INTERVAL_MS) {
-            Alerts::triggerCritical("EMERGENCY STOP - Obstacle < 20cm!");
-            lastAlertMs[ZONE_EMERGENCY] = now;
+        // 🔴 ZONE 5: EMERGENCY <20cm → FULL CUT (no exceptions, overrides ACC)
+        if (frontDist < ::ObstacleConfig::DISTANCE_CRITICAL) {
+            state.collisionImminent = true;
+            state.emergencyBrakeApplied = true;
+            state.speedReductionFactor = 0.0f;
+            
+            if (now - lastAlertMs[0] > 200) {
+                Alerts::play(Audio::AUDIO_EMERGENCIA);
+                Logger::error("FRONT EMERGENCY <20cm - FULL STOP!");
+                lastAlertMs[0] = now;
+            }
         }
-        
-    } else if (state.frontObstacleDistance < config.warningDistance) {
-        // ZONE 4: CRITICAL (20-50cm)
-        state.activeZoneFront = ZONE_CRITICAL;
-        state.collisionImminent = true;
-        
-        // Calculate proportional reduction in critical zone
-        float distanceRatio = (float)(state.frontObstacleDistance - config.criticalDistance) / 
-                             (float)(config.warningDistance - config.criticalDistance);
-        float criticalFactor = config.criticalSpeedFactor + 
-                              (config.warningSpeedFactor - config.criticalSpeedFactor) * distanceRatio;
-        state.speedReductionFactor = criticalFactor;
-        
-        if (now - lastAlertMs[ZONE_CRITICAL] > ALERT_INTERVAL_MS) {
-            Alerts::triggerWarning("CRITICAL - Obstacle detected!");
-            lastAlertMs[ZONE_CRITICAL] = now;
+        // 🟠 ZONE 4: CRITICAL 20-50cm → Forced reduction (independent of reaction, overrides ACC)
+        else if (frontDist < ::ObstacleConfig::DISTANCE_WARNING) {
+            state.collisionImminent = true;
+            float criticalFactor = 0.1f + ((float)(frontDist - ::ObstacleConfig::DISTANCE_CRITICAL) / 
+                                           (float)(::ObstacleConfig::DISTANCE_WARNING - ::ObstacleConfig::DISTANCE_CRITICAL)) * 0.3f;
+            state.speedReductionFactor = criticalFactor;
+            
+            if (now - lastAlertMs[0] > 300) {
+                Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+                Logger::warnf("FRONT CRITICAL %dmm - Force brake %.0f%%", frontDist, criticalFactor * 100);
+                lastAlertMs[0] = now;
+            }
         }
-        
-    } else if (state.frontObstacleDistance < config.cautionDistance) {
-        // ZONE 3: WARNING (50-100cm)
-        state.activeZoneFront = ZONE_WARNING;
-        
-        if (accActive) {
-            // ACC handles speed control
+        // 🟡 ZONE 3: WARNING 50-100cm → Reduction based on reaction (unless ACC active)
+        else if (frontDist < ::ObstacleConfig::DISTANCE_CAUTION) {
+            // 🔒 v2.12.0: Check if ACC is handling this (give ACC priority)
+            bool accActive = (AdaptiveCruise::getStatus().state == AdaptiveCruise::ACC_ACTIVE);
+            
+            if (accActive) {
+                // ACC is controlling speed - don't interfere
+                state.speedReductionFactor = 1.0f;
+                Logger::debugf("FRONT WARNING %dmm - ACC active, deferring control", frontDist);
+            } else {
+                // ACC not active, apply normal obstacle avoidance
+                state.parkingAssistActive = true;
+                
+                if (state.pedalReactionDetected) {
+                    // Child reacted: Soft assist (allow control)
+                    float assistFactor = 0.6f + ((float)(frontDist - ::ObstacleConfig::DISTANCE_WARNING) / 
+                                                 (float)(::ObstacleConfig::DISTANCE_CAUTION - ::ObstacleConfig::DISTANCE_WARNING)) * 0.1f;
+                    state.speedReductionFactor = assistFactor;
+                    Logger::debugf("FRONT WARNING %dmm - Child reacting, soft assist %.0f%%", frontDist, assistFactor * 100);
+                } else {
+                    // No reaction: Aggressive reduction
+                    float aggressiveFactor = 0.4f + ((float)(frontDist - ::ObstacleConfig::DISTANCE_WARNING) / 
+                                                     (float)(::ObstacleConfig::DISTANCE_CAUTION - ::ObstacleConfig::DISTANCE_WARNING)) * 0.2f;
+                    state.speedReductionFactor = aggressiveFactor;
+                    Logger::warnf("FRONT WARNING %dmm - No reaction, aggressive brake %.0f%%", frontDist, aggressiveFactor * 100);
+                }
+            }
+            
+            if (now - lastAlertMs[0] > 500) {
+                Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+                lastAlertMs[0] = now;
+            }
+        }
+        // 🟢 ZONE 2: CAUTION 100-150cm → Soft reduction only if NO reaction (unless ACC active)
+        else if (frontDist < EARLY_ALERT_DISTANCE_MM) {
+            // 🔒 v2.12.0: Check if ACC is handling this
+            bool accActive = (AdaptiveCruise::getStatus().state == AdaptiveCruise::ACC_ACTIVE);
+            
+            if (accActive) {
+                // ACC controlling - don't interfere
+                state.speedReductionFactor = 1.0f;
+                Logger::debugf("FRONT CAUTION %dmm - ACC active, deferring control", frontDist);
+            } else if (!state.pedalReactionDetected) {
+                // No reaction and ACC not active - apply gentle brake
+                state.parkingAssistActive = true;
+                float cautionFactor = 0.85f + ((float)(frontDist - ::ObstacleConfig::DISTANCE_CAUTION) / 
+                                               (float)(EARLY_ALERT_DISTANCE_MM - ::ObstacleConfig::DISTANCE_CAUTION)) * 0.15f;
+                state.speedReductionFactor = cautionFactor;
+                Logger::debugf("FRONT CAUTION %dmm - No reaction, gentle brake %.0f%%", frontDist, cautionFactor * 100);
+            } else {
+                // Child reacting - full control
+                state.speedReductionFactor = 1.0f;
+                Logger::debugf("FRONT CAUTION %dmm - Child reacting, full control", frontDist);
+            }
+            
+            if (now - lastAlertMs[0] > 1000) {
+                Alerts::play(Audio::AUDIO_MODULO_OK);
+                lastAlertMs[0] = now;
+            }
+        }
+        // 🔵 ZONE 1: EARLY ALERT 150-400cm → Audio only, NO reduction
+        else if (frontDist < ::ObstacleConfig::DISTANCE_MAX) {
             state.speedReductionFactor = 1.0f;
-        } else {
-            // Manual mode - activate parking assist
+            
+            if (now - lastAlertMs[0] > 2000) {
+                Alerts::play(Audio::AUDIO_MODULO_OK);
+                Logger::debugf("FRONT ALERT %dmm - Early warning", frontDist);
+                lastAlertMs[0] = now;
+            }
+        }
+    }
+    
+    // ============================================================================
+    // INTELLIGENT OBSTACLE AVOIDANCE - REAR SENSOR (same logic with ACC coordination)
+    // ============================================================================
+    if (config.collisionAvoidanceEnabled && rearDist < ::ObstacleConfig::DISTANCE_MAX) {
+        
+        // 🔴 ZONE 5: EMERGENCY <20cm
+        if (rearDist < ::ObstacleConfig::DISTANCE_CRITICAL) {
+            state.collisionImminent = true;
+            state.emergencyBrakeApplied = true;
+            state.speedReductionFactor = 0.0f;
+            
+            if (now - lastAlertMs[1] > 200) {
+                Alerts::play(Audio::AUDIO_EMERGENCIA);
+                Logger::error("REAR EMERGENCY <20cm - FULL STOP!");
+                lastAlertMs[1] = now;
+            }
+        }
+        // 🟠 ZONE 4: CRITICAL 20-50cm
+        else if (rearDist < ::ObstacleConfig::DISTANCE_WARNING) {
+            state.collisionImminent = true;
+            float criticalFactor = 0.1f + ((float)(rearDist - ::ObstacleConfig::DISTANCE_CRITICAL) / 
+                                           (float)(::ObstacleConfig::DISTANCE_WARNING - ::ObstacleConfig::DISTANCE_CRITICAL)) * 0.3f;
+            state.speedReductionFactor = std::min(state.speedReductionFactor, criticalFactor);
+            
+            if (now - lastAlertMs[1] > 300) {
+                Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+                Logger::warnf("REAR CRITICAL %dmm - Force brake %.0f%%", rearDist, criticalFactor * 100);
+                lastAlertMs[1] = now;
+            }
+        }
+        // 🟡 ZONE 3: WARNING 50-100cm (with ACC coordination)
+        else if (rearDist < ::ObstacleConfig::DISTANCE_CAUTION) {
+            // 🔒 v2.12.0: ACC coordination (rear sensor less critical for ACC)
+            bool accActive = (AdaptiveCruise::getStatus().state == AdaptiveCruise::ACC_ACTIVE);
+            
+            if (accActive) {
+                // ACC controlling front - apply rear reduction cautiously
+                Logger::debugf("REAR WARNING %dmm - ACC active, applying rear reduction", rearDist);
+            }
+            
             state.parkingAssistActive = true;
             
-            // Use aggressive factor if child reaction detected
             if (state.pedalReactionDetected) {
-                state.speedReductionFactor = config.aggressiveWarningFactor;
+                float assistFactor = 0.6f + ((float)(rearDist - ::ObstacleConfig::DISTANCE_WARNING) / 
+                                             (float)(::ObstacleConfig::DISTANCE_CAUTION - ::ObstacleConfig::DISTANCE_WARNING)) * 0.1f;
+                state.speedReductionFactor = std::min(state.speedReductionFactor, assistFactor);
+                Logger::debugf("REAR WARNING %dmm - Child reacting, soft assist %.0f%%", rearDist, assistFactor * 100);
             } else {
-                state.speedReductionFactor = config.warningSpeedFactor;
+                float aggressiveFactor = 0.4f + ((float)(rearDist - ::ObstacleConfig::DISTANCE_WARNING) / 
+                                                 (float)(::ObstacleConfig::DISTANCE_CAUTION - ::ObstacleConfig::DISTANCE_WARNING)) * 0.2f;
+                state.speedReductionFactor = std::min(state.speedReductionFactor, aggressiveFactor);
+                Logger::warnf("REAR WARNING %dmm - No reaction, aggressive brake %.0f%%", rearDist, aggressiveFactor * 100);
             }
-        }
-        
-        if (now - lastAlertMs[ZONE_WARNING] > ALERT_INTERVAL_MS) {
-            Alerts::triggerWarning("WARNING - Obstacle in range");
-            lastAlertMs[ZONE_WARNING] = now;
-        }
-        
-    } else if (state.frontObstacleDistance < config.earlyAlertDistance) {
-        // ZONE 2: CAUTION (100-150cm)
-        state.activeZoneFront = ZONE_CAUTION;
-        
-        if (accActive) {
-            // ACC handles speed control
-            state.speedReductionFactor = 1.0f;
-        } else {
-            // Manual mode - check for child reaction
-            if (state.pedalReactionDetected) {
-                state.speedReductionFactor = config.aggressiveCautionFactor;
-            } else {
-                state.speedReductionFactor = config.cautionSpeedFactor;
-            }
-        }
-        
-        if (now - lastAlertMs[ZONE_CAUTION] > ALERT_INTERVAL_MS) {
-            Alerts::triggerInfo("CAUTION - Obstacle ahead");
-            lastAlertMs[ZONE_CAUTION] = now;
-        }
-        
-    } else if (state.frontObstacleDistance < config.maxDetectionDistance) {
-        // ZONE 1: EARLY ALERT (150-400cm)
-        state.activeZoneFront = ZONE_EARLY_ALERT;
-        state.speedReductionFactor = 1.0f; // No speed reduction, audio only
-        
-        if (config.audioAlertsEnabled && now - lastAlertMs[ZONE_EARLY_ALERT] > ALERT_INTERVAL_MS) {
-            Alerts::triggerInfo("Object detected ahead");
-            lastAlertMs[ZONE_EARLY_ALERT] = now;
-        }
-    }
-    
-    // ========== REAR SENSOR 5-ZONE LOGIC ==========
-    float rearSpeedFactor = 1.0f;
-    
-    if (state.rearObstacleDistance < config.criticalDistance) {
-        // ZONE 5: EMERGENCY (< 20cm)
-        state.activeZoneRear = ZONE_EMERGENCY;
-        state.collisionImminent = true;
-        state.emergencyBrakeApplied = true;
-        rearSpeedFactor = 0.0f;
-        
-        if (now - lastAlertMs[ZONE_EMERGENCY] > ALERT_INTERVAL_MS) {
-            Alerts::triggerCritical("EMERGENCY STOP - Rear obstacle < 20cm!");
-        }
-        
-    } else if (state.rearObstacleDistance < config.warningDistance) {
-        // ZONE 4: CRITICAL (20-50cm)
-        state.activeZoneRear = ZONE_CRITICAL;
-        state.collisionImminent = true;
-        
-        float distanceRatio = (float)(state.rearObstacleDistance - config.criticalDistance) / 
-                             (float)(config.warningDistance - config.criticalDistance);
-        float criticalFactor = config.criticalSpeedFactor + 
-                              (config.warningSpeedFactor - config.criticalSpeedFactor) * distanceRatio;
-        rearSpeedFactor = criticalFactor;
-        
-        if (now - lastAlertMs[ZONE_CRITICAL] > ALERT_INTERVAL_MS) {
-            Alerts::triggerWarning("CRITICAL - Rear obstacle!");
-        }
-        
-    } else if (state.rearObstacleDistance < config.cautionDistance) {
-        // ZONE 3: WARNING (50-100cm)
-        state.activeZoneRear = ZONE_WARNING;
-        
-        if (accActive) {
-            rearSpeedFactor = 1.0f;
-        } else {
-            state.parkingAssistActive = true;
             
-            if (state.pedalReactionDetected) {
-                rearSpeedFactor = config.aggressiveWarningFactor;
-            } else {
-                rearSpeedFactor = config.warningSpeedFactor;
+            if (now - lastAlertMs[1] > 500) {
+                Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+                lastAlertMs[1] = now;
             }
         }
-        
-        if (now - lastAlertMs[ZONE_WARNING] > ALERT_INTERVAL_MS) {
-            Alerts::triggerWarning("WARNING - Rear obstacle in range");
-        }
-        
-    } else if (state.rearObstacleDistance < config.earlyAlertDistance) {
-        // ZONE 2: CAUTION (100-150cm)
-        state.activeZoneRear = ZONE_CAUTION;
-        
-        if (accActive) {
-            rearSpeedFactor = 1.0f;
-        } else {
-            if (state.pedalReactionDetected) {
-                rearSpeedFactor = config.aggressiveCautionFactor;
+        // 🟢 ZONE 2: CAUTION 100-150cm
+        else if (rearDist < EARLY_ALERT_DISTANCE_MM) {
+            // 🔒 v2.12.0: ACC coordination
+            bool accActive = (AdaptiveCruise::getStatus().state == AdaptiveCruise::ACC_ACTIVE);
+            
+            if (accActive) {
+                Logger::debugf("REAR CAUTION %dmm - ACC active, applying rear caution", rearDist);
+            }
+            
+            if (!state.pedalReactionDetected) {
+                state.parkingAssistActive = true;
+                float cautionFactor = 0.85f + ((float)(rearDist - ::ObstacleConfig::DISTANCE_CAUTION) / 
+                                               (float)(EARLY_ALERT_DISTANCE_MM - ::ObstacleConfig::DISTANCE_CAUTION)) * 0.15f;
+                state.speedReductionFactor = std::min(state.speedReductionFactor, cautionFactor);
+                Logger::debugf("REAR CAUTION %dmm - No reaction, gentle brake %.0f%%", rearDist, cautionFactor * 100);
             } else {
-                rearSpeedFactor = config.cautionSpeedFactor;
+                Logger::debugf("REAR CAUTION %dmm - Child reacting, full control", rearDist);
+            }
+            
+            if (now - lastAlertMs[1] > 1000) {
+                Alerts::play(Audio::AUDIO_MODULO_OK);
+                lastAlertMs[1] = now;
             }
         }
-        
-        if (now - lastAlertMs[ZONE_CAUTION] > ALERT_INTERVAL_MS) {
-            Alerts::triggerInfo("CAUTION - Rear obstacle");
-        }
-        
-    } else if (state.rearObstacleDistance < config.maxDetectionDistance) {
-        // ZONE 1: EARLY ALERT (150-400cm)
-        state.activeZoneRear = ZONE_EARLY_ALERT;
-        rearSpeedFactor = 1.0f;
-        
-        if (config.audioAlertsEnabled && now - lastAlertMs[ZONE_EARLY_ALERT] > ALERT_INTERVAL_MS) {
-            Alerts::triggerInfo("Object detected behind");
+        // 🔵 ZONE 1: EARLY ALERT 150-400cm
+        else if (rearDist < ::ObstacleConfig::DISTANCE_MAX) {
+            if (now - lastAlertMs[1] > 2000) {
+                Alerts::play(Audio::AUDIO_MODULO_OK);
+                Logger::debugf("REAR ALERT %dmm - Early warning", rearDist);
+                lastAlertMs[1] = now;
+            }
         }
     }
-    
-    // Apply minimum speed factor from front and rear
-    state.speedReductionFactor = std::min(state.speedReductionFactor, rearSpeedFactor);
-    
-    // Update blind spot detection
-    if (config.blindSpotEnabled) {
-        state.leftBlindSpotDetected = ObstacleDetection::isLeftBlindSpotDetected();
-        state.rightBlindSpotDetected = ObstacleDetection::isRightBlindSpotDetected();
-        state.blindSpotActive = state.leftBlindSpotDetected || state.rightBlindSpotDetected;
-    }
-    
-    lastUpdateMs = now;
 }
 
-/**
- * @brief Get current safety state
- * @return Current ObstacleSafetyState
- */
-ObstacleSafetyState getState() {
-    return state;
+void getState(SafetyState& st) {
+    st = state;
 }
 
-/**
- * @brief Get current configuration
- * @return Current ObstacleSafetyConfig
- */
-ObstacleSafetyConfig getConfig() {
-    return config;
+void getConfig(SafetyConfig& cfg) {
+    cfg = config;
 }
 
-/**
- * @brief Set configuration
- * @param newConfig New configuration to apply
- */
-void setConfig(const ObstacleSafetyConfig& newConfig) {
+void setConfig(const SafetyConfig& newConfig) {
     config = newConfig;
-    Logger::info("ObstacleSafety", "Configuration updated");
+    // Save to storage
 }
 
-/**
- * @brief Check if collision is imminent
- * @return true if collision detected
- */
 bool isCollisionImminent() {
     return state.collisionImminent;
 }
 
-/**
- * @brief Check if parking assist is active
- * @return true if parking assist active
- */
 bool isParkingAssistActive() {
-    return state.parkingAssistActive && config.parkingAssistEnabled;
+    return state.parkingAssistActive;
 }
 
-/**
- * @brief Check if blind spot detection is active
- * @return true if blind spot detected
- */
 bool isBlindSpotActive() {
-    return state.blindSpotActive && config.blindSpotEnabled;
+    return state.blindSpotLeft || state.blindSpotRight;
 }
 
-/**
- * @brief Get current speed reduction factor
- * @return Speed reduction factor (0.0-1.0)
- */
 float getSpeedReductionFactor() {
     return state.speedReductionFactor;
 }
 
-/**
- * @brief Enable obstacle safety system
- */
-void enable() {
-    config.enabled = true;
-    Logger::info("ObstacleSafety", "System enabled");
+void enableParkingAssist(bool enable) {
+    config.parkingAssistEnabled = enable;
 }
 
-/**
- * @brief Disable obstacle safety system
- */
-void disable() {
-    config.enabled = false;
-    state.collisionImminent = false;
-    state.emergencyBrakeApplied = false;
-    state.speedReductionFactor = 1.0f;
-    Logger::info("ObstacleSafety", "System disabled");
+void enableCollisionAvoidance(bool enable) {
+    config.collisionAvoidanceEnabled = enable;
 }
 
-/**
- * @brief Enable parking assist
- */
-void enableParkingAssist() {
-    config.parkingAssistEnabled = true;
-    Logger::info("ObstacleSafety", "Parking assist enabled");
+void enableBlindSpot(bool enable) {
+    config.blindSpotEnabled = enable;
 }
 
-/**
- * @brief Disable parking assist
- */
-void disableParkingAssist() {
-    config.parkingAssistEnabled = false;
-    Logger::info("ObstacleSafety", "Parking assist disabled");
+void enableAdaptiveCruise(bool enable) {
+    config.adaptiveCruiseEnabled = enable;
 }
 
-/**
- * @brief Enable blind spot detection
- */
-void enableBlindSpot() {
-    config.blindSpotEnabled = true;
-    Logger::info("ObstacleSafety", "Blind spot detection enabled");
-}
-
-/**
- * @brief Disable blind spot detection
- */
-void disableBlindSpot() {
-    config.blindSpotEnabled = false;
-    Logger::info("ObstacleSafety", "Blind spot detection disabled");
-}
-
-/**
- * @brief Enable emergency brake
- */
-void enableEmergencyBrake() {
-    config.emergencyBrakeEnabled = true;
-    Logger::info("ObstacleSafety", "Emergency brake enabled");
-}
-
-/**
- * @brief Disable emergency brake
- */
-void disableEmergencyBrake() {
-    config.emergencyBrakeEnabled = false;
-    Logger::info("ObstacleSafety", "Emergency brake disabled");
-}
-
-/**
- * @brief Trigger emergency stop
- */
 void triggerEmergencyStop() {
     state.emergencyBrakeApplied = true;
     state.collisionImminent = true;
-    state.speedReductionFactor = 0.0f;
-    Traction::emergencyStop();
-    Alerts::triggerCritical("EMERGENCY STOP ACTIVATED");
-    Logger::warning("ObstacleSafety", "Emergency stop triggered");
+    Alerts::play(Audio::AUDIO_EMERGENCIA);
+    Logger::warn("MANUAL EMERGENCY STOP triggered");
 }
 
-/**
- * @brief Reset emergency stop
- */
 void resetEmergencyStop() {
     state.emergencyBrakeApplied = false;
-    state.collisionImminent = false;
-    state.speedReductionFactor = 1.0f;
-    Logger::info("ObstacleSafety", "Emergency stop reset");
+    Logger::info("Emergency stop reset");
 }
 
 } // namespace ObstacleSafety
