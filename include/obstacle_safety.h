@@ -33,6 +33,15 @@ struct SafetyState {
     float speedReductionFactor;           // Speed reduction multiplier (0.0-1.0)
     uint16_t closestObstacleDistanceMm;   // Distance to closest obstacle
     uint8_t closestObstacleSensor;        // Sensor with closest detection (0-3)
+    
+    // v2.12.0: Child reaction detection
+    bool childReactionDetected;           // Child reduced pedal within 500ms
+    uint32_t lastPedalReductionMs;        // Timestamp of last pedal reduction
+    float lastPedalValue;                 // Previous pedal value for comparison
+    
+    // v2.12.0: ACC coordination
+    bool accHasPriority;                  // ACC system has priority (zones 2-3)
+    uint8_t obstacleZone;                 // Current obstacle zone (1-5)
 };
 
 // Initialization

@@ -10,6 +10,8 @@
 #include "system.h"
 #include "wheels.h"
 #include "mcp23017_manager.h"
+#include "adaptive_cruise.h"
+#include "obstacle_safety.h"
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
@@ -469,11 +471,54 @@ void Traction::update() {
                    steer.angleDeg, factorFL, factorFR);
   }
 
-  // Aplicar reparto por rueda
-  s.w[FL].demandPct = clampf(front * factorFL, 0.0f, 100.0f);
-  s.w[FR].demandPct = clampf(front * factorFR, 0.0f, 100.0f);
-  s.w[RL].demandPct = clampf(rear, 0.0f, 100.0f);
-  s.w[RR].demandPct = clampf(rear, 0.0f, 100.0f);
+  // v2.12.0: Quadruple factor control (base × gear × obstacle × ACC)
+  float obstacleFactor = 1.0f;
+  float accFactor = 1.0f;
+  bool emergencyStop = false;
+  
+  // Get obstacle safety state
+  ObstacleSafety::SafetyState safetyState;
+  ObstacleSafety::getState(safetyState);
+  
+  // Emergency stop <20cm with hardware cutoff
+  if (safetyState.closestObstacleDistanceMm < 200) {
+    emergencyStop = true;
+    obstacleFactor = 0.0f;
+    // Hardware cutoff: set all PWM to 0
+    if (pcaFrontOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaFront.setPWM(ch, 0, 0);
+      }
+    }
+    if (pcaRearOK) {
+      for (int ch = 0; ch < 4; ch++) {
+        pcaRear.setPWM(ch, 0, 0);
+      }
+    }
+    Logger::warn("Traction: EMERGENCY STOP - obstacle <20cm!");
+  } else {
+    // Use obstacle safety reduction factor
+    obstacleFactor = safetyState.speedReductionFactor;
+  }
+  
+  // Get ACC factor
+  accFactor = AdaptiveCruise::getSpeedAdjustment();
+  
+  // Calculate combined factor
+  // Gear factor is implicit in the base demand (from pedal/shifter)
+  float combinedFactor = obstacleFactor * accFactor;
+  
+  // Conditional logging of interventions
+  if (combinedFactor < 0.95f) {
+    Logger::debugf("Traction intervention: obstacle=%.2f, ACC=%.2f, combined=%.2f",
+                   obstacleFactor, accFactor, combinedFactor);
+  }
+
+  // Aplicar reparto por rueda con factores combinados
+  s.w[FL].demandPct = clampf(front * factorFL * combinedFactor, 0.0f, 100.0f);
+  s.w[FR].demandPct = clampf(front * factorFR * combinedFactor, 0.0f, 100.0f);
+  s.w[RL].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
+  s.w[RR].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
 
   // Actualizar sensores y calcular métricas por rueda
   for (int i = 0; i < 4; ++i) {

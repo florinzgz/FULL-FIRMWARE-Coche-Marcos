@@ -1,12 +1,15 @@
-// Obstacle-based Safety Systems
+// Obstacle-based Safety Systems v2.12.0
 // Parking assist, collision avoidance, blind spot warning, adaptive cruise control
+// v2.12.0: Intelligent 5-zone obstacle avoidance with child reaction detection
 // Author: Copilot AI Assistant
-// Date: 2025-11-23
+// Date: 2025-12-23
 // Note: Placeholder implementation - VL53L5X sensors not yet integrated
 
 #include "obstacle_safety.h"
 #include "obstacle_detection.h"
 #include "obstacle_config.h"
+#include "adaptive_cruise.h"
+#include "pedal.h"
 #include "traction.h"
 #include "logger.h"
 #include "alerts.h"
@@ -23,8 +26,19 @@ static uint32_t lastAlertMs[4] = {0};  // Per-sensor alert throttling
 // Alert throttling
 static constexpr uint32_t ALERT_INTERVAL_MS = 1000;  // 1 second between same alerts
 
+// v2.12.0: 5-Zone thresholds (mm)
+static constexpr uint16_t ZONE_5_THRESHOLD = 200;   // <20cm - Emergency
+static constexpr uint16_t ZONE_4_THRESHOLD = 500;   // 20-50cm - Critical
+static constexpr uint16_t ZONE_3_THRESHOLD = 1000;  // 50-100cm - Warning
+static constexpr uint16_t ZONE_2_THRESHOLD = 1500;  // 100-150cm - Caution
+static constexpr uint16_t ZONE_1_THRESHOLD = 4000;  // 150-400cm - Alert
+
+// v2.12.0: Child reaction detection
+static constexpr float CHILD_REACTION_THRESHOLD = 10.0f;  // 10% pedal reduction
+static constexpr uint32_t CHILD_REACTION_WINDOW_MS = 500;  // 500ms window
+
 void init() {
-    Logger::info("Initializing obstacle safety systems...");
+    Logger::info("Obstacle safety v2.12.0: Initializing with 5-zone detection...");
     
     // Default configuration
     config.parkingAssistEnabled = true;
@@ -50,13 +64,23 @@ void init() {
     state.speedReductionFactor = 1.0f;
     state.closestObstacleDistanceMm = ::ObstacleConfig::DISTANCE_MAX;
     state.closestObstacleSensor = 0xFF;
+    
+    // v2.12.0: Initialize child reaction detection
+    state.childReactionDetected = false;
+    state.lastPedalReductionMs = 0;
+    state.lastPedalValue = 0.0f;
+    
+    // v2.12.0: Initialize ACC coordination
+    state.accHasPriority = false;
+    state.obstacleZone = 0;
+    
     if (!config.blindSpotEnabled) {
         // Blind spot deshabilitado permanentemente (sin sensores laterales)
         state.blindSpotLeft = false;
         state.blindSpotRight = false;
     }
     
-    Logger::info("Obstacle safety systems initialized (placeholder mode)");
+    Logger::info("Obstacle safety v2.12.0 initialized with 5-zone detection");
 }
 
 void update() {
@@ -95,59 +119,138 @@ void update() {
     if (rearDist < minDist) { minDist = rearDist; state.closestObstacleSensor = 1; }
     state.closestObstacleDistanceMm = minDist;
     
-    // 1. COLLISION AVOIDANCE (highest priority)
-    if (config.collisionAvoidanceEnabled) {
-        if (frontDist < config.collisionCutoffDistanceMm) {
-            state.collisionImminent = true;
-            state.emergencyBrakeApplied = true;
-            
-            // Alert using existing audio system
-            if (now - lastAlertMs[0] > ALERT_INTERVAL_MS) {
-                Alerts::play(Audio::AUDIO_EMERGENCIA);
-                Logger::warn("COLLISION IMMINENT - Emergency brake!");
-                lastAlertMs[0] = now;
-            }
+    // v2.12.0: Determine obstacle zone (1-5)
+    uint8_t zone = 0;
+    if (minDist < ZONE_5_THRESHOLD) {
+        zone = 5;  // Emergency
+    } else if (minDist < ZONE_4_THRESHOLD) {
+        zone = 4;  // Critical
+    } else if (minDist < ZONE_3_THRESHOLD) {
+        zone = 3;  // Warning
+    } else if (minDist < ZONE_2_THRESHOLD) {
+        zone = 2;  // Caution
+    } else if (minDist < ZONE_1_THRESHOLD) {
+        zone = 1;  // Alert
+    }
+    state.obstacleZone = zone;
+    
+    // v2.12.0: Child reaction detection
+    auto pedalState = Pedal::get();
+    if (pedalState.valid) {
+        float pedalReduction = state.lastPedalValue - pedalState.percent;
+        if (pedalReduction > CHILD_REACTION_THRESHOLD) {
+            // Child reduced pedal
+            state.lastPedalReductionMs = now;
+            state.childReactionDetected = true;
+        } else if (now - state.lastPedalReductionMs > CHILD_REACTION_WINDOW_MS) {
+            state.childReactionDetected = false;
         }
-        
-        if (rearDist < config.collisionCutoffDistanceMm) {
-            state.collisionImminent = true;
-            state.emergencyBrakeApplied = true;
-            
-            if (now - lastAlertMs[1] > ALERT_INTERVAL_MS) {
-                Alerts::play(Audio::AUDIO_EMERGENCIA);
-                Logger::warn("REAR COLLISION - Emergency brake!");
-                lastAlertMs[1] = now;
-            }
+        state.lastPedalValue = pedalState.percent;
+    }
+    
+    // v2.12.0: ACC Coordination
+    // ACC has priority in zones 2-3 (50-150cm)
+    // Obstacle safety overrides in zones 4-5 (<50cm)
+    auto accStatus = AdaptiveCruise::getStatus();
+    state.adaptiveCruiseActive = (accStatus.state == AdaptiveCruise::ACC_ACTIVE || 
+                                   accStatus.state == AdaptiveCruise::ACC_BRAKING);
+    state.accHasPriority = state.adaptiveCruiseActive && (zone >= 2 && zone <= 3);
+    
+    // v2.12.0: 5-Zone Detection System
+    if (config.collisionAvoidanceEnabled) {
+        switch (zone) {
+            case 5:  // ZONE 5: Emergency (<20cm) - Full stop (0%)
+                state.collisionImminent = true;
+                state.emergencyBrakeApplied = true;
+                state.speedReductionFactor = 0.0f;
+                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS) {
+                    Alerts::play(Audio::AUDIO_EMERGENCIA);
+                    Logger::warnf("ZONE 5: EMERGENCY STOP! Distance=%dmm", minDist);
+                    lastAlertMs[0] = now;
+                }
+                break;
+                
+            case 4:  // ZONE 4: Critical (20-50cm) - Forced reduction (10-40%)
+                state.collisionImminent = true;
+                // Linear interpolation: 20cm=10%, 50cm=40%
+                state.speedReductionFactor = 0.1f + (minDist - ZONE_5_THRESHOLD) * 0.3f / 
+                                             (ZONE_4_THRESHOLD - ZONE_5_THRESHOLD);
+                state.speedReductionFactor = constrain(state.speedReductionFactor, 0.1f, 0.4f);
+                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS) {
+                    Alerts::play(Audio::AUDIO_EMERGENCIA);
+                    Logger::warnf("ZONE 4: CRITICAL! Distance=%dmm, factor=%.2f", 
+                                 minDist, state.speedReductionFactor);
+                    lastAlertMs[0] = now;
+                }
+                break;
+                
+            case 3:  // ZONE 3: Warning (50-100cm) - Reaction-based (40-70%)
+                if (state.childReactionDetected) {
+                    // Child reacted - soft assist
+                    state.speedReductionFactor = 0.7f;
+                    Logger::debugf("ZONE 3: Child reacted, soft assist (70%%)");
+                } else {
+                    // No reaction - moderate brake
+                    state.speedReductionFactor = 0.4f + (minDist - ZONE_4_THRESHOLD) * 0.3f / 
+                                                 (ZONE_3_THRESHOLD - ZONE_4_THRESHOLD);
+                    state.speedReductionFactor = constrain(state.speedReductionFactor, 0.4f, 0.7f);
+                }
+                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS * 2) {
+                    Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+                    lastAlertMs[0] = now;
+                }
+                break;
+                
+            case 2:  // ZONE 2: Caution (100-150cm) - Gentle brake if no reaction (85-100%)
+                if (!state.childReactionDetected && !state.accHasPriority) {
+                    // No reaction and ACC not active - gentle brake
+                    state.speedReductionFactor = 0.85f + (minDist - ZONE_3_THRESHOLD) * 0.15f / 
+                                                 (ZONE_2_THRESHOLD - ZONE_3_THRESHOLD);
+                    state.speedReductionFactor = constrain(state.speedReductionFactor, 0.85f, 1.0f);
+                } else {
+                    // Child reacted or ACC active - full speed
+                    state.speedReductionFactor = 1.0f;
+                }
+                break;
+                
+            case 1:  // ZONE 1: Alert (150-400cm) - Audio only (100%)
+                state.speedReductionFactor = 1.0f;
+                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS * 3) {
+                    Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+                    lastAlertMs[0] = now;
+                }
+                break;
+                
+            default:  // No obstacle
+                state.speedReductionFactor = 1.0f;
+                break;
         }
     }
     
-    // 2. PARKING ASSIST
-    if (config.parkingAssistEnabled && !state.collisionImminent) {
+    // 2. PARKING ASSIST (legacy support)
+    if (config.parkingAssistEnabled && zone == 0) {
         if (frontDist < config.parkingBrakeDistanceMm) {
             state.parkingAssistActive = true;
-            state.speedReductionFactor = std::min(state.speedReductionFactor, 
-                                                   (float)frontDist / config.parkingBrakeDistanceMm);
+            float parkingFactor = (float)frontDist / config.parkingBrakeDistanceMm;
+            state.speedReductionFactor = std::min(state.speedReductionFactor, parkingFactor);
             
             if (now - lastAlertMs[0] > ALERT_INTERVAL_MS) {
-                Alerts::play(Audio::AUDIO_ERROR_GENERAL);  // Proximity beep
+                Alerts::play(Audio::AUDIO_ERROR_GENERAL);
                 lastAlertMs[0] = now;
             }
         }
         
         if (rearDist < config.parkingBrakeDistanceMm) {
             state.parkingAssistActive = true;
-            state.speedReductionFactor = std::min(state.speedReductionFactor, 
-                                                   (float)rearDist / config.parkingBrakeDistanceMm);
+            float parkingFactor = (float)rearDist / config.parkingBrakeDistanceMm;
+            state.speedReductionFactor = std::min(state.speedReductionFactor, parkingFactor);
             
             if (now - lastAlertMs[1] > ALERT_INTERVAL_MS) {
-                Alerts::play(Audio::AUDIO_ERROR_GENERAL);  // Proximity beep
+                Alerts::play(Audio::AUDIO_ERROR_GENERAL);
                 lastAlertMs[1] = now;
             }
         }
     }
-    
-    // 3. ADAPTIVE CRUISE CONTROL (disabled for now - requires speed sensor integration)
-    state.adaptiveCruiseActive = false;
 }
 
 void getState(SafetyState& st) {
