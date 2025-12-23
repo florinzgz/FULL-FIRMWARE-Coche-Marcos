@@ -18,11 +18,32 @@ namespace ObstacleConfig {
     //            Mantener solo detección frontal y trasera.
     //            Frente mueve su XSHUT a GPIO 46 (liberado tras eliminar sensor lateral derecho) y
     //            el trasero mantiene GPIO 19 (estable). GPIO 18 queda libre para LEDs.
-    // ⚠️ HARDWARE RECOMMENDATION: GPIO 46 is a strapping pin (Boot mode / ROM log)
-    // Add external 10kΩ pull-up resistor to 3.3V to guarantee HIGH state during boot
-    // and prevent unintended download mode. The firmware sets it as OUTPUT after boot.
-    constexpr uint8_t PIN_XSHUT_FRONT = 46;         // Front sensor (strapping, mantener HIGH en boot)
-    constexpr uint8_t PIN_XSHUT_REAR = 19;          // Rear sensor (GPIO libre)
+    //
+    // 🔒 ⚠️ ADVERTENCIA GPIO 46 (STRAPPING PIN):
+    // PIN_XSHUT_FRONT (GPIO 46) es un strapping pin del ESP32-S3.
+    // Si el sensor VL53L5CX tira la línea a LOW durante boot, puede causar boot failure.
+    //
+    // PROTECCIÓN SOFTWARE (ya implementada en obstacle_detection.cpp):
+    // - GPIO 46 se configura como OUTPUT HIGH antes de cualquier otra operación
+    // - Esto previene que el pin flote LOW durante boot
+    //
+    // RECOMENDACIÓN HARDWARE (para robustez máxima):
+    // - Añadir resistencia pull-up externa 10kΩ entre GPIO 46 y 3.3V
+    // - Esto garantiza HIGH incluso con sensor desconectado o durante power-up
+    //
+    // ALTERNATIVA (si hay problemas persistentes de boot):
+    // - Cambiar PIN_XSHUT_FRONT de GPIO 46 → GPIO 45
+    // - GPIO 45 también es strapping pero menos crítico (solo VDD_SPI voltage select)
+    // - Modificar constante abajo y recompilar firmware
+    //
+    // ARQUITECTURA I2C (aclaración importante):
+    // - TCA9548A @ 0x70: Multiplexor para 6x INA226 (sensores de corriente)
+    // - PCA9548A @ 0x71: Multiplexor para 2x VL53L5CX (sensores de obstáculos)
+    // - Son dos chips FÍSICAMENTE DIFERENTES en el hardware
+    // - NO hay conflicto de direcciones - cada uno tiene su función
+    //
+    constexpr uint8_t PIN_XSHUT_FRONT = 46;         // Front sensor ⚠️ STRAPPING PIN (ver advertencia arriba)
+    constexpr uint8_t PIN_XSHUT_REAR = 19;          // Rear sensor (GPIO seguro)
     constexpr uint8_t XSHUT_PINS[NUM_SENSORS] = { PIN_XSHUT_FRONT, PIN_XSHUT_REAR };
     
     // PCA9548A multiplexer channels

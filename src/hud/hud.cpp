@@ -947,10 +947,40 @@ void HUD::update() {
         if (Sensors::isTemperatureSensorOk(4)) {
             ambientTemp = Sensors::getTemperature(4);
         } else {
-            // Sensor 4 (ambiente) no está OK - usar default
+            // 🔒 CORRECCIÓN MEDIA: Fallback inteligente para temperatura ambiente
+            // En lugar de usar valor fijo 22°C, estimar desde motores
+            // Cálculo: temperatura_ambiente ≈ promedio_motores - 15°C
+            // Los motores suelen estar 15-20°C más calientes que el ambiente
+            
+            float motorTempSum = 0.0f;
+            int motorCount = 0;
+            
+            // Promediar temperatura de todos los motores funcionando
+            for (int i = 0; i < 4; i++) {  // Motores 0-3
+                if (Sensors::isTemperatureSensorOk(i)) {
+                    motorTempSum += Sensors::getTemperature(i);
+                    motorCount++;
+                }
+            }
+            
+            if (motorCount > 0) {
+                // Estimar temperatura ambiente desde motores
+                float avgMotorTemp = motorTempSum / motorCount;
+                ambientTemp = avgMotorTemp - 15.0f;  // Offset típico motor-ambiente
+                
+                // Clamp a rango razonable de temperatura ambiente
+                ambientTemp = constrain(ambientTemp, -10.0f, 50.0f);
+            }
+            // Si motorCount == 0, mantener default 22°C
+            
+            // Logging throttled a 30 segundos para no saturar serial
             static uint32_t lastAmbientWarning = 0;
-            if (millis() - lastAmbientWarning > 10000) {  // Log cada 10 segundos
-                Logger::warn("Sensor temperatura ambiente (DS18B20 #5) no disponible");
+            if (millis() - lastAmbientWarning > 30000) {  // Log cada 30 segundos
+                if (motorCount > 0) {
+                    Logger::warnf("Sensor temperatura ambiente (DS18B20 #5) no disponible - estimado %.1f°C desde motores", ambientTemp);
+                } else {
+                    Logger::warn("Sensor temperatura ambiente (DS18B20 #5) no disponible - usando default 22°C");
+                }
                 lastAmbientWarning = millis();
             }
         }
