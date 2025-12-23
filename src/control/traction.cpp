@@ -33,6 +33,7 @@ static MCP23017Manager* mcpManager = nullptr;
 
 static Traction::State s;
 static bool initialized = false;
+static uint32_t lastInterventionLogMs = 0;  // v2.12.0: Throttle intervention logging
 
 namespace {
 // Implementación independiente de std::clamp para máxima compatibilidad
@@ -508,10 +509,12 @@ void Traction::update() {
   // Gear factor is implicit in the base demand (from pedal/shifter)
   float combinedFactor = obstacleFactor * accFactor;
   
-  // Conditional logging of interventions
-  if (combinedFactor < 0.95f) {
+  // Conditional logging of interventions (throttled to once per second)
+  uint32_t now = millis();
+  if (combinedFactor < 0.95f && (now - lastInterventionLogMs > 1000)) {
     Logger::debugf("Traction intervention: obstacle=%.2f, ACC=%.2f, combined=%.2f",
                    obstacleFactor, accFactor, combinedFactor);
+    lastInterventionLogMs = now;
   }
 
   // Aplicar reparto por rueda con factores combinados

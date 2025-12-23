@@ -90,15 +90,16 @@ void update() {
     // Target detected - reset timeout
     targetLostMs = 0;
     status.vehicleDetected = true;
-    status.state = ACC_ACTIVE;
     
-    // v2.12.0: Emergency brake activation <30cm
+    // v2.12.0: Emergency brake activation <30cm (check FIRST before PID)
     if (frontDist < EMERGENCY_BRAKE_DISTANCE_MM) {
         status.state = ACC_BRAKING;
         status.speedAdjustment = 0.0f;
         Logger::warnf("ACC: Emergency brake! Distance=%dmm", frontDist);
         return;
     }
+    
+    status.state = ACC_ACTIVE;
     
     // PID controller for person-following mode
     float error = (float)(frontDist - config.targetDistanceMm);
@@ -118,16 +119,9 @@ void update() {
     // Convert to speed adjustment (0.0 = stop, 1.0 = full speed)
     float adjustment = 1.0f + (pidOutput / 1000.0f);
     
-    // Clamp adjustment
-    if (frontDist < config.minDistanceMm) {
-        // Emergency braking zone
-        status.state = ACC_BRAKING;
-        adjustment = 0.0f;
-    } else {
-        // Normal regulation
-        float minAdjust = 1.0f - (config.maxSpeedReduction / 100.0f);
-        adjustment = constrain(adjustment, minAdjust, 1.0f);
-    }
+    // Normal regulation - clamp adjustment
+    float minAdjust = 1.0f - (config.maxSpeedReduction / 100.0f);
+    adjustment = constrain(adjustment, minAdjust, 1.0f);
     
     // v2.12.0: Respect child pedal input as safety limit
     // Never exceed what the child is demanding
