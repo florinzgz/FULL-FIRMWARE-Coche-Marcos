@@ -142,7 +142,11 @@ void update() {
             // Child reduced pedal
             state.lastPedalReductionMs = now;
             state.childReactionDetected = true;
+        } else if (pedalReduction <= 0.0f) {
+            // Pedal increased or stayed constant - clear reaction immediately
+            state.childReactionDetected = false;
         } else if (now - state.lastPedalReductionMs > CHILD_REACTION_WINDOW_MS) {
+            // Small reduction but outside reaction window - clear reaction
             state.childReactionDetected = false;
         }
         state.lastPedalValue = pedalState.percent;
@@ -154,7 +158,7 @@ void update() {
     auto accStatus = AdaptiveCruise::getStatus();
     state.adaptiveCruiseActive = (accStatus.state == AdaptiveCruise::ACC_ACTIVE || 
                                    accStatus.state == AdaptiveCruise::ACC_BRAKING);
-    state.accHasPriority = state.adaptiveCruiseActive && (zone >= 2 && zone <= 3);
+    state.accHasPriority = state.adaptiveCruiseActive && (zone == 2 || zone == 3);
     
     // v2.12.0: 5-Zone Detection System
     if (config.collisionAvoidanceEnabled) {
@@ -195,27 +199,27 @@ void update() {
                                                  (ZONE_3_THRESHOLD - ZONE_4_THRESHOLD);
                     state.speedReductionFactor = constrain(state.speedReductionFactor, 0.4f, 0.7f);
                 }
-                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS * 2) {
+                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS) {
                     Alerts::play(Audio::AUDIO_ERROR_GENERAL);
                     lastAlertMs[0] = now;
                 }
                 break;
                 
             case 2:  // ZONE 2: Caution (100-150cm) - Gentle brake if no reaction (85-100%)
-                if (!state.childReactionDetected && !state.accHasPriority) {
-                    // No reaction and ACC not active - gentle brake
+                if (!state.childReactionDetected) {
+                    // No reaction - gentle brake (regardless of ACC priority)
                     state.speedReductionFactor = 0.85f + (minDist - ZONE_3_THRESHOLD) * 0.15f / 
                                                  (ZONE_2_THRESHOLD - ZONE_3_THRESHOLD);
                     state.speedReductionFactor = constrain(state.speedReductionFactor, 0.85f, 1.0f);
                 } else {
-                    // Child reacted or ACC active - full speed
+                    // Child reacted - full speed (ACC may manage additional control)
                     state.speedReductionFactor = 1.0f;
                 }
                 break;
                 
             case 1:  // ZONE 1: Alert (150-400cm) - Audio only (100%)
                 state.speedReductionFactor = 1.0f;
-                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS * 3) {
+                if (now - lastAlertMs[0] > ALERT_INTERVAL_MS * 2) {
                     Alerts::play(Audio::AUDIO_ERROR_GENERAL);
                     lastAlertMs[0] = now;
                 }

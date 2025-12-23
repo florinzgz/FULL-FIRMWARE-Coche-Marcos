@@ -472,10 +472,9 @@ void Traction::update() {
                    steer.angleDeg, factorFL, factorFR);
   }
 
-  // v2.12.0: Quadruple factor control (base × gear × obstacle × ACC)
+  // v2.12.0: Combined ACC and obstacle safety control
   float obstacleFactor = 1.0f;
   float accFactor = 1.0f;
-  bool emergencyStop = false;
   
   // Get obstacle safety state
   ObstacleSafety::SafetyState safetyState;
@@ -483,8 +482,6 @@ void Traction::update() {
   
   // Emergency stop <20cm with hardware cutoff
   if (safetyState.closestObstacleDistanceMm < 200) {
-    emergencyStop = true;
-    obstacleFactor = 0.0f;
     // Hardware cutoff: set all PWM to 0
     if (pcaFrontOK) {
       for (int ch = 0; ch < 4; ch++) {
@@ -496,17 +493,23 @@ void Traction::update() {
         pcaRear.setPWM(ch, 0, 0);
       }
     }
-    Logger::warn("Traction: EMERGENCY STOP - obstacle <20cm!");
-  } else {
-    // Use obstacle safety reduction factor
-    obstacleFactor = safetyState.speedReductionFactor;
+    // Throttle emergency stop logging to avoid flooding (max once per second)
+    uint32_t now = millis();
+    if (now - lastInterventionLogMs >= 1000U) {
+      lastInterventionLogMs = now;
+      Logger::warn("Traction: EMERGENCY STOP - obstacle <20cm!");
+    }
+    // Do not continue with normal PWM application logic after an emergency stop
+    return;
   }
   
-  // Get ACC factor
+  // Use obstacle safety reduction factor when not in emergency stop
+  obstacleFactor = safetyState.speedReductionFactor;
+  
+  // Get ACC factor (neutralize if obstacle emergency is active)
   accFactor = AdaptiveCruise::getSpeedAdjustment();
   
-  // Calculate combined factor
-  // Gear factor is implicit in the base demand (from pedal/shifter)
+  // Calculate combined reduction factor from obstacle safety and ACC
   float combinedFactor = obstacleFactor * accFactor;
   
   // Conditional logging of interventions (throttled to once per second)
