@@ -102,12 +102,12 @@ static bool initSensor(uint8_t idx) {
     digitalWrite(OBSTACLE_XSHUT_PINS[idx], HIGH);
     
     // Wait for sensor to stabilize
-    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog durante delay largo (50ms)
+    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog antes del delay
     // Con 2 sensores VL53L5CX = 100ms total de delay, evita timeout de watchdog
+    Watchdog::feed();  // Feed una vez antes del delay
     uint32_t startMs = millis();
     while (millis() - startMs < ::ObstacleConfig::INIT_DELAY_MS) {
-        Watchdog::feed();  // Feed cada iteración para garantizar <50ms entre feeds
-        yield();
+        yield();  // Yield para no bloquear completamente
     }
     
     // Select multiplexer channel using I2C recovery

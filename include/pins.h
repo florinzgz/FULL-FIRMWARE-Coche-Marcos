@@ -31,7 +31,7 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 // boot failure o entrar en modo de diagnóstico ROM.
 //
 // PROTECCIÓN IMPLEMENTADA:
-// - Software: Código mantiene GPIO 46 en HIGH durante boot (obstacle_detection.cpp:159-168)
+// - Software: Código mantiene GPIO 46 en HIGH durante boot (obstacle_detection.cpp:170-179)
 // - Inicialización: Pin se configura como OUTPUT HIGH antes de cualquier otra operación
 //
 // RECOMENDACIÓN HARDWARE (para máxima robustez):
