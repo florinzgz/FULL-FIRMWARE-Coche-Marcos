@@ -17,6 +17,17 @@
 #include "system.h"
 #include "storage.h"
 
+// ============================================================================
+// Critical error recovery configuration - v2.11.5
+// ============================================================================
+// Auto-recovery permite que el sistema intente recuperarse de errores críticos
+// en lugar de entrar en un halt permanente sin posibilidad de recuperación.
+namespace CriticalErrorConfig {
+    constexpr uint8_t MAX_RETRIES = 3;              // Máximo de reintentos antes de watchdog reset
+    constexpr uint32_t RETRY_DELAY_MS = 5000;       // 5 segundos entre reintentos
+    constexpr uint32_t WDT_FINAL_TIMEOUT_S = 30;    // Timeout final del watchdog
+}
+
 // Forward declarations
 void initializeSystem();
 void handleCriticalError(const char* errorMsg);
@@ -149,21 +160,60 @@ void initializeSystem() {
 void handleCriticalError(const char* errorMsg) {
     Watchdog::feed();
     
-    // Log the error
+    // Contador estático de reintentos (persiste entre llamadas)
+    static uint8_t retryCount = 0;
+    
+    // Log del error
     Serial.print("[CRITICAL ERROR] ");
     Serial.println(errorMsg);
     Logger::error(errorMsg);
     
-    // Enter safe state - continuous watchdog feeding to prevent reset
-    // This allows debugging while keeping the system in a known state
-    Serial.println("[CRITICAL ERROR] Entering safe halt state");
+    retryCount++;
     
-    uint32_t lastFeed = millis();
-    while (true) {
-        if (millis() - lastFeed >= 100) {
-            lastFeed = millis();
-            Watchdog::feed();
+    // Si excedemos reintentos, permitir watchdog reset
+    if (retryCount >= CriticalErrorConfig::MAX_RETRIES) {
+        Logger::errorf("Critical error: Max retries reached (%d/%d)", retryCount, CriticalErrorConfig::MAX_RETRIES);
+        Logger::error("Allowing watchdog timeout for system reset");
+        
+        // Mostrar en display si está disponible
+        #ifndef STANDALONE_DISPLAY
+        HUDManager::showError();
+        #endif
+        
+        Serial.println("[CRITICAL ERROR] Max retries - stopping watchdog feeds");
+        Serial.flush();
+        
+        // Detener watchdog feeds - sistema se reseteará en 30 segundos
+        while (true) {
+            delay(1000);
+            Serial.println("[CRITICAL ERROR] Waiting for watchdog reset...");
         }
-        yield(); // Allow background tasks
     }
+    
+    // Reintento: reiniciar después de delay
+    Logger::infof("Critical error retry %d/%d - restarting in %lums", 
+                  retryCount, CriticalErrorConfig::MAX_RETRIES, CriticalErrorConfig::RETRY_DELAY_MS);
+    
+    // Mostrar error en display
+    #ifndef STANDALONE_DISPLAY
+    HUDManager::showError();
+    #endif
+    
+    Serial.printf("[CRITICAL ERROR] Retry %d/%d in %lums\n", 
+                  retryCount, CriticalErrorConfig::MAX_RETRIES, CriticalErrorConfig::RETRY_DELAY_MS);
+    Serial.flush();
+    
+    // Esperar antes de reiniciar
+    uint32_t delayStart = millis();
+    while (millis() - delayStart < CriticalErrorConfig::RETRY_DELAY_MS) {
+        Watchdog::feed();  // Mantener watchdog vivo durante delay
+        delay(100);
+    }
+    
+    // Reiniciar sistema
+    Logger::info("Attempting system restart...");
+    Serial.println("[CRITICAL ERROR] Restarting...");
+    Serial.flush();
+    
+    ESP.restart();
 }
