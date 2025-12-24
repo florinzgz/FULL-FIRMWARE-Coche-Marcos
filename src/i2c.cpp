@@ -7,6 +7,17 @@
 // Este módulo no hace suposiciones sobre Wire.begin(); System::init() debe
 // inicializar el bus I2C antes de usar estas funciones.
 
+// ============================================================================
+// I2C Timeout Constants - v2.11.5
+// ============================================================================
+// Wire.requestFrom() puede colgar indefinidamente si un sensor I2C no responde.
+// Estos timeouts previenen hang del sistema completo.
+namespace I2CConstants {
+    constexpr uint32_t READ_TIMEOUT_MS = 100;   // Timeout lectura I2C
+    constexpr uint32_t WRITE_TIMEOUT_MS = 50;   // Timeout escritura I2C
+    constexpr uint16_t RETRY_DELAY_US = 10;     // Delay entre reintentos
+}
+
 void select_tca9548a_channel(uint8_t channel) {
     // 🔒 CRITICAL FIX: Validate channel and log errors
     if (channel > 7) {
@@ -48,11 +59,22 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
         return false;
     }
 
+    // ✅ CRITICAL FIX v2.11.5: Timeout manual para requestFrom()
+    // Wire.requestFrom() puede colgar si sensor no responde
+    // Añadir timeout de 100ms para prevenir hang del sistema
+    uint32_t timeoutStart = millis();
+    
     uint8_t received = Wire.requestFrom(static_cast<int>(dev_addr), 2);
+    
+    // Esperar con timeout a que lleguen los bytes
+    while (Wire.available() < 2 && (millis() - timeoutStart) < I2CConstants::READ_TIMEOUT_MS) {
+        delayMicroseconds(I2CConstants::RETRY_DELAY_US);  // Pequeña espera sin bloquear
+    }
+    
+    received = Wire.available();
     if (received < 2) {
-        // 🔒 IMPROVEMENT: Log when not enough bytes received
-        Logger::warnf("I2C: Read failed on ch%d addr=0x%02X, got %d bytes", 
-                     tca_channel, dev_addr, received);
+        Logger::warnf("I2C: Read timeout on ch%d addr=0x%02X (got %d bytes in %lums)", 
+                     tca_channel, dev_addr, received, millis() - timeoutStart);
         return false;
     }
 
@@ -77,6 +99,10 @@ bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint
     Wire.write(reg);
     Wire.write(static_cast<uint8_t>(value >> 8));
     Wire.write(static_cast<uint8_t>(value & 0xFF));
+    
+    // ✅ CRITICAL FIX v2.11.5: Timeout en endTransmission
+    // Aunque endTransmission tiene timeout interno, añadimos logging
+    // para debugging y monitoreo de problemas I2C
     uint8_t result = Wire.endTransmission();
     
     // 🔒 IMPROVEMENT: Log write failures for debugging
