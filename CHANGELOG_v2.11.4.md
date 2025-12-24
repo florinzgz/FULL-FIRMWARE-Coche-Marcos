@@ -31,7 +31,7 @@ The following libraries were already at the correct versions without `^`:
 
 ### 🎨 FastLED 3.10.3 (Critical Update)
 
-**Previous:** `fastled/FastLED @ ^3.7.0` (allowed 3.7.x-3.9.x)  
+**Previous:** `fastled/FastLED @ ^3.7.0` (allowed 3.7.0 up to 3.x.x, but not 4.0.0)  
 **New:** `fastled/FastLED @ 3.10.3`
 
 **Key Improvements for ESP32-S3:**
@@ -175,7 +175,7 @@ Your existing firmware code remains unchanged. Only dependency versions have bee
 
 | Aspect | v2.11.3 | v2.11.4 |
 |--------|---------|---------|
-| FastLED | ^3.7.0 (3.7.x-3.9.x) | 3.10.3 (fixed) |
+| FastLED | ^3.7.0 (3.7.0-3.x.x) | 3.10.3 (fixed) |
 | Adafruit BusIO | 1.17.4 | 1.16.1 (stable) |
 | MCP23017 | ^2.3.2 | 2.3.2 (fixed) |
 | Version Lock | Partial | Complete |
