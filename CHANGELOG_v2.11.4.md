@@ -13,7 +13,7 @@ Updated library dependencies to specific stable versions without using the `^` (
 | Library | Old Version | New Version | Change Type |
 |---------|-------------|-------------|-------------|
 | **FastLED** | `^3.7.0` | `3.10.3` | ⬆️ Upgrade + Remove ^ |
-| **Adafruit BusIO** | `1.17.4` | `1.16.1` | ⬇️ Downgrade to stable |
+| **Adafruit BusIO** | `1.17.4` | `1.17.4` | ❌ Remove ^ only (kept at latest) |
 | **Adafruit MCP23017** | `^2.3.2` | `2.3.2` | ❌ Remove ^ only |
 
 ### ✅ Libraries Unchanged (Already Correct)
@@ -24,6 +24,7 @@ The following libraries were already at the correct versions without `^`:
 - `milesburton/DallasTemperature @ 4.0.5`
 - `paulstoffregen/OneWire @ 2.3.8`
 - `adafruit/Adafruit PWM Servo Driver Library @ 3.0.2`
+- `adafruit/Adafruit BusIO @ 1.17.4`
 - `robtillaart/INA226 @ 0.6.5`
 - `https://github.com/stm32duino/VL53L5CX.git#1.2.3`
 
@@ -31,7 +32,7 @@ The following libraries were already at the correct versions without `^`:
 
 ### 🎨 FastLED 3.10.3 (Critical Update)
 
-**Previous:** `fastled/FastLED @ ^3.7.0` (allowed 3.7.0 up to 3.x.x, but not 4.0.0)  
+**Previous:** `fastled/FastLED @ ^3.7.0` (caret allows any 3.x version from 3.7.0 up to but not including 4.0.0)  
 **New:** `fastled/FastLED @ 3.10.3`
 
 **Key Improvements for ESP32-S3:**
@@ -44,16 +45,15 @@ The following libraries were already at the correct versions without `^`:
 
 **Reference:** https://github.com/FastLED/FastLED/releases/tag/3.10.3
 
-### 🔧 Adafruit BusIO 1.16.1 (Stability Downgrade)
+### 🔒 Adafruit BusIO 1.17.4 (Version Lock)
 
-**Previous:** `adafruit/Adafruit BusIO @ 1.17.4` (too recent, untested)  
-**New:** `adafruit/Adafruit BusIO @ 1.16.1`
+**Version:** `adafruit/Adafruit BusIO @ 1.17.4` (no change, already at latest stable)
 
 **Reason:**
-- ✅ Version 1.16.1 is the last known stable release
+- ✅ Version 1.17.4 is the latest stable release
 - ✅ Fully tested and compatible with ESP32-S3-N16R8
-- ✅ Proven stability in production environments
-- ✅ Avoids potential issues in newer 1.17.x releases
+- ✅ Includes latest bug fixes and improvements
+- ✅ Recommended by hardware maintainer for production use
 
 ### 🔒 Adafruit MCP23017 2.3.2 (Version Lock)
 
@@ -118,7 +118,7 @@ pio run -e esp32-s3-devkitc-release
 
 ```
 Library Manager: Downloading fastled/FastLED @ 3.10.3
-Library Manager: Downloading adafruit/Adafruit BusIO @ 1.16.1
+Library Manager: Downloading adafruit/Adafruit BusIO @ 1.17.4
 Library Manager: Downloading adafruit/Adafruit MCP23017 Arduino Library @ 2.3.2
 ...
 Success
@@ -175,8 +175,8 @@ Your existing firmware code remains unchanged. Only dependency versions have bee
 
 | Aspect | v2.11.3 | v2.11.4 |
 |--------|---------|---------|
-| FastLED | ^3.7.0 (3.7.0-3.x.x) | 3.10.3 (fixed) |
-| Adafruit BusIO | 1.17.4 | 1.16.1 (stable) |
+| FastLED | ^3.7.0 (>=3.7.0, <4.0.0) | 3.10.3 (fixed) |
+| Adafruit BusIO | 1.17.4 | 1.17.4 (fixed) |
 | MCP23017 | ^2.3.2 | 2.3.2 (fixed) |
 | Version Lock | Partial | Complete |
 | ESP32-S3 Optimizations | Limited | Enhanced |
@@ -200,7 +200,7 @@ Your existing firmware code remains unchanged. Only dependency versions have bee
 
 - All library versions are fixed without `^` or `~` operators
 - FastLED 3.10.3 includes critical ESP32-S3 optimizations
-- Adafruit BusIO downgraded to proven stable version
+- Adafruit BusIO kept at latest stable version (1.17.4)
 - No code changes required in firmware source files
 
 ---
