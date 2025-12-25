@@ -185,7 +185,7 @@ void handleCriticalError(const char* errorMsg) {
         
         // Mostrar en display si está disponible
         #ifndef STANDALONE_DISPLAY
-        HUDManager::showError(errorMsg);
+        HUD::showError();
         #endif
         
         Serial.println("[CRITICAL ERROR] Max retries - stopping watchdog feeds");
@@ -204,7 +204,7 @@ void handleCriticalError(const char* errorMsg) {
     
     // Mostrar error en display
     #ifndef STANDALONE_DISPLAY
-    HUDManager::showError(errorMsg);
+    HUD::showError();
     #endif
     
     Serial.printf("[CRITICAL ERROR] Retry %d/%d in %lums\n", 
