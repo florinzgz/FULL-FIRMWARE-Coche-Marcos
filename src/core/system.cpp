@@ -18,44 +18,113 @@
 #include "led_controller.h"      // 🔒 v2.11.0: Control LEDs
 #include "shifter.h"             // 🔒 v2.11.1: Validación de palanca de cambios
 #include "operation_modes.h"     // Sistema de modos de operación con tolerancia a fallos
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 extern Storage::Config cfg;
 
+// ========================================
+// Configuración de protección de inicialización
+// ========================================
+namespace SystemInitConfig {
+    constexpr uint32_t MUTEX_TIMEOUT_MS = 5000;        // Timeout para adquirir mutex
+    constexpr uint32_t MUTEX_CHECK_TIMEOUT_MS = 100;   // Timeout para check de estado
+    constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;      // 50KB heap mínimo
+    constexpr uint32_t MIN_HEAP_AFTER_INIT = 25000;    // 25KB después de init
+}
+
 static System::State currentState = System::OFF;
 static bool systemInitialized = false;  // 🔒 v2.11.2: Guard contra re-inicialización
+
+// 🔒 v2.11.6: Mutex para proteger inicialización thread-safe
+static SemaphoreHandle_t initMutex = nullptr;
+static bool initMutexCreated = false;
+
 static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
     5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal en reposo antes de dar potencia
 
-// 🔒 v2.11.2: Umbral mínimo de heap para inicialización segura
-static constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;  // 50KB mínimo
-static constexpr uint32_t MIN_HEAP_AFTER_INIT = MIN_HEAP_FOR_INIT / 2;  // 25KB mínimo después de init
-
 void System::init() {
-    // 🔒 v2.11.2: VALIDACIÓN 1 - Prevenir doble inicialización
+    // ========================================
+    // PASO 1: Crear mutex en primera llamada
+    // ========================================
+    // Nota: Creación de mutex es thread-safe en ESP32 (usa atomic operations)
+    if (!initMutexCreated) {
+        initMutex = xSemaphoreCreateMutex();
+        if (initMutex == nullptr) {
+            // CRÍTICO: No se pudo crear mutex
+            Logger::error("System init: CRITICAL - Failed to create init mutex");
+            Serial.println("[CRITICAL] System::init() - mutex creation failed");
+            // Continuar sin protección (menos seguro pero permite boot)
+        } else {
+            Logger::info("System init: Init mutex created");
+        }
+        initMutexCreated = true;
+    }
+    
+    // ========================================
+    // PASO 2: Tomar mutex ANTES de cualquier check
+    // ========================================
+    const TickType_t MUTEX_TIMEOUT = pdMS_TO_TICKS(SystemInitConfig::MUTEX_TIMEOUT_MS);  // 5 segundos timeout
+    
+    if (initMutex != nullptr) {
+        if (xSemaphoreTake(initMutex, MUTEX_TIMEOUT) != pdTRUE) {
+            Logger::error("System init: Failed to acquire init mutex (timeout)");
+            Serial.println("[ERROR] System::init() - mutex timeout");
+            return;  // Abortar si no se puede tomar mutex
+        }
+        Logger::debug("System init: Mutex acquired");
+    } else {
+        Logger::warn("System init: Running without mutex protection");
+    }
+    
+    // ========================================
+    // PASO 3: Check de inicialización (ahora thread-safe)
+    // ========================================
     if (systemInitialized) {
         Logger::warn("System init: Sistema ya inicializado, ignorando llamada duplicada");
+        if (initMutex != nullptr) {
+            xSemaphoreGive(initMutex);
+        }
         return;
     }
     
+    // ========================================
+    // PASO 4: Marcar como inicializado INMEDIATAMENTE
+    // ========================================
+    // Esto previene re-entrada incluso si init() falla más adelante
+    systemInitialized = true;
+    Logger::info("System init: Marked as initialized (preventing re-entry)");
+    
+    // ========================================
+    // PASO 5: Inicialización normal
+    // ========================================
     // Inicializar sistema de modos de operación
     SystemMode::init();
     
     Logger::info("System init: entrando en PRECHECK");
     currentState = PRECHECK;
     
-    // 🔒 v2.11.2: VALIDACIÓN 2 - Verificar heap disponible antes de inicializar módulos
+    // VALIDACIÓN: Verificar heap disponible
     uint32_t freeHeap = ESP.getFreeHeap();
     Logger::infof("System init: Free heap: %u bytes", freeHeap);
     
-    if (freeHeap < MIN_HEAP_FOR_INIT) {
+    if (freeHeap < SystemInitConfig::MIN_HEAP_FOR_INIT) {
         Logger::errorf("System init: CRÍTICO - Heap insuficiente (%u bytes < %u bytes requeridos)", 
-                      freeHeap, MIN_HEAP_FOR_INIT);
+                      freeHeap, SystemInitConfig::MIN_HEAP_FOR_INIT);
         Logger::error("System init: Abortando inicialización - memoria insuficiente");
         currentState = ERROR;
-        return;  // 🔒 Abortar inicialización si no hay suficiente memoria
+        
+        // Resetear flag de inicialización para permitir retry
+        systemInitialized = false;
+        
+        // Liberar mutex antes de salir
+        if (initMutex != nullptr) {
+            xSemaphoreGive(initMutex);
+        }
+        return;
     }
     
-    // 🔒 v2.10.8: Enhanced diagnostic information
+    // Enhanced diagnostic information
     Logger::infof("System init: Estado inicial OK");
     
     #ifdef ARDUINO_ESP32S3_DEV
@@ -138,13 +207,19 @@ void System::init() {
     uint32_t heapUsed = freeHeap - finalHeap;
     Logger::infof("System init: Heap usado en init: %u bytes, restante: %u bytes", heapUsed, finalHeap);
     
-    if (finalHeap < MIN_HEAP_AFTER_INIT) {
+    if (finalHeap < SystemInitConfig::MIN_HEAP_AFTER_INIT) {
         Logger::warnf("System init: ADVERTENCIA - Heap bajo después de init (%u bytes)", finalHeap);
     }
     
-    // 🔒 v2.11.2: Marcar sistema como inicializado
-    systemInitialized = true;
-    Logger::info("System init: Inicialización completada exitosamente");
+    // ========================================
+    // PASO 6: Liberar mutex al finalizar
+    // ========================================
+    if (initMutex != nullptr) {
+        xSemaphoreGive(initMutex);
+        Logger::debug("System init: Mutex released");
+    }
+    
+    Logger::info("System init: Completed successfully");
 }
 
 System::Health System::selfTest() {
@@ -365,4 +440,16 @@ void System::clearErrors() {
 
 bool System::hasError() {
     return currentState == ERROR || cfg.errorCount > 0;
+}
+
+// Diagnóstico de estado de inicialización (thread-safe)
+bool System::isInitialized() {
+    // Lectura de bool es atómica en ESP32, pero añadimos mutex por consistencia
+    if (initMutex != nullptr && xSemaphoreTake(initMutex, pdMS_TO_TICKS(SystemInitConfig::MUTEX_CHECK_TIMEOUT_MS)) == pdTRUE) {
+        bool state = systemInitialized;
+        xSemaphoreGive(initMutex);
+        return state;
+    }
+    // Fallback sin mutex
+    return systemInitialized;
 }

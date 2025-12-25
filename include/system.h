@@ -43,4 +43,7 @@ namespace System {
 
     // Verifica si hay errores activos en el sistema
     bool hasError();
+    
+    // 🔒 v2.11.6: Verificar si sistema está inicializado (thread-safe)
+    bool isInitialized();
 }
