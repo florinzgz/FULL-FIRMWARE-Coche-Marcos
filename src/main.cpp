@@ -193,9 +193,14 @@ void handleCriticalError(const char* errorMsg) {
         
         // Detener watchdog feeds - sistema se reseteará en 30 segundos
         // Non-blocking: use yield() instead of delay() to allow RTOS task switching
+        uint32_t lastPrintTime = millis();
         while (true) {
             yield();  // Non-blocking - permite task switching
-            Serial.println("[CRITICAL ERROR] Waiting for watchdog reset...");
+            // Rate limit serial output to once per second
+            if (millis() - lastPrintTime >= 1000) {
+                Serial.println("[CRITICAL ERROR] Waiting for watchdog reset...");
+                lastPrintTime = millis();
+            }
         }
     }
     
