@@ -7,6 +7,20 @@
 
 extern Storage::Config cfg;
 
+// ========================================
+// Constantes de validación de pedal
+// ========================================
+namespace PedalValidation {
+    constexpr int OUT_OF_RANGE_MARGIN_PERCENT = 10;    // ±10% del rango calibrado
+    constexpr uint8_t MAX_STATIC_READS = 50;           // Lecturas estáticas antes de error
+    constexpr uint8_t MAX_EXTREME_VALUE_READS = 20;    // Lecturas en extremos antes de error
+    constexpr uint16_t ADC_EXTREME_LOW = 10;           // Umbral inferior extremo
+    constexpr uint16_t ADC_EXTREME_HIGH = 4085;        // Umbral superior extremo
+    constexpr float MAX_PERCENT_CHANGE = 20.0f;        // Cambio máximo por update (%)
+    constexpr uint32_t WARN_THROTTLE_MS = 5000;        // Throttle de warnings (5s)
+    constexpr uint32_t STATIC_WARN_THROTTLE_MS = 10000; // Throttle error estático (10s)
+}
+
 static Pedal::State s;
 static int adcMin = 200;
 static int adcMax = 3800;
@@ -50,16 +64,9 @@ void Pedal::init() {
 }
 
 void Pedal::update() {
-    // Note: pedalEnabled was removed from Config, pedal is always active
-    // if(!cfg.pedalEnabled) {
-    //     // Guard: si está desactivado → neutro
-    //     s.raw = 0;
-    //     s.percent = 0.0f;
-    //     s.valid = false;
-    //     return;
-    // }
-
-    // 🔒 CRITICAL FIX: Check initialization FIRST before any processing
+    // ========================================
+    // Guard: Verificar inicialización PRIMERO
+    // ========================================
     if (!initialized) {
         Logger::warn("Pedal::update() llamado sin init");
         s.valid = false;
@@ -69,66 +76,130 @@ void Pedal::update() {
 
     int raw = analogRead(PIN_PEDAL);
     
-    // 🔒 CORRECCIÓN CRÍTICA: analogRead retorna uint16_t (0-4095), no puede ser < 0
-    // Validación correcta: solo verificar límite superior y rango válido
-    if(raw > 4095) {
+    // ========================================
+    // VALIDACIÓN 1: Rango de calibración
+    // ========================================
+    // Si la lectura está muy fuera del rango calibrado, indica problema hardware
+    const int MARGIN = (adcMax - adcMin) / 10;  // 10% margen de tolerancia
+    
+    if (raw < (adcMin - MARGIN) || raw > (adcMax + MARGIN)) {
+        // Posible desconexión o calibración incorrecta
+        static uint32_t lastOutOfRangeWarn = 0;
+        if (millis() - lastOutOfRangeWarn > PedalValidation::WARN_THROTTLE_MS) {  // Throttle: log cada 5s
+            Logger::warnf("Pedal: Lectura fuera de rango calibrado: %d (esperado %d-%d ±%d)", 
+                         raw, adcMin, adcMax, MARGIN);
+            lastOutOfRangeWarn = millis();
+        }
+        
+        // Usar último valor válido como fallback seguro
         s.valid = false;
-        s.percent = lastPercent; // fallback
-        System::logError(100);   // código reservado pedal
-        Logger::errorf("Pedal lectura fuera de rango: %d", raw);
+        s.percent = lastPercent;
         return;
     }
     
-    // 🔒 IMPROVEMENT: Detectar desconexión de hardware (ADC siempre en 0 o siempre en 4095)
-    // Esto puede indicar cable suelto o sensor dañado
-    // THREAD SAFETY NOTE: These static counters are safe because Pedal::update() 
-    // is only called from the main loop (single-threaded context), never from ISRs or multiple tasks
-    static uint8_t zeroCount = 0;
-    static uint8_t maxCount = 0;
+    // ========================================
+    // VALIDACIÓN 2: Detección de lectura estática
+    // ========================================
+    // Si el ADC lee el mismo valor muchas veces consecutivas, 
+    // probablemente el sensor está desconectado o defectuoso
+    static int lastRaw = -1;
+    static uint8_t staticReadCount = 0;
     
-    if (raw == 0) {
-        zeroCount++;
-        maxCount = 0;
-        if (zeroCount == 10) {  // Only warn once at threshold
-            Logger::warn("Pedal: posible desconexión (ADC=0)");
+    if (raw == lastRaw) {
+        staticReadCount++;
+        if (staticReadCount >= PedalValidation::MAX_STATIC_READS) {
+            static uint32_t lastStaticWarn = 0;
+            if (millis() - lastStaticWarn > PedalValidation::STATIC_WARN_THROTTLE_MS) {  // Log cada 10s
+                Logger::errorf("Pedal: Lectura estática detectada (%d) - posible desconexión", raw);
+                lastStaticWarn = millis();
+            }
+            
+            // SAFE: Forzar pedal en reposo (0%) para seguridad
+            s.valid = false;
+            s.percent = 0.0f;
+            s.raw = 0;
+            return;
         }
-        if (zeroCount < 255) zeroCount++;  // Cap to prevent overflow
-    } else if (raw == 4095) {
-        maxCount++;
-        zeroCount = 0;
-        if (maxCount == 10) {  // Only warn once at threshold
-            Logger::warn("Pedal: posible cortocircuito (ADC=4095)");
-        }
-        if (maxCount < 255) maxCount++;  // Cap to prevent overflow
     } else {
-        zeroCount = 0;
-        maxCount = 0;
+        // Lectura cambió, resetear contador
+        staticReadCount = 0;
+    }
+    lastRaw = raw;
+    
+    // ========================================
+    // VALIDACIÓN 3: Detección de valores extremos sostenidos
+    // ========================================
+    // Si ADC está pegado en 0 o 4095, probablemente hay problema eléctrico
+    static uint8_t extremeValueCount = 0;
+    
+    if (raw <= PedalValidation::ADC_EXTREME_LOW || raw >= PedalValidation::ADC_EXTREME_HIGH) {  // Cerca de límites ADC
+        extremeValueCount++;
+        if (extremeValueCount >= PedalValidation::MAX_EXTREME_VALUE_READS) {
+            static uint32_t lastExtremeWarn = 0;
+            if (millis() - lastExtremeWarn > PedalValidation::STATIC_WARN_THROTTLE_MS) {
+                Logger::errorf("Pedal: Valor extremo sostenido (%d) - verificar hardware", raw);
+                lastExtremeWarn = millis();
+            }
+            
+            // SAFE: Pedal en reposo
+            s.valid = false;
+            s.percent = 0.0f;
+            s.raw = 0;
+            return;
+        }
+    } else {
+        extremeValueCount = 0;
     }
     
-    // 🔒 CORRECCIÓN: Aplicar filtro EMA para reducir ruido eléctrico
+    // ========================================
+    // Filtro EMA (Exponential Moving Average)
+    // ========================================
+    // Aplicar solo si pasó validaciones
     if (rawFiltered == 0.0f) {
         rawFiltered = (float)raw;  // Inicializar en primera lectura
-    } else {
-        rawFiltered = rawFiltered + EMA_ALPHA * ((float)raw - rawFiltered);
     }
+    rawFiltered = EMA_ALPHA * (float)raw + (1.0f - EMA_ALPHA) * rawFiltered;
     
     s.raw = (int)rawFiltered;
-
-    // Normalización con valores filtrados
-    int clamped = constrain((int)rawFiltered, adcMin, adcMax);
-    float norm = (float)(clamped - adcMin) / (float)(adcMax - adcMin);
-    norm = constrain(norm, 0.0f, 1.0f);
-
-    // Deadband
-    if(norm < (deadbandPct / 100.0f)) norm = 0.0f;
-
-    // Curva
-    float curved = applyCurve(norm);
-
-    // Clamp final
-    s.percent = constrain(curved * 100.0f, 0.0f, 100.0f);
-    s.valid = true;
+    
+    // ========================================
+    // Mapeo a porcentaje (0-100%)
+    // ========================================
+    int clamped = constrain(s.raw, adcMin, adcMax);
+    float mapped = map(clamped, adcMin, adcMax, 0, 1000) / 10.0f;
+    
+    // Aplicar deadband (zona muerta inicial)
+    if (mapped < deadbandPct) {
+        mapped = 0.0f;
+    }
+    
+    // Aplicar curva de respuesta
+    float normalized = mapped / 100.0f;
+    float curved = applyCurve(normalized);
+    s.percent = curved * 100.0f;
+    
+    // Limitar a rango válido
+    s.percent = constrain(s.percent, 0.0f, 100.0f);
+    
+    // Validación final: detectar cambios bruscos (posible glitch ADC)
+    if (fabs(s.percent - lastPercent) > PedalValidation::MAX_PERCENT_CHANGE) {
+        static uint32_t lastGlitchWarn = 0;
+        if (millis() - lastGlitchWarn > PedalValidation::WARN_THROTTLE_MS) {
+            Logger::warnf("Pedal: Cambio brusco detectado: %.1f%% -> %.1f%%", 
+                         lastPercent, s.percent);
+            lastGlitchWarn = millis();
+        }
+        
+        // Suavizar el cambio
+        if (s.percent > lastPercent) {
+            s.percent = lastPercent + PedalValidation::MAX_PERCENT_CHANGE;
+        } else {
+            s.percent = lastPercent - PedalValidation::MAX_PERCENT_CHANGE;
+        }
+    }
+    
     lastPercent = s.percent;
+    s.valid = true;
 }
 
 void Pedal::setCalibration(int minAdc, int maxAdc, uint8_t curve) {
