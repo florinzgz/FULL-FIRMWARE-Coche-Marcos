@@ -105,7 +105,14 @@ void System::init() {
     }
     
     // ========================================
-    // PASO 4: Marcar como inicializado INMEDIATAMENTE
+// Defer setting the flag until after successful initialization
+// systemInitialized = true; // REMOVE this early assignment
+
+// ... perform all initialization steps ...
+
+// Only set flag after ALL initialization succeeds
+systemInitialized = true;
+Logger::info("System init: Marked as initialized (successful completion)");
     // ========================================
     // Esto previene re-entrada incluso si init() falla más adelante
     systemInitialized = true;
