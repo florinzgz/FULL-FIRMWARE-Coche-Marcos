@@ -154,7 +154,7 @@ void Pedal::update() {
     // ========================================
     // Filtro EMA (Exponential Moving Average)
     // ========================================
-    // Aplicar solo si pasó validaciones
+    // Solo aplicar si pasaron todas las validaciones anteriores
     if (rawFiltered == 0.0f) {
         rawFiltered = (float)raw;  // Inicializar en primera lectura
     }
@@ -166,7 +166,8 @@ void Pedal::update() {
     // Mapeo a porcentaje (0-100%)
     // ========================================
     int clamped = constrain(s.raw, adcMin, adcMax);
-    float mapped = map(clamped, adcMin, adcMax, 0, 1000) / 10.0f;
+    // Usar cálculo directo de punto flotante para mejor precisión
+    float mapped = (float)(clamped - adcMin) / (float)(adcMax - adcMin) * 100.0f;
     
     // Aplicar deadband (zona muerta inicial)
     if (mapped < deadbandPct) {

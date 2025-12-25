@@ -113,6 +113,9 @@ void System::init() {
         Logger::error("System init: Abortando inicialización - memoria insuficiente");
         currentState = ERROR;
         
+        // Resetear flag de inicialización para permitir retry
+        systemInitialized = false;
+        
         // Liberar mutex antes de salir
         if (initMutex != nullptr) {
             xSemaphoreGive(initMutex);
