@@ -66,7 +66,7 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
     uint8_t received = Wire.requestFrom(static_cast<int>(dev_addr), 2);
     
     // Esperar con timeout a que lleguen los bytes
-    // Usar delay(1ms) en lugar de delayMicroseconds para permitir RTOS task switching
+    // Usar yield() en lugar de delay() para permitir RTOS task switching
     while (Wire.available() < 2) {
         uint32_t elapsed = millis() - timeoutStart;
         if (elapsed >= I2CConstants::READ_TIMEOUT_MS) {
@@ -74,7 +74,7 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
                          tca_channel, dev_addr, Wire.available(), elapsed);
             return false;
         }
-        delay(I2CConstants::RETRY_DELAY_MS);  // Permite task switching
+        yield();  // Non-blocking - permite task switching
     }
     
     received = Wire.available();

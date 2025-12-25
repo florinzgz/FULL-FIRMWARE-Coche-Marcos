@@ -17,4 +17,8 @@ namespace HUDManager {
     inline void update() {
         HUD::update();
     }
+    
+    inline void showError() {
+        HUD::showError();
+    }
 }

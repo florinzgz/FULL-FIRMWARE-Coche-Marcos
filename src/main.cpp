@@ -185,15 +185,16 @@ void handleCriticalError(const char* errorMsg) {
         
         // Mostrar en display si está disponible
         #ifndef STANDALONE_DISPLAY
-        HUD::showError();
+        HUDManager::showError();
         #endif
         
         Serial.println("[CRITICAL ERROR] Max retries - stopping watchdog feeds");
         Serial.flush();
         
         // Detener watchdog feeds - sistema se reseteará en 30 segundos
+        // Non-blocking: use yield() instead of delay() to allow RTOS task switching
         while (true) {
-            delay(1000);
+            yield();  // Non-blocking - permite task switching
             Serial.println("[CRITICAL ERROR] Waiting for watchdog reset...");
         }
     }
@@ -204,18 +205,18 @@ void handleCriticalError(const char* errorMsg) {
     
     // Mostrar error en display
     #ifndef STANDALONE_DISPLAY
-    HUD::showError();
+    HUDManager::showError();
     #endif
     
     Serial.printf("[CRITICAL ERROR] Retry %d/%d in %lums\n", 
                   retryCount, CriticalErrorConfig::MAX_RETRIES, CriticalErrorConfig::RETRY_DELAY_MS);
     Serial.flush();
     
-    // Esperar antes de reiniciar
+    // Esperar antes de reiniciar (non-blocking)
     uint32_t delayStart = millis();
     while (millis() - delayStart < CriticalErrorConfig::RETRY_DELAY_MS) {
         Watchdog::feed();  // Mantener watchdog vivo durante delay
-        delay(100);
+        yield();  // Non-blocking - permite RTOS task switching
     }
     
     // Reiniciar sistema
