@@ -77,7 +77,7 @@ void Shifter::init() {
 
 void Shifter::update() {
     // Si MCP23017 no está disponible, mantener última posición conocida
-    if (!mcpAvailable) {
+    if (!initialized) {
         s.changed = false;
         return;
     }
