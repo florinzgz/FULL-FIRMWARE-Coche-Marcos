@@ -14,8 +14,7 @@
 // Estos timeouts previenen hang del sistema completo.
 namespace I2CConstants {
     constexpr uint32_t READ_TIMEOUT_MS = 100;   // Timeout lectura I2C
-    constexpr uint32_t WRITE_TIMEOUT_MS = 50;   // Timeout escritura I2C
-    constexpr uint16_t RETRY_DELAY_US = 10;     // Delay entre reintentos
+    constexpr uint16_t RETRY_DELAY_MS = 1;      // Delay entre reintentos (permite task switching)
 }
 
 void select_tca9548a_channel(uint8_t channel) {
@@ -67,14 +66,22 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint1
     uint8_t received = Wire.requestFrom(static_cast<int>(dev_addr), 2);
     
     // Esperar con timeout a que lleguen los bytes
-    while (Wire.available() < 2 && (millis() - timeoutStart) < I2CConstants::READ_TIMEOUT_MS) {
-        delayMicroseconds(I2CConstants::RETRY_DELAY_US);  // Pequeña espera sin bloquear
+    // Usar delay(1ms) en lugar de delayMicroseconds para permitir RTOS task switching
+    while (Wire.available() < 2) {
+        uint32_t elapsed = millis() - timeoutStart;
+        if (elapsed >= I2CConstants::READ_TIMEOUT_MS) {
+            Logger::warnf("I2C: Read timeout on ch%d addr=0x%02X (got %d bytes in %lums)", 
+                         tca_channel, dev_addr, Wire.available(), elapsed);
+            return false;
+        }
+        delay(I2CConstants::RETRY_DELAY_MS);  // Permite task switching
     }
     
     received = Wire.available();
     if (received < 2) {
-        Logger::warnf("I2C: Read timeout on ch%d addr=0x%02X (got %d bytes in %lums)", 
-                     tca_channel, dev_addr, received, millis() - timeoutStart);
+        // Defensive check - no debería ocurrir tras el while loop
+        Logger::warnf("I2C: Partial read on ch%d addr=0x%02X (got %d bytes)", 
+                     tca_channel, dev_addr, received);
         return false;
     }
 
@@ -100,9 +107,7 @@ bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg, uint
     Wire.write(static_cast<uint8_t>(value >> 8));
     Wire.write(static_cast<uint8_t>(value & 0xFF));
     
-    // ✅ CRITICAL FIX v2.11.5: Timeout en endTransmission
-    // Aunque endTransmission tiene timeout interno, añadimos logging
-    // para debugging y monitoreo de problemas I2C
+    // endTransmission tiene timeout interno del Wire library
     uint8_t result = Wire.endTransmission();
     
     // 🔒 IMPROVEMENT: Log write failures for debugging

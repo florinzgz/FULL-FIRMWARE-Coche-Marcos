@@ -25,7 +25,7 @@
 namespace CriticalErrorConfig {
     constexpr uint8_t MAX_RETRIES = 3;              // Máximo de reintentos antes de watchdog reset
     constexpr uint32_t RETRY_DELAY_MS = 5000;       // 5 segundos entre reintentos
-    constexpr uint32_t WDT_FINAL_TIMEOUT_S = 30;    // Timeout final del watchdog
+    // Nota: el timeout final del watchdog es de 30s (configurado en Watchdog::init())
 }
 
 // Forward declarations
@@ -161,12 +161,20 @@ void handleCriticalError(const char* errorMsg) {
     Watchdog::feed();
     
     // Contador estático de reintentos (persiste entre llamadas)
+    // Se rastrea la última fuente de error para aislar reintentos por origen
     static uint8_t retryCount = 0;
+    static const char* lastErrorSource = nullptr;
     
     // Log del error
     Serial.print("[CRITICAL ERROR] ");
     Serial.println(errorMsg);
     Logger::error(errorMsg);
+    
+    // Si el origen del error cambia, reiniciar el contador de reintentos
+    if (lastErrorSource != errorMsg) {
+        retryCount = 0;
+        lastErrorSource = errorMsg;
+    }
     
     retryCount++;
     
@@ -177,7 +185,7 @@ void handleCriticalError(const char* errorMsg) {
         
         // Mostrar en display si está disponible
         #ifndef STANDALONE_DISPLAY
-        HUDManager::showError();
+        HUDManager::showError(errorMsg);
         #endif
         
         Serial.println("[CRITICAL ERROR] Max retries - stopping watchdog feeds");
@@ -196,7 +204,7 @@ void handleCriticalError(const char* errorMsg) {
     
     // Mostrar error en display
     #ifndef STANDALONE_DISPLAY
-    HUDManager::showError();
+    HUDManager::showError(errorMsg);
     #endif
     
     Serial.printf("[CRITICAL ERROR] Retry %d/%d in %lums\n", 
@@ -216,4 +224,9 @@ void handleCriticalError(const char* errorMsg) {
     Serial.flush();
     
     ESP.restart();
+    
+    // ESP.restart() no debería retornar; si lo hace, halt en loop seguro
+    while (true) {
+        delay(1000);
+    }
 }
