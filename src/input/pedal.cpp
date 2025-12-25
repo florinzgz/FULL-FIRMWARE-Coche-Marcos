@@ -80,12 +80,12 @@ void Pedal::update() {
     // VALIDACIÓN 1: Rango de calibración
     // ========================================
     // Si la lectura está muy fuera del rango calibrado, indica problema hardware
-    const int MARGIN = (adcMax - adcMin) / 10;  // 10% margen de tolerancia
+    const int MARGIN = (adcMax - adcMin) * PedalValidation::OUT_OF_RANGE_MARGIN_PERCENT / 100;
     
     if (raw < (adcMin - MARGIN) || raw > (adcMax + MARGIN)) {
         // Posible desconexión o calibración incorrecta
         static uint32_t lastOutOfRangeWarn = 0;
-        if (millis() - lastOutOfRangeWarn > PedalValidation::WARN_THROTTLE_MS) {  // Throttle: log cada 5s
+        if (millis() - lastOutOfRangeWarn > PedalValidation::WARN_THROTTLE_MS) {
             Logger::warnf("Pedal: Lectura fuera de rango calibrado: %d (esperado %d-%d ±%d)", 
                          raw, adcMin, adcMax, MARGIN);
             lastOutOfRangeWarn = millis();
@@ -109,7 +109,7 @@ void Pedal::update() {
         staticReadCount++;
         if (staticReadCount >= PedalValidation::MAX_STATIC_READS) {
             static uint32_t lastStaticWarn = 0;
-            if (millis() - lastStaticWarn > PedalValidation::STATIC_WARN_THROTTLE_MS) {  // Log cada 10s
+            if (millis() - lastStaticWarn > PedalValidation::STATIC_WARN_THROTTLE_MS) {
                 Logger::errorf("Pedal: Lectura estática detectada (%d) - posible desconexión", raw);
                 lastStaticWarn = millis();
             }

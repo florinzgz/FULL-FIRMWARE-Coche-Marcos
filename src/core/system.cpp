@@ -28,6 +28,7 @@ extern Storage::Config cfg;
 // ========================================
 namespace SystemInitConfig {
     constexpr uint32_t MUTEX_TIMEOUT_MS = 5000;        // Timeout para adquirir mutex
+    constexpr uint32_t MUTEX_CHECK_TIMEOUT_MS = 100;   // Timeout para check de estado
     constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;      // 50KB heap mínimo
     constexpr uint32_t MIN_HEAP_AFTER_INIT = 25000;    // 25KB después de init
 }
@@ -444,7 +445,7 @@ bool System::hasError() {
 // Diagnóstico de estado de inicialización (thread-safe)
 bool System::isInitialized() {
     // Lectura de bool es atómica en ESP32, pero añadimos mutex por consistencia
-    if (initMutex != nullptr && xSemaphoreTake(initMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    if (initMutex != nullptr && xSemaphoreTake(initMutex, pdMS_TO_TICKS(SystemInitConfig::MUTEX_CHECK_TIMEOUT_MS)) == pdTRUE) {
         bool state = systemInitialized;
         xSemaphoreGive(initMutex);
         return state;
