@@ -17,7 +17,7 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <algorithm> // std::min, std::max
-#include <cmath>     // std::isfinite, std::fabs
+#include <cmath>     // std::isfinite, std::fabs, std::round
 #include <cstdint>
 #include <cstring>
 
@@ -64,18 +64,23 @@ inline float clampf(float v, float lo, float hi) {
   return v;
 }
 
+// Pin range constants for motor direction control
+constexpr int FIRST_DIR_PIN = MCP_PIN_FL_IN1;
+constexpr int LAST_DIR_PIN = MCP_PIN_RR_IN2;
+
 // Constante de conversión PWM a ticks PCA9685
 // PCA9685 usa 12 bits (0-4095 = 4096 valores totales)
 // PWM interno es 8 bits (0-255 = 256 valores totales)
-// Multiplicador: 16.0 proporciona mapeo conservador (255*16=4080, deja margen de 15 ticks)
-// Para mapeo exacto usar 4095/255≈16.06, pero 16.0 es más seguro y evita saturación
-constexpr float PWM_TO_TICKS_MULTIPLIER = 16.0f;
+// Multiplicador exacto: 4095/255 ≈ 16.0588 para mapeo perfecto sin pérdida de resolución
+constexpr float PWM_TO_TICKS_MULTIPLIER = 4095.0f / 255.0f;
 
 // Helper: Convertir PWM (0-255) a ticks PCA9685 (0-4095)
 inline uint16_t pwmToTicks(float pwm) {
-  uint16_t ticks = static_cast<uint16_t>(pwm * PWM_TO_TICKS_MULTIPLIER);
-  // Arduino constrain() function: clamps value to range [0, 4095]
-  return constrain(ticks, static_cast<uint16_t>(0), static_cast<uint16_t>(4095));
+  // Guard: constrain input before multiplication to prevent overflow
+  pwm = constrain(pwm, 0.0f, 255.0f);
+  float ticks_f = pwm * PWM_TO_TICKS_MULTIPLIER;
+  // Round instead of truncate for accurate mapping
+  return static_cast<uint16_t>(std::round(ticks_f));
 }
 
 // Helper: Aplicar PWM y dirección a hardware según rueda
