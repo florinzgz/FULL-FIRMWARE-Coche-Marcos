@@ -30,8 +30,8 @@ static bool placeholderMode = true;  // True when sensors not detected, used for
 
 // I2CRecovery device ID allocation:
 // - Devices 0-7: Reserved for other I2C devices (INA226, etc.)
-// - Devices 8-11: Obstacle detection sensors (FRONT, REAR, LEFT, RIGHT)
-// - Devices 12-15: Available for future use
+// - Devices 8-9: Obstacle detection sensors (FRONT, REAR)
+// - Devices 10-15: Reserved for future I2C expansion
 constexpr uint8_t OBSTACLE_SENSOR_DEVICE_ID_BASE = 8;
 
 // VL53L5CX device identification
@@ -102,17 +102,25 @@ static bool initSensor(uint8_t idx) {
     digitalWrite(OBSTACLE_XSHUT_PINS[idx], HIGH);
     
     // Wait for sensor to stabilize
+    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog antes del delay
+    // Con 2 sensores VL53L5CX = 100ms total de delay, evita timeout de watchdog
+    Watchdog::feed();  // Feed una vez antes del delay
     uint32_t startMs = millis();
-    while (millis() - startMs < ::ObstacleConfig::INIT_DELAY_MS) yield();
+    while (millis() - startMs < ::ObstacleConfig::INIT_DELAY_MS) {
+        yield();  // Yield para no bloquear completamente
+    }
     
     // Select multiplexer channel using I2C recovery
+    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog después de operación I2C crítica
     if (!selectMuxChannel(idx)) {
+        Watchdog::feed();  // Feed antes de salir por error
         Logger::errorf("Obstacle: Failed to select MUX channel %d for sensor %s", 
                       idx, SENSOR_NAMES[idx]);
         sensorData[idx].healthy = false;
         sensorData[idx].errorCount++;
         return false;
     }
+    Watchdog::feed();  // Feed después de operación I2C exitosa
     
     // Check for VL53L5CX sensor presence by reading device ID register
     // Use defined base ID + sensor index for I2CRecovery device tracking
@@ -121,6 +129,9 @@ static bool initSensor(uint8_t idx) {
     bool readOk = I2CRecovery::readBytesWithRetry(
         ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, VL53L5CX_DEVICE_ID_REG, &deviceIdValue, 1, deviceId);
     bool sensorFound = readOk && (deviceIdValue == VL53L5CX_EXPECTED_ID);
+    
+    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog después de lectura I2C
+    Watchdog::feed();
     
     // Configure sensor state
     sensorData[idx].enabled = config.sensorsEnabled[idx];

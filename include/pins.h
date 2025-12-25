@@ -21,9 +21,27 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 // GPIO 0  - Boot mode (HIGH=SPI Boot, LOW=Download)
 // GPIO 3  - JTAG (evitar si se usa JTAG)
 // GPIO 45 - VDD_SPI voltage select
-// GPIO 46 - Boot mode / ROM log
+// GPIO 46 - Boot mode / ROM log ⚠️ CRÍTICO: Ver documentación especial abajo
 // GPIO 43 - UART0 TX (reservado para USB/Serial)
 // GPIO 44 - UART0 RX (reservado para USB/Serial)
+//
+// 🔒 ⚠️ ADVERTENCIA CRÍTICA GPIO 46 (STRAPPING PIN):
+// GPIO 46 es usado para XSHUT_FRONT del sensor VL53L5CX (obstacle detection).
+// Como strapping pin, si el sensor tira la línea a LOW durante boot, puede causar
+// boot failure o entrar en modo de diagnóstico ROM.
+//
+// PROTECCIÓN IMPLEMENTADA:
+// - Software: Código mantiene GPIO 46 en HIGH durante boot (obstacle_detection.cpp:170-179)
+// - Inicialización: Pin se configura como OUTPUT HIGH antes de cualquier otra operación
+//
+// RECOMENDACIÓN HARDWARE (para máxima robustez):
+// - Añadir resistencia pull-up externa 10kΩ entre GPIO 46 y 3.3V
+// - Esto garantiza que el pin permanezca HIGH incluso si el sensor está desconectado
+//
+// ALTERNATIVA (si persisten problemas de boot):
+// - Mover XSHUT_FRONT de GPIO 46 → GPIO 45 (también strapping pero menos crítico)
+// - GPIO 45 solo afecta selección de voltaje VDD_SPI, no modo de boot
+// - Modificar ObstacleConfig::PIN_XSHUT_FRONT en obstacle_config.h
 //
 // ✅ PINES MÁS SEGUROS Y ESTABLES:
 // GPIO 19, 20, 21 → Muy estables, ideales para SPI/I²C periféricos
@@ -163,7 +181,12 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 #define MCP_PIN_SHIFTER_N     10  // GPIOB2: Shifter N (Neutral)
 #define MCP_PIN_SHIFTER_D1    11  // GPIOB3: Shifter D1 (Drive 1 - baja velocidad)
 #define MCP_PIN_SHIFTER_D2    12  // GPIOB4: Shifter D2 (Drive 2 - alta velocidad)
-// GPIOB5-7 (pines 13-15) disponibles para expansión futura
+
+// MCP23017 pines para motor dirección (BTS7960)
+// Usar GPIOB5-B6 (disponibles según tabla línea 333-334)
+#define MCP_PIN_STEER_IN1     13  // GPIOB5: Steering R_EN
+#define MCP_PIN_STEER_IN2     14  // GPIOB6: Steering L_EN
+// GPIOB7 (pin 15) disponible para expansión futura
 
 // ============================================================================
 // MOTOR DIRECCIÓN
@@ -253,9 +276,13 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 // ============================================================================
 // SALIDAS - LEDs WS2812B (Iluminación Inteligente)
 // ============================================================================
+// 🔒 HISTORIAL DE CAMBIOS:
+// - v2.3.0: PIN_LED_REAR movido de GPIO 19 → GPIO 48 (liberar GPIO 19)
+// - v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos trasero)
+// - GPIO 18: Siempre usado para LEDs frontales (estable)
 
 #define PIN_LED_FRONT     18  // GPIO 18 - LEDs frontales (28 LEDs) ✅ liberado al retirar lateral
-#define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ GPIO libre identificado en placa S3
+#define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ v2.3.0: movido desde GPIO 19
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales (sin cambio)
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (sin cambio)
 
@@ -265,8 +292,20 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 // Asignados a GPIOs 46 y 19 (sensores laterales deshabilitados)
 // ============================================================================
 // NOTA: No definir aquí - ver obstacle_config.h:
-// ObstacleConfig::PIN_XSHUT_FRONT = 46
-// ObstacleConfig::PIN_XSHUT_REAR = 19
+// ObstacleConfig::PIN_XSHUT_FRONT = 46 ⚠️ STRAPPING PIN (pull-up 10kΩ recomendado)
+// ObstacleConfig::PIN_XSHUT_REAR = 19  ✅ GPIO seguro (antes usado para LED_REAR hasta v2.3.0)
+//
+// 🔒 ACLARACIÓN GPIO 19:
+// - Hasta v2.3.0: Usado para PIN_LED_REAR (WS2812B)
+// - Desde v2.3.0: LED_REAR movido a GPIO 48
+// - Desde v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos)
+// - Estado actual: GPIO 19 es XSHUT_REAR, NO es LED
+//
+// 🔒 ARQUITECTURA MULTIPLEXORES I2C (importante):
+// El sistema usa DOS multiplexores I2C DIFERENTES:
+// 1. TCA9548A @ 0x70: Para 6x INA226 (sensores corriente, canales 0-5)
+// 2. PCA9548A @ 0x71: Para 2x VL53L5CX (sensores obstáculos, canales 0-1)
+// No hay conflicto: son chips físicamente separados con direcciones diferentes
 
 // ============================================================================
 // TABLA RESUMEN DE USO DE PINES v2.4.1
@@ -307,8 +346,9 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
 │ 43   │ DFPLAYER_TX             │ Output    │ ⚠️ UART0 nativo                  │
 │ 44   │ DFPLAYER_RX             │ Input     │ ⚠️ UART0 nativo                  │
-│ 45   │ 🆓 LIBRE                │ -         │ Disponible (sin sensor lateral)  │
-│ 46   │ XSHUT_FRONT (VL53L5X)   │ Output    │ ⚠️ Strapping, sensor obstáculos  │
+│ 45   │ KEY_DETECT (power_mgmt.cpp línea 19)  ⚠️ STRAPPING PIN: VDD_SPI voltage select - Crítico para boot │
+│ 46   │ XSHUT_FRONT (VL53L5X)   │ Output    │ ⚠️ STRAPPING! Sensor obstáculos  │
+│      │                         │           │ 🔒 Pull-up 10kΩ recomendado     │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
@@ -330,8 +370,8 @@ MCP23017 (I²C 0x20) - Expansor GPIO:
 │ B2   │ SHIFTER_N               │ Input     │ ✅ Palanca Neutral               │
 │ B3   │ SHIFTER_D1              │ Input     │ ✅ Palanca Drive 1               │
 │ B4   │ SHIFTER_D2              │ Input     │ ✅ Palanca Drive 2               │
-│ B5   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
-│ B6   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
+│ B5   │ STEER_IN1               │ Output    │ ✅ Motor dirección R_EN         │
+│ B6   │ STEER_IN2               │ Output    │ ✅ Motor dirección L_EN         │
 │ B7   │ 🆓 LIBRE                │ -         │ Disponible para expansión       │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
 

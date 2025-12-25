@@ -12,6 +12,7 @@ _codeql_detected_source_root
 .pio/
 .pioenvs/
 .piolibdeps/
+compile_commands.json
 
 # IDE files
 .vscode/

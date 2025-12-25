@@ -17,6 +17,12 @@ namespace ObstacleDetection {
         SENSOR_COUNT = 2
     };
     
+    // 🔒 CORRECCIÓN MENOR: Validación estática de configuración
+    // Verifica que SENSOR_COUNT coincida con ObstacleConfig::NUM_SENSORS
+    // Error de compilación si se desincroniza (fail-fast)
+    static_assert(SENSOR_COUNT == ::ObstacleConfig::NUM_SENSORS,
+                  "ObstacleDetection::SENSOR_COUNT must match ObstacleConfig::NUM_SENSORS");
+    
     // Proximity levels based on distance
     enum ObstacleLevel : uint8_t {
         LEVEL_SAFE = 0,         // >100cm - No obstacle

@@ -43,6 +43,7 @@ constexpr uint16_t ENCODER_Z_TIMEOUT = 213;
 constexpr uint16_t STEERING_PCA9685_NO_RESPONSE = 250;
 constexpr uint16_t STEERING_OVERCURRENT = 251;
 constexpr uint16_t STEERING_PWM_CHANNEL_INVALID = 252;
+constexpr uint16_t STEERING_MCP23017_FAIL = 254;
 
 // --- Current Sensors (300-399) ---
 constexpr uint16_t CURRENT_SENSOR_FL_FAIL = 300;
@@ -120,7 +121,7 @@ constexpr uint16_t TRACTION_MOTOR_RR_PWM_INVALID = 823;
 constexpr uint16_t TRACTION_PCA9685_FRONT_FAIL = 830;
 constexpr uint16_t TRACTION_PCA9685_REAR_FAIL = 831;
 constexpr uint16_t TRACTION_MCP23017_FAIL = 832;
-constexpr uint16_t TRACTION_MCP23017_SHARED_FAIL = 833;
+constexpr uint16_t MCP23017_SHARED_INIT_FAIL = 833;  // MCP23017 shared manager init fail
 
 // --- Storage System (900-999) ---
 constexpr uint16_t STORAGE_OPEN_FAIL = 970;
@@ -155,6 +156,7 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == STEERING_PCA9685_NO_RESPONSE) return "PCA9685 direccion no responde";
     if (code == STEERING_OVERCURRENT) return "Sobrecorriente motor direccion";
     if (code == STEERING_PWM_CHANNEL_INVALID) return "Canal PWM invalido";
+    if (code == STEERING_MCP23017_FAIL) return "MCP23017 motor direccion fallo";
     
     // Current Sensors (300-399)
     if (code >= 300 && code <= 303) {
@@ -254,7 +256,7 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == TRACTION_PCA9685_FRONT_FAIL) return "PCA9685 Front (0x40) fallo";
     if (code == TRACTION_PCA9685_REAR_FAIL) return "PCA9685 Rear (0x41) fallo";
     if (code == TRACTION_MCP23017_FAIL) return "MCP23017 (0x20) fallo";
-    if (code == TRACTION_MCP23017_SHARED_FAIL) return "MCP23017 shared init fallo";
+    if (code == MCP23017_SHARED_INIT_FAIL) return "MCP23017 manager init fallo";
     
     // Storage System (900-999)
     if (code == STORAGE_OPEN_FAIL) return "Apertura storage fallo";

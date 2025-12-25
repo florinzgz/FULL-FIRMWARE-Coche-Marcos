@@ -70,7 +70,8 @@ chat:
 # Conocimiento del dominio
 knowledge_base:
   learnings:
-    - path: "src/core"
+    core_architecture:
+      path: "src/core"
       content: |
         ESP32-S3 firmware con arquitectura de managers para vehículo eléctrico.
         
@@ -87,7 +88,8 @@ knowledge_base:
         - Sistema de logging de errores
         - Gestión de errores no bloqueante
         
-    - path: "**/*.cpp"
+    components_technology:
+      path: "**/*.cpp"
       content: |
         Tecnologías y componentes clave:
         - ABS (Anti-lock Braking System): Sistema antibloqueo de frenos

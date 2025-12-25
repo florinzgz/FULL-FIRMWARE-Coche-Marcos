@@ -29,7 +29,21 @@ static const unsigned long CONVERSION_TIMEOUT_MS = 1000; // 1 segundo timeout
 // Flag de inicialización global
 static bool initialized = false;
 
+// 🔒 CORRECCIÓN CRÍTICA: Mutex para proteger acceso concurrente a lastTemp[]
+// Patrón consistente con current.cpp (líneas 16, 56-78)
+static SemaphoreHandle_t tempMutex = nullptr;
+
 void Sensors::initTemperature() {
+    // 🔒 CORRECCIÓN CRÍTICA: Crear mutex si no existe
+    if (tempMutex == nullptr) {
+        tempMutex = xSemaphoreCreateMutex();
+        if (tempMutex == nullptr) {
+            Logger::error("Temperature: No se pudo crear mutex");
+            System::logError(398);
+            return;
+        }
+    }
+    
     sensors.begin();
 
     int count = sensors.getDeviceCount();
@@ -161,15 +175,40 @@ void Sensors::updateTemperature() {
         // Clamps
         t = constrain(t, TEMP_MIN_CELSIUS, TEMP_MAX_CELSIUS);  // 🔒 Using constants
 
-        // 🔒 CORRECCIÓN 4.3: Filtro EMA con constante configurable
-        lastTemp[i] = lastTemp[i] + EMA_FILTER_ALPHA * (t - lastTemp[i]);  // 🔒 Using constant
+        // 🔒 CORRECCIÓN CRÍTICA: Proteger escritura en lastTemp[] con mutex
+        // Timeout de 10ms para evitar bloqueos
+        if (tempMutex != nullptr && xSemaphoreTake(tempMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+            // 🔒 CORRECCIÓN 4.3: Filtro EMA con constante configurable
+            lastTemp[i] = lastTemp[i] + EMA_FILTER_ALPHA * (t - lastTemp[i]);  // 🔒 Using constant
+            xSemaphoreGive(tempMutex);
+        } else {
+            Logger::warn("Temperature: mutex timeout en updateTemperature");
+        }
     }
 }
 
 float Sensors::getTemperature(int channel) {
     // 🔒 v2.4.1: Validación de rango completa
-    if(channel >= 0 && channel < NUM_TEMPS) return lastTemp[channel];
-    return 0.0f;
+    if(channel < 0 || channel >= NUM_TEMPS) return 0.0f;
+    
+    // 🔒 CORRECCIÓN CRÍTICA: Proteger lectura de lastTemp[] con mutex
+    // Timeout de 5ms (más corto que escritura)
+    float temp = 0.0f;
+    if (tempMutex != nullptr && xSemaphoreTake(tempMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+        temp = lastTemp[channel];
+        xSemaphoreGive(tempMutex);
+    } else {
+        // 🔒 MEJORA: En caso de timeout, evitar torn read y usar throttled logging
+        static uint32_t lastTimeoutLog = 0;
+        if (millis() - lastTimeoutLog > 5000) {  // Log cada 5 segundos máximo
+            Logger::warn("Temperature: read mutex timeout");
+            lastTimeoutLog = millis();
+        }
+        // Retornar último valor sin mutex (mejor que bloquear completamente)
+        // Nota: Esto es un torn read potencial pero preferible a un deadlock
+        temp = lastTemp[channel];
+    }
+    return temp;
 }
 
 bool Sensors::isTemperatureSensorOk(int channel) {
