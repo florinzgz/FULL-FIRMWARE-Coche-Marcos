@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "pedal.h"
 #include "pins.h"
+#include "pwm_channels.h"
 #include "sensors.h"
 #include "settings.h"
 #include "steering.h"
@@ -34,6 +35,24 @@ static MCP23017Manager* mcpManager = nullptr;
 static Traction::State s;
 static bool initialized = false;
 static uint32_t lastInterventionLogMs = 0;  // v2.12.0: Throttle intervention logging
+
+// ============================================================================
+// Motor Safety Constants - v2.11.5
+// ============================================================================
+// Validación de PWM para prevenir crashes por canales inválidos
+namespace MotorSafety {
+    constexpr uint16_t PWM_MAX_VALUE = 4095;  // PCA9685 12-bit max
+}
+
+// ✅ NUEVO v2.11.5: Helper para validar canal PWM antes de uso
+static inline bool validatePWMChannel(uint8_t channel, const char* context) {
+    if (!pwm_channel_valid(channel)) {
+        Logger::errorf("PWM: Invalid channel %d in %s (max %d)", 
+                      channel, context, PCA9685_MAX_CHANNEL);
+        return false;
+    }
+    return true;
+}
 
 namespace {
 // Implementación independiente de std::clamp para máxima compatibilidad
@@ -67,11 +86,24 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     return;
   }
   
+  // Nota: pwmTicks ya está limitado a 0-4095 por pwmToTicks()
+  
   // Apply according to wheel position
   if (wheelIndex == Traction::FL) {
     if (pcaFrontOK) {
-      pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
-      pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
+      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
+      bool fwdValid = validatePWMChannel(PCA_FRONT_CH_FL_FWD, "FL_FORWARD");
+      bool revValid = validatePWMChannel(PCA_FRONT_CH_FL_REV, "FL_REVERSE");
+      
+      if (fwdValid && revValid) {
+        pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
+      } else {
+        // Safety: establecer ambos a 0 si algún canal es inválido
+        if (fwdValid) pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, 0);
+        if (revValid) pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, 0);
+        Logger::errorf("PWM: Channel pair invalid FL (fwd:%d, rev:%d)", fwdValid, revValid);
+      }
     }
     if (mcpManager && mcpManager->isOK()) {
       mcpManager->digitalWrite(MCP_PIN_FL_IN1, reverse ? LOW : HIGH);
@@ -79,8 +111,19 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     }
   } else if (wheelIndex == Traction::FR) {
     if (pcaFrontOK) {
-      pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
-      pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
+      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
+      bool fwdValid = validatePWMChannel(PCA_FRONT_CH_FR_FWD, "FR_FORWARD");
+      bool revValid = validatePWMChannel(PCA_FRONT_CH_FR_REV, "FR_REVERSE");
+      
+      if (fwdValid && revValid) {
+        pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
+      } else {
+        // Safety: establecer ambos a 0 si algún canal es inválido
+        if (fwdValid) pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, 0);
+        if (revValid) pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, 0);
+        Logger::errorf("PWM: Channel pair invalid FR (fwd:%d, rev:%d)", fwdValid, revValid);
+      }
     }
     if (mcpManager && mcpManager->isOK()) {
       mcpManager->digitalWrite(MCP_PIN_FR_IN1, reverse ? LOW : HIGH);
@@ -88,8 +131,19 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     }
   } else if (wheelIndex == Traction::RL) {
     if (pcaRearOK) {
-      pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
-      pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
+      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
+      bool fwdValid = validatePWMChannel(PCA_REAR_CH_RL_FWD, "RL_FORWARD");
+      bool revValid = validatePWMChannel(PCA_REAR_CH_RL_REV, "RL_REVERSE");
+      
+      if (fwdValid && revValid) {
+        pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
+      } else {
+        // Safety: establecer ambos a 0 si algún canal es inválido
+        if (fwdValid) pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, 0);
+        if (revValid) pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, 0);
+        Logger::errorf("PWM: Channel pair invalid RL (fwd:%d, rev:%d)", fwdValid, revValid);
+      }
     }
     if (mcpManager && mcpManager->isOK()) {
       mcpManager->digitalWrite(MCP_PIN_RL_IN1, reverse ? LOW : HIGH);
@@ -97,8 +151,19 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     }
   } else if (wheelIndex == Traction::RR) {
     if (pcaRearOK) {
-      pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
-      pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
+      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
+      bool fwdValid = validatePWMChannel(PCA_REAR_CH_RR_FWD, "RR_FORWARD");
+      bool revValid = validatePWMChannel(PCA_REAR_CH_RR_REV, "RR_REVERSE");
+      
+      if (fwdValid && revValid) {
+        pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
+        pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
+      } else {
+        // Safety: establecer ambos a 0 si algún canal es inválido
+        if (fwdValid) pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, 0);
+        if (revValid) pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, 0);
+        Logger::errorf("PWM: Channel pair invalid RR (fwd:%d, rev:%d)", fwdValid, revValid);
+      }
     }
     if (mcpManager && mcpManager->isOK()) {
       mcpManager->digitalWrite(MCP_PIN_RR_IN1, reverse ? LOW : HIGH);
