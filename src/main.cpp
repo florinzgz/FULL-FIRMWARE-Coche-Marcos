@@ -2,9 +2,9 @@
 // Handles initialization, mode management, and main control loop
 
 #include <Arduino.h>
-#include "core/SystemConfig.h"
-#include "core/Watchdog.h"
-#include "core/Logger.h"
+#include "SystemConfig.h"
+#include "watchdog.h"
+#include "Logger.h"
 #include "managers/PowerManager.h"
 #include "managers/SensorManager.h"
 #include "managers/ControlManager.h"
