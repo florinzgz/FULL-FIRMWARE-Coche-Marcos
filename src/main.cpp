@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "SystemConfig.h"
 #include "watchdog.h"
-#include "Logger.h"
+#include "logger.h"
 #include "managers/PowerManager.h"
 #include "managers/SensorManager.h"
 #include "managers/ControlManager.h"
