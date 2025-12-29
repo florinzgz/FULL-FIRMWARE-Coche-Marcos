@@ -69,42 +69,28 @@ constexpr int FIRST_DIR_PIN = MCP_PIN_FL_IN1;
 constexpr int LAST_DIR_PIN = MCP_PIN_RR_IN2;
 
 // Constante de conversión PWM a ticks PCA9685
-// PCA9685 usa 12 bits (0-4095 = 4096 valores totales)
-// PWM interno es 8 bits (0-255 = 256 valores totales)
-// Multiplicador exacto: 4095/255 ≈ 16.0588 para mapeo perfecto sin pérdida de resolución
 constexpr float PWM_TO_TICKS_MULTIPLIER = 4095.0f / 255.0f;
 
 // Helper: Convertir PWM (0-255) a ticks PCA9685 (0-4095)
 inline uint16_t pwmToTicks(float pwm) {
-  // Guard: constrain input before multiplication to prevent overflow
   pwm = constrain(pwm, 0.0f, 255.0f);
   float ticks_f = pwm * PWM_TO_TICKS_MULTIPLIER;
-  // Round instead of truncate for accurate mapping
   return static_cast<uint16_t>(std::round(ticks_f));
 }
 
-// Helper: Aplicar PWM y dirección a hardware según rueda
 inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
-  // ✅ Validación añadida: verificar índice válido
   if (wheelIndex < 0 || wheelIndex >= 4) {
     Logger::errorf("Traction: Invalid wheel index %d", wheelIndex);
     return;
   }
-  
-  // Nota: pwmTicks ya está limitado a 0-4095 por pwmToTicks()
-  
-  // Apply according to wheel position
   if (wheelIndex == Traction::FL) {
     if (pcaFrontOK) {
-      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
       bool fwdValid = validatePWMChannel(PCA_FRONT_CH_FL_FWD, "FL_FORWARD");
       bool revValid = validatePWMChannel(PCA_FRONT_CH_FL_REV, "FL_REVERSE");
-      
       if (fwdValid && revValid) {
         pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, reverse ? 0 : pwmTicks);
         pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, reverse ? pwmTicks : 0);
       } else {
-        // Safety: establecer ambos a 0 si algún canal es inválido
         if (fwdValid) pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, 0);
         if (revValid) pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, 0);
         Logger::errorf("PWM: Channel pair invalid FL (fwd:%d, rev:%d)", fwdValid, revValid);
@@ -116,15 +102,12 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     }
   } else if (wheelIndex == Traction::FR) {
     if (pcaFrontOK) {
-      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
       bool fwdValid = validatePWMChannel(PCA_FRONT_CH_FR_FWD, "FR_FORWARD");
       bool revValid = validatePWMChannel(PCA_FRONT_CH_FR_REV, "FR_REVERSE");
-      
       if (fwdValid && revValid) {
         pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, reverse ? 0 : pwmTicks);
         pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, reverse ? pwmTicks : 0);
       } else {
-        // Safety: establecer ambos a 0 si algún canal es inválido
         if (fwdValid) pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, 0);
         if (revValid) pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, 0);
         Logger::errorf("PWM: Channel pair invalid FR (fwd:%d, rev:%d)", fwdValid, revValid);
@@ -136,15 +119,12 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     }
   } else if (wheelIndex == Traction::RL) {
     if (pcaRearOK) {
-      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
       bool fwdValid = validatePWMChannel(PCA_REAR_CH_RL_FWD, "RL_FORWARD");
       bool revValid = validatePWMChannel(PCA_REAR_CH_RL_REV, "RL_REVERSE");
-      
       if (fwdValid && revValid) {
         pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, reverse ? 0 : pwmTicks);
         pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, reverse ? pwmTicks : 0);
       } else {
-        // Safety: establecer ambos a 0 si algún canal es inválido
         if (fwdValid) pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, 0);
         if (revValid) pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, 0);
         Logger::errorf("PWM: Channel pair invalid RL (fwd:%d, rev:%d)", fwdValid, revValid);
@@ -156,15 +136,12 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
     }
   } else if (wheelIndex == Traction::RR) {
     if (pcaRearOK) {
-      // ✅ NUEVO v2.11.5: Validar canales PWM antes de escribir
       bool fwdValid = validatePWMChannel(PCA_REAR_CH_RR_FWD, "RR_FORWARD");
       bool revValid = validatePWMChannel(PCA_REAR_CH_RR_REV, "RR_REVERSE");
-      
       if (fwdValid && revValid) {
         pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, reverse ? 0 : pwmTicks);
         pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, reverse ? pwmTicks : 0);
       } else {
-        // Safety: establecer ambos a 0 si algún canal es inválido
         if (fwdValid) pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, 0);
         if (revValid) pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, 0);
         Logger::errorf("PWM: Channel pair invalid RR (fwd:%d, rev:%d)", fwdValid, revValid);
@@ -177,57 +154,41 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
   }
 }
 
-// 🔒 CORRECCIÓN 2.1: Obtener corriente máxima desde configuración
-// En lugar de constante hardcodeada, usar valores configurables
 inline float getMaxCurrentA(int channel) {
-  // Canal 4 = batería (típico 100A), resto = motores (típico 50A)
-  // 🔒 v2.10.2: Ahora usa valores configurables desde cfg
   if (channel == 4) {
-    // Batería: usar valor configurado
     return cfg.maxBatteryCurrentA;
   } else {
-    // Motores: usar valor configurado
     return cfg.maxMotorCurrentA;
   }
 }
 
-// Constantes de seguridad para PWM
-constexpr float PWM_MAX_SAFE = 255.0f;  // Máximo PWM permitido (8-bit)
-constexpr float PWM_MIN = 0.0f;          // Mínimo PWM
+constexpr float PWM_MAX_SAFE = 255.0f;
+constexpr float PWM_MIN = 0.0f;
+constexpr float TEMP_MIN_VALID = -40.0f;
+constexpr float TEMP_MAX_VALID = 150.0f;
+constexpr float TEMP_CRITICAL = 120.0f;
+constexpr float CURRENT_MAX_REASONABLE = 200.0f;
+constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;
 
-// Límites de seguridad para sensores
-constexpr float TEMP_MIN_VALID = -40.0f;   // Temperatura mínima válida (°C)
-constexpr float TEMP_MAX_VALID = 150.0f;   // Temperatura máxima válida (°C)
-constexpr float TEMP_CRITICAL = 120.0f;    // Temperatura crítica (°C)
-constexpr float CURRENT_MAX_REASONABLE = 200.0f;  // Corriente máxima razonable (A)
-
-// Retry timing for I2C device initialization
-constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;  // Non-blocking retry interval
-
-// Mapea 0..100% -> 0..255 PWM con validación de límites
 inline float demandPctToPwm(float pct) {
   float pwm = clampf(pct, 0.0f, 100.0f) * 255.0f / 100.0f;
-  // Aplicar techo de seguridad de hardware
   return clampf(pwm, PWM_MIN, PWM_MAX_SAFE);
 }
 
-// Validar lectura de corriente
 inline bool isCurrentValid(float currentA) {
-  return std::isfinite(currentA) && 
-         currentA >= -CURRENT_MAX_REASONABLE && 
+  return std::isfinite(currentA) &&
+         currentA >= -CURRENT_MAX_REASONABLE &&
          currentA <= CURRENT_MAX_REASONABLE;
 }
 
-// Validar lectura de temperatura
 inline bool isTempValid(float tempC) {
-  return std::isfinite(tempC) && 
-         tempC >= TEMP_MIN_VALID && 
+  return std::isfinite(tempC) &&
+         tempC >= TEMP_MIN_VALID &&
          tempC <= TEMP_MAX_VALID;
 }
 } // namespace
 
 void Traction::init() {
-  // Initialize state structure
   s = {};
   for (int i = 0; i < 4; ++i) {
     s.w[i] = {};
@@ -252,86 +213,79 @@ void Traction::init() {
 
   // Initialize PCA9685 front axle (0x40) with non-blocking retry
   if (!pcaFrontOK && !pcaFrontRetrying) {
-    pcaFrontOK = pcaFront.begin();
+    pcaFront.begin();
+    Wire.beginTransmission(I2C_ADDR_PCA9685_FRONT);
+    pcaFrontOK = (Wire.endTransmission() == 0);
     if (!pcaFrontOK) {
       Logger::error("Traction: PCA9685 Front (0x40) init FAIL - will retry asynchronously");
       pcaFrontRetrying = true;
       pcaFrontRetryTime = millis();
     }
   }
-  
+
   if (pcaFrontRetrying && (millis() - pcaFrontRetryTime >= I2C_RETRY_INTERVAL_MS)) {
-    pcaFrontOK = pcaFront.begin();
+    pcaFront.begin();
+    Wire.beginTransmission(I2C_ADDR_PCA9685_FRONT);
+    pcaFrontOK = (Wire.endTransmission() == 0);
     pcaFrontRetrying = false;
-    
     if (!pcaFrontOK) {
       Logger::error("Traction: PCA9685 Front (0x40) init FAIL definitivo");
       System::logError(830);  // Error code: PCA9685 Front init failure
     }
   }
-  
+
   if (pcaFrontOK) {
     pcaFront.setPWMFreq(1000);  // 1kHz for BTS7960
-    // Initialize all channels to 0 for safety
     for (int ch = 0; ch < 4; ch++) {
       pcaFront.setPWM(ch, 0, 0);
     }
     Logger::info("Traction: PCA9685 Front (0x40) init OK");
   }
 
-  // Non-blocking retry state for PCA9685 rear
   static uint32_t pcaRearRetryTime = 0;
   static bool pcaRearRetrying = false;
 
   // Initialize PCA9685 rear axle (0x41) with non-blocking retry
   if (!pcaRearOK && !pcaRearRetrying) {
-    pcaRearOK = pcaRear.begin();
+    pcaRear.begin();
+    Wire.beginTransmission(I2C_ADDR_PCA9685_REAR);
+    pcaRearOK = (Wire.endTransmission() == 0);
     if (!pcaRearOK) {
       Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - will retry asynchronously");
       pcaRearRetrying = true;
       pcaRearRetryTime = millis();
     }
   }
-  
   if (pcaRearRetrying && (millis() - pcaRearRetryTime >= I2C_RETRY_INTERVAL_MS)) {
-    pcaRearOK = pcaRear.begin();
+    pcaRear.begin();
+    Wire.beginTransmission(I2C_ADDR_PCA9685_REAR);
+    pcaRearOK = (Wire.endTransmission() == 0);
     pcaRearRetrying = false;
-    
     if (!pcaRearOK) {
       Logger::error("Traction: PCA9685 Rear (0x41) init FAIL definitivo");
       System::logError(831);  // Error code: PCA9685 Rear init failure
     }
   }
-  
+
   if (pcaRearOK) {
     pcaRear.setPWMFreq(1000);  // 1kHz for BTS7960
-    // Initialize all channels to 0 for safety
     for (int ch = 0; ch < 4; ch++) {
       pcaRear.setPWM(ch, 0, 0);
     }
     Logger::info("Traction: PCA9685 Rear (0x41) init OK");
   }
 
-  // Get shared MCP23017 manager instance (initialized by ControlManager)
   mcpManager = &MCP23017Manager::getInstance();
-  
   if (mcpManager && mcpManager->isOK()) {
-    // Configure GPIOA0-A7 as OUTPUT for IN1/IN2 control
     for (int pin = MCP_PIN_FL_IN1; pin <= MCP_PIN_RR_IN2; pin++) {
       mcpManager->pinMode(pin, OUTPUT);
-      mcpManager->digitalWrite(pin, LOW);  // Initialize to LOW for safety
+      mcpManager->digitalWrite(pin, LOW);
     }
     Logger::info("Traction: MCP23017 (0x20) GPIOA configured via manager");
   } else {
     Logger::error("Traction: MCP23017 manager not available");
   }
 
-  // System is initialized if all hardware components are OK
-  // SAFETY: Strict initialization required - all I2C devices must be functional
-  // Partial operation is not allowed to prevent unpredictable vehicle behavior
-  // (e.g., unbalanced traction if one axle fails could cause loss of control)
-  // Future enhancement: Could implement graceful degradation with FWD-only mode
-  // if rear PCA9685 fails, but would require extensive testing for safety
   initialized = (pcaFrontOK && pcaRearOK && mcpManager && mcpManager->isOK());
   Logger::infof("Traction init: %s", initialized ? "OK" : "FAIL");
 }
@@ -541,7 +495,6 @@ void Traction::update() {
     Logger::debugf("Ackermann: angle=%.1f°, factorFL=%.3f, factorFR=%.3f",
                    steer.angleDeg, factorFL, factorFR);
   }
-
   // v2.12.0: Combined ACC and obstacle safety control
   float obstacleFactor = 1.0f;
   float accFactor = 1.0f;
