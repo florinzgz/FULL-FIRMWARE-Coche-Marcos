@@ -34,7 +34,7 @@ static uint16_t pctToTicks(float pct) {
 void SteeringMotor::init() {
     // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
     // No llamar Wire.begin() aquí para evitar resetear configuración I2C
-
+    
     // 🔒 v2.8.5: Validate PWM channels match expected steering configuration
     if (!pwm_channels_match_steering_config(kChannelFwd, kChannelRev)) {
         Logger::errorf("SteeringMotor: PWM channel config mismatch FWD=%d REV=%d", kChannelFwd, kChannelRev);
@@ -43,15 +43,14 @@ void SteeringMotor::init() {
         pcaOK = false;
         return;
     }
-
+    
     // Non-blocking retry state for PCA9685
     static uint32_t pcaRetryTime = 0;
     static bool pcaRetrying = false;
-
+    
     // 🔒 v2.4.0: Validar inicialización PCA9685 con retry no bloqueante
     if (!pcaOK && !pcaRetrying) {
-        pca.begin(); // Cambiado: begin() ahora es void
-        // Comprobar si hay respuesta en el bus I2C al address esperado
+        pca.begin();
         Wire.beginTransmission(I2C_ADDR_PCA9685_STEERING);
         pcaOK = (Wire.endTransmission() == 0);
         if (!pcaOK) {
@@ -60,13 +59,13 @@ void SteeringMotor::init() {
             pcaRetryTime = millis();
         }
     }
-
+    
     if (pcaRetrying && (millis() - pcaRetryTime >= kRetryIntervalMs)) {
-        pca.begin(); // Cambiado: begin() ahora es void
+        pca.begin();
         Wire.beginTransmission(I2C_ADDR_PCA9685_STEERING);
         pcaOK = (Wire.endTransmission() == 0);
         pcaRetrying = false;
-
+        
         if (!pcaOK) {
             Logger::error("SteeringMotor: PCA9685 init FAIL definitivo");
             System::logError(250);  // Código: PCA9685 dirección no responde
@@ -74,10 +73,10 @@ void SteeringMotor::init() {
             return;
         }
     }
-
+    
     if (pcaOK) {
         pca.setPWMFreq(kFreqHz);
-
+        
         // 🔒 v2.4.0: Inicializar canales en estado apagado por seguridad
         pca.setPWM(kChannelFwd, 0, 0);
         pca.setPWM(kChannelRev, 0, 0);
@@ -85,7 +84,7 @@ void SteeringMotor::init() {
 
     // Get shared MCP23017 manager instance (initialized by ControlManager)
     mcpManager = &MCP23017Manager::getInstance();
-
+    
     if (mcpManager && mcpManager->isOK()) {
         mcpManager->pinMode(MCP_PIN_STEER_IN1, OUTPUT);
         mcpManager->pinMode(MCP_PIN_STEER_IN2, OUTPUT);
@@ -110,12 +109,12 @@ void SteeringMotor::update() {
     // 🔒 CORRECCIÓN CRÍTICA: Verificar inicialización antes de actualizar
     if (!initialized || !pcaOK || !mcpManager || !mcpManager->isOK()) {
         Logger::warn("SteeringMotor update llamado sin init");
-        // NOTA: No intentamos parada de emergencia aquí porque pca.begin()
+        // NOTA: No intentamos parada de emergencia aquí porque pca.begin() 
         // no ha sido llamado y el objeto PCA9685 no está configurado.
         // El control de potencia debe hacerse vía relés (Relays::disablePower())
         return;
     }
-
+    
     // 🔒 v2.4.0: Protección por sobrecorriente
     float currentA = Sensors::getCurrent(5);  // Canal 5 = motor dirección
     if (currentA > kMaxCurrentA && std::isfinite(currentA)) {
@@ -130,7 +129,7 @@ void SteeringMotor::update() {
         s.currentA = currentA;
         return;
     }
-
+    
     // Control sencillo: seguir el ángulo de mando (puede venir de alg. superior)
     float target = s.demandDeg;
     float actual = Steering::get().angleDeg;
