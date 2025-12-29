@@ -1,6 +1,17 @@
 #include "current.h"
 #include <Wire.h>
 #include <INA226.h>
+
+// --- FIX PARA DEFINES FALTANTES DE LA LIBRERÍA INA226 ---
+#ifndef INA226_1_SAMPLE
+#define INA226_1_SAMPLE 0
+#endif
+
+#ifndef INA226_1100_us
+#define INA226_1100_us 7
+#endif
+// --- FIN FIX ---
+
 #include "logger.h"
 #include "storage.h"
 #include "settings.h"
@@ -97,11 +108,6 @@ void Sensors::initCurrent() {
     bool allOk = true;
 
     for(int i=0; i<NUM_CURRENTS; i++) {
-        
-        
-        
-        
-        
         // 🔒 CRITICAL FIX: Prevent memory leak on repeated init
         // Delete existing INA226 objects before creating new ones
         if (ina[i] != nullptr) {
@@ -128,20 +134,6 @@ void Sensors::initCurrent() {
             // NO marcar allOk como falso aquí: fallo no crítico, sistema continúa degradado
             // NO llamar a System::logError() - solo warning
             // El sistema puede continuar sin este sensor específico.
-            //
-            // IMPORTANTE SOBRE RECUPERACIÓN I²C:
-            // Históricamente aquí se intentaba una recuperación del bus
-            // (p.ej. I2CRecovery::reinitSensor()) cuando el INA226 no
-            // inicializaba correctamente. Esa lógica se retiró porque:
-            //   - Podía bloquear la tarea durante demasiado tiempo.
-            //   - Interfiere con otros dispositivos que comparten el bus.
-            //   - La recuperación global del bus se maneja ahora en un
-            //     nivel superior y no en el path de inicialización local.
-            //
-            // Si en el futuro se reintroduce recuperación aquí, debe ser:
-            //   - No bloqueante (o con timeout bien definido).
-            //   - Segura frente a accesos concurrentes (respetar i2cMutex).
-            //   - Limitada en reintentos para evitar bucles infinitos.
         } else {
             // Configurar shunt según canal:
             // Canal 4 = batería (100A), resto = motores (50A)
