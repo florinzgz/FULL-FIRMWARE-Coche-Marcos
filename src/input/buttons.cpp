@@ -8,53 +8,67 @@
 // 🆕 v2.9.4: Forward declaration para función en main.cpp
 extern void activateTouchCalibration();
 
+enum Btn { BTN_LIGHTS = 0, BTN_MEDIA = 1, BTN_4X4 = 2, BTN_COUNT = 3 };
+
 static Buttons::State s;
-static bool lastLights = false;
-static bool lastMultimedia = false;
-static bool last4x4 = false;
+static bool lastState[BTN_COUNT]       = {false, false, false};
+static bool stableState[BTN_COUNT]     = {false, false, false}; // ÚLTIMO ESTADO ESTABLE
+static unsigned long lastSignal[BTN_COUNT]        = {0,0,0};
+static unsigned long pressStartMs[BTN_COUNT]      = {0,0,0};
+static bool longPressTriggered[BTN_COUNT]         = {false, false, false};
+static bool veryLongPressTriggered                = false; // solo BTN_4X4
 
-static bool evLights = false;
-static bool evMultimedia = false;
-static bool ev4x4 = false;
-
-// 🔒 CORRECCIÓN: Añadir soporte para long-press
-static constexpr unsigned long DEBOUNCE_MS = 30;
-static constexpr unsigned long LONG_PRESS_MS = 2000;  // 2 segundos para acciones normales
-static constexpr unsigned long VERY_LONG_PRESS_MS = 5000;  // 🆕 v2.9.4: 5 segundos para calibración táctil
-static unsigned long lastScan[3] = {0,0,0};
-static unsigned long pressStartMs[3] = {0,0,0};
-static bool longPressTriggered[3] = {false, false, false};
-static bool veryLongPressTriggered = false;  // 🆕 v2.9.4: Para calibración táctil (solo 4X4)
+static bool ev[BTN_COUNT] = {false,false,false};
 
 static bool initialized = false;
 
+// Logger antispam
+static bool invalidPinLogged[BTN_COUNT] = {false, false, false};
+
+// Parámetros
+static constexpr unsigned long DEBOUNCE_MS       = 30;
+static constexpr unsigned long LONG_PRESS_MS     = 2000;
+static constexpr unsigned long VERY_LONG_PRESS_MS= 5000;
+
 static bool readPin(uint8_t pin, int idx) {
     if(pin == 0xFF) {
-        Logger::error("Buttons: pin inválido");
-        System::logError(740);
+        if (!invalidPinLogged[idx]) {
+            Logger::error("Buttons: pin inválido");
+            System::logError(740);
+            invalidPinLogged[idx] = true;
+        }
         return false;
     }
-    bool reading = (digitalRead(pin) == 0);  // 0 = LOW, avoid conflict with Audio::Priority::PRIO_LOW
+    bool nowState = (digitalRead(pin) == 0); // LOW==pressed
     unsigned long now = millis();
-    
-    // 🔒 CORRECCIÓN: Debounce mejorado
-    if(now - lastScan[idx] < DEBOUNCE_MS) {
-        return (idx==0?lastLights: idx==1?lastMultimedia: last4x4);
+
+    // Debounce: solo establezco stableState si el valor nuevo se mantiene el tiempo mínimo
+    if (nowState != stableState[idx]) {
+        // Flanco²: inicio ventana de debounce
+        lastSignal[idx] = now;
     }
-    lastScan[idx] = now;
-    return reading;
+    // Si la duración del valor nuevo supera DEBOUNCE_MS, ya es estable
+    if (now - lastSignal[idx] >= DEBOUNCE_MS) {
+        stableState[idx] = nowState;
+    }
+    // Devuelvo el último estable, no el inmediato
+    return stableState[idx];
 }
 
 void Buttons::init() {
     pinMode(PIN_BTN_LIGHTS,    INPUT_PULLUP);
     pinMode(PIN_BTN_MEDIA,     INPUT_PULLUP);
     pinMode(PIN_BTN_4X4,       INPUT_PULLUP);
-    // PIN_BTN_BATTERY removed - no longer available
 
     s = {false, false, false, false};
-    lastLights = lastMultimedia = last4x4 = false;
-    evLights = evMultimedia = ev4x4 = false;
-
+    for(int i=0;i<BTN_COUNT;i++) {
+        lastState[i] = stableState[i] = ev[i] = false;
+        invalidPinLogged[i] = false;
+        longPressTriggered[i] = false;
+        lastSignal[i] = 0;
+        pressStartMs[i] = 0;
+    }
+    veryLongPressTriggered = false;
     initialized = true;
     Logger::info("Buttons init OK");
 }
@@ -66,117 +80,92 @@ void Buttons::update() {
     }
 
     unsigned long now = millis();
-    
-    bool lights      = readPin(PIN_BTN_LIGHTS, 0);
-    bool multimedia  = readPin(PIN_BTN_MEDIA, 1);
-    bool mode4x4     = readPin(PIN_BTN_4X4, 2);
-    // batteryIcon button removed - no longer available
+    bool state[BTN_COUNT] = {
+        readPin(PIN_BTN_LIGHTS, BTN_LIGHTS),
+        readPin(PIN_BTN_MEDIA,  BTN_MEDIA),
+        readPin(PIN_BTN_4X4,    BTN_4X4)
+    };
 
-    // 🔒 CORRECCIÓN: Implementar long-press para cada botón
-    // Botón LIGHTS
-    if(lights && !lastLights) {
-        // Botón presionado - iniciar timer
-        pressStartMs[0] = now;
-        longPressTriggered[0] = false;
-    } else if(lights && lastLights) {
-        // Botón mantenido - verificar long press
-        if (!longPressTriggered[0] && (now - pressStartMs[0] >= LONG_PRESS_MS)) {
-            longPressTriggered[0] = true;
+    // ----- BTN_LIGHTS -----
+    if(state[BTN_LIGHTS] && !lastState[BTN_LIGHTS]) {
+        pressStartMs[BTN_LIGHTS] = now;
+        longPressTriggered[BTN_LIGHTS] = false;
+    } else if (state[BTN_LIGHTS] && lastState[BTN_LIGHTS]) {
+        if (!longPressTriggered[BTN_LIGHTS] && now - pressStartMs[BTN_LIGHTS] >= LONG_PRESS_MS) {
+            longPressTriggered[BTN_LIGHTS] = true;
             Logger::info("Buttons: LIGHTS long-press detectado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Long-press should activate emergency/hazard lights via LED controller.
-            //       Integration with LED controller required here (future enhancement).
+            // TODO: activar luces emergencia/hazard aquí
         }
-    } else if(!lights && lastLights) {
-        // Botón liberado - toggle solo si no fue long-press
-        if (!longPressTriggered[0]) {
+    } else if(!state[BTN_LIGHTS] && lastState[BTN_LIGHTS]) {
+        // botón soltado
+        if (!longPressTriggered[BTN_LIGHTS]) {
             s.lights = !s.lights;
-            evLights = true;
+            ev[BTN_LIGHTS] = true;
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         }
-        longPressTriggered[0] = false;
+        longPressTriggered[BTN_LIGHTS] = false;
+        pressStartMs[BTN_LIGHTS] = 0; // para evitar rebotes
     }
-    
-    // Botón MULTIMEDIA
-    if(multimedia && !lastMultimedia) {
-        pressStartMs[1] = now;
-        longPressTriggered[1] = false;
-    } else if(multimedia && lastMultimedia) {
-        if (!longPressTriggered[1] && (now - pressStartMs[1] >= LONG_PRESS_MS)) {
-            longPressTriggered[1] = true;
-            Logger::info("Buttons: MULTIMEDIA long-press detectado - cambio de modo de audio");
+
+    // ----- BTN_MEDIA -----
+    if(state[BTN_MEDIA] && !lastState[BTN_MEDIA]) {
+        pressStartMs[BTN_MEDIA] = now;
+        longPressTriggered[BTN_MEDIA] = false;
+    } else if (state[BTN_MEDIA] && lastState[BTN_MEDIA]) {
+        if (!longPressTriggered[BTN_MEDIA] && now - pressStartMs[BTN_MEDIA] >= LONG_PRESS_MS) {
+            longPressTriggered[BTN_MEDIA] = true;
+            Logger::info("Buttons: MULTIMEDIA long-press detectado - cambio de modo");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: Long-press reserved for cycling audio modes (radio/bluetooth/aux)
+            // TODO: cambiar modo de audio aquí
         }
-    } else if(!multimedia && lastMultimedia) {
-        if (!longPressTriggered[1]) {
+    } else if(!state[BTN_MEDIA] && lastState[BTN_MEDIA]) {
+        if (!longPressTriggered[BTN_MEDIA]) {
             s.multimedia = !s.multimedia;
-            evMultimedia = true;
+            ev[BTN_MEDIA] = true;
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         }
-        longPressTriggered[1] = false;
+        longPressTriggered[BTN_MEDIA] = false;
+        pressStartMs[BTN_MEDIA] = 0;
     }
-    
-    // Botón 4X4
-    if(mode4x4 && !last4x4) {
-        pressStartMs[2] = now;
-        longPressTriggered[2] = false;
-        veryLongPressTriggered = false;  // 🆕 v2.9.4: Reset very long press
-    } else if(mode4x4 && last4x4) {
-        // 🆕 v2.9.4: Very long press (5 segundos) - Activar calibración táctil directa
-        if (!veryLongPressTriggered && (now - pressStartMs[2] >= VERY_LONG_PRESS_MS)) {
+
+    // ----- BTN_4X4 -----
+    if(state[BTN_4X4] && !lastState[BTN_4X4]) {
+        pressStartMs[BTN_4X4] = now;
+        longPressTriggered[BTN_4X4] = false;
+        veryLongPressTriggered       = false;
+    } else if (state[BTN_4X4] && lastState[BTN_4X4]) {
+        if (!veryLongPressTriggered && now - pressStartMs[BTN_4X4] >= VERY_LONG_PRESS_MS) {
             veryLongPressTriggered = true;
-            Logger::info("Buttons: 4X4 very-long-press (5s) - Iniciando calibración táctil");
+            longPressTriggered[BTN_4X4] = true; // BLOQUEA cualquier toggle tras soltar
+            Logger::info("Buttons: 4X4 very-long-press (5s) - calibración táctil");
             Alerts::play({Audio::AUDIO_MENU_OCULTO, Audio::Priority::PRIO_HIGH});
-            // Llamar función externa definida en main.cpp
             activateTouchCalibration();
-        }
-        // Long press normal (2 segundos)
-        else if (!longPressTriggered[2] && (now - pressStartMs[2] >= LONG_PRESS_MS)) {
-            longPressTriggered[2] = true;
-            Logger::info("Buttons: 4X4 long-press detectado - modo de tracción avanzado");
+        } else if (!longPressTriggered[BTN_4X4] && now - pressStartMs[BTN_4X4] >= LONG_PRESS_MS) {
+            longPressTriggered[BTN_4X4] = true;
+            Logger::info("Buttons: 4X4 long-press detectado");
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // Placeholder: No advanced traction mode functionality is currently implemented.
-            // Long-press is reserved for future advanced traction modes (sand/mud/rock).
         }
-    } else if(!mode4x4 && last4x4) {
-        if (!longPressTriggered[2] && !veryLongPressTriggered) {
+    } else if(!state[BTN_4X4] && lastState[BTN_4X4]) {
+        // BLOQUEA SI SE DISPARÓ VERY LONG PRESS
+        if (!longPressTriggered[BTN_4X4] && !veryLongPressTriggered) {
             s.mode4x4 = !s.mode4x4;
-            ev4x4 = true;
+            ev[BTN_4X4] = true;
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         }
-        longPressTriggered[2] = false;
-        veryLongPressTriggered = false;  // 🆕 v2.9.4: Reset
+        longPressTriggered[BTN_4X4] = false;
+        veryLongPressTriggered = false;
+        pressStartMs[BTN_4X4] = 0;
     }
 
-    lastLights = lights;
-    lastMultimedia = multimedia;
-    last4x4 = mode4x4;
+    // Actualiza lastState[]
+    for(int i=0;i<BTN_COUNT;i++) {
+        lastState[i] = state[i];
+    }
 }
 
-const Buttons::State& Buttons::get() {
-    return s;
-}
-
-bool Buttons::toggledLights() {
-    bool e = evLights;
-    evLights = false;
-    return e;
-}
-
-bool Buttons::toggledMultimedia() {
-    bool e = evMultimedia;
-    evMultimedia = false;
-    return e;
-}
-
-bool Buttons::toggled4x4() {
-    bool e = ev4x4;
-    ev4x4 = false;
-    return e;
-}
-
-// 🔒 v2.5.0: Estado de inicialización
-bool Buttons::initOK() {
-    return initialized;
-}
+const Buttons::State& Buttons::get() { return s; }
+bool Buttons::toggledLights()        { bool e = ev[BTN_LIGHTS];   ev[BTN_LIGHTS]=false; return e; }
+bool Buttons::toggledMultimedia()    { bool e = ev[BTN_MEDIA];    ev[BTN_MEDIA]=false; return e; }
+bool Buttons::toggled4x4()           { bool e = ev[BTN_4X4];      ev[BTN_4X4]=false; return e; }
+bool Buttons::initOK()               { return initialized; }
