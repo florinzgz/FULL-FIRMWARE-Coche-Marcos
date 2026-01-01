@@ -1,34 +1,66 @@
-#pragma once
+#ifndef BUTTONS_H
+#define BUTTONS_H
+
 #include <Arduino.h>
 
-namespace Buttons {
+/**
+ * @brief Gestión de botones físicos del tablero.
+ * 
+ * Soporta:
+ * - Debounce seguro por botón
+ * - Detección de toggle (on/off) por botón
+ * - Long press y very long press individual
+ * - Protección de inicialización
+ *
+ * El orden (índices) de los botones es seguro por enum:
+ *   BTN_LIGHTS = 0, BTN_MEDIA = 1, BTN_4X4 = 2
+ * 
+ * Para expansión, solo crece el enum y los arrays.
+ */
 
-    // --- Estado global de los botones ---
+class Buttons {
+public:
     struct State {
-        bool lights;       // botón luces (toggle ON/OFF)
-        bool multimedia;   // botón multimedia (toggle ON/OFF)
-        bool mode4x4;      // toggle 4x4 / 4x2
-        bool batteryIcon;  // acceso menú oculto (combinación especial)
+        bool lights;
+        bool multimedia;
+        bool mode4x4;
+        bool reserved;  // Futuro o expansión
     };
 
-    // --- Inicialización ---
-    // Configura los pines definidos en pins.h y resetea el estado.
-    void init();
+    /**
+     * @brief Inicializa pines, arrays y estado.
+     */
+    static void init();
 
-    // --- Actualización ---
-    // Debe llamarse periódicamente en el loop principal.
-    // Aplica debounce y detecta cambios de estado.
-    void update();
+    /**
+     * @brief Llama una vez por loop. Debe llamarse frecuentemente.
+     */
+    static void update();
 
-    // --- Acceso al estado actual ---
-    const State& get();
+    /**
+     * @brief Devuelve el estado actual completo.
+     */
+    static const State& get();
 
-    // --- Eventos de flanco (toggle) ---
-    // Devuelven true una sola vez cuando se detecta un cambio de estado.
-    bool toggledLights();
-    bool toggledMultimedia();
-    bool toggled4x4();
-    
-    // 🔒 v2.5.0: Estado de inicialización
-    bool initOK();
-}
+    /**
+     * @brief Devuelve y limpia el flag de toggle para el botón de luces.
+     */
+    static bool toggledLights();
+
+    /**
+     * @brief Devuelve y limpia el flag de toggle para multimedia.
+     */
+    static bool toggledMultimedia();
+
+    /**
+     * @brief Devuelve y limpia el flag de toggle para modo 4x4.
+     */
+    static bool toggled4x4();
+
+    /**
+     * @brief Verifica si fue inicializado correctamente.
+     */
+    static bool initOK();
+};
+
+#endif // BUTTONS_H
