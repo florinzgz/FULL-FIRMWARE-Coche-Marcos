@@ -1,149 +1,102 @@
 #ifndef EEPROM_PERSISTENCE_H
 #define EEPROM_PERSISTENCE_H
 
-#include <Arduino.h>
 #include <Preferences.h>
 
-/**
- * @brief Sistema de persistencia EEPROM para configuraciones del coche
- * 
- * Gestiona almacenamiento persistente de:
- * - Configuración encoder (calibración volante)
- * - Estados sensores (enable/disable)
- * - Configuración power management (tiempos relés)
- * - Configuración LEDs (patrón, brillo, velocidad, color)
- * - Configuración WiFi (SSID, password)
- * - Settings generales del sistema
- * 
- * Usa ESP32 Preferences (NVS) para almacenamiento no volátil
- */
+// --- Definición de estructuras de configuración ---
+struct EncoderConfig {
+    int16_t centerPosition;
+    int16_t leftLimit;
+    int16_t rightLimit;
+    bool calibrated;
+};
+
+struct SensorStates {
+    bool wheelFL;
+    bool wheelFR;
+    bool wheelRL;
+    bool wheelRR;
+    bool encoder;
+    bool ina226FL;
+    bool ina226FR;
+    bool ina226RL;
+    bool ina226RR;
+    bool ina226Bat;
+    bool ina226Steer;
+};
+
+struct PowerConfig {
+    uint16_t powerHoldDelay;
+    uint16_t auxDelay;
+    uint16_t motorDelay;
+    uint16_t shutdownDelay;
+    bool autoShutdown;
+};
+
+struct LEDConfig {
+    uint8_t pattern;
+    uint8_t brightness;
+    uint8_t speed;
+    uint32_t color;
+    bool enabled;
+};
+
+struct GeneralSettings {
+    bool hiddenMenuPIN;
+    uint16_t menuTimeout;
+    bool audioEnabled;
+    uint8_t volume;
+    bool absEnabled;
+    bool tcsEnabled;
+    bool regenEnabled;
+    uint8_t driveMode;
+};
+
+// --- Namespaces para Preferences ---
+#define NS_ENCODER  "ENCODER"
+#define NS_SENSORS  "SENSORS"
+#define NS_POWER    "POWER"
+#define NS_LEDS     "LEDS"
+#define NS_GENERAL  "GENERAL"
+
 class EEPROMPersistence {
 public:
-    /**
-     * @brief Inicializa el sistema EEPROM
-     * @return true si inicialización exitosa
-     */
+    // Inicialización global del sistema de persistencia
     static bool init();
-    
-    /**
-     * @brief Guarda todas las configuraciones actuales
-     * @return true si guardado exitoso
-     */
-    static bool saveAll();
-    
-    /**
-     * @brief Carga todas las configuraciones guardadas
-     * @return true si carga exitosa
-     */
-    static bool loadAll();
-    
-    /**
-     * @brief Resetea todas las configuraciones a valores por defecto
-     * @return true si reset exitoso
-     */
+
+    // Carga y guardado de toda la configuración (referencia)
+    static bool saveAll(EncoderConfig&, SensorStates&, PowerConfig&, LEDConfig&, GeneralSettings&);
+    static bool loadAll(EncoderConfig&, SensorStates&, PowerConfig&, LEDConfig&, GeneralSettings&);
+
+    // Factory Reset (todo a valores fábrica)
     static bool factoryReset();
+
+    // Operaciones por cada módulo
+    static bool saveEncoderConfig(const EncoderConfig&);
+    static bool loadEncoderConfig(EncoderConfig&);
     
-    // ========== ENCODER CALIBRATION ==========
-    struct EncoderConfig {
-        int16_t centerPosition;  // Posición centro volante
-        int16_t leftLimit;       // Límite izquierdo
-        int16_t rightLimit;      // Límite derecho
-        bool calibrated;         // Flag calibración completada
-    };
+    static bool saveSensorStates(const SensorStates&);
+    static bool loadSensorStates(SensorStates&);
     
-    static bool saveEncoderConfig(const EncoderConfig& config);
-    static bool loadEncoderConfig(EncoderConfig& config);
+    static bool savePowerConfig(const PowerConfig&);
+    static bool loadPowerConfig(PowerConfig&);
     
-    // ========== SENSOR STATES ==========
-    struct SensorStates {
-        bool wheelFL;      // Sensor rueda Front Left
-        bool wheelFR;      // Sensor rueda Front Right
-        bool wheelRL;      // Sensor rueda Rear Left
-        bool wheelRR;      // Sensor rueda Rear Right
-        bool encoder;      // Encoder volante
-        bool ina226FL;     // INA226 Motor FL
-        bool ina226FR;     // INA226 Motor FR
-        bool ina226RL;     // INA226 Motor RL
-        bool ina226RR;     // INA226 Motor RR
-        bool ina226Bat;    // INA226 Batería
-        bool ina226Steer;  // INA226 Motor dirección
-    };
+    static bool saveLEDConfig(const LEDConfig&);
+    static bool loadLEDConfig(LEDConfig&);
     
-    static bool saveSensorStates(const SensorStates& states);
-    static bool loadSensorStates(SensorStates& states);
-    
-    // ========== POWER MANAGEMENT CONFIG ==========
-    struct PowerConfig {
-        uint16_t powerHoldDelay;      // Delay Power Hold (ms)
-        uint16_t auxDelay;            // Delay 12V Auxiliares (ms)
-        uint16_t motorDelay;          // Delay 24V Motores (ms)
-        uint16_t shutdownDelay;       // Delay shutdown total (ms)
-        bool autoShutdown;            // Auto-shutdown habilitado
-    };
-    
-    static bool savePowerConfig(const PowerConfig& config);
-    static bool loadPowerConfig(PowerConfig& config);
-    
-    // ========== LED CONFIG ==========
-    struct LEDConfig {
-        uint8_t pattern;       // Patrón actual (0-9)
-        uint8_t brightness;    // Brillo (0-255)
-        uint8_t speed;         // Velocidad animación (0-255)
-        uint32_t color;        // Color RGB personalizado
-        bool enabled;          // LEDs habilitados
-    };
-    
-    static bool saveLEDConfig(const LEDConfig& config);
-    static bool loadLEDConfig(LEDConfig& config);
-    
-    // ========== WIFI CONFIG ==========
-    struct WiFiConfig {
-        char ssid[32];         // SSID WiFi
-        char password[64];     // Password WiFi
-        bool autoConnect;      // Auto-connect al arranque
-        bool otaEnabled;       // OTA habilitado
-    };
-    
-    static bool saveWiFiConfig(const WiFiConfig& config);
-    static bool loadWiFiConfig(WiFiConfig& config);
-    
-    // ========== GENERAL SETTINGS ==========
-    struct GeneralSettings {
-        bool hiddenMenuPIN;      // PIN 8989 activado
-        uint16_t menuTimeout;    // Timeout menú oculto (segundos)
-        bool audioEnabled;       // Audio habilitado
-        uint8_t volume;          // Volumen (0-30)
-        bool absEnabled;         // ABS habilitado
-        bool tcsEnabled;         // TCS habilitado
-        bool regenEnabled;       // Regen brake habilitado
-        uint8_t driveMode;       // Modo conducción (0=Eco, 1=Normal, 2=Sport)
-    };
-    
-    static bool saveGeneralSettings(const GeneralSettings& settings);
-    static bool loadGeneralSettings(GeneralSettings& settings);
-    
-    // ========== VERSIÓN CONFIGURACIÓN ==========
-    static const uint8_t CONFIG_VERSION = 1;  // Versión actual del formato
-    
-private:
-    static Preferences prefs;
-    static bool initialized;
-    
-    // Nombres de namespaces NVS
-    static constexpr const char* NS_ENCODER = "encoder";
-    static constexpr const char* NS_SENSORS = "sensors";
-    static constexpr const char* NS_POWER = "power";
-    static constexpr const char* NS_LEDS = "leds";
-    static constexpr const char* NS_WIFI = "wifi";
-    static constexpr const char* NS_GENERAL = "general";
-    
-    // Valores por defecto
+    static bool saveGeneralSettings(const GeneralSettings&);
+    static bool loadGeneralSettings(GeneralSettings&);
+
+    // Defaults
     static EncoderConfig getDefaultEncoderConfig();
     static SensorStates getDefaultSensorStates();
     static PowerConfig getDefaultPowerConfig();
     static LEDConfig getDefaultLEDConfig();
-    static WiFiConfig getDefaultWiFiConfig();
     static GeneralSettings getDefaultGeneralSettings();
+
+    // Estado global (para debug o pruebas)
+    static Preferences prefs;
+    static bool initialized;
 };
 
 #endif // EEPROM_PERSISTENCE_H
