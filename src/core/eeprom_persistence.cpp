@@ -1,16 +1,10 @@
-/**
- * @file eeprom_persistence.cpp
- * @brief Implementation of EEPROM persistence system for car configurations (sin WiFi, robusto)
- */
-
 #include "eeprom_persistence.h"
 #include "logger.h"
 
-// Static members initialization
 Preferences EEPROMPersistence::prefs;
 bool EEPROMPersistence::initialized = false;
 
-// Default configurations
+// Configuración por defecto
 EEPROMPersistence::EncoderConfig EEPROMPersistence::getDefaultEncoderConfig() { return {600, 0, 1200, false}; }
 EEPROMPersistence::SensorStates EEPROMPersistence::getDefaultSensorStates()   { return {true, true, true, true, true, true, true, true, true, true, true}; }
 EEPROMPersistence::PowerConfig EEPROMPersistence::getDefaultPowerConfig()     { return {5000, 100, 500, 3000, true}; }
@@ -19,8 +13,9 @@ EEPROMPersistence::GeneralSettings EEPROMPersistence::getDefaultGeneralSettings(
 
 bool EEPROMPersistence::init() {
     if (initialized) return true;
+    // Mejorable: algún día abrir todos los NS aquí para detectar corrupción global
     if (!prefs.begin(NS_ENCODER, false)) {
-        Logger::error("EEPROM: Failed to initialize NVS");
+        Logger::error("EEPROM: cannot open NS_ENCODER");
         return false;
     }
     prefs.end();
@@ -29,7 +24,6 @@ bool EEPROMPersistence::init() {
     return true;
 }
 
-// --- saveAll y loadAll: referencias reales preferidas ---
 bool EEPROMPersistence::saveAll(
     EncoderConfig& encoder, SensorStates& sensors, PowerConfig& power, LEDConfig& leds, GeneralSettings& general
 ) {
@@ -82,7 +76,10 @@ bool EEPROMPersistence::factoryReset() {
 
 // --- Encoder Configuration ---
 bool EEPROMPersistence::saveEncoderConfig(const EncoderConfig& config) {
-    if (!prefs.begin(NS_ENCODER, false)) return false;
+    if (!prefs.begin(NS_ENCODER, false)) {
+        Logger::error("EEPROM: cannot open NS_ENCODER");
+        return false;
+    }
     prefs.putShort("center", config.centerPosition);
     prefs.putShort("left", config.leftLimit);
     prefs.putShort("right", config.rightLimit);
@@ -92,6 +89,7 @@ bool EEPROMPersistence::saveEncoderConfig(const EncoderConfig& config) {
 }
 bool EEPROMPersistence::loadEncoderConfig(EncoderConfig& config) {
     if (!prefs.begin(NS_ENCODER, true)) {
+        Logger::error("EEPROM: cannot open NS_ENCODER");
         config = getDefaultEncoderConfig();
         return false;
     }
@@ -109,7 +107,10 @@ bool EEPROMPersistence::loadEncoderConfig(EncoderConfig& config) {
 
 // --- Sensor States ---
 bool EEPROMPersistence::saveSensorStates(const SensorStates& states) {
-    if (!prefs.begin(NS_SENSORS, false)) return false;
+    if (!prefs.begin(NS_SENSORS, false)) {
+        Logger::error("EEPROM: cannot open NS_SENSORS");
+        return false;
+    }
     prefs.putBool("wFL", states.wheelFL);
     prefs.putBool("wFR", states.wheelFR);
     prefs.putBool("wRL", states.wheelRL);
@@ -126,6 +127,7 @@ bool EEPROMPersistence::saveSensorStates(const SensorStates& states) {
 }
 bool EEPROMPersistence::loadSensorStates(SensorStates& states) {
     if (!prefs.begin(NS_SENSORS, true)) {
+        Logger::error("EEPROM: cannot open NS_SENSORS");
         states = getDefaultSensorStates();
         return false;
     }
@@ -147,7 +149,10 @@ bool EEPROMPersistence::loadSensorStates(SensorStates& states) {
 
 // --- Power Configuration ---
 bool EEPROMPersistence::savePowerConfig(const PowerConfig& config) {
-    if (!prefs.begin(NS_POWER, false)) return false;
+    if (!prefs.begin(NS_POWER, false)) {
+        Logger::error("EEPROM: cannot open NS_POWER");
+        return false;
+    }
     prefs.putUShort("hold", config.powerHoldDelay);
     prefs.putUShort("aux", config.auxDelay);
     prefs.putUShort("motor", config.motorDelay);
@@ -158,6 +163,7 @@ bool EEPROMPersistence::savePowerConfig(const PowerConfig& config) {
 }
 bool EEPROMPersistence::loadPowerConfig(PowerConfig& config) {
     if (!prefs.begin(NS_POWER, true)) {
+        Logger::error("EEPROM: cannot open NS_POWER");
         config = getDefaultPowerConfig();
         return false;
     }
@@ -177,7 +183,10 @@ bool EEPROMPersistence::loadPowerConfig(PowerConfig& config) {
 
 // --- LED Configuration ---
 bool EEPROMPersistence::saveLEDConfig(const LEDConfig& config) {
-    if (!prefs.begin(NS_LEDS, false)) return false;
+    if (!prefs.begin(NS_LEDS, false)) {
+        Logger::error("EEPROM: cannot open NS_LEDS");
+        return false;
+    }
     prefs.putUChar("pattern", config.pattern);
     prefs.putUChar("bright", config.brightness);
     prefs.putUChar("speed", config.speed);
@@ -188,6 +197,7 @@ bool EEPROMPersistence::saveLEDConfig(const LEDConfig& config) {
 }
 bool EEPROMPersistence::loadLEDConfig(LEDConfig& config) {
     if (!prefs.begin(NS_LEDS, true)) {
+        Logger::error("EEPROM: cannot open NS_LEDS");
         config = getDefaultLEDConfig();
         return false;
     }
@@ -197,13 +207,20 @@ bool EEPROMPersistence::loadLEDConfig(LEDConfig& config) {
     config.speed = prefs.getUChar("speed", defaults.speed);
     config.color = prefs.getUInt("color", defaults.color);
     config.enabled = prefs.getBool("enabled", defaults.enabled);
+    // --- Validación extra de rango ---
+    if (config.pattern > 10)     config.pattern = defaults.pattern;
+    if (config.brightness > 255) config.brightness = defaults.brightness;
+    if (config.speed > 255)      config.speed = defaults.speed;
     prefs.end();
     return true;
 }
 
 // --- General Settings ---
 bool EEPROMPersistence::saveGeneralSettings(const GeneralSettings& settings) {
-    if (!prefs.begin(NS_GENERAL, false)) return false;
+    if (!prefs.begin(NS_GENERAL, false)) {
+        Logger::error("EEPROM: cannot open NS_GENERAL");
+        return false;
+    }
     prefs.putBool("pinEnabled", settings.hiddenMenuPIN);
     prefs.putUShort("timeout", settings.menuTimeout);
     prefs.putBool("audio", settings.audioEnabled);
@@ -217,6 +234,7 @@ bool EEPROMPersistence::saveGeneralSettings(const GeneralSettings& settings) {
 }
 bool EEPROMPersistence::loadGeneralSettings(GeneralSettings& settings) {
     if (!prefs.begin(NS_GENERAL, true)) {
+        Logger::error("EEPROM: cannot open NS_GENERAL");
         settings = getDefaultGeneralSettings();
         return false;
     }
