@@ -49,10 +49,11 @@ jobs:
       - name: Verify build-wrapper
         run: build-wrapper-linux-x86-64 --version
 
-      - name: Clean PlatformIO
+      - name: Clean PlatformIO and compiler cache
         run: |
           pio run -t clean
           rm -rf .pio
+          rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3/cache
 
       - name: Build firmware (wrapped, single-thread)
         run: |
