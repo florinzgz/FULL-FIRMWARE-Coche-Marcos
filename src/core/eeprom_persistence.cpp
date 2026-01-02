@@ -5,11 +5,11 @@ Preferences EEPROMPersistence::prefs;
 bool EEPROMPersistence::initialized = false;
 
 // Configuración por defecto
-EEPROMPersistence::EncoderConfig EEPROMPersistence::getDefaultEncoderConfig() { return {600, 0, 1200, false}; }
-EEPROMPersistence::SensorStates EEPROMPersistence::getDefaultSensorStates()   { return {true, true, true, true, true, true, true, true, true, true, true}; }
-EEPROMPersistence::PowerConfig EEPROMPersistence::getDefaultPowerConfig()     { return {5000, 100, 500, 3000, true}; }
-EEPROMPersistence::LEDConfig EEPROMPersistence::getDefaultLEDConfig()         { return {1, 128, 128, 0xFF0000, true}; }
-EEPROMPersistence::GeneralSettings EEPROMPersistence::getDefaultGeneralSettings() { return {true, 30, true, 15, true, true, true, 1}; }
+EncoderConfig EEPROMPersistence::getDefaultEncoderConfig() { return {600, 0, 1200, false}; }
+SensorStates EEPROMPersistence::getDefaultSensorStates()   { return {true, true, true, true, true, true, true, true, true, true, true}; }
+PowerConfig EEPROMPersistence::getDefaultPowerConfig()     { return {5000, 100, 500, 3000, true}; }
+LEDConfig EEPROMPersistence::getDefaultLEDConfig()         { return {1, 128, 128, 0xFF0000, true}; }
+GeneralSettings EEPROMPersistence::getDefaultGeneralSettings() { return {true, 30, true, 15, true, true, true, 1}; }
 
 bool EEPROMPersistence::init() {
     if (initialized) return true;
