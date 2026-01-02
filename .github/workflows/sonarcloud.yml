@@ -18,14 +18,9 @@ jobs:
   sonarcloud:
     runs-on: ubuntu-latest
 
-    # 🔧 fuerza a GitHub a usar la raíz del repo (evita la carpeta duplicada)
-    defaults:
-      run:
-        working-directory: .
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -34,25 +29,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential unzip wget python3
 
-      - name: Install PlatformIO
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install platformio
-
       - name: Install build-wrapper
         run: |
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
           chmod +x build-wrapper-linux-x86/*
+
           echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
 
-      # ❗️IMPORTANTE: build limpio y envuelto
+      - name: Clean PlatformIO
+        run: |
+          pio run -t clean
+
       - name: Build firmware (wrapped)
         run: |
-          platformio run --target clean
           build-wrapper-linux-x86-64 \
             --out-dir bw-output \
-            platformio run
+            pio run -v
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
