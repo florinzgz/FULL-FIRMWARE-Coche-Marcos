@@ -38,14 +38,19 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
+      - name: Install PlatformIO
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install platformio
+
       - name: Install build-wrapper
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential unzip wget
+          sudo apt-get install -y unzip wget
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
-          chmod +x build-wrapper-linux-x86/build-wrapper-linux-x86-64
-          echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
+          sudo mv build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/
+          sudo chmod +x /usr/local/bin/build-wrapper-linux-x86-64
 
       - name: Build firmware with PlatformIO (wrapped)
         run: |
