@@ -1,21 +1,4 @@
-name: SonarCloud Audit
-
-on:
-  push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
-  schedule:
-    - cron: "0 3 * * 0"
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pull-requests: write
-  security-events: write
-
-jobs:
-  sonarcloud:
+sonarcloud:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,25 +7,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Python + PlatformIO
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip build-essential unzip wget
+          sudo apt-get install -y build-essential unzip wget python3 python3-pip
           pip install platformio
 
       - name: Install build-wrapper
         run: |
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
-          chmod +x build-wrapper-linux-x86/*
-
+          chmod +x build-wrapper-linux-x86/*          
           echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
 
       - name: Build firmware (wrapped)
         run: |
-          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
+          pio run --target clean
+          build-wrapper-linux-x86 \
             --out-dir bw-output \
-            pio run -e esp32-s3-devkitc
+            pio run -v
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
