@@ -13,7 +13,6 @@ EEPROMPersistence::GeneralSettings EEPROMPersistence::getDefaultGeneralSettings(
 
 bool EEPROMPersistence::init() {
     if (initialized) return true;
-    // Mejorable: algún día abrir todos los NS aquí para detectar corrupción global
     if (!prefs.begin(NS_ENCODER, false)) {
         Logger::error("EEPROM: cannot open NS_ENCODER");
         return false;
@@ -37,6 +36,7 @@ bool EEPROMPersistence::saveAll(
     Logger::info(success ? "EEPROM: All configurations saved" : "EEPROM: Failed to save some configurations");
     return success;
 }
+
 bool EEPROMPersistence::loadAll(
     EncoderConfig& encoder, SensorStates& sensors, PowerConfig& power, LEDConfig& leds, GeneralSettings& general
 ) {
@@ -207,7 +207,7 @@ bool EEPROMPersistence::loadLEDConfig(LEDConfig& config) {
     config.speed = prefs.getUChar("speed", defaults.speed);
     config.color = prefs.getUInt("color", defaults.color);
     config.enabled = prefs.getBool("enabled", defaults.enabled);
-    // --- Validación extra de rango ---
+    // Extra validación de rango
     if (config.pattern > 10)     config.pattern = defaults.pattern;
     if (config.brightness > 255) config.brightness = defaults.brightness;
     if (config.speed > 255)      config.speed = defaults.speed;
