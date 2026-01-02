@@ -38,7 +38,10 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      # ✅ Instalamos y movemos build-wrapper a ruta segura
+      - name: Install PlatformIO
+        run: |
+          pip install platformio
+
       - name: Install build-wrapper
         run: |
           sudo apt-get update
@@ -48,10 +51,12 @@ jobs:
           sudo mv build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/
           sudo chmod +x /usr/local/bin/build-wrapper-linux-x86-64
 
-      # ✅ Compilar PlatformIO con wrapper
+      # ⬇️ ESTA ES LA LÍNEA IMPORTANTE
       - name: Build firmware with PlatformIO (wrapped)
         run: |
-          build-wrapper-linux-x86-64 --out-dir bw-output pio run
+          build-wrapper-linux-x86-64 \
+            --out-dir bw-output \
+            pio run
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
