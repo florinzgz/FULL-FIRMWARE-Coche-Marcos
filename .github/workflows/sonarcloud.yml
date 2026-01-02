@@ -5,29 +5,44 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+  schedule:
+    - cron: "0 3 * * 0"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
 
 jobs:
   sonarcloud:
-    name: SonarCloud Analysis
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Build with PlatformIO
+      - name: Install dependencies
         run: |
-          pip install platformio
-          pio run
+          sudo apt-get update
+          sudo apt-get install -y build-essential unzip wget python3
+
+      - name: Install build-wrapper
+        run: |
+          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+          chmod +x build-wrapper-linux-x86/*
+
+          # añadir al PATH
+          echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
+
+      - name: Build firmware (wrapped)
+        run: |
+          build-wrapper-linux-x86 \
+            --out-dir bw-output \
+            pio run
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
@@ -38,4 +53,5 @@ jobs:
             -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
             -Dsonar.organization=florinzgz
             -Dsonar.sources=src,include
+            -Dsonar.cfamily.build-wrapper-output=bw-output
             -Dsonar.verbose=true
