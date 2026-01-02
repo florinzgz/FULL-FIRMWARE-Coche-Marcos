@@ -3,7 +3,8 @@
 
 #include <Preferences.h>
 
-// --- Definición de estructuras de configuración ---
+// --- Estructuras de configuración ---
+
 struct EncoderConfig {
     int16_t centerPosition;
     int16_t leftLimit;
@@ -52,7 +53,7 @@ struct GeneralSettings {
     uint8_t driveMode;
 };
 
-// --- Namespaces para Preferences ---
+// --- Namespaces para EEPROM/Preferences ---
 #define NS_ENCODER  "ENCODER"
 #define NS_SENSORS  "SENSORS"
 #define NS_POWER    "POWER"
@@ -61,29 +62,25 @@ struct GeneralSettings {
 
 class EEPROMPersistence {
 public:
-    // Inicialización global del sistema de persistencia
+    // Inicialización
     static bool init();
 
-    // Carga y guardado de toda la configuración (referencia)
+    // Guardar/cargar TODO en referencias reales
     static bool saveAll(EncoderConfig&, SensorStates&, PowerConfig&, LEDConfig&, GeneralSettings&);
     static bool loadAll(EncoderConfig&, SensorStates&, PowerConfig&, LEDConfig&, GeneralSettings&);
 
-    // Factory Reset (todo a valores fábrica)
+    // Reset a fábrica
     static bool factoryReset();
 
-    // Operaciones por cada módulo
+    // Por módulo
     static bool saveEncoderConfig(const EncoderConfig&);
     static bool loadEncoderConfig(EncoderConfig&);
-    
     static bool saveSensorStates(const SensorStates&);
     static bool loadSensorStates(SensorStates&);
-    
     static bool savePowerConfig(const PowerConfig&);
     static bool loadPowerConfig(PowerConfig&);
-    
     static bool saveLEDConfig(const LEDConfig&);
     static bool loadLEDConfig(LEDConfig&);
-    
     static bool saveGeneralSettings(const GeneralSettings&);
     static bool loadGeneralSettings(GeneralSettings&);
 
@@ -94,7 +91,7 @@ public:
     static LEDConfig getDefaultLEDConfig();
     static GeneralSettings getDefaultGeneralSettings();
 
-    // Estado global (para debug o pruebas)
+    // Estado global (debug)
     static Preferences prefs;
     static bool initialized;
 };
