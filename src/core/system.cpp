@@ -105,22 +105,10 @@ void System::init() {
     }
     
     // ========================================
-// Defer setting the flag until after successful initialization
-// systemInitialized = true; // REMOVE this early assignment
-
-// ... perform all initialization steps ...
-
-// Only set flag after ALL initialization succeeds
-systemInitialized = true;
-Logger::info("System init: Marked as initialized (successful completion)");
+    // PASO 4: Inicialización normal
     // ========================================
-    // Esto previene re-entrada incluso si init() falla más adelante
-    systemInitialized = true;
-    Logger::info("System init: Marked as initialized (preventing re-entry)");
-    
-    // ========================================
-    // PASO 5: Inicialización normal
-    // ========================================
+    // NOTA: El flag systemInitialized se establece al FINAL de init()
+    // después de que toda la inicialización sea exitosa
     // Inicializar sistema de modos de operación
     SystemMode::init();
     
@@ -235,7 +223,13 @@ Logger::info("System init: Marked as initialized (successful completion)");
     }
     
     // ========================================
-    // PASO 6: Liberar mutex al finalizar
+    // PASO 6: Marcar inicialización exitosa
+    // ========================================
+    systemInitialized = true;
+    Logger::info("System init: Marked as initialized (successful completion)");
+    
+    // ========================================
+    // PASO 7: Liberar mutex al finalizar
     // ========================================
     if (initMutex != nullptr) {
         xSemaphoreGive(initMutex);
