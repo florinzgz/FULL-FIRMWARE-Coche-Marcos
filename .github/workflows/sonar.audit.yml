@@ -45,10 +45,10 @@ jobs:
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
           chmod +x build-wrapper-linux-x86/build-wrapper-linux-x86-64
+          echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
 
       - name: Build firmware with PlatformIO (wrapped)
         run: |
-          export PATH="$PWD/build-wrapper-linux-x86:$PATH"
           build-wrapper-linux-x86-64 --out-dir bw-output pio run
 
       - name: SonarCloud Scan
