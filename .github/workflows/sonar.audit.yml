@@ -1,0 +1,64 @@
+name: SonarCloud Audit
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  schedule:
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Install build-wrapper
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential unzip wget
+          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip build-wrapper-linux-x86.zip
+
+      - name: Build firmware with PlatformIO (wrapped)
+        run: |
+          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
+            --out-dir bw-output \
+            pio run
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
+            -Dsonar.organization=florinzgz
+            -Dsonar.sources=src,include
+            -Dsonar.cfamily.build-wrapper-output=bw-output
+            -Dsonar.verbose=true
