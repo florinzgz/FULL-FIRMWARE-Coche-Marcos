@@ -162,7 +162,7 @@ Logger::info("System init: Marked as initialized (successful completion)");
     }
     
     // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
-    EEPROMPersistence::GeneralSettings settings;
+    GeneralSettings settings;
     
     if (EEPROMPersistence::loadGeneralSettings(settings)) {
         Logger::info("System init: Configuración general cargada exitosamente");
@@ -186,7 +186,7 @@ Logger::info("System init: Marked as initialized (successful completion)");
     }
     
     // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
-    EEPROMPersistence::LEDConfig ledConfig;
+    LEDConfig ledConfig;
     
     if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
         Logger::info("System init: Configuración LED cargada exitosamente");

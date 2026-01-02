@@ -868,10 +868,10 @@ void HUD::update() {
     
     // Simulated button state (needed for MenuHidden)
     Buttons::State btns;
-    btns.batteryIcon = false;
     btns.lights = false;
     btns.multimedia = false;
     btns.mode4x4 = false;
+    btns.reserved = false;
     
     // Static feature states
     bool lights = false;
@@ -1255,10 +1255,10 @@ void HUD::update() {
         hiddenMenuJustActivated = false;
     } else {
         // Normal battery touch handling
-        MenuHidden::update(btns.batteryIcon || batteryTouch);
+        MenuHidden::update(batteryTouch);
     }
 #else
     // Menú oculto: botón físico o toque en batería
-    MenuHidden::update(btns.batteryIcon || batteryTouch);
+    MenuHidden::update(batteryTouch);
 #endif
 }

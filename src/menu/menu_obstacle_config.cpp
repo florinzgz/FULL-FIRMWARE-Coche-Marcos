@@ -80,30 +80,22 @@ void init() {
 }
 
 void loadConfig() {
-    auto& config = ConfigStorage::getCurrentConfig();
-    // Cargar umbrales de distancia: actualiza para que sean persistentes si lo tienes
-    criticalDistance = config.obstacleCritical;
-    warningDistance  = config.obstacleWarning;
-    cautionDistance  = config.obstacleCaution;
+    // TODO: Implement obstacle config persistence in ConfigStorage
+    // For now, using hardcoded defaults from ObstacleConfig namespace
+    criticalDistance = ObstacleConfig::DISTANCE_CRITICAL;
+    warningDistance  = ObstacleConfig::DISTANCE_WARNING;
+    cautionDistance  = ObstacleConfig::DISTANCE_CAUTION;
     for (int i = 0; i < kNumObstacles; i++) {
-        sensorEnabled[i] = config.obstacleEnabled[i];
+        sensorEnabled[i] = true;
     }
-    audioAlertsEnabled  = config.obstacleAudio;
-    visualAlertsEnabled = config.obstacleVisual;
+    audioAlertsEnabled  = true;
+    visualAlertsEnabled = true;
 }
 
 void saveConfig() {
-    auto& config = ConfigStorage::getCurrentConfig();
-    config.obstacleCritical = criticalDistance;
-    config.obstacleWarning  = warningDistance;
-    config.obstacleCaution  = cautionDistance;
-    for (int i = 0; i < kNumObstacles; i++) {
-        config.obstacleEnabled[i] = sensorEnabled[i];
-    }
-    config.obstacleAudio  = audioAlertsEnabled;
-    config.obstacleVisual = visualAlertsEnabled;
-    ConfigStorage::save(config);
-    Logger::info("ObstacleConfigMenu: Configuration saved");
+    // TODO: Implement obstacle config persistence in ConfigStorage
+    // For now, configuration is not persisted and will reset on reboot
+    Logger::info("ObstacleConfigMenu: Configuration saved (in-memory only)");
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
 }
 
