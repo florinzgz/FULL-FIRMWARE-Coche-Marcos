@@ -40,23 +40,16 @@ jobs:
 
       - name: Install build-wrapper
         run: |
-          sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential unzip wget libc6:i386
+          sudo apt-get install -y build-essential unzip wget
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
           chmod +x build-wrapper-linux-x86/build-wrapper-linux-x86-64
 
-      - name: Install PlatformIO
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install platformio
-
       - name: Build firmware with PlatformIO (wrapped)
         run: |
-          ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
-            --out-dir bw-output \
-            pio run
+          export PATH="$PWD/build-wrapper-linux-x86:$PATH"
+          build-wrapper-linux-x86-64 --out-dir bw-output pio run
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
