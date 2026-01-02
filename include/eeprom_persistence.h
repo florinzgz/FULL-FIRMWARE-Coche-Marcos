@@ -4,7 +4,6 @@
 #include <Preferences.h>
 
 // --- Estructuras de configuración ---
-
 struct EncoderConfig {
     int16_t centerPosition;
     int16_t leftLimit;
@@ -53,7 +52,7 @@ struct GeneralSettings {
     uint8_t driveMode;
 };
 
-// --- Namespaces para EEPROM/Preferences ---
+// --- Namespaces de configuración ---
 #define NS_ENCODER  "ENCODER"
 #define NS_SENSORS  "SENSORS"
 #define NS_POWER    "POWER"
@@ -62,17 +61,15 @@ struct GeneralSettings {
 
 class EEPROMPersistence {
 public:
-    // Inicialización
     static bool init();
 
-    // Guardar/cargar TODO en referencias reales
+    // Carga y guardado global
     static bool saveAll(EncoderConfig&, SensorStates&, PowerConfig&, LEDConfig&, GeneralSettings&);
     static bool loadAll(EncoderConfig&, SensorStates&, PowerConfig&, LEDConfig&, GeneralSettings&);
 
-    // Reset a fábrica
     static bool factoryReset();
 
-    // Por módulo
+    // Por cada módulo
     static bool saveEncoderConfig(const EncoderConfig&);
     static bool loadEncoderConfig(EncoderConfig&);
     static bool saveSensorStates(const SensorStates&);
@@ -84,14 +81,14 @@ public:
     static bool saveGeneralSettings(const GeneralSettings&);
     static bool loadGeneralSettings(GeneralSettings&);
 
-    // Defaults
+    // Defaults para cada módulo
     static EncoderConfig getDefaultEncoderConfig();
     static SensorStates getDefaultSensorStates();
     static PowerConfig getDefaultPowerConfig();
     static LEDConfig getDefaultLEDConfig();
     static GeneralSettings getDefaultGeneralSettings();
 
-    // Estado global (debug)
+    // Persiste el estado
     static Preferences prefs;
     static bool initialized;
 };
