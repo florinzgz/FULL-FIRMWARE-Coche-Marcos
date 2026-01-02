@@ -40,8 +40,9 @@ jobs:
 
       - name: Install build-wrapper
         run: |
+          sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential unzip wget
+          sudo apt-get install -y build-essential unzip wget libc6:i386
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
           chmod +x build-wrapper-linux-x86/build-wrapper-linux-x86-64
