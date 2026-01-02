@@ -47,6 +47,11 @@ jobs:
           unzip build-wrapper-linux-x86.zip
           chmod +x build-wrapper-linux-x86/build-wrapper-linux-x86-64
 
+      - name: Install PlatformIO
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install platformio
+
       - name: Build firmware with PlatformIO (wrapped)
         run: |
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
