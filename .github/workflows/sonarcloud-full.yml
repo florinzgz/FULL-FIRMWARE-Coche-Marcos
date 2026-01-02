@@ -1,0 +1,77 @@
+name: SonarCloud Full Audit
+
+on:
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.platformio
+            .pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential unzip wget python3 python3-pip
+
+      - name: Install PlatformIO
+        run: |
+          pip install platformio
+
+      - name: Install build-wrapper
+        run: |
+          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip -O bw.zip
+          unzip bw.zip
+          chmod +x build-wrapper-linux-x86/*
+          echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
+
+      - name: Verify build-wrapper
+        run: build-wrapper-linux-x86-64 --version
+
+      - name: Clean PlatformIO
+        run: |
+          pio run -t clean
+          rm -rf .pio
+
+      - name: Build firmware (wrapped, single-thread)
+        run: |
+          build-wrapper-linux-x86-64 \
+            --out-dir bw-output \
+            pio run -v -j 1
+
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
+            -Dsonar.organization=florinzgz
+            -Dsonar.projectBaseDir=.
+            -Dsonar.sources=src,include
+            -Dsonar.exclusions=.pio/**,lib/**,test/**
+            -Dsonar.cfamily.build-wrapper-output=bw-output
+            -Dsonar.cfamily.cache.enabled=false
+            -Dsonar.verbose=true
+            -Dsonar.qualitygate.wait=true
