@@ -92,6 +92,9 @@ constexpr uint16_t RELAY_SPARE_FAIL = 606;
 constexpr uint16_t RELAY_STATE_TIMEOUT = 607;
 constexpr uint16_t RELAY_STATE_INCONSISTENT = 608;
 constexpr uint16_t RELAY_ERROR_DETECTION_FAIL = 650;
+constexpr uint16_t SHIFTER_NOT_IN_PARK = 651;
+constexpr uint16_t SHIFTER_INVALID_STATE = 652;
+constexpr uint16_t SHIFTER_NOT_INITIALIZED = 653;
 constexpr uint16_t RELAY_UNSPECIFIED_ERROR = 699;
 
 // --- Audio System (700-799) ---
@@ -219,6 +222,9 @@ inline const char* getErrorDescription(uint16_t code) {
     if (code == RELAY_STATE_TIMEOUT) return "Timeout estado rele";
     if (code == RELAY_STATE_INCONSISTENT) return "Estado rele inconsistente";
     if (code == RELAY_ERROR_DETECTION_FAIL) return "Deteccion error rele fallo";
+    if (code == SHIFTER_NOT_IN_PARK) return "Palanca no en PARK";
+    if (code == SHIFTER_INVALID_STATE) return "Palanca estado inválido";
+    if (code == SHIFTER_NOT_INITIALIZED) return "Palanca no inicializada";
     if (code == RELAY_UNSPECIFIED_ERROR) return "Error rele no especificado";
     
     // Audio System (700-799)

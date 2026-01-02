@@ -1,4 +1,5 @@
 #include "system.h"
+#include "error_codes.h"      // 🔒 v2.11.0: Códigos de error centralizados
 #include "dfplayer.h"
 #include "current.h"
 #include "temperature.h"
@@ -20,8 +21,6 @@
 #include "operation_modes.h"     // Sistema de modos de operación con tolerancia a fallos
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
-
-extern Storage::Config cfg;
 
 // ========================================
 // Configuración de protección de inicialización
@@ -105,22 +104,10 @@ void System::init() {
     }
     
     // ========================================
-// Defer setting the flag until after successful initialization
-// systemInitialized = true; // REMOVE this early assignment
-
-// ... perform all initialization steps ...
-
-// Only set flag after ALL initialization succeeds
-systemInitialized = true;
-Logger::info("System init: Marked as initialized (successful completion)");
+    // PASO 4: Inicialización normal
     // ========================================
-    // Esto previene re-entrada incluso si init() falla más adelante
-    systemInitialized = true;
-    Logger::info("System init: Marked as initialized (preventing re-entry)");
-    
-    // ========================================
-    // PASO 5: Inicialización normal
-    // ========================================
+    // NOTA: El flag systemInitialized se establece al FINAL de init()
+    // después de que toda la inicialización sea exitosa
     // Inicializar sistema de modos de operación
     SystemMode::init();
     
@@ -191,12 +178,8 @@ Logger::info("System init: Marked as initialized (successful completion)");
     if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
         Logger::info("System init: Configuración LED cargada exitosamente");
         
-        // 🔒 Validar valores de configuración antes de aplicar
-        if (ledConfig.brightness > 255) {
-            Logger::warnf("System init: Brillo LED inválido (%d), usando default (128)", ledConfig.brightness);
-            ledConfig.brightness = 128;
-        }
-        
+        // 🔒 Validar configuración (brightness es uint8_t, siempre válido 0-255)
+        // Validar pattern si tiene rango limitado
         LEDController::setEnabled(ledConfig.enabled);
         LEDController::setBrightness(ledConfig.brightness);
         
@@ -235,7 +218,13 @@ Logger::info("System init: Marked as initialized (successful completion)");
     }
     
     // ========================================
-    // PASO 6: Liberar mutex al finalizar
+    // PASO 6: Marcar inicialización exitosa
+    // ========================================
+    systemInitialized = true;
+    Logger::info("System init: Marked as initialized (successful completion)");
+    
+    // ========================================
+    // PASO 7: Liberar mutex al finalizar
     // ========================================
     if (initMutex != nullptr) {
         xSemaphoreGive(initMutex);
@@ -302,7 +291,7 @@ System::Health System::selfTest() {
 
     // Pedal (crítico)
     if(!Pedal::initOK()) {
-        System::logError(100);
+        System::logError(ErrorCodes::PEDAL_ERROR);
         Logger::error("SelfTest: CRÍTICO - pedal no responde");
         h.ok = false;
         mode = OperationMode::MODE_SAFE;
@@ -318,7 +307,7 @@ System::Health System::selfTest() {
     // Dirección (encoder) - crítico
     if(cfg.steeringEnabled) {
         if(!Steering::initOK()) {
-            System::logError(200);
+            System::logError(ErrorCodes::STEERING_INIT_FAIL);
             Logger::error("SelfTest: CRÍTICO - encoder dirección no responde");
             h.steeringOK = false;
             h.ok = false;
@@ -337,7 +326,7 @@ System::Health System::selfTest() {
 
     // Palanca de cambios (crítico para arranque seguro)
     if(!Shifter::initOK()) {
-        System::logError(650);
+        System::logError(ErrorCodes::SHIFTER_NOT_INITIALIZED);
         Logger::error("SelfTest: CRÍTICO - palanca de cambios no inicializada");
         h.ok = false;
         mode = OperationMode::MODE_SAFE;
@@ -346,12 +335,12 @@ System::Health System::selfTest() {
         
         // Validate gear is in valid range
         if(gear < Shifter::P || gear > Shifter::R) {
-            System::logError(652);
+            System::logError(ErrorCodes::SHIFTER_INVALID_STATE);
             Logger::error("SelfTest: CRÍTICO - palanca en estado inválido");
             h.ok = false;
             mode = OperationMode::MODE_SAFE;
         } else if(gear != Shifter::P) {
-            System::logError(651);
+            System::logError(ErrorCodes::SHIFTER_NOT_IN_PARK);
             Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK (gear=%d)", static_cast<int>(gear));
             h.ok = false;
             mode = OperationMode::MODE_SAFE;
@@ -360,7 +349,7 @@ System::Health System::selfTest() {
 
     // Relés (crítico)
     if(!Relays::initOK()) {
-        System::logError(600);
+        System::logError(ErrorCodes::RELAY_SYSTEM_FAIL);
         Logger::error("SelfTest: CRÍTICO - Relés no responden - modo seguro");
         h.ok = false;
         mode = OperationMode::MODE_SAFE;
