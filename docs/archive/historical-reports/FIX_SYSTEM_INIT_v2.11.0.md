@@ -45,7 +45,7 @@ if (!EEPROMPersistence::init()) {
 }
 
 // Cargar configuración general
-EEPROMPersistence::GeneralSettings settings;
+GeneralSettings settings;
 if (EEPROMPersistence::loadGeneralSettings(settings)) {
     // Aplicar toggles de módulos
     ABSSystem::setEnabled(settings.absEnabled);
@@ -58,7 +58,7 @@ if (EEPROMPersistence::loadGeneralSettings(settings)) {
 }
 
 // Cargar y aplicar configuración de LEDs
-EEPROMPersistence::LEDConfig ledConfig;
+LEDConfig ledConfig;
 if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
     LEDController::setEnabled(ledConfig.enabled);
     LEDController::setBrightness(ledConfig.brightness);
@@ -172,7 +172,7 @@ void System::init() {
     // Cargar y aplicar ajustes persistentes usando API actual
     EEPROMPersistence::init();
     
-    EEPROMPersistence::GeneralSettings settings;
+    GeneralSettings settings;
     EEPROMPersistence::loadGeneralSettings(settings);
     
     // Aplicar toggles de módulos (igual que versión estable)
@@ -186,7 +186,7 @@ void System::init() {
     ObstacleSafety::enableBlindSpot(true);
     
     // Aplicar LEDs
-    EEPROMPersistence::LEDConfig ledConfig;
+    LEDConfig ledConfig;
     EEPROMPersistence::loadLEDConfig(ledConfig);
     LEDController::setEnabled(ledConfig.enabled);
     LEDController::setBrightness(ledConfig.brightness);
@@ -325,7 +325,7 @@ Cuando `SteeringMotor::setPIDConfig()` esté disponible, añadir:
 
 ```cpp
 // En System::init() después de cargar GeneralSettings
-EEPROMPersistence::EncoderConfig encoderConfig;
+EncoderConfig encoderConfig;
 if (EEPROMPersistence::loadEncoderConfig(encoderConfig)) {
     SteeringMotor::PIDConfig pidCfg{};
     // Configurar PID desde encoderConfig o settings

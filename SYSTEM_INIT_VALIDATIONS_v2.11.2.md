@@ -100,7 +100,7 @@ if (!EEPROMPersistence::init()) {
 
 ```cpp
 // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
-EEPROMPersistence::GeneralSettings settings;
+GeneralSettings settings;
 bool settingsLoaded = EEPROMPersistence::loadGeneralSettings(settings);
 
 if (settingsLoaded) {
@@ -137,7 +137,7 @@ if (settingsLoaded) {
 
 ```cpp
 // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
-EEPROMPersistence::LEDConfig ledConfig;
+LEDConfig ledConfig;
 bool ledConfigLoaded = EEPROMPersistence::loadLEDConfig(ledConfig);
 
 if (ledConfigLoaded) {
