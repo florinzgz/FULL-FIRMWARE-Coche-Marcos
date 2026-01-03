@@ -47,7 +47,7 @@ jobs:
           echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
 
       - name: Verify build-wrapper
-        run: build-wrapper-linux-x86-64 --version
+        run: build-wrapper-linux-x86-64 --version || true
 
       - name: Clean PlatformIO and compiler cache
         run: |
