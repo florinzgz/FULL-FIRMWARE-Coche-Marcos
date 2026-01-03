@@ -57,9 +57,7 @@ jobs:
 
       - name: Build firmware (wrapped, single-thread)
         run: |
-          build-wrapper-linux-x86-64 \
-            --out-dir bw-output \
-            pio run -v -j 1
+          build-wrapper-linux-x86-64 --out-dir bw-output pio run -v -j 1
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
