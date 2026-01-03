@@ -50,7 +50,7 @@ jobs:
 
       - name: Copy compilation database
         run: |
-          cp .pio/build/esp32-s3-devkitc-standalone/compile_commands.json .
+          find .pio/build -name "compile_commands.json" -exec cp {} . \;
 
       - name: Build firmware
         run: |
