@@ -52,7 +52,6 @@ jobs:
         run: |
           python3 << 'EOF'
           import json
-          import os
           from pathlib import Path
           
           # Find all compile_commands.json files in .pio/build directories
@@ -98,10 +97,21 @@ jobs:
           fi
           
           # Verify it's valid JSON and has content
-          if ! python3 -c "import json; data=json.load(open('compile_commands.json')); exit(0 if len(data) > 0 else 1)"; then
-            echo "Error: compile_commands.json is empty or invalid"
-            exit 1
-          fi
+          python3 << 'EOF'
+          import json
+          try:
+              with open('compile_commands.json', 'r') as f:
+                  data = json.load(f)
+              if len(data) == 0:
+                  print("Error: compile_commands.json is empty")
+                  exit(1)
+          except json.JSONDecodeError as e:
+              print(f"Error: compile_commands.json is invalid JSON: {e}")
+              exit(1)
+          except Exception as e:
+              print(f"Error: Failed to validate compile_commands.json: {e}")
+              exit(1)
+          EOF
           
           echo "✓ compile_commands.json verified successfully"
           python3 -c "import json; print(f'  Contains {len(json.load(open(\"compile_commands.json\")))} compilation commands')"
