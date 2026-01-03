@@ -7,13 +7,13 @@ This script is executed before the build process starts.
 Import("env")
 import subprocess
 import sys
+import importlib.util
 
 def install_package(package_name):
     """Install a Python package if not already installed."""
-    try:
-        __import__(package_name)
+    if importlib.util.find_spec(package_name) is not None:
         print(f"✓ {package_name} is already installed")
-    except ImportError:
+    else:
         print(f"Installing {package_name}...")
         try:
             subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
