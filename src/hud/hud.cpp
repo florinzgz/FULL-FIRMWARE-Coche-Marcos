@@ -1025,7 +1025,7 @@ void HUD::update() {
 #ifdef DEBUG_RENDER
     // 🔒 v2.8.4: Fase 6 - después de dibujar ruedas
     tft.drawPixel(6, 0, TFT_RED);
-#endif;
+#endif
     
     // Mostrar ángulo del volante en grados (promedio de FL/FR)
     float avgSteerAngle = (steerAngleFL + steerAngleFR) / 2.0f;

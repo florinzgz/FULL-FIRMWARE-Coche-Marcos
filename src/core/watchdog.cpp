@@ -80,10 +80,11 @@ void __attribute__((weak)) esp_task_wdt_isr_user_handler(void) {
     
     // Apagar motores y auxiliares INMEDIATAMENTE (pines de pins.h)
     // Acceso directo a registros GPIO para máxima velocidad y seguridad en ISR
-    GPIO.out_w1tc = ((1ULL << PIN_RELAY_MAIN) | 
-                     (1ULL << PIN_RELAY_TRAC) | 
-                     (1ULL << PIN_RELAY_DIR) | 
-                     (1ULL << PIN_RELAY_SPARE));
+    // GPIOs 0-31 usan out_w1tc, GPIOs 32+ usan out1_w1tc.val
+    GPIO.out_w1tc = ((1U << PIN_RELAY_TRAC) | 
+                     (1U << PIN_RELAY_DIR) | 
+                     (1U << PIN_RELAY_SPARE));
+    GPIO.out1_w1tc.val = (1U << (PIN_RELAY_MAIN - 32));
     
     // 🔒 v2.4.1: Usar bucle de CPU para espera mínima en lugar de delay()
     // Espera ~10ms para que los relés se desactiven físicamente
