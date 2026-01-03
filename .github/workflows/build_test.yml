@@ -38,13 +38,13 @@ jobs:
       run: pip install platformio
 
     - name: Build test environment
-      run: pio run -e esp32-s3-devkitc-touch-debug
+      run: pio run -e esp32-s3-wroom2-touch-debug
 
     - name: Upload test firmware
       uses: actions/upload-artifact@v4
       with:
         name: firmware-test
-        path: .pio/build/esp32-s3-devkitc-touch-debug/firmware.bin
+        path: .pio/build/esp32-s3-wroom2-touch-debug/firmware.bin
         if-no-files-found: error
 
     - name: Build verification summary
@@ -57,11 +57,11 @@ jobs:
         echo "" >> BUILD_REPORT.md
         echo "## 📊 Build Result" >> BUILD_REPORT.md
         echo "" >> BUILD_REPORT.md
-        if [ -f ".pio/build/esp32-s3-devkitc-touch-debug/firmware.bin" ]; then
-          SIZE=$(ls -lh ".pio/build/esp32-s3-devkitc-touch-debug/firmware.bin" | awk '{print $5}')
+        if [ -f ".pio/build/esp32-s3-wroom2-touch-debug/firmware.bin" ]; then
+          SIZE=$(ls -lh ".pio/build/esp32-s3-wroom2-touch-debug/firmware.bin" | awk '{print $5}')
           echo "| Environment | Status | Size |" >> BUILD_REPORT.md
           echo "|-------------|--------|------|" >> BUILD_REPORT.md
-          echo "| esp32-s3-devkitc-touch-debug | ✅ OK | $SIZE |" >> BUILD_REPORT.md
+          echo "| esp32-s3-wroom2-touch-debug | ✅ OK | $SIZE |" >> BUILD_REPORT.md
         else
           echo "❌ Build failed - firmware.bin not found" >> BUILD_REPORT.md
           exit 1
