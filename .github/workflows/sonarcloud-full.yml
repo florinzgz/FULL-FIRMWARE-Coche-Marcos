@@ -55,6 +55,17 @@ jobs:
           find .pio/build -name "compile_commands.json" -type f || echo "No files found"
           ls -la .pio/build/ || echo ".pio/build directory not found"
 
+      - name: Copy compilation database to root
+        run: |
+          if [ -f .pio/build/esp32-s3-devkitc/compile_commands.json ]; then
+            cp .pio/build/esp32-s3-devkitc/compile_commands.json .
+            echo "✓ Copied compile_commands.json to root directory"
+            ls -lh compile_commands.json
+          else
+            echo "Error: compile_commands.json not found in .pio/build/esp32-s3-devkitc/"
+            exit 1
+          fi
+
       - name: Set up sonar-scanner
         uses: SonarSource/sonarcloud-github-action@master
         env:
