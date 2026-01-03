@@ -1,7 +1,7 @@
 name: SonarCloud Full Audit
 
 on:
-  push:
+  push: 
     branches: [ "main" ]
   schedule:
     - cron: "0 3 * * 0"
@@ -13,7 +13,7 @@ permissions:
   security-events: write
 
 jobs:
-  sonarcloud:
+  sonarcloud: 
     runs-on: ubuntu-latest
 
     steps:
@@ -22,56 +22,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache PlatformIO
+      - name:  Cache PlatformIO
         uses: actions/cache@v3
         with:
           path: |
             ~/.platformio
-            .pio
+            . pio
           key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
 
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential unzip wget python3 python3-pip
+          sudo apt-get install -y build-essential python3 python3-pip
 
       - name: Install PlatformIO
-        run: |
+        run:  |
           pip install platformio
 
-      - name: Install build-wrapper
-        run: |
-          wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip -O bw.zip
-          unzip bw.zip
-          chmod +x build-wrapper-linux-x86/*
-          echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
-
-      # ⛔️ Eliminado el paso VERIFY
-
-      - name: Clean PlatformIO and compiler cache
+      - name: Clean build
         run: |
           pio run -t clean
           rm -rf .pio
-          rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3/cache || true
 
-      - name: Build firmware (wrapped, single-thread)
+      - name: Generate compilation database
         run: |
-          build-wrapper-linux-x86-64 \
-            --out-dir bw-output \
-            pio run -v -j 1
+          pio run -t compiledb
+
+      - name: Build firmware
+        run: |
+          pio run -v
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets. SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
             -Dsonar.organization=florinzgz
             -Dsonar.projectBaseDir=.
             -Dsonar.sources=src,include
-            -Dsonar.exclusions=.pio/**,lib/**,test/**
-            -Dsonar.cfamily.build-wrapper-output=bw-output
-            -Dsonar.cfamily.cache.enabled=false
+            -Dsonar.exclusions=. pio/**,lib/**,test/**
+            -Dsonar.cfamily.compile-commands=compile_commands.json
+            -Dsonar.cfamily.cache. enabled=false
             -Dsonar.verbose=true
             -Dsonar.qualitygate.wait=true
