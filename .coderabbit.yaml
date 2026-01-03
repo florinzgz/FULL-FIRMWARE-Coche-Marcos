@@ -1,5 +1,4 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-# Configuración de CodeRabbit para firmware ESP32-S3
 
 language: "es"
 
@@ -10,30 +9,12 @@ reviews:
 
   review_status: true
   profile: "assertive"
-
-  request_changes_workflow: false
   high_level_summary: true
   high_level_summary_placeholder: "**Resumen de cambios**"
+  request_changes_workflow: false
   poem: false
-  review_status_comment: true
   collapse_walkthrough: false
   auto_incremental_review: true
-
-  tools:
-    ruff:
-      enabled: false
-    shellcheck:
-      enabled: true
-
-guidelines:
-  - "Firmware embebido ESP32-S3 con PlatformIO"
-  - "Priorizar seguridad, manejo de errores y uso eficiente de memoria"
-  - "Revisar inicialización correcta de periféricos (I2C, SPI, PWM)"
-  - "Validar watchdog y recuperación ante bloqueos"
-  - "Detectar posibles memory leaks y buffer overflows"
-  - "Comprobar manejo robusto de sensores y fallos"
-  - "Detectar condiciones de carrera y bloqueos entre tasks"
-  - "Verificar rangos de arrays y límites de buffers"
 
 chat:
   auto_reply: false
@@ -43,30 +24,23 @@ knowledge_base:
     core_architecture:
       path: "src/core"
       content: |
-        Arquitectura basada en managers:
+        Firmware ESP32-S3 basado en managers:
+        PowerManager, SafetyManager, SensorManager, ControlManager, HUDManager.
 
-        - PowerManager
-        - SafetyManager
-        - SensorManager
-        - ControlManager
-        - HUDManager
-
-        Sistemas clave:
+        Prioridad:
+        - seguridad
+        - tolerancia a fallos
         - watchdog
         - logging
-        - tolerancia a fallos
         - recuperación segura
 
     components_technology:
       path: "**/*.cpp"
       content: |
-        Componentes principales:
+        Tecnologías:
         - ABS / TCS
-        - HUD TFT 480x320
-        - INA226
-        - DS18B20
-        - WS2812B
+        - HUD TFT
+        - INA226, DS18B20
+        - LEDs WS2812B
+        - DFPlayer
         - MCP23017
-        - DFPlayer (audio)
-        - TFT_eSPI
-        - XPT2046 (touch)
