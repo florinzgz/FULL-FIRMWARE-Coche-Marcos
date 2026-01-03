@@ -44,21 +44,67 @@ jobs:
           pio run -t clean
           rm -rf .pio
 
-      - name: Generate compilation database
-        run: |
-          pio run -t compiledb
-
-      - name: Copy compilation database
-        run: |
-          if [ -z "$(find .pio/build -name 'compile_commands.json')" ]; then
-            echo "Error: compile_commands.json not found"
-            exit 1
-          fi
-          find .pio/build -name "compile_commands.json" -exec cp {} . \;
-
-      - name: Build firmware
+      - name: Build all environments
         run: |
           pio run -v
+
+      - name: Merge compilation databases
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          from pathlib import Path
+          
+          # Find all compile_commands.json files in .pio/build directories
+          build_dir = Path('.pio/build')
+          compile_db_files = list(build_dir.glob('*/compile_commands.json'))
+          
+          if not compile_db_files:
+              print("Error: No compile_commands.json files found in any build environment")
+              exit(1)
+          
+          print(f"Found {len(compile_db_files)} compilation database(s):")
+          for f in compile_db_files:
+              print(f"  - {f}")
+          
+          # Merge all compilation databases
+          merged_commands = []
+          for db_file in compile_db_files:
+              try:
+                  with open(db_file, 'r') as f:
+                      commands = json.load(f)
+                      merged_commands.extend(commands)
+                      print(f"Merged {len(commands)} commands from {db_file}")
+              except Exception as e:
+                  print(f"Warning: Failed to read {db_file}: {e}")
+          
+          if not merged_commands:
+              print("Error: No compilation commands found in any database")
+              exit(1)
+          
+          # Write merged database to root
+          output_file = 'compile_commands.json'
+          with open(output_file, 'w') as f:
+              json.dump(merged_commands, f, indent=2)
+          
+          print(f"\nSuccessfully created {output_file} with {len(merged_commands)} compilation commands")
+          EOF
+
+      - name: Verify compilation database
+        run: |
+          if [ ! -f compile_commands.json ]; then
+            echo "Error: compile_commands.json not found at repository root"
+            exit 1
+          fi
+          
+          # Verify it's valid JSON and has content
+          if ! python3 -c "import json; data=json.load(open('compile_commands.json')); exit(0 if len(data) > 0 else 1)"; then
+            echo "Error: compile_commands.json is empty or invalid"
+            exit 1
+          fi
+          
+          echo "✓ compile_commands.json verified successfully"
+          python3 -c "import json; print(f'  Contains {len(json.load(open(\"compile_commands.json\")))} compilation commands')"
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
