@@ -102,12 +102,14 @@ jobs:
           
           # Fix paths to point to original source files
           fixed_commands = []
+          project_root = os.getcwd()
+          
           for cmd in commands:
               # Get the file path
               file_path = cmd.get('file', '')
               
               # If file is in .pio/build, find corresponding source file
-              if '.pio' in file_path:
+              if file_path.startswith('.pio/') or '/.pio/' in file_path:
                   # Extract relative path from .pio/build/xxx/src/... or .pio/build/xxx/include/...
                   parts = Path(file_path).parts
                   try:
@@ -120,11 +122,11 @@ jobs:
                           inc_idx = parts.index('include')
                           rel_path = Path(*parts[inc_idx:])
                           cmd['file'] = str(rel_path)
-                      
-                      # Update directory to project root
-                      cmd['directory'] = os.getcwd()
                   except (ValueError, IndexError):
                       pass  # Keep original if parsing fails
+              
+              # Update directory to project root for consistency
+              cmd['directory'] = project_root
               
               fixed_commands.append(cmd)
           
