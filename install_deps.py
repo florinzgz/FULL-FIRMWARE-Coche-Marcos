@@ -4,10 +4,12 @@ Pre-build script to ensure required Python dependencies are installed.
 This script is executed before the build process starts.
 """
 
-Import("env")
 import subprocess
 import sys
 import importlib.util
+
+# PlatformIO SCons environment import
+Import("env")
 
 def install_package(package_name):
     """Install a Python package if not already installed."""
