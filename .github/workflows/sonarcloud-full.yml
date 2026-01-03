@@ -46,18 +46,19 @@ jobs:
           chmod +x build-wrapper-linux-x86/*
           echo "$PWD/build-wrapper-linux-x86" >> $GITHUB_PATH
 
-      - name: Verify build-wrapper
-        run: build-wrapper-linux-x86-64 --version
+      # ⛔️ Eliminado el paso VERIFY
 
       - name: Clean PlatformIO and compiler cache
         run: |
           pio run -t clean
           rm -rf .pio
-          rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3/cache
+          rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3/cache || true
 
       - name: Build firmware (wrapped, single-thread)
         run: |
-          build-wrapper-linux-x86-64 --out-dir bw-output pio run -v -j 1
+          build-wrapper-linux-x86-64 \
+            --out-dir bw-output \
+            pio run -v -j 1
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
