@@ -1,185 +1,62 @@
-name: SonarCloud Full Audit
+name: SonarCloud Analysis Full
 
 on:
-  push:  
-    branches: [ "main" ]
-  schedule:
-    - cron: "0 3 * * 0"
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
 
-permissions:
-  contents: read
-  pull-requests: write
-  security-events: write
+env:
+  PLATFORMIO_CORE_DIR: ./.pio
 
 jobs:
-  sonarcloud:  
+  sonarcloud:
+    name: SonarCloud Analysis
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name:  Cache PlatformIO
-        uses: actions/cache@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
         with:
           path: |
-            ~/. platformio
-            . pio
-          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential python3 python3-pip
+            ~/.platformio
+            ./.pio
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
 
       - name: Install PlatformIO
         run: |
-          pip install platformio
+          pip install --upgrade platformio
 
-      - name: Clean build
+      - name: Clean build (keep .pio structure)
         run: |
           pio run -t clean
-          rm -rf .pio
 
-      - name: Build all environments
+      - name: Build project with compilation database
         run: |
-          pio run -v -t compiledb
+          pio run -e esp32-s3-devkitc -v
+          pio run -e esp32-s3-devkitc -t compiledb
 
-      - name: Merge compilation databases
+      - name: Check for compilation databases
         run: |
-          python3 << 'EOF'
-          import json
-          from pathlib import Path
-          
-          # Find all compile_commands.json files in .pio/build directories
-          build_dir = Path('. pio/build')
-          compile_db_files = list(build_dir.glob('*/compile_commands.json'))
-          
-          if not compile_db_files: 
-              print("Error: No compile_commands.json files found in any build environment")
-              exit(1)
-          
-          print(f"Found {len(compile_db_files)} compilation database(s):")
-          for f in compile_db_files:
-              print(f"  - {f}")
-          
-          # Merge all compilation databases
-          merged_commands = []
-          for db_file in compile_db_files:
-              try:
-                  with open(db_file, 'r') as f:
-                      commands = json.load(f)
-                      merged_commands.extend(commands)
-                      print(f"Merged {len(commands)} commands from {db_file}")
-              except Exception as e:
-                  print(f"Warning: Failed to read {db_file}: {e}")
-          
-          if not merged_commands:
-              print("Error:  No compilation commands found in any database")
-              exit(1)
-          
-          # Write merged database to root
-          output_file = 'compile_commands.json'
-          with open(output_file, 'w') as f:
-              json.dump(merged_commands, f, indent=2)
-          
-          print(f"\nSuccessfully created {output_file} with {len(merged_commands)} compilation commands")
-          EOF
+          echo "Checking for compile_commands.json files:"
+          find .pio/build -name "compile_commands.json" -type f || echo "No files found"
+          ls -la .pio/build/ || echo ".pio/build directory not found"
 
-      - name: Fix compilation database paths
-        run: |
-          python3 << 'EOF'
-          import json
-          import os
-          from pathlib import Path
-          
-          # Read merged compile_commands.json
-          with open('compile_commands.json', 'r') as f:
-              commands = json.load(f)
-          
-          # Fix paths to point to original source files
-          fixed_commands = []
-          for cmd in commands:
-              # Get the file path
-              file_path = cmd. get('file', '')
-              
-              # If file is in . pio/build, find corresponding source file
-              if '. pio' in file_path: 
-                  # Extract relative path from .pio/build/xxx/src/...  or .pio/build/xxx/include/...
-                  parts = Path(file_path).parts
-                  try:
-                      # Find 'src' or 'include' in path
-                      if 'src' in parts:
-                          src_idx = parts.index('src')
-                          rel_path = Path(*parts[src_idx:])
-                          cmd['file'] = str(rel_path)
-                      elif 'include' in parts:
-                          inc_idx = parts.index('include')
-                          rel_path = Path(*parts[inc_idx:])
-                          cmd['file'] = str(rel_path)
-                      
-                      # Update directory to project root
-                      cmd['directory'] = os.getcwd()
-                  except (ValueError, IndexError):
-                      pass  # Keep original if parsing fails
-              
-              fixed_commands.append(cmd)
-          
-          # Write fixed database
-          with open('compile_commands. json', 'w') as f:
-              json.dump(fixed_commands, f, indent=2)
-          
-          print(f"✓ Fixed paths in compile_commands.json ({len(fixed_commands)} entries)")
-          
-          # Show sample of fixed paths for verification
-          if fixed_commands:
-              print("\nSample fixed paths:")
-              for cmd in fixed_commands[:3]: 
-                  print(f"  - {cmd. get('file', 'N/A')}")
-          EOF
-
-      - name: Verify compilation database
-        run: |
-          if [ ! -f compile_commands.json ]; then
-            echo "Error: compile_commands.json not found at repository root"
-            exit 1
-          fi
-          
-          # Verify it's valid JSON and has content
-          python3 << 'EOF'
-          import json
-          try:
-              with open('compile_commands.json', 'r') as f:
-                  data = json.load(f)
-              if len(data) == 0:
-                  print("Error: compile_commands.json is empty")
-                  exit(1)
-          except json.JSONDecodeError as e:
-              print(f"Error: compile_commands. json is invalid JSON: {e}")
-              exit(1)
-          except Exception as e:
-              print(f"Error: Failed to validate compile_commands.json: {e}")
-              exit(1)
-          EOF
-          
-          echo "✓ compile_commands.json verified successfully"
-          python3 -c "import json; print(f'  Contains {len(json.load(open(\"compile_commands.json\")))} compilation commands')"
-
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@v2
+      - name: Set up sonar-scanner
+        uses: SonarSource/sonarcloud-github-action@master
         env:
-          SONAR_TOKEN: ${{ secrets. SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
-            -Dsonar.organization=florinzgz
-            -Dsonar.projectBaseDir=. 
-            -Dsonar.sources=src,include
-            -Dsonar.exclusions=. pio/**,lib/**,test/**
-            -Dsonar.cfamily.compile-commands=compile_commands.json
-            -Dsonar.cfamily. cache.enabled=false
-            -Dsonar.verbose=true
-            -Dsonar. qualitygate.wait=true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
