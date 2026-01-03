@@ -22,12 +22,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name:  Cache PlatformIO
+      - name: Cache PlatformIO
         uses: actions/cache@v3
         with:
           path: |
-            ~/. platformio
-            . pio
+            ~/.platformio
+            .pio
           key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
 
       - name: Install dependencies
@@ -39,12 +39,7 @@ jobs:
         run: |
           pip install platformio
 
-      - name: Clean build
-        run: |
-          pio run -t clean
-          rm -rf .pio
-
-      - name: Build all environments
+      - name: Build and generate compile_commands.json
         run: |
           pio run -v -t compiledb
 
@@ -55,7 +50,7 @@ jobs:
           from pathlib import Path
           
           # Find all compile_commands.json files in .pio/build directories
-          build_dir = Path('. pio/build')
+          build_dir = Path('.pio/build')
           compile_db_files = list(build_dir.glob('*/compile_commands.json'))
           
           if not compile_db_files: 
@@ -78,7 +73,7 @@ jobs:
                   print(f"Warning: Failed to read {db_file}: {e}")
           
           if not merged_commands:
-              print("Error:  No compilation commands found in any database")
+              print("Error: No compilation commands found in any database")
               exit(1)
           
           # Write merged database to root
@@ -104,11 +99,11 @@ jobs:
           fixed_commands = []
           for cmd in commands:
               # Get the file path
-              file_path = cmd. get('file', '')
+              file_path = cmd.get('file', '')
               
-              # If file is in . pio/build, find corresponding source file
-              if '. pio' in file_path: 
-                  # Extract relative path from .pio/build/xxx/src/...  or .pio/build/xxx/include/...
+              # If file is in .pio/build, find corresponding source file
+              if '.pio' in file_path: 
+                  # Extract relative path from .pio/build/xxx/src/... or .pio/build/xxx/include/...
                   parts = Path(file_path).parts
                   try:
                       # Find 'src' or 'include' in path
@@ -129,7 +124,7 @@ jobs:
               fixed_commands.append(cmd)
           
           # Write fixed database
-          with open('compile_commands. json', 'w') as f:
+          with open('compile_commands.json', 'w') as f:
               json.dump(fixed_commands, f, indent=2)
           
           print(f"✓ Fixed paths in compile_commands.json ({len(fixed_commands)} entries)")
@@ -138,7 +133,7 @@ jobs:
           if fixed_commands:
               print("\nSample fixed paths:")
               for cmd in fixed_commands[:3]: 
-                  print(f"  - {cmd. get('file', 'N/A')}")
+                  print(f"  - {cmd.get('file', 'N/A')}")
           EOF
 
       - name: Verify compilation database
@@ -158,7 +153,7 @@ jobs:
                   print("Error: compile_commands.json is empty")
                   exit(1)
           except json.JSONDecodeError as e:
-              print(f"Error: compile_commands. json is invalid JSON: {e}")
+              print(f"Error: compile_commands.json is invalid JSON: {e}")
               exit(1)
           except Exception as e:
               print(f"Error: Failed to validate compile_commands.json: {e}")
@@ -171,15 +166,15 @@ jobs:
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets. SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
             -Dsonar.organization=florinzgz
-            -Dsonar.projectBaseDir=. 
+            -Dsonar.projectBaseDir=.
             -Dsonar.sources=src,include
-            -Dsonar.exclusions=. pio/**,lib/**,test/**
+            -Dsonar.exclusions=.pio/**,lib/**,test/**
             -Dsonar.cfamily.compile-commands=compile_commands.json
-            -Dsonar.cfamily. cache.enabled=false
+            -Dsonar.cfamily.cache.enabled=false
             -Dsonar.verbose=true
-            -Dsonar. qualitygate.wait=true
+            -Dsonar.qualitygate.wait=true
