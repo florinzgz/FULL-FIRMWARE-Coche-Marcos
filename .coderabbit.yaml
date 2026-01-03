@@ -25,7 +25,6 @@ reviews:
     shellcheck:
       enabled: true
 
-# 👉 Nueva forma correcta de dar instrucciones
 guidelines:
   - "Firmware embebido ESP32-S3 con PlatformIO"
   - "Priorizar seguridad, manejo de errores y uso eficiente de memoria"
@@ -33,8 +32,8 @@ guidelines:
   - "Validar watchdog y recuperación ante bloqueos"
   - "Detectar posibles memory leaks y buffer overflows"
   - "Comprobar manejo robusto de sensores y fallos"
-  - "Detectar condiciones de carrera o bloqueos entre tasks"
-  - "Comprobar rangos de arrays y límites de buffers"
+  - "Detectar condiciones de carrera y bloqueos entre tasks"
+  - "Verificar rangos de arrays y límites de buffers"
 
 chat:
   auto_reply: false
@@ -64,7 +63,10 @@ knowledge_base:
         Componentes principales:
         - ABS / TCS
         - HUD TFT 480x320
-        - INA226, DS18B20
+        - INA226
+        - DS18B20
         - WS2812B
         - MCP23017
-        - DFPlayer
+        - DFPlayer (audio)
+        - TFT_eSPI
+        - XPT2046 (touch)
