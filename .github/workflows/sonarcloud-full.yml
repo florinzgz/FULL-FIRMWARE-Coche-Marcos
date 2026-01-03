@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name:  Cache PlatformIO
+      - name: Cache PlatformIO
         uses: actions/cache@v3
         with:
           path: |
@@ -93,7 +93,7 @@ jobs:
                   print(f"Warning: Failed to read {db_file}: {e}")
           
           if not merged_commands:
-              print("Error:  No compilation commands found in any database")
+              print("Error: No compilation commands found in any database")
               exit(1)
           
           # Write merged database to root
@@ -199,7 +199,7 @@ jobs:
           args: >
             -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
             -Dsonar.organization=florinzgz
-            -Dsonar.projectBaseDir=. 
+            -Dsonar.projectBaseDir=.
             -Dsonar.sources=src,include
             -Dsonar.exclusions=.pio/**,lib/**,test/**
             -Dsonar.cfamily.compile-commands=compile_commands.json
