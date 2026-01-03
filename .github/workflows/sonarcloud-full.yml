@@ -89,6 +89,58 @@ jobs:
           print(f"\nSuccessfully created {output_file} with {len(merged_commands)} compilation commands")
           EOF
 
+      - name: Fix compilation database paths
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          from pathlib import Path
+          
+          # Read merged compile_commands.json
+          with open('compile_commands.json', 'r') as f:
+              commands = json.load(f)
+          
+          # Fix paths to point to original source files
+          fixed_commands = []
+          for cmd in commands:
+              # Get the file path
+              file_path = cmd.get('file', '')
+              
+              # If file is in .pio/build, find corresponding source file
+              if '.pio' in file_path:
+                  # Extract relative path from .pio/build/xxx/src/... or .pio/build/xxx/include/...
+                  parts = Path(file_path).parts
+                  try:
+                      # Find 'src' or 'include' in path
+                      if 'src' in parts:
+                          src_idx = parts.index('src')
+                          rel_path = Path(*parts[src_idx:])
+                          cmd['file'] = str(rel_path)
+                      elif 'include' in parts:
+                          inc_idx = parts.index('include')
+                          rel_path = Path(*parts[inc_idx:])
+                          cmd['file'] = str(rel_path)
+                      
+                      # Update directory to project root
+                      cmd['directory'] = os.getcwd()
+                  except (ValueError, IndexError):
+                      pass  # Keep original if parsing fails
+              
+              fixed_commands.append(cmd)
+          
+          # Write fixed database
+          with open('compile_commands.json', 'w') as f:
+              json.dump(fixed_commands, f, indent=2)
+          
+          print(f"✓ Fixed paths in compile_commands.json ({len(fixed_commands)} entries)")
+          
+          # Show sample of fixed paths for verification
+          if fixed_commands:
+              print("\nSample fixed paths:")
+              for cmd in fixed_commands[:3]:
+                  print(f"  - {cmd.get('file', 'N/A')}")
+          EOF
+
       - name: Verify compilation database
         run: |
           if [ ! -f compile_commands.json ]; then
