@@ -50,6 +50,10 @@ jobs:
 
       - name: Copy compilation database
         run: |
+          if [ -z "$(find .pio/build -name 'compile_commands.json')" ]; then
+            echo "Error: compile_commands.json not found"
+            exit 1
+          fi
           find .pio/build -name "compile_commands.json" -exec cp {} . \;
 
       - name: Build firmware
