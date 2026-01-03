@@ -103,6 +103,8 @@ jobs:
           # Fix paths to point to original source files
           fixed_commands = []
           project_root = os.getcwd()
+          transform_count = 0
+          error_count = 0
           
           for cmd in commands:
               # Get the file path
@@ -113,17 +115,25 @@ jobs:
                   # Extract relative path from .pio/build/xxx/src/... or .pio/build/xxx/include/...
                   parts = Path(file_path).parts
                   try:
-                      # Find 'src' or 'include' in path
+                      # Find 'src' or 'include' in path - exact match to avoid false positives
                       if 'src' in parts:
                           src_idx = parts.index('src')
-                          rel_path = Path(*parts[src_idx:])
-                          cmd['file'] = str(rel_path)
+                          # Verify this is actually the 'src' directory and not part of another name
+                          if parts[src_idx] == 'src':
+                              rel_path = Path(*parts[src_idx:])
+                              cmd['file'] = str(rel_path)
+                              transform_count += 1
                       elif 'include' in parts:
                           inc_idx = parts.index('include')
-                          rel_path = Path(*parts[inc_idx:])
-                          cmd['file'] = str(rel_path)
-                  except (ValueError, IndexError):
-                      pass  # Keep original if parsing fails
+                          # Verify this is actually the 'include' directory
+                          if parts[inc_idx] == 'include':
+                              rel_path = Path(*parts[inc_idx:])
+                              cmd['file'] = str(rel_path)
+                              transform_count += 1
+                  except (ValueError, IndexError) as e:
+                      # Log when path parsing fails for debugging
+                      print(f"Warning: Failed to parse path '{file_path}': {e}")
+                      error_count += 1
               
               # Update directory to project root for consistency
               cmd['directory'] = project_root
@@ -135,6 +145,9 @@ jobs:
               json.dump(fixed_commands, f, indent=2)
           
           print(f"✓ Fixed paths in compile_commands.json ({len(fixed_commands)} entries)")
+          print(f"  Transformed: {transform_count} paths")
+          if error_count > 0:
+              print(f"  Warnings: {error_count} paths could not be parsed")
           
           # Show sample of fixed paths for verification
           if fixed_commands:
