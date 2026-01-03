@@ -39,9 +39,29 @@ jobs:
         run: |
           pip install platformio
 
-      - name: Build and generate compile_commands.json
+      - name: Build all environments
         run: |
-          pio run -v -t compiledb
+          pio run -v
+          pio run --target compiledb
+
+      - name: Verify compile_commands.json generation
+        run: |
+          echo "Checking for compile_commands.json files..."
+          ls -lh .pio/build/*/compile_commands.json || {
+            echo "Error: No compile_commands.json files found in .pio/build directories"
+            echo "Contents of .pio/build:"
+            ls -la .pio/build/ || echo "Directory .pio/build does not exist"
+            exit 1
+          }
+          echo "Displaying content of found compile_commands.json files:"
+          for f in .pio/build/*/compile_commands.json; do
+            if [ -f "$f" ]; then
+              echo "File: $f"
+              echo "Size: $(wc -c < "$f") bytes"
+              echo "First few lines:"
+              head -20 "$f" || echo "Could not read file"
+            fi
+          done
 
       - name: Merge compilation databases
         run: |
@@ -82,6 +102,14 @@ jobs:
               json.dump(merged_commands, f, indent=2)
           
           print(f"\nSuccessfully created {output_file} with {len(merged_commands)} compilation commands")
+          
+          # Show sample entries for verification
+          if merged_commands:
+              print("\nSample compilation commands:")
+              for i, cmd in enumerate(merged_commands[:3]):
+                  print(f"\n  Entry {i+1}:")
+                  print(f"    File: {cmd.get('file', 'N/A')}")
+                  print(f"    Directory: {cmd.get('directory', 'N/A')}")
           EOF
 
       - name: Fix compilation database paths
@@ -103,7 +131,7 @@ jobs:
               
               # If file is in .pio/build, find corresponding source file
               if '.pio' in file_path: 
-                  # Extract relative path from .pio/build/xxx/src/... or .pio/build/xxx/include/...
+                  # Extract relative path from .pio/build/xxx/src/...  or .pio/build/xxx/include/...
                   parts = Path(file_path).parts
                   try:
                       # Find 'src' or 'include' in path
