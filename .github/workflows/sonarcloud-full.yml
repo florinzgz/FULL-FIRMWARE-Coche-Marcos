@@ -68,7 +68,6 @@ jobs:
           python3 << 'EOF'
           import json
           from pathlib import Path
-          import os
           
           # Find all compile_commands.json files in .pio/build directories
           build_dir = Path('.pio/build')
@@ -87,6 +86,7 @@ jobs:
           project_root = Path.cwd()
           
           for db_file in compile_db_files:
+              file_count_start = len(merged_commands)
               try:
                   with open(db_file, 'r') as f:
                       commands = json.load(f)
@@ -98,6 +98,10 @@ jobs:
                       # Check if file is from project source directories
                       # Look for files that contain 'src/' or 'include/' in their build path
                       file_str = str(file_path)
+                      
+                      # Exclude framework files from .platformio packages
+                      if '.platformio' in file_str or '/packages/' in file_str:
+                          continue
                       
                       # Match files that were compiled from our source directories
                       # Pattern: .pio/build/env_name/src/... or actual src/... or include/...
@@ -120,25 +124,28 @@ jobs:
                               actual_file = project_root / rel_path
                               if actual_file.exists():
                                   # Update command with corrected paths
-                                  cmd['file'] = str(rel_path)
+                                  cmd['file'] = rel_path.as_posix()
                                   cmd['directory'] = str(project_root)
                                   merged_commands.append(cmd)
-                                  print(f"  ✓ Included: {rel_path}")
+                                  print(f"  ✓ Included: {rel_path.as_posix()}")
                               
                           except (ValueError, IndexError):
                               continue
                               
-                  print(f"Processed {db_file}: found {len([c for c in merged_commands])} project files")
+                  files_added = len(merged_commands) - file_count_start
+                  print(f"Processed {db_file}: found {files_added} project files")
                   
               except Exception as e:
                   print(f"Warning: Failed to read {db_file}: {e}")
           
           if not merged_commands:
               print("Error: No compilation commands found for project source files in src/ or include/")
-              print("Make sure your project has .cpp or .c files in src/ directory")
+              print("Make sure your project has .cpp, .c, or relevant header (.h/.hpp) files in src/ or include/ directories")
               exit(1)
           
           # Remove duplicates based on file path
+          # Note: If the same file is compiled with different flags in multiple environments,
+          # we keep only the first occurrence for SonarCloud analysis
           unique_commands = {}
           for cmd in merged_commands:
               file_path = cmd.get('file')
