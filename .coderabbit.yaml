@@ -1,109 +1,70 @@
-# .coderabbit.yaml
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # Configuración de CodeRabbit para firmware ESP32-S3
 
-language: "es"  # Comentarios en español
+language: "es"
 
 reviews:
-  # Activar reviews automáticos
   auto_review:
     enabled: true
-    drafts: false  # No revisar PRs en draft
-  
-  # Mostrar estado de review
+    drafts: false
+
   review_status: true
-  
-  # Nivel de detalle en reviews
-  profile: "assertive"  # chill | cautious | assertive
-  
-  # Configuración de verificaciones
+  profile: "assertive"
+
   request_changes_workflow: false
   high_level_summary: true
   high_level_summary_placeholder: "**Resumen de cambios**"
-  poem: false  # Sin poemas al final
+  poem: false
   review_status_comment: true
-  
-  # Collapse walks para PRs grandes
   collapse_walkthrough: false
-  
-  # Auto-incrementar al hacer cambios
   auto_incremental_review: true
-  
-  # Verificaciones de código
+
   tools:
     ruff:
-      enabled: false  # Python linter - no necesario
+      enabled: false
     shellcheck:
-      enabled: true   # Para scripts .sh
-    
-# Filtros de archivos - ignorar binarios y builds
-path_filters:
-  - "!**/*.bin"
-  - "!**/*.hex"
-  - "!**/*.elf"
-  - "!**/*.o"
-  - "!**/*.a"
-  - "!.pio/**"
-  - "!.vscode/**"
-  - "!.platformio/**"
-  - "!**/.pio/**"
-  - "!**/build/**"
-  - "!audio/**/*.mp3"
-  - "!audio/**/*.wav"
-  
-# Instrucciones personalizadas para el bot
-instructions:
-  - "Este es firmware embebido para ESP32-S3 usando PlatformIO y Arduino framework"
-  - "Prioridad en seguridad, manejo de errores y uso eficiente de memoria"
-  - "Revisar correcta inicialización de periféricos (I2C, SPI, PWM)"
-  - "Verificar uso apropiado del Watchdog timer"
-  - "Detectar posibles memory leaks, stack overflows o buffer overruns"
-  - "Validar manejo de fallos en sensores y sistemas críticos"
-  - "Revisar sincronización entre tasks y uso de delays"
-  - "Verificar que los managers inicialicen correctamente sus subsistemas"
-  - "Comprobar que los punteros y referencias sean válidos antes de usar"
-  - "Validar rangos de arrays y tamaños de buffers"
-  
-# Configuración de chat
-chat:
-  auto_reply: false  # No responder automáticamente
+      enabled: true
 
-# Conocimiento del dominio
+# 👉 Nueva forma correcta de dar instrucciones
+guidelines:
+  - "Firmware embebido ESP32-S3 con PlatformIO"
+  - "Priorizar seguridad, manejo de errores y uso eficiente de memoria"
+  - "Revisar inicialización correcta de periféricos (I2C, SPI, PWM)"
+  - "Validar watchdog y recuperación ante bloqueos"
+  - "Detectar posibles memory leaks y buffer overflows"
+  - "Comprobar manejo robusto de sensores y fallos"
+  - "Detectar condiciones de carrera o bloqueos entre tasks"
+  - "Comprobar rangos de arrays y límites de buffers"
+
+chat:
+  auto_reply: false
+
 knowledge_base:
   learnings:
     core_architecture:
       path: "src/core"
       content: |
-        ESP32-S3 firmware con arquitectura de managers para vehículo eléctrico.
-        
-        Arquitectura de managers:
-        - PowerManager: Gestión de relays y secuencia de encendido seguro
-        - SafetyManager: Coordina ABS, TCS y detección de obstáculos
-        - SensorManager: Inicializa y actualiza sensores (INA226, DS18B20, encoders)
-        - ControlManager: Gestiona tracción, dirección y actuadores
-        - HUDManager: Interfaz de usuario en pantalla TFT 480x320
-        
-        Sistemas de seguridad:
-        - Tolerancia a fallos en sensores críticos
-        - Watchdog timer para prevenir bloqueos
-        - Sistema de logging de errores
-        - Gestión de errores no bloqueante
-        
+        Arquitectura basada en managers:
+
+        - PowerManager
+        - SafetyManager
+        - SensorManager
+        - ControlManager
+        - HUDManager
+
+        Sistemas clave:
+        - watchdog
+        - logging
+        - tolerancia a fallos
+        - recuperación segura
+
     components_technology:
       path: "**/*.cpp"
       content: |
-        Tecnologías y componentes clave:
-        - ABS (Anti-lock Braking System): Sistema antibloqueo de frenos
-        - TCS (Traction Control System): Control de tracción 4x4
-        - HUD (Head-Up Display): Pantalla TFT ST7796S 480x320
-        - INA226: Sensor de corriente/voltaje I2C de alta precisión
-        - DS18B20: Sensor de temperatura 1-Wire (5 unidades: 4 motores + ambiente)
-        - WS2812B: LEDs RGB direccionables (FastLED)
-        - TFT_eSPI: Librería optimizada para pantallas TFT en ESP32
-        - XPT2046: Controlador táctil resistivo
-        
-        Periféricos y comunicación:
-        - I2C: INA226 (sensores de corriente), MCP23017 (expansores GPIO)
-        - SPI: Pantalla TFT, touch XPT2046
-        - 1-Wire: DS18B20 (sensores temperatura)
-        - PWM: Control de motores, LEDs, steering servo
-        - UART: DFPlayer (audio), telemetría
+        Componentes principales:
+        - ABS / TCS
+        - HUD TFT 480x320
+        - INA226, DS18B20
+        - WS2812B
+        - MCP23017
+        - DFPlayer
