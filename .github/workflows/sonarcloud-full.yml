@@ -110,13 +110,21 @@ jobs:
                           parts = file_path.parts
                           
                           try:
-                              # Find where src or include starts
+                              # Find where src or include starts (last occurrence for nested structures)
                               if 'src' in parts:
-                                  idx = len(parts) - 1 - parts[::-1].index('src')
-                                  rel_path = Path(*parts[idx:])
+                                  src_indices = [i for i, part in enumerate(parts) if part == 'src']
+                                  if src_indices:
+                                      idx = src_indices[-1]  # Last occurrence
+                                      rel_path = Path(*parts[idx:])
+                                  else:
+                                      continue
                               elif 'include' in parts:
-                                  idx = len(parts) - 1 - parts[::-1].index('include')
-                                  rel_path = Path(*parts[idx:])
+                                  inc_indices = [i for i, part in enumerate(parts) if part == 'include']
+                                  if inc_indices:
+                                      idx = inc_indices[-1]  # Last occurrence
+                                      rel_path = Path(*parts[idx:])
+                                  else:
+                                      continue
                               else:
                                   continue
                               
