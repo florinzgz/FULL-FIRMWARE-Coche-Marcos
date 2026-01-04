@@ -46,7 +46,8 @@ jobs:
       # 👉 GENERA compile_commands.json
       - name: Generate compile_commands.json
         run: |
-          pio run -e esp32-s3-devkitc1 --target compiledb
+          echo "Generating compile_commands.json..."
+          pio run -t compiledb -e esp32-s3-devkitc1
 
       - name: Verify compile_commands.json generation
         run: |
