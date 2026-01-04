@@ -41,8 +41,7 @@ jobs:
 
       - name: Build all environments
         run: |
-          pio run -e esp32-s3-devkitc1 -v
-          pio run -e esp32-s3-devkitc1 --target compiledb
+          pio run -e esp32-s3-devkitc1 --target compiledb -v
 
       - name: Verify compile_commands.json generation
         run: |
