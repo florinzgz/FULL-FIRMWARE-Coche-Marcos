@@ -19,6 +19,12 @@ def generate_compile_commands(*args, **kwargs):
     ccflags = env.get("CCFLAGS", [])
     cxxflags = env.get("CXXFLAGS", [])
     
+    # Asegurar que las flags sean listas
+    if not isinstance(ccflags, list):
+        ccflags = [ccflags] if ccflags else []
+    if not isinstance(cxxflags, list):
+        cxxflags = [cxxflags] if cxxflags else []
+    
     # Convertir defines
     defines = []
     for define in cppdefines:
@@ -32,7 +38,6 @@ def generate_compile_commands(*args, **kwargs):
     
     # Procesar archivos fuente
     src_dir = Path(project_dir) / "src"
-    include_dir = Path(project_dir) / "include"
     
     for src_file in src_dir.rglob("*"):
         if src_file.suffix in [".c", ".cpp", ".cc", ".cxx"]:
@@ -46,21 +51,6 @@ def generate_compile_commands(*args, **kwargs):
                 "command": " ".join(str(x) for x in command),
                 "file": str(src_file.relative_to(project_dir))
             })
-    
-    # También incluir archivos de include si existen
-    if include_dir.exists():
-        for inc_file in include_dir.rglob("*"):
-            if inc_file.suffix in [".c", ".cpp", ".cc", ".cxx"]:
-                compiler = cxx if inc_file.suffix in [".cpp", ".cc", ".cxx"] else cc
-                flags = cxxflags if inc_file.suffix in [".cpp", ".cc", ".cxx"] else ccflags
-                
-                command = [compiler] + flags + defines + includes + ["-c", str(inc_file)]
-                
-                compile_commands.append({
-                    "directory": project_dir,
-                    "command": " ".join(str(x) for x in command),
-                    "file": str(inc_file.relative_to(project_dir))
-                })
     
     # Guardar archivo
     output_file = Path(build_dir) / "compile_commands.json"
