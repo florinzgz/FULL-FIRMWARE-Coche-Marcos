@@ -39,9 +39,14 @@ jobs:
         run: |
           pip install platformio
 
-      - name: Build all environments
+      - name: Build firmware
         run: |
           pio run -e esp32-s3-devkitc1 -v
+
+      # 👉 GENERA compile_commands.json
+      - name: Generate compile_commands.json
+        run: |
+          pio run -e esp32-s3-devkitc1 --target compiledb
 
       - name: Verify compile_commands.json generation
         run: |
@@ -67,140 +72,77 @@ jobs:
           python3 << 'EOF'
           import json
           from pathlib import Path
-          
-          # Find all compile_commands.json files in .pio/build directories
           build_dir = Path('.pio/build')
           compile_db_files = list(build_dir.glob('*/compile_commands.json'))
-          
           if not compile_db_files: 
               print("Error: No compile_commands.json files found in any build environment")
               exit(1)
-          
           print(f"Found {len(compile_db_files)} compilation database(s):")
           for f in compile_db_files:
               print(f"  - {f}")
-          
-          # Merge and filter compilation databases
           merged_commands = []
           project_root = Path.cwd()
-          
           for db_file in compile_db_files:
               file_count_start = len(merged_commands)
               try:
                   with open(db_file, 'r') as f:
                       commands = json.load(f)
-                      
-                  # Filter to include only files from src/ or include/ directories
                   for cmd in commands:
                       file_path = Path(cmd.get('file', ''))
-                      
-                      # Check if file is from project source directories
-                      # Look for files that contain 'src/' or 'include/' in their build path
                       file_str = str(file_path)
-                      
-                      # Exclude framework files from .platformio packages
                       if '.platformio' in file_str or '/packages/' in file_str:
                           continue
-                      
-                      # Match files that were compiled from our source directories
-                      # Pattern: .pio/build/env_name/src/... or actual src/... or include/...
                       if '/src/' in file_str or '/include/' in file_str:
-                          # Try to extract the relative path from src/ or include/
                           parts = file_path.parts
-                          
                           try:
-                              # Find where src or include starts (last occurrence for nested structures)
                               if 'src' in parts:
-                                  src_indices = [i for i, part in enumerate(parts) if part == 'src']
-                                  if src_indices:
-                                      idx = src_indices[-1]  # Last occurrence
-                                      rel_path = Path(*parts[idx:])
-                                  else:
-                                      continue
+                                  idx = [i for i,p in enumerate(parts) if p=='src'][-1]
+                                  rel_path = Path(*parts[idx:])
                               elif 'include' in parts:
-                                  inc_indices = [i for i, part in enumerate(parts) if part == 'include']
-                                  if inc_indices:
-                                      idx = inc_indices[-1]  # Last occurrence
-                                      rel_path = Path(*parts[idx:])
-                                  else:
-                                      continue
+                                  idx = [i for i,p in enumerate(parts) if p=='include'][-1]
+                                  rel_path = Path(*parts[idx:])
                               else:
                                   continue
-                              
-                              # Check if this file exists in our project
                               actual_file = project_root / rel_path
                               if actual_file.exists():
-                                  # Update command with corrected paths
                                   cmd['file'] = rel_path.as_posix()
                                   cmd['directory'] = str(project_root)
                                   merged_commands.append(cmd)
                                   print(f"  ✓ Included: {rel_path.as_posix()}")
-                              
-                          except (ValueError, IndexError):
+                          except Exception:
                               continue
-                              
                   files_added = len(merged_commands) - file_count_start
                   print(f"Processed {db_file}: found {files_added} project files")
-                  
               except Exception as e:
                   print(f"Warning: Failed to read {db_file}: {e}")
-          
           if not merged_commands:
-              print("Error: No compilation commands found for project source files in src/ or include/")
-              print("Make sure your project has .cpp, .c, or relevant header (.h/.hpp) files in src/ or include/ directories")
+              print("Error: No compilation commands found for project source files")
               exit(1)
-          
-          # Remove duplicates based on file path
-          # Note: If the same file is compiled with different flags in multiple environments,
-          # we keep only the first occurrence for SonarCloud analysis
           unique_commands = {}
           for cmd in merged_commands:
-              file_path = cmd.get('file')
-              if file_path not in unique_commands:
-                  unique_commands[file_path] = cmd
-          
+              fp = cmd.get('file')
+              if fp not in unique_commands:
+                  unique_commands[fp] = cmd
           final_commands = list(unique_commands.values())
-          
-          # Write filtered database to root
-          output_file = 'compile_commands.json'
-          with open(output_file, 'w') as f:
+          with open('compile_commands.json', 'w') as f:
               json.dump(final_commands, f, indent=2)
-          
-          print(f"\n✓ Successfully created {output_file} with {len(final_commands)} project compilation commands")
-          
-          # Show all entries for verification
-          if final_commands:
-              print("\nFiles included in compilation database:")
-              for cmd in final_commands:
-                  print(f"  - {cmd.get('file', 'N/A')}")
+          print(f"\n✓ Successfully created compile_commands.json with {len(final_commands)} commands")
           EOF
 
       - name: Verify compilation database
         run: |
           if [ ! -f compile_commands.json ]; then
-            echo "Error: compile_commands.json not found at repository root"
+            echo "Error: compile_commands.json not found"
             exit 1
           fi
-          
-          # Verify it's valid JSON and has content
           python3 << 'EOF'
           import json
-          try:
-              with open('compile_commands.json', 'r') as f:
-                  data = json.load(f)
-              if len(data) == 0:
-                  print("Error: compile_commands.json is empty")
-                  exit(1)
-          except json.JSONDecodeError as e:
-              print(f"Error: compile_commands.json is invalid JSON: {e}")
-              exit(1)
-          except Exception as e:
-              print(f"Error: Failed to validate compile_commands.json: {e}")
+          data = json.load(open('compile_commands.json'))
+          if not data:
+              print("Error: compile_commands.json is empty")
               exit(1)
           EOF
-          
           echo "✓ compile_commands.json verified successfully"
-          python3 -c "import json; print(f'  Contains {len(json.load(open(\"compile_commands.json\")))} compilation commands')"
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
