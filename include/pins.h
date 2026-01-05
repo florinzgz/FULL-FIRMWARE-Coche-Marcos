@@ -4,7 +4,7 @@
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
-// 🔒 ACTUALIZADO 2026-01-05 v2.12.0 - Migración a TOFSense-M S UART
+// 🔒 ACTUALIZADO 2026-01-05 v2.14.0 - GPIO 40/41 libres, control touch-only
 // ============================================================================
 //
 // PINES REALES DISPONIBLES EN LA PLACA (36 GPIOs):
@@ -262,10 +262,10 @@
 // -----------------------
 // Botones físicos
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
-// Ordenados en pines consecutivos 40-41
+// v2.14.0: Botones multimedia y 4x4 eliminados, control por touch screen
 // -----------------------
-#define PIN_BTN_MEDIA     40  // GPIO 40 - Botón multimedia
-#define PIN_BTN_4X4       41  // GPIO 41 - Botón 4x4/4x2 (switch 2 posiciones)
+// #define PIN_BTN_MEDIA     40  // GPIO 40 - FREED - Ya no se usa (antes botón multimedia)
+// #define PIN_BTN_4X4       41  // GPIO 41 - FREED - Ya no se usa (antes botón 4x4/4x2)
 #define PIN_BTN_LIGHTS    2   // GPIO 2  - Botón luces ✅ Movido de GPIO 45
 
 // ============================================================================
@@ -336,8 +336,8 @@
 │ 37   │ ENCODER_A               │ Input     │ Encoder dirección A             │
 │ 38   │ ENCODER_B               │ Input     │ Encoder dirección B             │
 │ 39   │ ENCODER_Z               │ Input     │ Encoder dirección Z             │
-│ 40   │ BTN_MEDIA               │ Input     │ Botón multimedia                │
-│ 41   │ BTN_4X4                 │ Input     │ Botón 4x4/4x2                   │
+│ 40   │ 🆓 LIBRE                │ -         │ ✅ v2.14.0: BTN_MEDIA eliminado │
+│ 41   │ 🆓 LIBRE                │ -         │ ✅ v2.14.0: BTN_4X4 eliminado   │
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
 │ 43   │ TOFSENSE_TX (UART0)     │ Output    │ ✅ v2.12.0: TOFSense (no usado) │
 │ 44   │ TOFSENSE_RX (UART0)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
@@ -417,8 +417,8 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_LED_REAR:
         // Botones
         case PIN_BTN_LIGHTS:
-        case PIN_BTN_MEDIA:
-        case PIN_BTN_4X4:
+        // case PIN_BTN_MEDIA:  // v2.14.0: FREED
+        // case PIN_BTN_4X4:    // v2.14.0: FREED
         // Relés
         case PIN_RELAY_MAIN:
         case PIN_RELAY_TRAC:

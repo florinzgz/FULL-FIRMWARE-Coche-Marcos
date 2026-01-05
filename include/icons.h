@@ -11,8 +11,9 @@ namespace Icons {
     void drawSystemState(System::State st);
     void drawGear(Shifter::Gear g);
 
-    // luces, multimedia, 4x4/4x2, regenerativo activo
-    void drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn);
+    // v2.14.0: Simplified - only 4x4/4x2 mode and regenerative
+    // Lights and multimedia removed (touch-only, no visual icons)
+    void drawFeatures(bool mode4x4, bool regenOn);
 
     // batería: voltaje en V (aprox)
     void drawBattery(float volts);
@@ -67,9 +68,9 @@ namespace Icons {
     constexpr int AMBIENT_TEMP_H = 20;
 
     // ============================================================
-    // Iconos de características (LUCES, MEDIA, 4x4) - Cuadrados 3D
+    // Iconos de características - v2.14.0: Solo 4x4 mode
     // Posicionados encima de la barra de acelerador (y=300)
-    // Tamaño uniforme: 70x45 px cada uno
+    // Tamaño uniforme: 70x45 px
     // ============================================================
     
     // Icono 4x4/4x2 (izquierda, encima de barra acelerador)
@@ -78,17 +79,8 @@ namespace Icons {
     constexpr int MODE4X4_X2 = 75;
     constexpr int MODE4X4_Y2 = 295;
     
-    // Icono LUCES (centro-izquierda, encima de barra acelerador)
-    constexpr int LIGHTS_X1 = 85;
-    constexpr int LIGHTS_Y1 = 250;
-    constexpr int LIGHTS_X2 = 155;
-    constexpr int LIGHTS_Y2 = 295;
-
-    // Icono MEDIA (centro-derecha, encima de barra acelerador)
-    constexpr int MEDIA_X1 = 165;
-    constexpr int MEDIA_Y1 = 250;
-    constexpr int MEDIA_X2 = 235;
-    constexpr int MEDIA_Y2 = 295;
+    // v2.14.0: LIGHTS and MEDIA icons removed - cleaner HUD
+    // Icons were at positions 85-155 and 165-235
 
     // Icono warning (arriba centro, 80x40 px)
     constexpr int WARNING_X1 = 200;

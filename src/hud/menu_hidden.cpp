@@ -464,20 +464,18 @@ static void updateRegenAdjust(int touchX, int touchY, bool touched) {
     }
 }
 
-static void applyModules(bool lights, bool media, bool traction) {
-    cfg.lightsEnabled = lights;
-    cfg.multimediaEnabled = media;
+// v2.14.0: Simplified - lights and media removed
+static void applyModules(bool traction) {
     cfg.tractionEnabled = traction;
     safeSaveConfig();
-    Logger::infof("Módulos guardados: lights=%d media=%d traction=%d", lights, media, traction);
+    Logger::infof("Módulos guardados: traction=%d", traction);
     Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
 }
 
 // Module configuration screen functions
 // Track module states locally until save
+// v2.14.0: Removed lightsEnabled and multimediaEnabled
 struct ModuleToggleState {
-    bool lightsEnabled;
-    bool multimediaEnabled;
     bool tractionEnabled;
     bool currentSensorsEnabled;
     bool tempSensorsEnabled;
@@ -486,8 +484,7 @@ struct ModuleToggleState {
 static ModuleToggleState tempModulesState;
 
 static void syncModulesStateFromConfig() {
-    tempModulesState.lightsEnabled = cfg.lightsEnabled;
-    tempModulesState.multimediaEnabled = cfg.multimediaEnabled;
+    // v2.14.0: Simplified
     tempModulesState.tractionEnabled = cfg.tractionEnabled;
     tempModulesState.currentSensorsEnabled = cfg.currentSensorsEnabled;
     tempModulesState.tempSensorsEnabled = cfg.tempSensorsEnabled;
@@ -540,23 +537,19 @@ static void drawModulesConfigScreen() {
         snprintf(dest, size, "%s: %s", name, enabled ? "ON" : "OFF");
     };
 
-    makeLabel(label, sizeof(label), "LUCES", tempModulesState.lightsEnabled);
-    drawToggle(col1X, startY, btnW, btnH, label, tempModulesState.lightsEnabled);
-
-    makeLabel(label, sizeof(label), "MEDIA", tempModulesState.multimediaEnabled);
-    drawToggle(col1X, startY + rowSpacing, btnW, btnH, label, tempModulesState.multimediaEnabled);
-
+    // v2.14.0: LUCES and MEDIA removed - cleaner interface
+    
     makeLabel(label, sizeof(label), "TRACCIÓN", tempModulesState.tractionEnabled);
-    drawToggle(col1X, startY + 2 * rowSpacing, btnW, btnH, label, tempModulesState.tractionEnabled);
+    drawToggle(col1X, startY, btnW, btnH, label, tempModulesState.tractionEnabled);
 
     makeLabel(label, sizeof(label), "INA226", tempModulesState.currentSensorsEnabled);
-    drawToggle(col2X, startY, btnW, btnH, label, tempModulesState.currentSensorsEnabled);
+    drawToggle(col1X, startY + rowSpacing, btnW, btnH, label, tempModulesState.currentSensorsEnabled);
 
     makeLabel(label, sizeof(label), "TEMP", tempModulesState.tempSensorsEnabled);
-    drawToggle(col2X, startY + rowSpacing, btnW, btnH, label, tempModulesState.tempSensorsEnabled);
+    drawToggle(col1X, startY + 2 * rowSpacing, btnW, btnH, label, tempModulesState.tempSensorsEnabled);
 
     makeLabel(label, sizeof(label), "RUEDAS", tempModulesState.wheelSensorsEnabled);
-    drawToggle(col2X, startY + 2 * rowSpacing, btnW, btnH, label, tempModulesState.wheelSensorsEnabled);
+    drawToggle(col2X, startY, btnW, btnH, label, tempModulesState.wheelSensorsEnabled);
     
     // Save button
     tft->fillRect(140, 230, 200, 40, TFT_BLUE);
@@ -597,32 +590,24 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
     };
 
     // Check which button was touched
+    // v2.14.0: Updated button layout (removed LUCES and MEDIA)
+    // New layout: TRACCIÓN, INA226, TEMP in col1; RUEDAS in col2
     if (inButton(touchX, touchY, col1X, startY, btnW, btnH)) {
-        tempModulesState.lightsEnabled = !tempModulesState.lightsEnabled;
-        Logger::infof("Luces: %s", tempModulesState.lightsEnabled ? "ON" : "OFF");
-        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
-        stateChanged = true;
-    } else if (inButton(touchX, touchY, col1X, startY + rowSpacing, btnW, btnH)) {
-        tempModulesState.multimediaEnabled = !tempModulesState.multimediaEnabled;
-        Logger::infof("Multimedia: %s", tempModulesState.multimediaEnabled ? "ON" : "OFF");
-        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
-        stateChanged = true;
-    } else if (inButton(touchX, touchY, col1X, startY + 2 * rowSpacing, btnW, btnH)) {
         tempModulesState.tractionEnabled = !tempModulesState.tractionEnabled;
         Logger::infof("Tracción: %s", tempModulesState.tractionEnabled ? "ON" : "OFF");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         stateChanged = true;
-    } else if (inButton(touchX, touchY, col2X, startY, btnW, btnH)) {
+    } else if (inButton(touchX, touchY, col1X, startY + rowSpacing, btnW, btnH)) {
         tempModulesState.currentSensorsEnabled = !tempModulesState.currentSensorsEnabled;
         Logger::infof("Sensores INA226: %s", tempModulesState.currentSensorsEnabled ? "ON" : "OFF");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         stateChanged = true;
-    } else if (inButton(touchX, touchY, col2X, startY + rowSpacing, btnW, btnH)) {
+    } else if (inButton(touchX, touchY, col1X, startY + 2 * rowSpacing, btnW, btnH)) {
         tempModulesState.tempSensorsEnabled = !tempModulesState.tempSensorsEnabled;
         Logger::infof("Sensores temperatura: %s", tempModulesState.tempSensorsEnabled ? "ON" : "OFF");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
         stateChanged = true;
-    } else if (inButton(touchX, touchY, col2X, startY + 2 * rowSpacing, btnW, btnH)) {
+    } else if (inButton(touchX, touchY, col2X, startY, btnW, btnH)) {
         tempModulesState.wheelSensorsEnabled = !tempModulesState.wheelSensorsEnabled;
         Logger::infof("Sensores rueda: %s", tempModulesState.wheelSensorsEnabled ? "ON" : "OFF");
         Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
@@ -632,8 +617,7 @@ static void updateModulesConfig(int touchX, int touchY, bool touched) {
     // Save button
     if (touchX >= 140 && touchX <= 340 && touchY >= 230 && touchY <= 270) {
         // Apply temp values to config and save
-        cfg.lightsEnabled = tempModulesState.lightsEnabled;
-        cfg.multimediaEnabled = tempModulesState.multimediaEnabled;
+        // v2.14.0: lightsEnabled and multimediaEnabled removed
         cfg.tractionEnabled = tempModulesState.tractionEnabled;
         cfg.currentSensorsEnabled = tempModulesState.currentSensorsEnabled;
         cfg.tempSensorsEnabled = tempModulesState.tempSensorsEnabled;

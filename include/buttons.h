@@ -6,6 +6,9 @@
 /**
  * @brief Gestión de botones físicos del tablero.
  * 
+ * v2.14.0: Simplificado - solo botón de luces físico.
+ * Multimedia y 4x4 ahora son controlados por touch screen solamente.
+ * 
  * Soporta:
  * - Debounce seguro por botón
  * - Detección de toggle (on/off) por botón
@@ -13,7 +16,7 @@
  * - Protección de inicialización
  *
  * El orden (índices) de los botones es seguro por enum:
- *   BTN_LIGHTS = 0, BTN_MEDIA = 1, BTN_4X4 = 2
+ *   BTN_LIGHTS = 0
  * 
  * Para expansión, solo crece el enum y los arrays.
  */
@@ -22,9 +25,7 @@ class Buttons {
 public:
     struct State {
         bool lights;
-        bool multimedia;
-        bool mode4x4;
-        bool reserved;  // Futuro o expansión
+        // multimedia y mode4x4 eliminados - ahora controlados por touch
     };
 
     /**
@@ -46,16 +47,6 @@ public:
      * @brief Devuelve y limpia el flag de toggle para el botón de luces.
      */
     static bool toggledLights();
-
-    /**
-     * @brief Devuelve y limpia el flag de toggle para multimedia.
-     */
-    static bool toggledMultimedia();
-
-    /**
-     * @brief Devuelve y limpia el flag de toggle para modo 4x4.
-     */
-    static bool toggled4x4();
 
     /**
      * @brief Verifica si fue inicializado correctamente.

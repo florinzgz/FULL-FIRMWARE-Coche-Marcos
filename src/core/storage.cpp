@@ -64,9 +64,8 @@ void Storage::defaults(Config &cfg) {
   cfg.displayBrightness = DISPLAY_BRIGHTNESS_DEFAULT; // Default brightness
 
   // Módulos
+  // v2.14.0: lightsEnabled and multimediaEnabled removed
   cfg.audioEnabled = true;
-  cfg.lightsEnabled = true;
-  cfg.multimediaEnabled = true;
   cfg.tractionEnabled = true; // Módulo de tracción habilitado por defecto
 
   // Nuevos flags de tolerancia a fallos
@@ -134,8 +133,7 @@ uint32_t Storage::computeChecksum(const Config &cfg) {
   mix((uint8_t *)&cfg.showEffort, sizeof(cfg.showEffort));
   mix((uint8_t *)&cfg.displayBrightness, sizeof(cfg.displayBrightness));
   mix((uint8_t *)&cfg.audioEnabled, sizeof(cfg.audioEnabled));
-  mix((uint8_t *)&cfg.lightsEnabled, sizeof(cfg.lightsEnabled));
-  mix((uint8_t *)&cfg.multimediaEnabled, sizeof(cfg.multimediaEnabled));
+  // v2.14.0: lightsEnabled and multimediaEnabled removed
   mix((uint8_t *)&cfg.tractionEnabled, sizeof(cfg.tractionEnabled));
 
   // Nuevos flags

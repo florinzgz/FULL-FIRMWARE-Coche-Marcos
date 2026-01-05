@@ -46,9 +46,8 @@ struct Config {
   float maxMotorCurrentA;   // Corriente máxima por motor (A) - default 50A
 
   // Módulos habilitados
+  // v2.14.0: lightsEnabled and multimediaEnabled removed (no longer used)
   bool audioEnabled;
-  bool lightsEnabled;
-  bool multimediaEnabled;
   bool tractionEnabled; // 🔎 NUEVO: habilitar/deshabilitar módulo de tracción
 
   // Nuevos flags para tolerancia a fallos
