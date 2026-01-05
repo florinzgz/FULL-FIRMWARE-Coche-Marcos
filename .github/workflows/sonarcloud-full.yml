@@ -145,7 +145,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.projectKey=florinzgz_FULL-FIRMWARE-Coche-Marcos
+            -Dsonar.projectKey=FULL-FIRMWARE-Coche-Marcos
             -Dsonar.organization=florinzgz
             -Dsonar.projectBaseDir=.
             -Dsonar.sources=src,include
