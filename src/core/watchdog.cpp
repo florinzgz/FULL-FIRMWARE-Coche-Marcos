@@ -89,7 +89,7 @@ void __attribute__((weak)) esp_task_wdt_isr_user_handler(void) {
     // 🔒 v2.4.1: Usar bucle de CPU para espera mínima en lugar de delay()
     // Espera ~10ms para que los relés se desactiven físicamente
     // A 240MHz, 10ms ≈ 2.4 millones de ciclos
-    for (volatile uint32_t i = 0; i < 2400000; i++) {
+    for (uint32_t i = 0; i < 2400000; i++) {
         __asm__ __volatile__("nop");
     }
     
