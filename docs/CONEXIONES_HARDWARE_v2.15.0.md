@@ -18,14 +18,15 @@
 6. [Bus I²C](#-bus-ic)
 7. [Motores de Tracción](#-motores-de-tracción)
 8. [Motor de Dirección](#-motor-de-dirección)
-9. [Sensores de Ruedas](#-sensores-de-ruedas)
-10. [Encoder de Dirección](#-encoder-de-dirección)
-11. [Pedal y Palanca](#-pedal-y-palanca)
-12. [LEDs WS2812B](#-leds-ws2812b)
-13. [Sensores de Temperatura](#-sensores-de-temperatura)
-14. [Relés](#-relés)
-15. [GPIOs Libres](#-gpios-libres-para-expansión)
-16. [Checklist de Verificación](#-checklist-de-verificación)
+9. [Módulos Optoacopladores HY-M158](#-módulos-optoacopladores-hy-m158-x2)
+10. [Sensores de Ruedas](#-sensores-de-ruedas)
+11. [Encoder de Dirección](#-encoder-de-dirección)
+12. [Pedal y Palanca](#-pedal-y-palanca)
+13. [LEDs WS2812B](#-leds-ws2812b)
+14. [Sensores de Temperatura](#-sensores-de-temperatura)
+15. [Relés](#-relés)
+16. [GPIOs Libres](#-gpios-libres-para-expansión)
+17. [Checklist de Verificación](#-checklist-de-verificación)
 
 ---
 
@@ -440,32 +441,113 @@ Motor Dirección:            BTS7960 Steering:         ESP32/PCA9685:
 
 ## 🔍 SENSORES DE RUEDAS
 
-### Sensores Inductivos LJ12A3-4-Z/BX (x4)
+### 🔌 MÓDULOS OPTOACOPLADORES HY-M158 (x2)
+
+**⚠️ CRÍTICO**: Se usan 2 módulos HY-M158 (8 canales c/u) para aislar señales 5V/12V → 3.3V
+
+#### HY-M158 Módulo #1 - Sensores y Encoder
 
 ```
-Sensor LJ12A3 (NPN NO):     ESP32-S3:
+Lado 5V/12V (Entrada):          PC817 Optoacoplador:    Lado 3.3V (Salida):
+
+Sensores 12V/5V                                         ESP32-S3 / MCP23017
+┌──────────────┐                                       
+│ WHEEL_FL ────┼─► IN1 ───► [LED ─┴─ Foto] ──► OUT1 ──► GPIO 3
+│ WHEEL_FR ────┼─► IN2 ───► [LED ─┴─ Foto] ──► OUT2 ──► GPIO 4  
+│ WHEEL_RL ────┼─► IN3 ───► [LED ─┴─ Foto] ──► OUT3 ──► GPIO 15
+│ WHEEL_RR ────┼─► IN4 ───► [LED ─┴─ Foto] ──► OUT4 ──► GPIO 16
+│ ENCODER_A ───┼─► IN5 ───► [LED ─┴─ Foto] ──► OUT5 ──► GPIO 7
+│ ENCODER_B ───┼─► IN6 ───► [LED ─┴─ Foto] ──► OUT6 ──► GPIO 2
+│ ENCODER_Z ───┼─► IN7 ───► [LED ─┴─ Foto] ──► OUT7 ──► (Reserva)
+│ RESERVA ─────┼─► IN8 ───► [LED ─┴─ Foto] ──► OUT8 ──► (Reserva)
+│              │
+│ VCC: +12V/5V │             Aislamiento Galvánico      VCC: +3.3V
+│ GND: Común   │                                        GND: Común
+└──────────────┘                                       
+```
+
+#### HY-M158 Módulo #2 - Palanca de Cambios (Shifter)
+
+```
+Lado 12V (Entrada):             PC817 Optoacoplador:    Lado 3.3V (Salida):
+
+Palanca 12V DC                                          MCP23017 I²C (0x20)
+┌──────────────┐                                       
+│ P (Park) ────┼─► IN1 ───► [LED ─┴─ Foto] ──► OUT1 ──► GPIOB0 (pin 8)
+│ R (Reverse) ─┼─► IN2 ───► [LED ─┴─ Foto] ──► OUT2 ──► GPIOB1 (pin 9)
+│ N (Neutral) ─┼─► IN3 ───► [LED ─┴─ Foto] ──► OUT3 ──► GPIOB2 (pin 10)
+│ D1 (Drive 1)─┼─► IN4 ───► [LED ─┴─ Foto] ──► OUT4 ──► GPIOB3 (pin 11)
+│ D2 (Drive 2)─┼─► IN5 ───► [LED ─┴─ Foto] ──► OUT5 ──► GPIOB4 (pin 12)
+│ RESERVA ─────┼─► IN6 ───► [LED ─┴─ Foto] ──► OUT6 ──► (Libre)
+│ RESERVA ─────┼─► IN7 ───► [LED ─┴─ Foto] ──► OUT7 ──► (Libre)
+│ RESERVA ─────┼─► IN8 ───► [LED ─┴─ Foto] ──► OUT8 ──► (Libre)
+│              │                                           │
+│ COM: +12V    │             Aislamiento Galvánico      MCP23017:
+│ VCC: +12V    │                                        SDA → GPIO 8
+│ GND: Común   │                                        SCL → GPIO 9
+└──────────────┘                                        VCC → 3.3V
+```
+
+**Funcionamiento PC817:**
+1. Lado entrada (12V): Señal activa → LED enciende → Resistencia limitadora ~1kΩ
+2. Aislamiento óptico: Luz cruza barrera galvánica (sin conexión eléctrica)
+3. Lado salida (3.3V): Fototransistor conduce → Salida va a GND (LOW)
+4. Pull-up en salida: 10kΩ a 3.3V → Sin señal = HIGH, con señal = LOW
+
+**Tabla Resumen HY-M158:**
+
+| Módulo | Canal | Entrada | Voltaje IN | Salida | Destino | Función |
+|--------|-------|---------|------------|--------|---------|---------|
+| **#1** | CH1 | WHEEL_FL | 12V | OUT1 | GPIO 3 | Sensor rueda FL |
+| **#1** | CH2 | WHEEL_FR | 12V | OUT2 | GPIO 4 | Sensor rueda FR |
+| **#1** | CH3 | WHEEL_RL | 12V | OUT3 | GPIO 15 | Sensor rueda RL |
+| **#1** | CH4 | WHEEL_RR | 12V | OUT4 | GPIO 16 | Sensor rueda RR |
+| **#1** | CH5 | ENCODER_A | 5V | OUT5 | GPIO 7 | Encoder fase A |
+| **#1** | CH6 | ENCODER_B | 5V | OUT6 | GPIO 2 | Encoder fase B |
+| **#1** | CH7 | ENCODER_Z | 5V | OUT7 | Reserva | Encoder señal Z |
+| **#1** | CH8 | — | — | OUT8 | Reserva | Disponible |
+| **#2** | CH1 | Shifter P | 12V | OUT1 | MCP GPIOB0 | Park |
+| **#2** | CH2 | Shifter R | 12V | OUT2 | MCP GPIOB1 | Reverse |
+| **#2** | CH3 | Shifter N | 12V | OUT3 | MCP GPIOB2 | Neutral |
+| **#2** | CH4 | Shifter D1 | 12V | OUT4 | MCP GPIOB3 | Drive 1 |
+| **#2** | CH5 | Shifter D2 | 12V | OUT5 | MCP GPIOB4 | Drive 2 |
+| **#2** | CH6-8 | — | — | OUT6-8 | Reserva | Disponibles |
+
+**Ventajas:**
+- ✅ Aislamiento galvánico (protege ESP32/MCP23017)
+- ✅ Acepta 5V y 12V sin conversores adicionales
+- ✅ Protección contra sobrevoltajes
+- ✅ Reduce ruido eléctrico
+- ✅ Seguridad: Separa potencia de control
+
+---
+
+### Sensores Inductivos LJ12A3-4-Z/BX (x4)
+
+**⚠️ Conexión via HY-M158 Módulo #1 (CH1-4)**
+
+```
+Sensor LJ12A3 (NPN NO):     HY-M158 #1:         ESP32-S3:
 ┌────────────────┐         
 │ Azul (GND)   ●──┼────────── GND
 │ Marrón (12V) ●──┼────────── 12V (vía Relé AUX)
-│ Negro (OUT)  ●──┼──┬─ [10kΩ pull-down] ─ GND
-│                  │  │
-│                  │  └────────── GPIO (directo 3.3V tolerante)
-└────────────────┘  
+│ Negro (OUT)  ●──┼────────── IN1-4 ──► PC817 ──► OUT1-4 ──► GPIO
+└────────────────┘           (Módulo HY-M158)
 ```
 
 ### Tabla de Conexiones Sensores de Ruedas
 
-| Sensor | Pin ESP32 | Cable Sensor | Función |
-|--------|-----------|--------------|---------|
-| **WHEEL_FL** | GPIO 3 | Negro (OUT) | Rueda Delantera Izquierda |
-| **WHEEL_FR** | GPIO 4 | Negro (OUT) | Rueda Delantera Derecha |
-| **WHEEL_RL** | GPIO 15 | Negro (OUT) | Rueda Trasera Izquierda |
-| **WHEEL_RR** | GPIO 16 | Negro (OUT) | Rueda Trasera Derecha |
+| Sensor | HY-M158 IN | Pin ESP32 | Cable Sensor | Función |
+|--------|------------|-----------|--------------|---------|
+| **WHEEL_FL** | IN1 → OUT1 | GPIO 3 | Negro (OUT) | Rueda Delantera Izquierda |
+| **WHEEL_FR** | IN2 → OUT2 | GPIO 4 | Negro (OUT) | Rueda Delantera Derecha |
+| **WHEEL_RL** | IN3 → OUT3 | GPIO 15 | Negro (OUT) | Rueda Trasera Izquierda |
+| **WHEEL_RR** | IN4 → OUT4 | GPIO 16 | Negro (OUT) | Rueda Trasera Derecha |
 
 **Conexión común todos los sensores:**
 - Cable Marrón: 12V (Relé AUX)
 - Cable Azul: GND
-- Cable Negro: GPIO (con pull-down 10kΩ a GND)
+- Cable Negro: HY-M158 IN1-4 (entrada 12V)
 
 **⚠️ MIGRACIÓN:**
 - ✅ WHEEL_RL: GPIO 17 → GPIO 15 (liberado para UART1)
@@ -477,28 +559,28 @@ Sensor LJ12A3 (NPN NO):     ESP32-S3:
 
 ### Encoder E6B2-CWZ6C (1200 PPR)
 
+**⚠️ Conexión via HY-M158 Módulo #1 (CH5-7)**
+
 ```
-Encoder Dirección:          ESP32-S3:
+Encoder Dirección:          HY-M158 #1:         ESP32-S3:
 ┌────────────────┐         
 │ VCC (12V)    ●──┼────────── 12V (vía Relé AUX)
 │ GND          ●──┼────────── GND
-│ A (Phase A)  ●──┼──┬─ [10kΩ pull-down] ─ GND
-│                  │  │
-│                  │  └────── GPIO 7 (ENCODER_A)
-│ B (Phase B)  ●──┼──┬─ [10kΩ pull-down] ─ GND
-│                  │  │
-│                  │  └────── GPIO 2 (ENCODER_B)
-└────────────────┘
+│ A (Phase A)  ●──┼────────── IN5 ──► PC817 ──► OUT5 ──► GPIO 7
+│ B (Phase B)  ●──┼────────── IN6 ──► PC817 ──► OUT6 ──► GPIO 2
+│ Z (Index)    ●──┼────────── IN7 ──► PC817 ──► OUT7 ──► (Reserva)
+└────────────────┘           (Módulo HY-M158)
 ```
 
 ### Tabla de Conexiones Encoder
 
-| Pin Encoder | Pin ESP32 | Cable Color | Función |
-|-------------|-----------|-------------|---------|
-| **VCC** | 12V (Relé AUX) | 🟤 Marrón | Alimentación |
-| **GND** | GND | 🔵 Azul | Tierra |
-| **A** | GPIO 7 | 🟡 Amarillo | Fase A (con pull-down 10kΩ) |
-| **B** | GPIO 2 | 🟢 Verde | Fase B (con pull-down 10kΩ) |
+| Pin Encoder | HY-M158 IN | Pin ESP32 | Cable Color | Función |
+|-------------|------------|-----------|-------------|---------|
+| **VCC** | — | 12V (Relé AUX) | 🟤 Marrón | Alimentación |
+| **GND** | — | GND | 🔵 Azul | Tierra |
+| **A** | IN5 → OUT5 | GPIO 7 | 🟡 Amarillo | Fase A (vía HY-M158) |
+| **B** | IN6 → OUT6 | GPIO 2 | 🟢 Verde | Fase B (vía HY-M158) |
+| **Z** | IN7 → OUT7 | Reserva | ⚪ Blanco | Índice (opcional, via HY-M158) |
 
 **Configuración:**
 - Resolución: 1200 pulsos/revolución
@@ -527,30 +609,43 @@ Sensor Hall:                Divisor de Tensión:       ESP32-S3:
 - Vout = Vin × (R2 / (R1 + R2))
 - Vout = 5V × (4.7kΩ / 7.4kΩ) = 3.18V (< 3.3V límite ADC)
 
-### Palanca de Cambios (4 posiciones)
+### Palanca de Cambios (5 posiciones - 12V via HY-M158)
+
+⚠️ **IMPORTANTE**: La palanca opera a **12V DC** y requiere aislamiento mediante optoacopladores HY-M158.
 
 ```
-Shifter Resistivo:          ESP32-S3:
-┌────────────────┐         
-│ PIN 1 (señal)●──┼──┬─ [Pull-up 10kΩ a 3.3V]
-│                  │  │
-│                  │  └────── MCP23017 GPA (via I²C)
-│ PIN 2 (GND)  ●──┼────────── GND
-└────────────────┘
+Palanca 12V:                HY-M158 #2:              MCP23017:         ESP32-S3:
+┌───────────────┐          
+│ P  ●──────────┼── (🔴 Rojo) ───► IN1 ──► PC817 ──► OUT1 ──► GPIOB0 ──┐
+│ R  ●──────────┼── (⚪ Blanco) ─► IN2 ──► PC817 ──► OUT2 ──► GPIOB1 ──┤
+│ N  ●──────────┼── (🟢 Verde) ──► IN3 ──► PC817 ──► OUT3 ──► GPIOB2 ──┼─ I²C
+│ D1 ●──────────┼── (🔵 Azul) ───► IN4 ──► PC817 ──► OUT4 ──► GPIOB3 ──┤ 0x20
+│ D2 ●──────────┼── (🟡 Amarillo)► IN5 ──► PC817 ──► OUT5 ──► GPIOB4 ──┘
+│               │                                                    │
+│ COM ●─────────┼── +12V                                    SDA ──► GPIO 8
+└───────────────┘                                           SCL ──► GPIO 9
 
-Posiciones:
-- Adelante:  Resistencia 0Ω    → LOW
-- Neutral:   Resistencia 10kΩ  → HIGH
-- Atrás:     Resistencia 4.7kΩ → MEDIUM
-- Parking:   Resistencia 22kΩ  → HIGH (diferente nivel)
+    12V lado                3.3V lado aislado galvánicamente
+    ═══════════             ═══════════════════════════════
 ```
+
+**Funcionamiento:**
+1. Palanca conecta +12V a posición seleccionada (P, R, N, D1, D2)
+2. HY-M158 aísla y convierte 12V → 3.3V (optoacoplador PC817)
+3. MCP23017 lee con pull-ups internos (LOW = activo)
+4. ESP32-S3 lee via I²C con prioridad P > R > N > D1 > D2
+5. Debounce 50ms en firmware
 
 ### Tabla Pedal y Palanca
 
-| Dispositivo | Pin ESP32/I²C | Cable Color | Función |
-|-------------|---------------|-------------|---------|
-| **Pedal** | GPIO 1 (ADC) | 🟡 Amarillo | 0-3.3V analógico |
-| **Shifter** | MCP23017 GPA | 🟢 Verde | 4 posiciones resistivo |
+| Dispositivo | Pin ESP32/I²C | Cable Color | Voltaje | Función |
+|-------------|---------------|-------------|---------|---------|
+| **Pedal** | GPIO 1 (ADC) | 🟡 Amarillo | 0-3.3V | Analógico (divisor resistivo) |
+| **Shifter P** | MCP23017 GPIOB0 | 🔴 Rojo | 12V | Park (via HY-M158) |
+| **Shifter R** | MCP23017 GPIOB1 | ⚪ Blanco | 12V | Reverse (via HY-M158) |
+| **Shifter N** | MCP23017 GPIOB2 | 🟢 Verde | 12V | Neutral (via HY-M158) |
+| **Shifter D1** | MCP23017 GPIOB3 | 🔵 Azul | 12V | Drive 1 (via HY-M158) |
+| **Shifter D2** | MCP23017 GPIOB4 | 🟡 Amarillo | 12V | Drive 2 (via HY-M158) |
 
 ---
 
