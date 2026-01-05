@@ -1,6 +1,8 @@
 // Obstacle Detection HUD Display
+// v2.12.0: Updated for single TOFSense-M S sensor (front only)
 #include "obstacle_display.h"
 #include "obstacle_detection.h"
+#include "obstacle_config.h"
 #include "logger.h"
 #include <TFT_eSPI.h>
 
@@ -11,7 +13,7 @@ static DisplayConfig config;
 static uint32_t lastUpdateMs = 0;
 
 void init() {
-    Logger::info("ObstacleDisplay: Init");
+    Logger::info("ObstacleDisplay: Init (v2.12.0 - Single sensor)");
     config = DisplayConfig();
 }
 
@@ -26,32 +28,83 @@ void update() {
 void setEnabled(bool enable) { config.enabled = enable; }
 
 void drawProximityIndicators() {
-    // Draw color-coded proximity indicators for each sensor
-    for (uint8_t i = 0; i < 4; i++) {
-        auto level = ObstacleDetection::getProximityLevel(i);
-        uint16_t color = TFT_GREEN;
-        if (level == ObstacleDetection::LEVEL_CRITICAL) color = TFT_RED;
-        else if (level == ObstacleDetection::LEVEL_WARNING) color = TFT_YELLOW;
-        else if (level == ObstacleDetection::LEVEL_CAUTION) color = TFT_ORANGE;
-        
-        int x = 240 + (i == 3 ? 60 : i == 1 ? -60 : 0);
-        int y = 160 + (i == 0 ? -60 : i == 2 ? 60 : 0);
-        tft.fillCircle(x, y, 10, color);
+    // Draw color-coded proximity indicator for single front sensor
+    // v2.12.0: Only one sensor (SENSOR_FRONT)
+    auto level = ObstacleDetection::getProximityLevel(ObstacleDetection::SENSOR_FRONT);
+    bool healthy = ObstacleDetection::isHealthy(ObstacleDetection::SENSOR_FRONT);
+    
+    uint16_t color = TFT_GREEN;
+    if (!healthy) {
+        color = TFT_DARKGREY;  // Sensor unhealthy/timeout
+    } else if (level == ObstacleDetection::LEVEL_CRITICAL) {
+        color = TFT_RED;
+    } else if (level == ObstacleDetection::LEVEL_WARNING) {
+        color = TFT_YELLOW;
+    } else if (level == ObstacleDetection::LEVEL_CAUTION) {
+        color = TFT_ORANGE;
     }
+    
+    // Draw front sensor indicator at top center
+    int x = 240;  // Center of screen (480px width)
+    int y = 100;  // Top area
+    tft.fillCircle(x, y, 15, color);
+    
+    // Draw label
+    tft.setTextDatum(TC_DATUM);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString("FRONT", x, y + 25, 2);
 }
 
 void drawDistanceBars() {
-    // Draw distance bars at bottom of screen
-    for (uint8_t i = 0; i < 4; i++) {
-        uint16_t dist = ObstacleDetection::getMinDistance(i);
-        if (dist == 0xFFFF) continue;
-        
-        int barLen = constrain(map(dist, 0, 2000, 0, 100), 0, 100);
-        int x = 40 + (i * 110);
-        tft.fillRect(x, 300, barLen, 10, TFT_CYAN);
-        tft.setCursor(x, 285);
-        tft.printf("%dcm", dist / 10);
+    // Draw distance bar for single front sensor
+    // v2.12.0: Only one sensor (SENSOR_FRONT)
+    uint16_t dist = ObstacleDetection::getMinDistance(ObstacleDetection::SENSOR_FRONT);
+    bool healthy = ObstacleDetection::isHealthy(ObstacleDetection::SENSOR_FRONT);
+    
+    if (!healthy) {
+        // Show sensor error state
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_RED, TFT_BLACK);
+        tft.drawString("SENSOR ERROR", 240, 300, 4);
+        return;
     }
+    
+    if (dist >= ObstacleConfig::DISTANCE_INVALID) {
+        // No obstacle detected
+        tft.setTextDatum(MC_DATUM);
+        tft.setTextColor(TFT_GREEN, TFT_BLACK);
+        tft.drawString("CLEAR", 240, 300, 4);
+        return;
+    }
+    
+    // Draw distance bar (0-12m range for TOFSense-M S)
+    int barLen = constrain(map(dist, 0, 12000, 0, 200), 0, 200);
+    int x = 140;  // Centered
+    int barY = 300;
+    
+    // Bar color based on proximity
+    uint16_t barColor = TFT_GREEN;
+    if (dist < ObstacleConfig::DISTANCE_CRITICAL) barColor = TFT_RED;
+    else if (dist < ObstacleConfig::DISTANCE_WARNING) barColor = TFT_ORANGE;
+    else if (dist < ObstacleConfig::DISTANCE_CAUTION) barColor = TFT_YELLOW;
+    
+    // Draw bar background
+    tft.fillRect(x, barY, 200, 15, TFT_DARKGREY);
+    // Draw filled portion
+    tft.fillRect(x, barY, barLen, 15, barColor);
+    // Draw border
+    tft.drawRect(x, barY, 200, 15, TFT_WHITE);
+    
+    // Draw distance text
+    tft.setTextDatum(TC_DATUM);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    char distStr[32];
+    if (dist < 1000) {
+        snprintf(distStr, sizeof(distStr), "%dmm", dist);
+    } else {
+        snprintf(distStr, sizeof(distStr), "%.1fm", dist / 1000.0f);
+    }
+    tft.drawString(distStr, 240, barY - 20, 4);
 }
 
 const DisplayConfig& getConfig() { return config; }

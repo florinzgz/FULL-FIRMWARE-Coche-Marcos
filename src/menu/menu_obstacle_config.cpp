@@ -2,9 +2,10 @@
  * @file menu_obstacle_config.cpp
  * @brief Obstacle Detection Configuration Menu
  * 
- * Configuración de sensores VL53L5X de obstáculos:
+ * v2.12.0: Actualizado para TOFSense-M S (sensor único frontal)
+ * Configuración del sensor TOFSense-M S:
  * - Umbrales de distancia (critical, warning, caution)
- * - Activación/desactivación de sensores (Front y Rear)
+ * - Activación/desactivación del sensor frontal
  * - Opciones de alerta sonora y visual
  * - Persistencia real en EEPROM
  */
@@ -21,9 +22,9 @@ extern TFT_eSPI tft;
 
 namespace ObstacleConfigMenu {
 
-// Solo dos sensores de obstáculos reales
-static const int kNumObstacles = 2;
-static const char* SENSOR_NAMES[kNumObstacles] = {"Front", "Rear"};
+// v2.12.0: Solo un sensor de obstáculos (Front)
+static const int kNumObstacles = 1;
+static const char* SENSOR_NAMES[kNumObstacles] = {"Front"};
 
 // UI State
 static bool visible = false;
@@ -34,7 +35,7 @@ static int selectedOption = 0;
 static uint16_t criticalDistance = ObstacleConfig::DISTANCE_CRITICAL;
 static uint16_t warningDistance  = ObstacleConfig::DISTANCE_WARNING;
 static uint16_t cautionDistance  = ObstacleConfig::DISTANCE_CAUTION;
-static bool sensorEnabled[kNumObstacles]   = {true, true};    // Front, Rear
+static bool sensorEnabled[kNumObstacles]   = {true};    // Solo Front
 static bool audioAlertsEnabled  = true;
 static bool visualAlertsEnabled = true;
 
@@ -56,8 +57,8 @@ static const int SLIDER_X      = 220;
 static const int SLIDER_W      = 180;
 static const int BACK_BTN_Y    = 280;
 
-// Número de opciones en el menú
-static const int NUM_OPTIONS = 7;  // 3 distancias + 2 sensores + 2 toggles + botón Save
+// Número de opciones en el menú (3 distancias + 1 sensor + 2 toggles + botón Save)
+static const int NUM_OPTIONS = 6;
 
 // Forward declarations
 void loadConfig();
@@ -76,7 +77,7 @@ void init() {
     needsRedraw = true;
     selectedOption = 0;
     loadConfig();
-    Logger::info("ObstacleConfigMenu: initialized");
+    Logger::info("ObstacleConfigMenu: initialized (v2.12.0 - Single sensor)");
 }
 
 void loadConfig() {
@@ -128,6 +129,10 @@ void draw() {
     tft.setTextDatum(TC_DATUM);
     tft.setTextColor(COLOR_HEADER, COLOR_BG);
     tft.drawString("Obstacle Detection Config", 240, HEADER_Y, 4);
+    
+    // v2.12.0: TOFSense-M S subtitle
+    tft.setTextColor(TFT_DARKGREY, COLOR_BG);
+    tft.drawString("TOFSense-M S (Single Front Sensor)", 240, HEADER_Y + 25, 2);
 
     int y = OPTION_START_Y;
 
@@ -144,20 +149,17 @@ void draw() {
     drawSliderOption(y, 2, "Caution:", cautionDistance, 500, 2000, COLOR_CAUTION);
     y += OPTION_HEIGHT + 10;
 
-    // Sensores (solo Front y Rear)
+    // Sensor (solo Front)
     tft.setTextColor(COLOR_TEXT, COLOR_BG);
-    tft.drawString("Sensors:", 20, y, 2);
+    tft.drawString("Sensor:", 20, y, 2);
     y += 25;
-    for (int i = 0; i < kNumObstacles; i++) {
-        drawToggleOption(y, 3 + i, SENSOR_NAMES[i], sensorEnabled[i]);
-        y += OPTION_HEIGHT;
-    }
-    y += 10;
+    drawToggleOption(y, 3, SENSOR_NAMES[0], sensorEnabled[0]);
+    y += OPTION_HEIGHT + 10;
 
     // Alertas
-    drawToggleOption(y, 5, "Audio Alerts", audioAlertsEnabled);
+    drawToggleOption(y, 4, "Audio Alerts", audioAlertsEnabled);
     y += OPTION_HEIGHT;
-    drawToggleOption(y, 6, "Visual Alerts", visualAlertsEnabled);
+    drawToggleOption(y, 5, "Visual Alerts", visualAlertsEnabled);
 
     // Action buttons
     drawActionButtons();
