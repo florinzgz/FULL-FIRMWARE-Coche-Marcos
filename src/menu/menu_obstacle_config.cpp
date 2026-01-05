@@ -130,9 +130,9 @@ void draw() {
     tft.setTextColor(COLOR_HEADER, COLOR_BG);
     tft.drawString("Obstacle Detection Config", 240, HEADER_Y, 4);
     
-    // v2.12.0: TOFSense-M S subtitle
+    // v2.13.0: TOFSense-M S 8x8 matrix subtitle
     tft.setTextColor(TFT_DARKGREY, COLOR_BG);
-    tft.drawString("TOFSense-M S (Single Front Sensor)", 240, HEADER_Y + 25, 2);
+    tft.drawString("TOFSense-M S (8x8 Matrix, 4m Range)", 240, HEADER_Y + 25, 2);
 
     int y = OPTION_START_Y;
 

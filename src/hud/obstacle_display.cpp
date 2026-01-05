@@ -57,7 +57,7 @@ void drawProximityIndicators() {
 
 void drawDistanceBars() {
     // Draw distance bar for single front sensor
-    // v2.12.0: Only one sensor (SENSOR_FRONT)
+    // v2.13.0: TOFSense-M S 8x8 matrix mode (minimum of 64 pixels)
     uint16_t dist = ObstacleDetection::getMinDistance(ObstacleDetection::SENSOR_FRONT);
     bool healthy = ObstacleDetection::isHealthy(ObstacleDetection::SENSOR_FRONT);
     
@@ -77,8 +77,8 @@ void drawDistanceBars() {
         return;
     }
     
-    // Draw distance bar (0-12m range for TOFSense-M S)
-    int barLen = constrain(map(dist, 0, 12000, 0, 200), 0, 200);
+    // Draw distance bar (0-4m range for TOFSense-M S 8x8 matrix)
+    int barLen = constrain(map(dist, 0, 4000, 0, 200), 0, 200);
     int x = 140;  // Centered
     int barY = 300;
     
@@ -100,9 +100,9 @@ void drawDistanceBars() {
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     char distStr[32];
     if (dist < 1000) {
-        snprintf(distStr, sizeof(distStr), "%dmm", dist);
+        snprintf(distStr, sizeof(distStr), "%dmm (8x8)", dist);
     } else {
-        snprintf(distStr, sizeof(distStr), "%.1fm", dist / 1000.0f);
+        snprintf(distStr, sizeof(distStr), "%.2fm (8x8)", dist / 1000.0f);
     }
     tft.drawString(distStr, 240, barY - 20, 4);
 }
