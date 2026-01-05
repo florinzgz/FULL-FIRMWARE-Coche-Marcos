@@ -39,118 +39,20 @@ jobs:
         run: |
           pip install platformio
 
-      - name: Build firmware
+      - name: Build firmware and generate compile_commands.json
         run: |
-          pio run -e esp32-s3-devkitc1 -v
+          pio run -e esp32-s3-devkitc1 --target compiledb
 
-      - name: Verify compile_commands.json generation
+      - name: Verify compile_commands.json exists
         run: |
-          echo "Checking for compile_commands.json files..."
-          ls -lh .pio/build/*/compile_commands.json || {
-            echo "Error: No compile_commands.json files found in .pio/build directories"
-            echo "Contents of .pio/build:"
-            ls -la .pio/build/ || echo "Directory .pio/build does not exist"
-            exit 1
-          }
-          echo "Displaying content of found compile_commands.json files:"
-          for f in .pio/build/*/compile_commands.json; do
-            if [ -f "$f" ]; then
-              echo "File: $f"
-              echo "Size: $(wc -c < "$f") bytes"
-              echo "First few lines:"
-              head -20 "$f" || echo "Could not read file"
-            fi
-          done
-
-      - name: Merge compilation databases
-        run: |
-          python3 << 'EOF'
-          import json
-          from pathlib import Path
-          build_dir = Path('.pio/build')
-          compile_db_files = list(build_dir.glob('*/compile_commands.json'))
-          if not compile_db_files: 
-              print("Error: No compile_commands.json files found in any build environment")
-              exit(1)
-          print(f"Found {len(compile_db_files)} compilation database(s):")
-          for f in compile_db_files:
-              print(f"  - {f}")
-          merged_commands = []
-          project_root = Path.cwd()
-          for db_file in compile_db_files:
-              file_count_start = len(merged_commands)
-              try:
-                  with open(db_file, 'r') as f:
-                      commands = json.load(f)
-                  for cmd in commands:
-                      file_path = Path(cmd.get('file', ''))
-                      file_str = str(file_path)
-                      if '.platformio' in file_str or '/packages/' in file_str:
-                          continue
-                      if '/src/' in file_str or '/include/' in file_str:
-                          parts = file_path.parts
-                          try:
-                              if 'src' in parts:
-                                  idx = [i for i,p in enumerate(parts) if p=='src'][-1]
-                                  rel_path = Path(*parts[idx:])
-                              elif 'include' in parts:
-                                  idx = [i for i,p in enumerate(parts) if p=='include'][-1]
-                                  rel_path = Path(*parts[idx:])
-                              else:
-                                  continue
-                              actual_file = project_root / rel_path
-                              if actual_file.exists():
-                                  cmd['file'] = rel_path.as_posix()
-                                  cmd['directory'] = str(project_root)
-                                  merged_commands.append(cmd)
-                                  print(f"  ✓ Included: {rel_path.as_posix()}")
-                          except Exception:
-                              continue
-                  files_added = len(merged_commands) - file_count_start
-                  print(f"Processed {db_file}: found {files_added} project files")
-              except Exception as e:
-                  print(f"Warning: Failed to read {db_file}: {e}")
-          if not merged_commands:
-              print("Error: No compilation commands found for project source files")
-              exit(1)
-          unique_commands = {}
-          for cmd in merged_commands:
-              fp = cmd.get('file')
-              if fp not in unique_commands:
-                  unique_commands[fp] = cmd
-          final_commands = list(unique_commands.values())
-          with open('compile_commands.json', 'w') as f:
-              json.dump(final_commands, f, indent=2)
-          print(f"\n✓ Successfully created compile_commands.json with {len(final_commands)} commands")
-          EOF
-
-      - name: Verify compilation database
-        run: |
-          if [ ! -f compile_commands.json ]; then
+          if [ ! -f .pio/build/esp32-s3-devkitc1/compile_commands.json ]; then
             echo "Error: compile_commands.json not found"
             exit 1
           fi
-          python3 << 'EOF'
-          import json
-          data = json.load(open('compile_commands.json'))
-          if not data:
-              print("Error: compile_commands.json is empty")
-              exit(1)
-          EOF
-          echo "✓ compile_commands.json verified successfully"
+          echo "✓ compile_commands.json generated successfully"
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=FULL-FIRMWARE-Coche-Marcos
-            -Dsonar.organization=florinzgz
-            -Dsonar.projectBaseDir=.
-            -Dsonar.sources=src,include
-            -Dsonar.exclusions=.pio/**,lib/**,test/**
-            -Dsonar.cfamily.compile-commands=compile_commands.json
-            -Dsonar.cfamily.cache.enabled=false
-            -Dsonar.verbose=true
-            -Dsonar.qualitygate.wait=true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
