@@ -1,277 +1,311 @@
-// VL53L5X Obstacle Detection System Implementation
-// Complete multi-sensor ToF obstacle detection with safety features
+// TOFSense-M S Obstacle Detection System Implementation
+// Single LiDAR sensor via UART protocol
 // Author: Copilot AI Assistant
-// Date: 2025-11-23
-// Updated: 2025-12-01 - Added I2C recovery and improved initialization
-// Updated: 2025-12-20 - Added watchdog feeding during initialization (v2.11.3)
+// Date: 2026-01-05
+// Version: 2.12.0 - Migrated from VL53L5X I2C to TOFSense-M S UART
+//
+// Protocol Reference: TOFSense-M_User_Manual_V1.4_en.pdf
+// https://ftp.nooploop.com/software/products/tofsense_m/doc/TOFSense-M_User_Manual_V1.4_en.pdf
+//
+// Packet Format (9 bytes):
+// [0] Header: 0x57
+// [1] Function: 0x00 (distance measurement)
+// [2] Length: 0x02 (2 bytes of data)
+// [3] Data_L: Distance low byte
+// [4] Data_H: Distance high byte
+// [5-7] Reserved/Additional data
+// [8] Checksum: Sum of bytes [0-7] & 0xFF
+//
+// Distance = (Data_H << 8) | Data_L (in millimeters)
 
 #include "obstacle_detection.h"
 #include "obstacle_config.h"
 #include "pins.h"
 #include "logger.h"
 #include "system.h"
-#include "i2c_recovery.h"
 #include "watchdog.h"
-#include <Wire.h>
+#include <HardwareSerial.h>
 
 namespace ObstacleDetection {
 
 // Hardware instances
-// Note: VL53L5CX library integration - sensor objects created when library is available
-// This implementation works with or without the actual sensor hardware
+static HardwareSerial TOFSerial(ObstacleConfig::UART_NUM);  // UART1 for TOFSense-M S
 
 // Sensor state
-static ObstacleSensor sensorData[::ObstacleConfig::NUM_SENSORS];
+static ObstacleSensor sensorData[ObstacleConfig::NUM_SENSORS];
 static ObstacleSettings config;
 static bool initialized = false;
 static uint32_t lastUpdateMs = 0;
 static bool hardwarePresent = false;
-static bool placeholderMode = true;  // True when sensors not detected, used for simulation
+static bool placeholderMode = true;
 
-// I2CRecovery device ID allocation:
-// - Devices 0-7: Reserved for other I2C devices (INA226, etc.)
-// - Devices 8-9: Obstacle detection sensors (FRONT, REAR)
-// - Devices 10-15: Reserved for future I2C expansion
-constexpr uint8_t OBSTACLE_SENSOR_DEVICE_ID_BASE = 8;
+// UART packet buffer
+static uint8_t packetBuffer[ObstacleConfig::PACKET_LENGTH];
+static uint8_t bufferIndex = 0;
+static uint32_t lastPacketMs = 0;
 
-// VL53L5CX device identification
-constexpr uint16_t VL53L5CX_DEVICE_ID_REG = 0x0000;  // Device ID register address
-constexpr uint8_t VL53L5CX_EXPECTED_ID = 0xF0;       // Expected device ID for VL53L5CX
-
-// XSHUT pins for sensors
-static constexpr auto& OBSTACLE_XSHUT_PINS = ::ObstacleConfig::XSHUT_PINS;
-
-static const char* SENSOR_NAMES[::ObstacleConfig::NUM_SENSORS] = {
-    "FRONT", "REAR"
-};
-
-// Verify I2C bus is operational
-static bool testI2CBus() {
-    if (!I2CRecovery::isBusHealthy()) {
-        Logger::warn("Obstacle: I2C bus not healthy, attempting recovery...");
-        if (!I2CRecovery::recoverBus()) {
-            Logger::error("Obstacle: I2C bus recovery failed");
-            return false;
-        }
-        Logger::info("Obstacle: I2C bus recovered successfully");
+// Helper function to calculate checksum
+static uint8_t calculateChecksum(const uint8_t* data, uint8_t length) {
+    uint8_t sum = 0;
+    for (uint8_t i = 0; i < length; i++) {
+        sum += data[i];
     }
+    return sum & 0xFF;
+}
+
+// Helper function to validate and parse packet
+static bool parsePacket(uint16_t& distance) {
+    // Validate header
+    if (packetBuffer[ObstacleConfig::POS_HEADER] != ObstacleConfig::PACKET_HEADER) {
+        Logger::warn("TOFSense: Invalid packet header");
+        return false;
+    }
+    
+    // Validate function code
+    if (packetBuffer[ObstacleConfig::POS_FUNCTION] != ObstacleConfig::PACKET_FUNC_DISTANCE) {
+        Logger::warnf("TOFSense: Unexpected function code: 0x%02X", 
+                     packetBuffer[ObstacleConfig::POS_FUNCTION]);
+        return false;
+    }
+    
+    // Validate length
+    if (packetBuffer[ObstacleConfig::POS_LENGTH] != ObstacleConfig::PACKET_DATA_LENGTH) {
+        Logger::warnf("TOFSense: Invalid data length: %d", 
+                     packetBuffer[ObstacleConfig::POS_LENGTH]);
+        return false;
+    }
+    
+    // Validate checksum
+    uint8_t expectedChecksum = calculateChecksum(packetBuffer, ObstacleConfig::POS_CHECKSUM);
+    uint8_t receivedChecksum = packetBuffer[ObstacleConfig::POS_CHECKSUM];
+    
+    if (expectedChecksum != receivedChecksum) {
+        Logger::warnf("TOFSense: Checksum mismatch (expected: 0x%02X, got: 0x%02X)", 
+                     expectedChecksum, receivedChecksum);
+        System::logError(ObstacleConfig::ERROR_CODE_CHECKSUM);
+        return false;
+    }
+    
+    // Extract distance (low byte + high byte)
+    distance = (packetBuffer[ObstacleConfig::POS_DATA_H] << 8) | 
+                packetBuffer[ObstacleConfig::POS_DATA_L];
+    
     return true;
 }
 
-// PCA9548A Multiplexer functions with I2C recovery
-static bool selectMuxChannel(uint8_t channel) {
-    if (channel > 7) return false;
+// Update sensor data with new distance reading
+static void updateSensorData(uint8_t sensorIdx, uint16_t distanceMm) {
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return;
     
-    // Use I2CRecovery for safe channel selection
-    return I2CRecovery::tcaSelectSafe(channel, ::ObstacleConfig::PCA9548A_ADDR);
-}
-
-// Verify PCA9548A multiplexer is present using I2CRecovery
-static bool verifyMultiplexer() {
-    // Try to select channel 0 - if it works, multiplexer is present
-    bool success = I2CRecovery::tcaSelectSafe(0, ::ObstacleConfig::PCA9548A_ADDR);
+    ObstacleSensor& sensor = sensorData[sensorIdx];
     
-    if (!success) {
-        Logger::errorf("Obstacle: PCA9548A (0x%02X) not found", ::ObstacleConfig::PCA9548A_ADDR);
-    }
-    return success;
-}
-
-// Reset all sensors via XSHUT pins
-static void resetAllSensors() {
-    Logger::info("Obstacle: Resetting all sensors via XSHUT...");
-    
-    // Configure all XSHUT pins as output and pull LOW
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
-        pinMode(OBSTACLE_XSHUT_PINS[i], OUTPUT);
-        digitalWrite(OBSTACLE_XSHUT_PINS[i], LOW);
+    // Apply calibration offset
+    int32_t calibratedDistance = static_cast<int32_t>(distanceMm) + sensor.offsetMm;
+    if (calibratedDistance < 0) calibratedDistance = 0;
+    if (calibratedDistance > ObstacleConfig::DISTANCE_MAX) {
+        calibratedDistance = ObstacleConfig::DISTANCE_INVALID;
     }
     
-    // Wait for sensors to enter shutdown
-    delay(10);
-}
-
-// Initialize single sensor with improved error handling
-static bool initSensor(uint8_t idx) {
-    if (idx >= ::ObstacleConfig::NUM_SENSORS) return false;
+    // Update sensor state
+    sensor.minDistance = static_cast<uint16_t>(calibratedDistance);
+    sensor.lastUpdateMs = millis();
+    sensor.healthy = true;
+    sensor.errorCount = 0;
     
-    Logger::infof("Obstacle: Initializing sensor %s (GPIO %d, MUX ch %d)...", 
-                  SENSOR_NAMES[idx], OBSTACLE_XSHUT_PINS[idx], idx);
+    // Update single zone data
+    ObstacleZone& zone = sensor.zones[0];
+    zone.distanceMm = sensor.minDistance;
+    zone.valid = (sensor.minDistance < ObstacleConfig::DISTANCE_INVALID);
+    zone.confidence = 100;  // TOFSense-M S doesn't provide confidence, assume 100%
     
-    // Power up sensor via XSHUT
-    digitalWrite(OBSTACLE_XSHUT_PINS[idx], HIGH);
-    
-    // Wait for sensor to stabilize
-    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog antes del delay
-    // Con 2 sensores VL53L5CX = 100ms total de delay, evita timeout de watchdog
-    Watchdog::feed();  // Feed una vez antes del delay
-    uint32_t startMs = millis();
-    while (millis() - startMs < ::ObstacleConfig::INIT_DELAY_MS) {
-        yield();  // Yield para no bloquear completamente
-    }
-    
-    // Select multiplexer channel using I2C recovery
-    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog después de operación I2C crítica
-    if (!selectMuxChannel(idx)) {
-        Watchdog::feed();  // Feed antes de salir por error
-        Logger::errorf("Obstacle: Failed to select MUX channel %d for sensor %s", 
-                      idx, SENSOR_NAMES[idx]);
-        sensorData[idx].healthy = false;
-        sensorData[idx].errorCount++;
-        return false;
-    }
-    Watchdog::feed();  // Feed después de operación I2C exitosa
-    
-    // Check for VL53L5CX sensor presence by reading device ID register
-    // Use defined base ID + sensor index for I2CRecovery device tracking
-    const uint8_t deviceId = OBSTACLE_SENSOR_DEVICE_ID_BASE + idx;
-    uint8_t deviceIdValue = 0;
-    bool readOk = I2CRecovery::readBytesWithRetry(
-        ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, VL53L5CX_DEVICE_ID_REG, &deviceIdValue, 1, deviceId);
-    bool sensorFound = readOk && (deviceIdValue == VL53L5CX_EXPECTED_ID);
-    
-    // 🔒 CORRECCIÓN CRÍTICA: Feed watchdog después de lectura I2C
-    Watchdog::feed();
-    
-    // Configure sensor state
-    sensorData[idx].enabled = config.sensorsEnabled[idx];
-    sensorData[idx].healthy = sensorFound;
-    sensorData[idx].lastUpdateMs = millis();
-    sensorData[idx].offsetMm = config.offsetsMm[idx];
-    sensorData[idx].errorCount = 0;
-    
-    if (sensorFound) {
-        hardwarePresent = true;
-        placeholderMode = false;
-        Logger::infof("Obstacle: Sensor %s detected at 0x%02X (ID: 0x%02X)", 
-                     SENSOR_NAMES[idx], ::ObstacleConfig::VL53L5X_DEFAULT_ADDR, deviceIdValue);
+    // Determine proximity level
+    if (sensor.minDistance >= ObstacleConfig::DISTANCE_INVALID) {
+        sensor.proximityLevel = LEVEL_INVALID;
+        zone.level = LEVEL_INVALID;
+    } else if (sensor.minDistance < config.thresholdCritical) {
+        sensor.proximityLevel = LEVEL_CRITICAL;
+        zone.level = LEVEL_CRITICAL;
+    } else if (sensor.minDistance < config.thresholdWarning) {
+        sensor.proximityLevel = LEVEL_WARNING;
+        zone.level = LEVEL_WARNING;
+    } else if (sensor.minDistance < config.thresholdCaution) {
+        sensor.proximityLevel = LEVEL_CAUTION;
+        zone.level = LEVEL_CAUTION;
     } else {
-        if (readOk) {
-            Logger::warnf("Obstacle: Sensor %s ID mismatch (got 0x%02X, expected 0x%02X)", 
-                         SENSOR_NAMES[idx], deviceIdValue, VL53L5CX_EXPECTED_ID);
-        } else {
-            Logger::warnf("Obstacle: Sensor %s not detected (placeholder mode)", SENSOR_NAMES[idx]);
-        }
+        sensor.proximityLevel = LEVEL_SAFE;
+        zone.level = LEVEL_SAFE;
     }
-    
-    return true;  // Return true even if sensor not found (placeholder mode)
 }
 
 void init() {
-    Logger::info("Initializing VL53L5X obstacle detection system...");
-    Logger::infof("  PCA9548A multiplexer address: 0x%02X", ::ObstacleConfig::PCA9548A_ADDR);
-    Logger::infof("  XSHUT pins: FRONT=%d, REAR=%d",
-                 ::ObstacleConfig::PIN_XSHUT_FRONT, ::ObstacleConfig::PIN_XSHUT_REAR);
+    Logger::info("Initializing TOFSense-M S obstacle detection system...");
+    Logger::infof("  UART%d: RX=GPIO%d, TX=GPIO%d, Baudrate=%d", 
+                 ObstacleConfig::UART_NUM,
+                 PIN_TOFSENSE_RX, 
+                 PIN_TOFSENSE_TX,
+                 ObstacleConfig::UART_BAUDRATE);
     
     hardwarePresent = false;
     placeholderMode = true;
+    bufferIndex = 0;
+    lastPacketMs = 0;
     
-    // 0. Ensure any XSHUT strapping pin stays HIGH before any reconfiguration
-    bool strappingGuarded = false;
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
-        const uint8_t pin = OBSTACLE_XSHUT_PINS[i];
-        if (pin_is_strapping(pin)) {
-            pinMode(pin, OUTPUT);
-            digitalWrite(pin, HIGH);
-            strappingGuarded = true;
-        }
-    }
-    if (strappingGuarded) delay(10);
-
-    // 1. Test I2C bus health
-    if (!testI2CBus()) {
-        Logger::error("Obstacle: I2C bus test failed, aborting initialization");
-        initialized = false;
-        return;
-    }
+    // Initialize UART for TOFSense-M S
+    // Note: Only RX is needed as we don't send commands, but TX pin must be defined
+    TOFSerial.begin(ObstacleConfig::UART_BAUDRATE, SERIAL_8N1, 
+                    PIN_TOFSENSE_RX, PIN_TOFSENSE_TX);
     
-    // 🔒 v2.11.3: Feed watchdog after I2C bus test to prevent timeout during sensor init
+    // Wait for UART to stabilize
+    delay(100);
     Watchdog::feed();
     
-    // 2. Reset all sensors via XSHUT
-    resetAllSensors();
-    
-    // 3. Verify PCA9548A multiplexer
-    if (!verifyMultiplexer()) {
-        Logger::warn("Obstacle: PCA9548A not found, running in simulation mode");
-        // Continue in placeholder mode
+    // Initialize sensor data
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
+        sensorData[i].enabled = config.sensorsEnabled[i];
+        sensorData[i].offsetMm = config.offsetsMm[i];
+        sensorData[i].healthy = false;
+        sensorData[i].lastUpdateMs = 0;
+        sensorData[i].errorCount = 0;
+        sensorData[i].minDistance = ObstacleConfig::DISTANCE_INVALID;
+        sensorData[i].proximityLevel = LEVEL_INVALID;
     }
     
-    // 🔒 v2.11.3: Feed watchdog after multiplexer verification (I2C operation)
-    Watchdog::feed();
+    // Try to read initial data to verify sensor presence
+    // Give sensor some time to start sending data
+    uint32_t startMs = millis();
+    bool dataReceived = false;
     
-    // 4. Initialize each sensor sequentially
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
-        if (!initSensor(i)) {
-            sensorData[i].healthy = false;
+    while (millis() - startMs < 2000 && !dataReceived) {
+        if (TOFSerial.available() > 0) {
+            dataReceived = true;
+            hardwarePresent = true;
+            placeholderMode = false;
+            Logger::info("TOFSense-M S sensor detected on UART1");
+            break;
         }
-        // 🔒 v2.11.3: Feed watchdog after each sensor init (prevents timeout on multi-sensor setup)
+        delay(10);
         Watchdog::feed();
     }
     
-    // Set initialized based on I2C bus availability (placeholder mode is OK)
-    initialized = true;
-    
-    if (hardwarePresent) {
-        placeholderMode = false;
-        Logger::info("Obstacle detection system ready (hardware detected)");
-    } else {
+    if (!hardwarePresent) {
+        Logger::warn("TOFSense-M S sensor not detected, running in simulation mode");
         placeholderMode = true;
-        Logger::info("Obstacle detection system ready (placeholder/simulation mode)");
     }
+    
+    initialized = true;
+    Logger::info("Obstacle detection system ready");
 }
 
 void update() {
     if (!initialized) return;
     
     uint32_t now = millis();
-    if (now - lastUpdateMs < ::ObstacleConfig::UPDATE_INTERVAL_MS) return;
-    lastUpdateMs = now;
     
     // In placeholder mode, just update timestamps
-    // When hardware is present, actual sensor reading would go here
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
-        if (!sensorData[i].enabled) continue;
-        sensorData[i].lastUpdateMs = now;
+    if (placeholderMode) {
+        if (now - lastUpdateMs < ObstacleConfig::UPDATE_INTERVAL_MS) return;
+        lastUpdateMs = now;
+        
+        for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
+            if (!sensorData[i].enabled) continue;
+            sensorData[i].lastUpdateMs = now;
+        }
+        return;
     }
+    
+    // Read available UART data
+    while (TOFSerial.available() > 0) {
+        uint8_t byte = TOFSerial.read();
+        
+        // Look for packet header
+        if (bufferIndex == 0) {
+            if (byte == ObstacleConfig::PACKET_HEADER) {
+                packetBuffer[bufferIndex++] = byte;
+            }
+            // Discard bytes until we find a header
+            continue;
+        }
+        
+        // Accumulate packet bytes
+        packetBuffer[bufferIndex++] = byte;
+        
+        // Check if we have a complete packet
+        if (bufferIndex >= ObstacleConfig::PACKET_LENGTH) {
+            uint16_t distance = 0;
+            
+            if (parsePacket(distance)) {
+                // Valid packet received
+                updateSensorData(SENSOR_FRONT, distance);
+                lastPacketMs = now;
+                
+                // Log periodic readings (every 2 seconds)
+                static uint32_t lastLogMs = 0;
+                if (now - lastLogMs > 2000) {
+                    Logger::infof("TOFSense: Distance = %u mm", distance);
+                    lastLogMs = now;
+                }
+            } else {
+                // Invalid packet
+                sensorData[SENSOR_FRONT].errorCount++;
+                if (sensorData[SENSOR_FRONT].errorCount > 10) {
+                    sensorData[SENSOR_FRONT].healthy = false;
+                    Logger::warn("TOFSense: Too many errors, marking sensor unhealthy");
+                }
+            }
+            
+            // Reset buffer for next packet
+            bufferIndex = 0;
+        }
+    }
+    
+    // Check for timeout (no data received for a while)
+    if (now - lastPacketMs > ObstacleConfig::UART_READ_TIMEOUT_MS && lastPacketMs > 0) {
+        sensorData[SENSOR_FRONT].healthy = false;
+        sensorData[SENSOR_FRONT].minDistance = ObstacleConfig::DISTANCE_INVALID;
+        sensorData[SENSOR_FRONT].proximityLevel = LEVEL_INVALID;
+        
+        static uint32_t lastTimeoutLog = 0;
+        if (now - lastTimeoutLog > 5000) {
+            Logger::warn("TOFSense: Communication timeout");
+            System::logError(ObstacleConfig::ERROR_CODE_TIMEOUT);
+            lastTimeoutLog = now;
+        }
+    }
+    
+    lastUpdateMs = now;
 }
 
 const ObstacleSensor& getSensor(uint8_t sensorIdx) {
     static ObstacleSensor dummy = {};
-    if (sensorIdx >= ::ObstacleConfig::NUM_SENSORS) return dummy;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return dummy;
     return sensorData[sensorIdx];
 }
 
 uint16_t getMinDistance(uint8_t sensorIdx) {
-    if (sensorIdx >= ::ObstacleConfig::NUM_SENSORS) return ::ObstacleConfig::DISTANCE_INVALID;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return ObstacleConfig::DISTANCE_INVALID;
     return sensorData[sensorIdx].minDistance;
 }
 
 ObstacleLevel getProximityLevel(uint8_t sensorIdx) {
-    uint16_t dist = getMinDistance(sensorIdx);
-    
-    if (dist >= ::ObstacleConfig::DISTANCE_INVALID) return LEVEL_INVALID;
-    if (dist < config.thresholdCritical) return LEVEL_CRITICAL;
-    if (dist < config.thresholdWarning) return LEVEL_WARNING;
-    if (dist < config.thresholdCaution) return LEVEL_CAUTION;
-    return LEVEL_SAFE;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return LEVEL_INVALID;
+    return sensorData[sensorIdx].proximityLevel;
 }
 
 bool enableSensor(uint8_t sensorIdx, bool enable) {
-    if (sensorIdx >= ::ObstacleConfig::NUM_SENSORS) return false;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return false;
     sensorData[sensorIdx].enabled = enable;
     config.sensorsEnabled[sensorIdx] = enable;
     return true;
 }
 
 void setDistanceOffset(uint8_t sensorIdx, int16_t offsetMm) {
-    if (sensorIdx >= ::ObstacleConfig::NUM_SENSORS) return;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return;
     config.offsetsMm[sensorIdx] = offsetMm;
     sensorData[sensorIdx].offsetMm = offsetMm;
 }
 
 bool isHealthy(uint8_t sensorIdx) {
-    if (sensorIdx >= ::ObstacleConfig::NUM_SENSORS) return false;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return false;
     return sensorData[sensorIdx].healthy && sensorData[sensorIdx].enabled;
 }
 
@@ -279,26 +313,25 @@ void getStatus(ObstacleStatus& status) {
     status.sensorsHealthy = 0;
     status.sensorsEnabled = 0;
     status.overallLevel = LEVEL_INVALID;
-    status.minDistanceFront = ::ObstacleConfig::DISTANCE_INVALID;
-    status.minDistanceRear = ::ObstacleConfig::DISTANCE_INVALID;
-    status.minDistanceLeft = ::ObstacleConfig::DISTANCE_INVALID;
-    status.minDistanceRight = ::ObstacleConfig::DISTANCE_INVALID;
+    status.minDistanceFront = ObstacleConfig::DISTANCE_INVALID;
+    status.minDistanceRear = ObstacleConfig::DISTANCE_INVALID;
+    status.minDistanceLeft = ObstacleConfig::DISTANCE_INVALID;
+    status.minDistanceRight = ObstacleConfig::DISTANCE_INVALID;
     status.emergencyStopActive = false;
     status.parkingAssistActive = false;
     status.lastUpdateMs = millis();
     
     ObstacleLevel worstLevel = LEVEL_SAFE;
     
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
         if (sensorData[i].enabled) status.sensorsEnabled++;
         if (sensorData[i].healthy) status.sensorsHealthy++;
         
         uint16_t dist = sensorData[i].minDistance;
-        ObstacleLevel level = getProximityLevel(i);
+        ObstacleLevel level = sensorData[i].proximityLevel;
         
-        // Store per-direction distances
+        // Store front distance (only one sensor)
         if (i == SENSOR_FRONT) status.minDistanceFront = dist;
-        if (i == SENSOR_REAR)  status.minDistanceRear = dist;
         
         // Track worst level
         if (level != LEVEL_INVALID && level > worstLevel) {
@@ -332,7 +365,7 @@ void setConfig(const ObstacleSettings& newConfig) {
     config = newConfig;
     
     // Apply new offsets to sensors
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
         sensorData[i].offsetMm = config.offsetsMm[i];
         sensorData[i].enabled = config.sensorsEnabled[i];
     }
@@ -340,13 +373,13 @@ void setConfig(const ObstacleSettings& newConfig) {
 
 const ObstacleZone& getZone(uint8_t sensorIdx, uint8_t zoneIdx) {
     static ObstacleZone dummy;
-    if (sensorIdx >= ::ObstacleConfig::NUM_SENSORS) return dummy;
-    if (zoneIdx >= ::ObstacleConfig::ZONES_PER_SENSOR) return dummy;
+    if (sensorIdx >= ObstacleConfig::NUM_SENSORS) return dummy;
+    if (zoneIdx >= ObstacleConfig::ZONES_PER_SENSOR) return dummy;
     return sensorData[sensorIdx].zones[zoneIdx];
 }
 
 void resetErrors() {
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
         sensorData[i].errorCount = 0;
     }
 }
@@ -354,9 +387,9 @@ void resetErrors() {
 bool runDiagnostics() {
     bool allPassed = true;
     
-    for (uint8_t i = 0; i < ::ObstacleConfig::NUM_SENSORS; i++) {
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
         if (sensorData[i].enabled && !sensorData[i].healthy) {
-            Logger::warnf("Obstacle sensor %d (%s) diagnostics FAILED", i, SENSOR_NAMES[i]);
+            Logger::warnf("Obstacle sensor %d diagnostics FAILED", i);
             allPassed = false;
         }
     }

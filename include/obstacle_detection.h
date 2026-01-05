@@ -5,21 +5,23 @@
 #include "obstacle_config.h"
 
 // ============================================================================
-// VL53L5X Obstacle Detection System - Public API
+// TOFSense-M S Obstacle Detection System - Public API
+// ============================================================================
+// 🔒 v2.12.0: Migrado de VL53L5X I2C a TOFSense-M S UART
+// - Sensor único LiDAR conectado por UART1 (115200 baud)
+// - Protocolo: paquetes de 9 bytes según manual oficial
+// - Manual: https://ftp.nooploop.com/software/products/tofsense_m/doc/TOFSense-M_User_Manual_V1.4_en.pdf
 // ============================================================================
 
 namespace ObstacleDetection {
     
-    // Sensor identifiers (solo frontal y trasero)
+    // Sensor identifiers (solo un sensor frontal)
     enum SensorID : uint8_t {
         SENSOR_FRONT = 0,
-        SENSOR_REAR = 1,
-        SENSOR_COUNT = 2
+        SENSOR_COUNT = 1
     };
     
-    // 🔒 CORRECCIÓN MENOR: Validación estática de configuración
-    // Verifica que SENSOR_COUNT coincida con ObstacleConfig::NUM_SENSORS
-    // Error de compilación si se desincroniza (fail-fast)
+    // Validación estática de configuración
     static_assert(SENSOR_COUNT == ::ObstacleConfig::NUM_SENSORS,
                   "ObstacleDetection::SENSOR_COUNT must match ObstacleConfig::NUM_SENSORS");
     
@@ -32,7 +34,7 @@ namespace ObstacleDetection {
         LEVEL_INVALID = 255     // No valid data
     };
     
-    // Single zone measurement data
+    // Single zone measurement data (TOFSense-M S provides single distance)
     struct ObstacleZone {
         uint16_t distanceMm;    // Distance in millimeters
         uint8_t confidence;     // Measurement confidence (0-100)
@@ -43,11 +45,11 @@ namespace ObstacleDetection {
                         confidence(0), level(LEVEL_INVALID), valid(false) {}
     };
     
-    // Complete sensor state (8x8 grid)
+    // Complete sensor state (single sensor, single measurement)
     struct ObstacleSensor {
-        ObstacleZone zones[::ObstacleConfig::ZONES_PER_SENSOR];
-        uint16_t minDistance;           // Closest obstacle in all zones (mm)
-        ObstacleLevel proximityLevel;   // Overall proximity level
+        ObstacleZone zones[::ObstacleConfig::ZONES_PER_SENSOR];  // Single zone
+        uint16_t minDistance;           // Current distance (mm)
+        ObstacleLevel proximityLevel;   // Current proximity level
         bool enabled;                   // Sensor enabled flag
         bool healthy;                   // Sensor health status
         int16_t offsetMm;               // Calibration offset
@@ -86,11 +88,11 @@ namespace ObstacleDetection {
     struct ObstacleStatus {
         uint8_t sensorsHealthy;         // Number of healthy sensors
         uint8_t sensorsEnabled;         // Number of enabled sensors
-        ObstacleLevel overallLevel;     // Worst proximity level
-        uint16_t minDistanceFront;      // Front min distance
-        uint16_t minDistanceRear;       // Rear min distance
-        uint16_t minDistanceLeft;       // RESERVED: no lateral sensor, always DISTANCE_INVALID
-        uint16_t minDistanceRight;      // RESERVED: no lateral sensor, always DISTANCE_INVALID
+        ObstacleLevel overallLevel;     // Current proximity level
+        uint16_t minDistanceFront;      // Front distance
+        uint16_t minDistanceRear;       // RESERVED: always DISTANCE_INVALID (no rear sensor)
+        uint16_t minDistanceLeft;       // RESERVED: always DISTANCE_INVALID
+        uint16_t minDistanceRight;      // RESERVED: always DISTANCE_INVALID
         bool emergencyStopActive;       // Emergency stop triggered
         bool parkingAssistActive;       // Parking assist active
         uint32_t lastUpdateMs;          // Last system update
@@ -111,24 +113,24 @@ namespace ObstacleDetection {
     
     /**
      * Initialize obstacle detection system
-     * - Powers up sensors with XSHUT sequencing
-     * - Initializes PCA9548A multiplexer
-     * - Configures VL53L5X sensors
+     * - Initializes UART1 for TOFSense-M S communication
+     * - Configures 115200 baudrate
      * - Loads configuration from storage
      */
     void init();
     
     /**
      * Update obstacle detection (call in main loop)
-     * - Non-blocking async updates
-     * - 15Hz update rate per sensor
-     * - Updates all sensor data
+     * - Reads UART data packets
+     * - Parses TOFSense-M S protocol
+     * - Updates sensor data
+     * - Non-blocking operation
      */
     void update();
     
     /**
-     * Enable/disable individual sensor
-     * @param sensorIdx Sensor index (0-3)
+     * Enable/disable sensor
+     * @param sensorIdx Sensor index (0 for single sensor)
      * @param enable True to enable, false to disable
      * @return True if successful
      */
@@ -136,35 +138,35 @@ namespace ObstacleDetection {
     
     /**
      * Set distance offset for calibration
-     * @param sensorIdx Sensor index (0-3)
+     * @param sensorIdx Sensor index (0 for single sensor)
      * @param offsetMm Offset in millimeters (+/- adjustment)
      */
     void setDistanceOffset(uint8_t sensorIdx, int16_t offsetMm);
     
     /**
      * Get complete sensor data
-     * @param sensorIdx Sensor index (0-3)
+     * @param sensorIdx Sensor index (0 for single sensor)
      * @return Reference to sensor data structure
      */
     const ObstacleSensor& getSensor(uint8_t sensorIdx);
     
     /**
-     * Get minimum distance from sensor (all zones)
-     * @param sensorIdx Sensor index (0-3)
-     * @return Minimum distance in mm (DISTANCE_INVALID if no valid data)
+     * Get current distance from sensor
+     * @param sensorIdx Sensor index (0 for single sensor)
+     * @return Distance in mm (DISTANCE_INVALID if no valid data)
      */
     uint16_t getMinDistance(uint8_t sensorIdx);
     
     /**
      * Get proximity level for sensor
-     * @param sensorIdx Sensor index (0-3)
+     * @param sensorIdx Sensor index (0 for single sensor)
      * @return Proximity level (SAFE/CAUTION/WARNING/CRITICAL)
      */
     ObstacleLevel getProximityLevel(uint8_t sensorIdx);
     
     /**
      * Check if sensor is healthy
-     * @param sensorIdx Sensor index (0-3)
+     * @param sensorIdx Sensor index (0 for single sensor)
      * @return True if sensor is responding correctly
      */
     bool isHealthy(uint8_t sensorIdx);
@@ -201,8 +203,8 @@ namespace ObstacleDetection {
     
     /**
      * Get specific zone data
-     * @param sensorIdx Sensor index (0-3)
-     * @param zoneIdx Zone index (0-63)
+     * @param sensorIdx Sensor index (0 for single sensor)
+     * @param zoneIdx Zone index (0 for single zone)
      * @return Zone data structure
      */
     const ObstacleZone& getZone(uint8_t sensorIdx, uint8_t zoneIdx);
@@ -213,8 +215,8 @@ namespace ObstacleDetection {
     void resetErrors();
     
     /**
-     * Run diagnostic test on all sensors
-     * @return True if all enabled sensors passed
+     * Run diagnostic test on sensor
+     * @return True if sensor passed
      */
     bool runDiagnostics();
     
@@ -225,8 +227,8 @@ namespace ObstacleDetection {
     bool isPlaceholderMode();
     
     /**
-     * Check if any real sensor hardware is present
-     * @return True if at least one VL53L5CX sensor was detected
+     * Check if sensor hardware is present
+     * @return True if TOFSense-M S sensor was detected
      */
     bool isHardwarePresent();
 }

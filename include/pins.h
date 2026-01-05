@@ -1,16 +1,10 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
-#include "obstacle_config.h"
-
-constexpr size_t kXshutPinCount =
-    sizeof(::ObstacleConfig::XSHUT_PINS) / sizeof(::ObstacleConfig::XSHUT_PINS[0]);
-static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
-              "ObstacleConfig::XSHUT_PINS size must match NUM_SENSORS");
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
-// 🔒 ACTUALIZADO 2025-11-25 v2.4.0 - Mejoras de fiabilidad y funcionalidad
+// 🔒 ACTUALIZADO 2026-01-05 v2.12.0 - Migración a TOFSense-M S UART
 // ============================================================================
 //
 // PINES REALES DISPONIBLES EN LA PLACA (36 GPIOs):
@@ -115,15 +109,23 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 #define PIN_TOUCH_IRQ     47  // GPIO 47 - Interrupción Touch (antes GPIO 46 strapping)
 
 // ============================================================================
-// COMUNICACIONES UART - AUDIO
+// COMUNICACIONES UART
 // ============================================================================
 
 // -----------------------
-// UART (DFPlayer Mini - Audio) - Usa UART nativo
-// ⚠️ GPIO 43/44 son UART0 nativos, no modificar
+// UART1 (TOFSense-M S - Obstacle Detection LiDAR)
+// Baudrate: 115200, protocolo de 9 bytes (header 0x57)
+// Solo se conecta RX desde ESP32, no requiere TX
 // -----------------------
-#define PIN_DFPLAYER_TX   43  // GPIO 43 - TX (UART0 nativo)
-#define PIN_DFPLAYER_RX   44  // GPIO 44 - RX (UART0 nativo)
+#define PIN_TOFSENSE_RX   18  // GPIO 18 - RX UART1 (recibe datos del sensor)
+#define PIN_TOFSENSE_TX   17  // GPIO 17 - TX UART1 (no usado, pero asignado)
+
+// -----------------------
+// UART2 (DFPlayer Mini - Audio)
+// Movido de UART0 para liberar puerto USB/Serial
+// -----------------------
+#define PIN_DFPLAYER_TX   15  // GPIO 15 - TX UART2 (envía comandos al DFPlayer)
+#define PIN_DFPLAYER_RX   16  // GPIO 16 - RX UART2 (recibe respuestas del DFPlayer)
 
 // ============================================================================
 // RELÉS DE POTENCIA (4x SRD-05VDC-SL-C)
@@ -225,11 +227,13 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // 6 tornillos por rueda = 6 pulsos/revolución
 // Ordenados: FL, FR, RL, RR
+// ✅ v2.12.0: RL y RR reasignados (GPIO 17 y 15 ahora son UART1)
+//            Ahora usan GPIO 43 y 44 (liberados de UART0)
 // -----------------------
 #define PIN_WHEEL_FL      3   // GPIO 3  - Wheel Front Left ✅ Intercambiado v2.3.0 (antes GPIO 21)
 #define PIN_WHEEL_FR      36  // GPIO 36 - Wheel Front Right
-#define PIN_WHEEL_RL      17  // GPIO 17 - Wheel Rear Left
-#define PIN_WHEEL_RR      15  // GPIO 15 - Wheel Rear Right
+#define PIN_WHEEL_RL      43  // GPIO 43 - Wheel Rear Left ✅ v2.12.0: movido de GPIO 17 (ex UART0 TX)
+#define PIN_WHEEL_RR      44  // GPIO 44 - Wheel Rear Right ✅ v2.12.0: movido de GPIO 15 (ex UART0 RX)
 
 // -----------------------
 // Temperatura motores (4x DS18B20 OneWire)
@@ -278,34 +282,33 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 // ============================================================================
 // 🔒 HISTORIAL DE CAMBIOS:
 // - v2.3.0: PIN_LED_REAR movido de GPIO 19 → GPIO 48 (liberar GPIO 19)
-// - v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos trasero)
-// - GPIO 18: Siempre usado para LEDs frontales (estable)
+// - v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos VL53L5X trasero)
+// - v2.12.0: GPIO 18 liberado de LEDs frontales, reasignado a UART1 RX (TOFSense-M S)
+// - v2.12.0: LEDs frontales movidos a GPIO 19 (liberado tras eliminar VL53L5X)
 
-#define PIN_LED_FRONT     18  // GPIO 18 - LEDs frontales (28 LEDs) ✅ liberado al retirar lateral
+#define PIN_LED_FRONT     19  // GPIO 19 - LEDs frontales (28 LEDs) ✅ v2.12.0: movido desde GPIO 18
 #define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ v2.3.0: movido desde GPIO 19
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales (sin cambio)
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (sin cambio)
 
 // ============================================================================
-// SENSORES OBSTÁCULOS - VL53L5X
-// 🔒 v2.4.1: Los pines XSHUT están definidos en obstacle_config.h
-// Asignados a GPIOs 46 y 19 (sensores laterales deshabilitados)
+// SENSORES OBSTÁCULOS - TOFSense-M S (LiDAR UART)
 // ============================================================================
-// NOTA: No definir aquí - ver obstacle_config.h:
-// ObstacleConfig::PIN_XSHUT_FRONT = 46 ⚠️ STRAPPING PIN (pull-up 10kΩ recomendado)
-// ObstacleConfig::PIN_XSHUT_REAR = 19  ✅ GPIO seguro (antes usado para LED_REAR hasta v2.3.0)
+// 🔒 v2.12.0: Migración de VL53L5X I2C a TOFSense-M S UART
+// - Eliminados sensores VL53L5X (I2C) y multiplexador PCA9548A @ 0x71
+// - Nuevo sensor único TOFSense-M S conectado por UART1
+// - Protocolo: 9 bytes, header 0x57, baudrate 115200
+// - Pines: GPIO18=RX (recibe datos), GPIO17=TX (no usado)
+// - GPIO 46 y GPIO 19 liberados (antes XSHUT para VL53L5X)
 //
-// 🔒 ACLARACIÓN GPIO 19:
-// - Hasta v2.3.0: Usado para PIN_LED_REAR (WS2812B)
-// - Desde v2.3.0: LED_REAR movido a GPIO 48
-// - Desde v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos)
-// - Estado actual: GPIO 19 es XSHUT_REAR, NO es LED
+// NOTA: La configuración UART está en la sección COMUNICACIONES UART más arriba
+// PIN_TOFSENSE_RX = 18 (GPIO 18)
+// PIN_TOFSENSE_TX = 17 (GPIO 17)
 //
-// 🔒 ARQUITECTURA MULTIPLEXORES I2C (importante):
-// El sistema usa DOS multiplexores I2C DIFERENTES:
+// 🔒 ARQUITECTURA MULTIPLEXOR I2C (actualizada):
+// El sistema ahora usa UN SOLO multiplexor I2C:
 // 1. TCA9548A @ 0x70: Para 6x INA226 (sensores corriente, canales 0-5)
-// 2. PCA9548A @ 0x71: Para 2x VL53L5CX (sensores obstáculos, canales 0-1)
-// No hay conflicto: son chips físicamente separados con direcciones diferentes
+// 2. PCA9548A @ 0x71: ELIMINADO (era para VL53L5X, ya no se usa)
 
 // ============================================================================
 // TABLA RESUMEN DE USO DE PINES v2.4.1
@@ -315,7 +318,7 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 │ GPIO │ Función                 │ Tipo      │ Notas                           │
 ├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
 │  0   │ KEY_SYSTEM              │ Input     │ ⚠️ Strapping (Boot), pull-up ext │
-│  1   │ 🆓 LIBRE (ADC)          │ -         │ ADC sensible, evitar cargas WS2812 │
+│  1   │ 🆓 LIBRE (ADC)          │ -         │ ADC sensible                    │
 │  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
 │  3   │ WHEEL_FL                │ Input     │ Sensor rueda delantera izq      │
 │  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
@@ -329,11 +332,11 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 │ 12   │ TFT_MISO                │ Input     │ SPI MISO                        │
 │ 13   │ TFT_DC                  │ Output    │ Data/Command                    │
 │ 14   │ TFT_RST                 │ Output    │ Reset pantalla                  │
-│ 15   │ WHEEL_RR                │ Input     │ Sensor rueda trasera derecha    │
-│ 16   │ TFT_CS                  │ Output    │ Chip Select TFT                 │
-│ 17   │ WHEEL_RL                │ Input     │ Sensor rueda trasera izquierda  │
-│ 18   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
-│ 19   │ XSHUT_REAR (VL53L5X)    │ Output    │ Sensor obstáculos trasero       │
+│ 15   │ DFPLAYER_TX (UART2)     │ Output    │ ✅ v2.12.0: Mini Audio TX       │
+│ 16   │ DFPLAYER_RX (UART2)     │ Input     │ ✅ v2.12.0: Mini Audio RX       │
+│ 17   │ TOFSENSE_TX (UART1)     │ Output    │ ✅ v2.12.0: TOFSense TX (no usado) │
+│ 18   │ TOFSENSE_RX (UART1)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
+│ 19   │ LED_FRONT (WS2812B)     │ Output    │ ✅ v2.12.0: 28 LEDs frontales   │
 │ 20   │ ONEWIRE                 │ I/O       │ 4x DS18B20 temperatura          │
 │ 21   │ TOUCH_CS                │ Output    │ ✅ CS Touch (seguro)             │
 │ 35   │ RELAY_MAIN              │ Output    │ ✅ v2.9.1: Relé principal        │
@@ -344,11 +347,10 @@ static_assert(::ObstacleConfig::NUM_SENSORS == kXshutPinCount,
 │ 40   │ BTN_MEDIA               │ Input     │ Botón multimedia                │
 │ 41   │ BTN_4X4                 │ Input     │ Botón 4x4/4x2                   │
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
-│ 43   │ DFPLAYER_TX             │ Output    │ ⚠️ UART0 nativo                  │
-│ 44   │ DFPLAYER_RX             │ Input     │ ⚠️ UART0 nativo                  │
-│ 45   │ KEY_DETECT (power_mgmt.cpp línea 19)  ⚠️ STRAPPING PIN: VDD_SPI voltage select - Crítico para boot │
-│ 46   │ XSHUT_FRONT (VL53L5X)   │ Output    │ ⚠️ STRAPPING! Sensor obstáculos  │
-│      │                         │           │ 🔒 Pull-up 10kΩ recomendado     │
+│ 43   │ WHEEL_RL                │ Input     │ ✅ v2.12.0: Rueda trasera izq   │
+│ 44   │ WHEEL_RR                │ Input     │ ✅ v2.12.0: Rueda trasera der   │
+│ 45   │ KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI       │
+│ 46   │ 🆓 LIBRE                │ -         │ ✅ v2.12.0: VL53L5X eliminado   │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
@@ -389,6 +391,17 @@ MEJORAS v2.9.1:
 ✅ PIN_PEDAL: GPIO 35 → GPIO 4 (GPIO 35 no es ADC en ESP32-S3)
 ✅ PIN_RELAY_MAIN: GPIO 4 → GPIO 35 (intercambiado con pedal)
 
+MEJORAS v2.12.0:
+✅ Migración VL53L5X I2C → TOFSense-M S UART
+✅ TOFSENSE UART1: GPIO 18=RX, GPIO 17=TX (sensor único LiDAR)
+✅ DFPLAYER UART2: GPIO 15=TX, GPIO 16=RX (movido de UART0)
+✅ WHEEL_RL: GPIO 17 → GPIO 43 (liberar para UART1)
+✅ WHEEL_RR: GPIO 15 → GPIO 44 (liberar para UART1)
+✅ LED_FRONT: GPIO 18 → GPIO 19 (liberar para UART1)
+✅ GPIO 43/44 liberados de UART0, ahora sensores de rueda
+✅ GPIO 46 liberado (ya no se usa XSHUT)
+✅ Eliminado multiplexor PCA9548A @ 0x71 (obstáculos)
+
 TOTAL ESP32: 34/36 GPIOs utilizados (94% eficiencia)
 TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
 */
@@ -402,14 +415,9 @@ TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
  * @param gpio Número de GPIO a verificar
  * @return true si el pin está en uso, false si está libre
  * @note El shifter ahora usa MCP23017, no GPIOs directos
+ * @note v2.12.0: Eliminados XSHUT pins (VL53L5X), añadidos pines UART
  */
 static inline bool pin_is_assigned(uint8_t gpio) {
-    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
-        if (gpio == ObstacleConfig::XSHUT_PINS[i]) {
-            return true;
-        }
-    }
-
     switch (gpio) {
         // Sistema y Boot
         case PIN_KEY_SYSTEM:
@@ -451,10 +459,13 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         // Pedal y temperatura
         case PIN_PEDAL:
         case PIN_ONEWIRE:
-        // Audio
+        // UART (Audio y TOFSense)
         case PIN_DFPLAYER_TX:
         case PIN_DFPLAYER_RX:
+        case PIN_TOFSENSE_TX:
+        case PIN_TOFSENSE_RX:
         // NOTA: Shifter ahora en MCP23017, no en GPIOs directos
+        // NOTA: XSHUT pins eliminados (VL53L5X ya no se usa)
             return true;
         default:
             return false;
