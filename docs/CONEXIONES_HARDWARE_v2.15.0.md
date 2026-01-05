@@ -690,8 +690,8 @@ Tras la migración a TOFSense-M S v2.15.0, los siguientes GPIOs están **complet
 - [ ] Fusible 5A instalado en línea 5V
 - [ ] Pull-ups 4.7kΩ en SDA/SCL I²C (físicos, externos)
 - [ ] Pull-up 4.7kΩ en OneWire GPIO 20
-- [ ] Pull-up 10kΩ en GPIO 0 (strapping)
-- [ ] Pull-up 10kΩ en GPIO 46 (strapping)
+- [ ] Pull-up 10kΩ en GPIO 0 (si se usa - strapping pin)
+- [ ] Pull-up 10kΩ en GPIO 46 (si se usa - strapping pin)
 - [ ] Divisor de tensión pedal (2.7kΩ + 4.7kΩ)
 - [ ] Resistencias 330Ω en LEDs WS2812B DIN
 - [ ] Capacitores 1000µF en LEDs WS2812B VCC
