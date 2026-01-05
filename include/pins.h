@@ -4,7 +4,7 @@
 
 // ============================================================================
 // pins.h - Asignación de pines para ESP32-S3-DevKitC-1 (44 pines)
-// 🔒 ACTUALIZADO 2026-01-05 v2.14.0 - GPIO 40/41 libres, control touch-only
+// 🔒 ACTUALIZADO 2026-01-05 v2.15.0 - Power pins en GPIO 40/41 estables
 // ============================================================================
 //
 // PINES REALES DISPONIBLES EN LA PLACA (36 GPIOs):
@@ -12,12 +12,12 @@
 // LADO 2 (mirando desde arriba): GND,5V,14,13,12,11,10,9,46,3,8,18,17,16,15,7,6,5,4,RST,3V3,3V3
 //
 // ⚠️ STRAPPING PINS (EVITAR para funciones críticas):
-// GPIO 0  - Boot mode (HIGH=SPI Boot, LOW=Download)
+// GPIO 0  - Boot mode (HIGH=SPI Boot, LOW=Download) → LIBRE (ya no se usa para power)
 // GPIO 3  - JTAG (evitar si se usa JTAG)
-// GPIO 45 - VDD_SPI voltage select
-// GPIO 46 - Boot mode / ROM log ⚠️ CRÍTICO: Ver documentación especial abajo
-// GPIO 43 - UART0 TX (reservado para USB/Serial)
-// GPIO 44 - UART0 RX (reservado para USB/Serial)
+// GPIO 45 - VDD_SPI voltage select → LIBRE (ya no se usa para power)
+// GPIO 46 - Boot mode / ROM log → LIBRE (ya no se usa para VL53L5X)
+// GPIO 43 - UART0 TX (TOFSense-M S, no conectado al sensor)
+// GPIO 44 - UART0 RX (TOFSense-M S, recibe datos del sensor)
 //
 // 🔒 ⚠️ GPIO 46 (STRAPPING PIN) - AHORA LIBRE:
 // v2.12.0+: GPIO 46 ya NO se usa (antes era XSHUT_FRONT del sensor VL53L5CX).
@@ -130,14 +130,20 @@
 #define PIN_RELAY_SPARE   7   // GPIO 7  - Relé auxiliar (luces/media)
 
 // ============================================================================
-// ENTRADA SISTEMA
+// ENTRADA SISTEMA - CONTROL DE ALIMENTACIÓN
 // ============================================================================
 
 // -----------------------
-// Llave/Switch del sistema
-// ⚠️ GPIO 0 es strapping pin pero es el botón BOOT de la placa
+// Llave/Switch del sistema - ✅ v2.15.0: Movido a GPIO estables 40/41
+// Anteriormente en GPIO 0/45 (strapping pins problemáticos)
+// Ahora en GPIO 40/41 (liberados de botones multimedia/4x4, pines estables)
 // -----------------------
-#define PIN_KEY_SYSTEM    0   // GPIO 0 - Boot button (strapping, requiere pull-up externo)
+#define PIN_KEY_ON        40  // GPIO 40 - Ignition ON detection (INPUT_PULLUP, LOW=ON) ✅ v2.15.0
+#define PIN_KEY_OFF       41  // GPIO 41 - Shutdown request (INPUT_PULLUP, LOW=Shutdown) ✅ v2.15.0
+
+// ⚠️ DEPRECATED - Ya no se usan (ahora GPIO 40/41):
+// #define PIN_KEY_SYSTEM    0   // GPIO 0 - FREED (era strapping pin problemático)
+// PIN_KEY_DETECT anteriormente en GPIO 45 (ahora libre)
 
 // ============================================================================
 // MOTORES TRACCIÓN (4x4) - Control vía I²C (PCA9685 + MCP23017)
@@ -263,9 +269,10 @@
 // Botones físicos
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // v2.14.0: Botones multimedia y 4x4 eliminados, control por touch screen
+// v2.15.0: GPIO 40/41 reasignados a control de alimentación (PIN_KEY_ON/OFF)
 // -----------------------
-// #define PIN_BTN_MEDIA     40  // GPIO 40 - FREED - Ya no se usa (antes botón multimedia)
-// #define PIN_BTN_4X4       41  // GPIO 41 - FREED - Ya no se usa (antes botón 4x4/4x2)
+// #define PIN_BTN_MEDIA     40  // GPIO 40 - Ahora PIN_KEY_ON (power on detection)
+// #define PIN_BTN_4X4       41  // GPIO 41 - Ahora PIN_KEY_OFF (shutdown request)
 #define PIN_BTN_LIGHTS    2   // GPIO 2  - Botón luces ✅ Movido de GPIO 45
 
 // ============================================================================
@@ -411,7 +418,8 @@ TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
 static inline bool pin_is_assigned(uint8_t gpio) {
     switch (gpio) {
         // Sistema y Boot
-        case PIN_KEY_SYSTEM:
+        case PIN_KEY_ON:
+        case PIN_KEY_OFF:
         // LEDs
         case PIN_LED_FRONT:
         case PIN_LED_REAR:

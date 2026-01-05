@@ -13,15 +13,21 @@
  * - Relé 3: 24V Potencia (motores tracción)
  * - Relé 4: Opcional (seguridad/interlock)
  * 
+ * CONTROL DE ALIMENTACIÓN (v2.15.0):
+ * - GPIO 40 (PIN_KEY_ON): Detección ignition ON (INPUT_PULLUP, LOW=ON, HIGH=OFF)
+ * - GPIO 41 (PIN_KEY_OFF): Detección shutdown request (INPUT_PULLUP, LOW=Shutdown, HIGH=Normal)
+ * - Anteriormente en GPIO 0/45 (strapping pins problemáticos)
+ * - Ahora en GPIO 40/41 (liberados, estables, sin afectar boot)
+ * 
  * SECUENCIA ARRANQUE:
- * 1. Llave ON → Buck 5V enciende → ESP32 boot
+ * 1. Llave ON (GPIO 40 LOW) → Buck 5V enciende → ESP32 boot
  * 2. ESP32 activa Relé 1 (power hold) inmediatamente
  * 3. ESP32 activa Relé 2 (12V auxiliares) para alimentar motor dirección
  * 4. Busca centro volante con motor dirección RS390 12V (requiere 12V activo)
  * 5. Verifica sensores ruedas → Activa Relé 3 (24V motores tracción)
  * 
  * SECUENCIA APAGADO:
- * 1. Detecta llave OFF (GPIO 45 pull-up a GND)
+ * 1. Detecta llave OFF (GPIO 40 HIGH) o shutdown request (GPIO 41 LOW)
  * 2. Mantiene Relé 1 activo (power hold)
  * 3. Reproduce audio apagado con DFPlayer
  * 4. Desactiva Relé 3 (24V motores)
@@ -101,8 +107,9 @@ void startShutdown();
 /**
  * @brief Verifica si la llave está en posición ON
  * 
- * @return true si llave ON (GPIO 45 = LOW por pull-up)
- * @return false si llave OFF (GPIO 45 = HIGH)
+ * v2.15.0: Detecta estado basado en GPIO 40 (power) y GPIO 41 (shutdown)
+ * @return true si ignition ON (GPIO 40 LOW) y no hay shutdown request (GPIO 41 HIGH)
+ * @return false si ignition OFF o shutdown request activo
  */
 bool isKeyOn();
 

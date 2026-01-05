@@ -8,15 +8,21 @@ namespace PowerMgmt {
 
 // -----------------------
 // Usar definiciones de pines desde pins.h para evitar duplicación
-// NOTA: Los relés se definen en pins.h líneas 36-39:
-// PIN_RELAY_MAIN (GPIO2), PIN_RELAY_TRAC (GPIO4), PIN_RELAY_DIR (GPIO5), PIN_RELAY_SPARE (GPIO6)
+// NOTA: Los relés se definen en pins.h líneas 127-130:
+// PIN_RELAY_MAIN (GPIO35), PIN_RELAY_TRAC (GPIO5), PIN_RELAY_DIR (GPIO6), PIN_RELAY_SPARE (GPIO7)
 // -----------------------
 constexpr uint8_t PIN_RELAY_POWER_HOLD  = PIN_RELAY_MAIN;   // Relé 1: Power Hold Buck 5V
 constexpr uint8_t PIN_RELAY_AUX_12V     = PIN_RELAY_TRAC;   // Relé 2: 12V Auxiliares (sensores/encoder)
 constexpr uint8_t PIN_RELAY_MOTOR_24V   = PIN_RELAY_DIR;    // Relé 3: 24V Potencia (motores)
 constexpr uint8_t PIN_RELAY_OPTIONAL    = PIN_RELAY_SPARE;  // Relé 4: Opcional/Seguridad
 
-constexpr uint8_t PIN_KEY_DETECT        = 45;  // Detección llave (INPUT_PULLUP, conecta a GND cuando ON)
+// -----------------------
+// ✅ v2.15.0: Power detection en GPIO estables 40/41 (no strapping pins)
+// Anteriormente: GPIO 0 (strapping boot) y GPIO 45 (strapping VDD_SPI)
+// Ahora: GPIO 40/41 (liberados de botones multimedia/4x4, pines seguros)
+// -----------------------
+constexpr uint8_t PIN_POWER_ON          = PIN_KEY_ON;   // GPIO 40: Detección ignition ON (INPUT_PULLUP, LOW=ON)
+constexpr uint8_t PIN_SHUTDOWN_REQUEST  = PIN_KEY_OFF;  // GPIO 41: Detección shutdown request (INPUT_PULLUP, LOW=Shutdown)
 
 // -----------------------
 // Configuración de tiempos
@@ -46,10 +52,19 @@ static uint32_t audioStartTime = 0;
 
 /**
  * @brief Lee estado de llave con debounce
- * @return true si llave ON (GPIO LOW por pull-up a GND)
+ * @return true si ignition ON y no hay shutdown request
+ * 
+ * v2.15.0: Dual-pin detection
+ * - PIN_POWER_ON (GPIO 40): LOW = ignition ON, HIGH = ignition OFF
+ * - PIN_SHUTDOWN_REQUEST (GPIO 41): LOW = shutdown requested, HIGH = normal
  */
 static bool readKeyWithDebounce() {
-    bool currentReading = (digitalRead(PIN_KEY_DETECT) == LOW);
+    // Leer ambos pines (INPUT_PULLUP, activo LOW)
+    bool powerOn = (digitalRead(PIN_POWER_ON) == LOW);
+    bool shutdownRequested = (digitalRead(PIN_SHUTDOWN_REQUEST) == LOW);
+    
+    // Estado combinado: ON si power ON y NO hay shutdown request
+    bool currentReading = (powerOn && !shutdownRequested);
     
     if (currentReading != lastKeyState) {
         lastKeyChangeTime = millis();
@@ -94,9 +109,14 @@ void init() {
     deactivateRelay(PIN_RELAY_MOTOR_24V);
     deactivateRelay(PIN_RELAY_OPTIONAL);
     
-    // Configurar detección de llave (INPUT_PULLUP)
-    pinMode(PIN_KEY_DETECT, INPUT_PULLUP);
-    lastKeyState = (digitalRead(PIN_KEY_DETECT) == LOW);
+    // ✅ v2.15.0: Configurar detección dual de alimentación (GPIO 40/41, INPUT_PULLUP)
+    pinMode(PIN_POWER_ON, INPUT_PULLUP);           // GPIO 40: Ignition ON detection
+    pinMode(PIN_SHUTDOWN_REQUEST, INPUT_PULLUP);   // GPIO 41: Shutdown request detection
+    
+    // Leer estado inicial (LOW = ON/Shutdown, HIGH = OFF/Normal)
+    bool powerOn = (digitalRead(PIN_POWER_ON) == LOW);
+    bool shutdownRequested = (digitalRead(PIN_SHUTDOWN_REQUEST) == LOW);
+    lastKeyState = (powerOn && !shutdownRequested);
     keyStateStable = true;
     lastKeyChangeTime = millis();
     
@@ -109,7 +129,7 @@ void init() {
     currentState = PowerState::POWER_HOLD;
     
     initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
-    Logger::info("PowerMgmt: Inicializado - Power Hold y 12V Auxiliares activos, esperando centrado volante");
+    Logger::info("PowerMgmt: Inicializado - Power Hold y 12V Auxiliares activos (GPIO 40/41), esperando centrado volante");
 }
 
 void update() {
