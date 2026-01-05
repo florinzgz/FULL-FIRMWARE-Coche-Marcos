@@ -306,22 +306,22 @@ void adjustValue(int direction) {
         case 0: criticalDistance = constrain(criticalDistance + step, 100, 500); break;
         case 1: warningDistance  = constrain(warningDistance  + step, 200, 1000); break;
         case 2: cautionDistance  = constrain(cautionDistance  + step, 500, 2000); break;
-        case 3: case 4: sensorEnabled[selectedOption - 3] = !sensorEnabled[selectedOption - 3]; break;
-        case 5: audioAlertsEnabled = !audioAlertsEnabled; break;
-        case 6: visualAlertsEnabled = !visualAlertsEnabled; break;
+        case 3: sensorEnabled[0] = !sensorEnabled[0]; break;  // Solo Front sensor
+        case 4: audioAlertsEnabled = !audioAlertsEnabled; break;
+        case 5: visualAlertsEnabled = !visualAlertsEnabled; break;
     }
 }
 
 void handleSelect() {
     switch (selectedOption) {
-        case 3: case 4:
-            sensorEnabled[selectedOption - 3] = !sensorEnabled[selectedOption - 3];
+        case 3:  // Solo Front sensor
+            sensorEnabled[0] = !sensorEnabled[0];
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
             needsRedraw = true;
             break;
-        case 5: audioAlertsEnabled = !audioAlertsEnabled; needsRedraw = true; break;
-        case 6: visualAlertsEnabled = !visualAlertsEnabled; needsRedraw = true; break;
-        case 7: saveConfig(); break;
+        case 4: audioAlertsEnabled = !audioAlertsEnabled; needsRedraw = true; break;
+        case 5: visualAlertsEnabled = !visualAlertsEnabled; needsRedraw = true; break;
+        case 6: saveConfig(); break;  // Save button is now option 6, not 7
     }
 }
 

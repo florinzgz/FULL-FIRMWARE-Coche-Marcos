@@ -19,23 +19,13 @@
 // GPIO 43 - UART0 TX (reservado para USB/Serial)
 // GPIO 44 - UART0 RX (reservado para USB/Serial)
 //
-// 🔒 ⚠️ ADVERTENCIA CRÍTICA GPIO 46 (STRAPPING PIN):
-// GPIO 46 es usado para XSHUT_FRONT del sensor VL53L5CX (obstacle detection).
-// Como strapping pin, si el sensor tira la línea a LOW durante boot, puede causar
-// boot failure o entrar en modo de diagnóstico ROM.
+// 🔒 ⚠️ GPIO 46 (STRAPPING PIN) - AHORA LIBRE:
+// v2.12.0+: GPIO 46 ya NO se usa (antes era XSHUT_FRONT del sensor VL53L5CX).
+// Con la migración a TOFSense-M S UART, este pin crítico de strapping está LIBRE.
+// Se puede usar para otras funciones que no requieran estado específico durante boot.
 //
-// PROTECCIÓN IMPLEMENTADA:
-// - Software: Código mantiene GPIO 46 en HIGH durante boot (obstacle_detection.cpp:170-179)
-// - Inicialización: Pin se configura como OUTPUT HIGH antes de cualquier otra operación
-//
-// RECOMENDACIÓN HARDWARE (para máxima robustez):
-// - Añadir resistencia pull-up externa 10kΩ entre GPIO 46 y 3.3V
-// - Esto garantiza que el pin permanezca HIGH incluso si el sensor está desconectado
-//
-// ALTERNATIVA (si persisten problemas de boot):
-// - Mover XSHUT_FRONT de GPIO 46 → GPIO 45 (también strapping pero menos crítico)
-// - GPIO 45 solo afecta selección de voltaje VDD_SPI, no modo de boot
-// - Modificar ObstacleConfig::PIN_XSHUT_FRONT en obstacle_config.h
+// NOTA: Como strapping pin, evitar usarlo para señales que puedan estar LOW durante boot,
+// ya que esto podría activar modo ROM log o afectar el arranque del sistema.
 //
 // ✅ PINES MÁS SEGUROS Y ESTABLES:
 // GPIO 19, 20, 21 → Muy estables, ideales para SPI/I²C periféricos
@@ -58,7 +48,8 @@
 // - 1x Sensor Hall A1324LUA-T (pedal analógico)
 // - 4x DS18B20 sensores temperatura (motores tracción)
 // - 1x Pantalla ST7796S 480x320 + táctil XPT2046 (SPI)
-// - 1x DFPlayer Mini (audio, UART)
+// - 1x DFPlayer Mini (audio, UART1 GPIO18/17)
+// - 1x TOFSense-M S LiDAR 8x8 (UART0 GPIO44/43)
 // - 2x Tiras LEDs WS2812B (iluminación delantera 28 LEDs + trasera 16 LEDs)
 // - Relés: 4x SRD-05VDC (control potencia, luces, tracción, dirección)
 // ============================================================================
@@ -283,7 +274,8 @@
 // 🔒 HISTORIAL DE CAMBIOS:
 // - v2.3.0: PIN_LED_REAR movido de GPIO 19 → GPIO 48 (liberar GPIO 19)
 // - v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos VL53L5X trasero)
-// - v2.12.0: GPIO 18 ahora disponible, PIN_LED_FRONT se mantiene en GPIO 19
+// - v2.12.0: GPIO 18 liberado (UART1 para DFPlayer), PIN_LED_FRONT mantiene GPIO 19
+// - v2.13.0: Confirmado GPIO 19 para LED_FRONT (8x8 matrix migration)
 
 #define PIN_LED_FRONT     19  // GPIO 19 - LEDs frontales (28 LEDs)
 #define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ v2.3.0: movido desde GPIO 19
@@ -291,17 +283,18 @@
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (sin cambio)
 
 // ============================================================================
-// SENSORES OBSTÁCULOS - TOFSense-M S (LiDAR UART)
+// SENSORES OBSTÁCULOS - TOFSense-M S (LiDAR UART 8x8 Matrix)
 // ============================================================================
-// 🔒 v2.12.0: Migración de VL53L5X I2C a TOFSense-M S UART
+// 🔒 v2.13.0: Migración a TOFSense-M S 8x8 Matrix Mode
 // - Eliminados sensores VL53L5X (I2C) y multiplexador PCA9548A @ 0x71
-// - Nuevo sensor único TOFSense-M S conectado por UART0 (nativo)
-// - Protocolo: 9 bytes, header 0x57, baudrate 115200
+// - Nuevo sensor único TOFSense-M S 8x8 matrix conectado por UART0 (nativo)
+// - Protocolo: 400 bytes, header 57 01 FF 00, baudrate 921600, 64 puntos de distancia
 // - Pines: GPIO44=RX (recibe datos), GPIO43=TX (no usado por sensor)
-// - GPIO 46 liberado (antes XSHUT para VL53L5X)
+// - Rango: 4 metros, FOV: 65°, Update rate: ~15Hz
+// - GPIO 46 LIBRE (antes XSHUT para VL53L5X) ⚠️ Strapping pin disponible
 //
 // NOTA: La configuración UART está en la sección COMUNICACIONES UART más arriba
-// PIN_TOFSENSE_TX = 43 (GPIO 43 - no usado por el sensor)
+// PIN_TOFSENSE_TX = 43 (GPIO 43 - no usado por el sensor, output-only device)
 // PIN_TOFSENSE_RX = 44 (GPIO 44 - recibe TX del sensor)
 //
 // 🔒 ARQUITECTURA MULTIPLEXOR I2C (actualizada):
@@ -310,7 +303,7 @@
 // 2. PCA9548A @ 0x71: ELIMINADO (era para VL53L5X, ya no se usa)
 
 // ============================================================================
-// TABLA RESUMEN DE USO DE PINES v2.4.1
+// TABLA RESUMEN DE USO DE PINES v2.13.0 (8x8 Matrix Update)
 // ============================================================================
 /*
 ┌──────┬─────────────────────────┬───────────┬─────────────────────────────────┐
