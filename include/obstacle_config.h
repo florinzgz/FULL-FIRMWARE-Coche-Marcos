@@ -46,12 +46,18 @@ namespace ObstacleConfig {
     constexpr uint16_t DISTANCE_WARNING = 500;      // 20-50cm: Brake assist
     constexpr uint16_t DISTANCE_CAUTION = 1000;     // 50-100cm: Reduce speed
     constexpr uint16_t DISTANCE_MAX = 12000;        // Max detection range (12m for TOFSense-M S)
-    constexpr uint16_t DISTANCE_INVALID = 65535;    // Invalid distance marker
+    constexpr uint16_t DISTANCE_INVALID = UINT16_MAX; // Invalid distance marker
     
     // Timing configuration
     constexpr uint32_t UPDATE_INTERVAL_MS = 66;     // 15Hz update rate
     constexpr uint32_t MEASUREMENT_TIMEOUT_MS = 500; // Max measurement time
     constexpr uint32_t UART_READ_TIMEOUT_MS = 100;  // UART read timeout
+    constexpr uint32_t SENSOR_DETECTION_TIMEOUT_MS = 2000; // Sensor detection timeout at init
+    constexpr uint32_t LOG_INTERVAL_MS = 2000;      // Distance logging interval
+    constexpr uint32_t TIMEOUT_LOG_INTERVAL_MS = 5000; // Timeout warning log interval
+    
+    // Error handling
+    constexpr uint8_t MAX_CONSECUTIVE_ERRORS = 10;  // Max errors before marking unhealthy
     
     // Calibration defaults
     constexpr int16_t DEFAULT_OFFSET_MM = 0;        // Distance offset calibration

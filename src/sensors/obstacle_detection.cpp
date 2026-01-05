@@ -50,7 +50,7 @@ static uint8_t calculateChecksum(const uint8_t* data, uint8_t length) {
     for (uint8_t i = 0; i < length; i++) {
         sum += data[i];
     }
-    return sum & 0xFF;
+    return sum;  // uint8_t automatically wraps at 255
 }
 
 // Helper function to validate and parse packet
@@ -175,7 +175,7 @@ void init() {
     uint32_t startMs = millis();
     bool dataReceived = false;
     
-    while (millis() - startMs < 2000 && !dataReceived) {
+    while (millis() - startMs < ObstacleConfig::SENSOR_DETECTION_TIMEOUT_MS && !dataReceived) {
         if (TOFSerial.available() > 0) {
             dataReceived = true;
             hardwarePresent = true;
@@ -238,16 +238,16 @@ void update() {
                 updateSensorData(SENSOR_FRONT, distance);
                 lastPacketMs = now;
                 
-                // Log periodic readings (every 2 seconds)
+                // Log periodic readings
                 static uint32_t lastLogMs = 0;
-                if (now - lastLogMs > 2000) {
+                if (now - lastLogMs > ObstacleConfig::LOG_INTERVAL_MS) {
                     Logger::infof("TOFSense: Distance = %u mm", distance);
                     lastLogMs = now;
                 }
             } else {
                 // Invalid packet
                 sensorData[SENSOR_FRONT].errorCount++;
-                if (sensorData[SENSOR_FRONT].errorCount > 10) {
+                if (sensorData[SENSOR_FRONT].errorCount > ObstacleConfig::MAX_CONSECUTIVE_ERRORS) {
                     sensorData[SENSOR_FRONT].healthy = false;
                     Logger::warn("TOFSense: Too many errors, marking sensor unhealthy");
                 }
@@ -265,7 +265,7 @@ void update() {
         sensorData[SENSOR_FRONT].proximityLevel = LEVEL_INVALID;
         
         static uint32_t lastTimeoutLog = 0;
-        if (now - lastTimeoutLog > 5000) {
+        if (now - lastTimeoutLog > ObstacleConfig::TIMEOUT_LOG_INTERVAL_MS) {
             Logger::warn("TOFSense: Communication timeout");
             System::logError(ObstacleConfig::ERROR_CODE_TIMEOUT);
             lastTimeoutLog = now;
