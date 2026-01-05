@@ -43,6 +43,14 @@ jobs:
         run: |
           pio run -e esp32-s3-devkitc1 --target compiledb
 
+      - name: Verify compile_commands.json exists
+        run: |
+          if [ ! -f .pio/build/esp32-s3-devkitc1/compile_commands.json ]; then
+            echo "Error: compile_commands.json not found"
+            exit 1
+          fi
+          echo "✓ compile_commands.json generated successfully"
+
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
