@@ -24,7 +24,7 @@ sonar.projectVersion=2.11.5
 # Análisis completo de código C/C++
 sonar.sources=src,include
 sonar.exclusions=.pio/**,lib/**,test/**,data/**,audio/**,docs/**
-sonar.cfamily.compile-commands=compile_commands.json
+sonar.cfamily.compile-commands=.pio/build/esp32-s3-devkitc1/compile_commands.json
 sonar.cfamily.threads=4
 ```
 
@@ -32,9 +32,9 @@ sonar.cfamily.threads=4
 
 El archivo `.github/workflows/sonarcloud-full.yml` está configurado para:
 
-- ✅ **Compilación completa:** Construye el firmware para generar la base de datos de compilación
-- ✅ **Generación de `compile_commands.json`:** Necesario para análisis C/C++
-- ✅ **Filtrado de archivos:** Solo analiza código del proyecto (excluye librerías externas)
+- ✅ **Generación de `compile_commands.json`:** Usa PlatformIO nativo `--target compiledb`
+- ✅ **Análisis directo:** SonarCloud lee directamente el archivo generado por PlatformIO
+- ✅ **Sin scripts personalizados:** Configuración simplificada y mantenible
 - ✅ **Quality Gate:** Espera el resultado antes de completar
 - ✅ **Ejecución programada:** Se ejecuta semanalmente (domingos a las 3 AM)
 - ✅ **Ejecución manual:** Se puede lanzar con `workflow_dispatch`
@@ -122,7 +122,6 @@ SonarCloud puede analizar y auditar:
 
 # Opción 2: Localmente (requiere SONAR_TOKEN)
 export SONAR_TOKEN=tu_token_aqui
-pio run -e esp32-s3-devkitc1
 pio run -e esp32-s3-devkitc1 --target compiledb
 sonar-scanner
 ```
@@ -155,19 +154,28 @@ sonar-scanner
 
 ## Mejoras Aplicadas
 
+### Configuración Simplificada (2026-01-05)
+
+1. **Uso de PlatformIO nativo:** Se usa `--target compiledb` en lugar de scripts personalizados
+2. **Eliminación de scripts Python:** No se requiere `generate_compiledb.py`
+3. **Ruta directa:** SonarCloud lee directamente `.pio/build/esp32-s3-devkitc1/compile_commands.json`
+4. **Workflow simplificado:** Menos pasos, más mantenible
+
 ### Actualización de `sonar-project.properties`
 
 1. **Versión del proyecto actualizada:** 1.0 → 2.11.5
 2. **Exclusiones mejoradas:** Agregados `data/**`, `audio/**`, `docs/**`
 3. **Rendimiento optimizado:** `sonar.cfamily.threads=4` (análisis paralelo)
-4. **Lenguajes explícitos:** `sonar.language=c,cpp`
-5. **SCM configurado:** `sonar.scm.provider=git`
+4. **SCM configurado:** `sonar.scm.provider=git`
+5. **Ruta actualizada:** Apunta directamente a `.pio/build/esp32-s3-devkitc1/compile_commands.json`
 
 ### Beneficios
 - ⚡ Análisis más rápido (4 threads)
 - 🎯 Más enfocado (excluye archivos no relevantes)
 - 📊 Mejor tracking de versión
 - 🔄 Mejor integración con Git
+- 🛠️ Configuración más simple y mantenible
+- ✨ Usa características nativas de PlatformIO
 
 ---
 
@@ -253,5 +261,5 @@ Total archivos analizables: 148
 
 ---
 
-**Última actualización:** 2026-01-03  
-**Estado:** ✅ Operacional
+**Última actualización:** 2026-01-05  
+**Estado:** ✅ Operacional (Configuración Simplificada)
