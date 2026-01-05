@@ -139,7 +139,7 @@ static void updateSensorData(uint8_t sensorIdx, uint16_t distanceMm) {
 
 void init() {
     Logger::info("Initializing TOFSense-M S obstacle detection system...");
-    Logger::infof("  UART%d: RX=GPIO%d, TX=GPIO%d, Baudrate=%d", 
+    Logger::infof("  UART%d (native): RX=GPIO%d, TX=GPIO%d, Baudrate=%d", 
                  ObstacleConfig::UART_NUM,
                  PIN_TOFSENSE_RX, 
                  PIN_TOFSENSE_TX,
@@ -150,8 +150,8 @@ void init() {
     bufferIndex = 0;
     lastPacketMs = 0;
     
-    // Initialize UART for TOFSense-M S
-    // Note: Only RX is needed as we don't send commands, but TX pin must be defined
+    // Initialize UART0 for TOFSense-M S (native UART pins)
+    // Note: Only RX is needed as sensor only transmits data
     TOFSerial.begin(ObstacleConfig::UART_BAUDRATE, SERIAL_8N1, 
                     PIN_TOFSENSE_RX, PIN_TOFSENSE_TX);
     
@@ -180,7 +180,7 @@ void init() {
             dataReceived = true;
             hardwarePresent = true;
             placeholderMode = false;
-            Logger::info("TOFSense-M S sensor detected on UART1");
+            Logger::info("TOFSense-M S sensor detected on UART0");
             break;
         }
         delay(10);

@@ -113,19 +113,20 @@
 // ============================================================================
 
 // -----------------------
-// UART1 (TOFSense-M S - Obstacle Detection LiDAR)
+// UART0 (TOFSense-M S - Obstacle Detection LiDAR)
 // Baudrate: 115200, protocolo de 9 bytes (header 0x57)
-// Solo se conecta RX desde ESP32, no requiere TX
+// El sensor solo tiene TX (salida), se conecta a GPIO44 RX del ESP32
+// GPIO43 TX no se usa pero se asigna para completar el par UART0
 // -----------------------
-#define PIN_TOFSENSE_RX   18  // GPIO 18 - RX UART1 (recibe datos del sensor)
-#define PIN_TOFSENSE_TX   17  // GPIO 17 - TX UART1 (no usado, pero asignado)
+#define PIN_TOFSENSE_TX   43  // GPIO 43 - TX UART0 (no usado por el sensor)
+#define PIN_TOFSENSE_RX   44  // GPIO 44 - RX UART0 (recibe datos del sensor TX)
 
 // -----------------------
-// UART2 (DFPlayer Mini - Audio)
-// Movido de UART0 para liberar puerto USB/Serial
+// UART1 (DFPlayer Mini - Audio)
+// Movido de UART0 a UART1 para liberar los pines nativos para TOFSense
 // -----------------------
-#define PIN_DFPLAYER_TX   15  // GPIO 15 - TX UART2 (envía comandos al DFPlayer)
-#define PIN_DFPLAYER_RX   16  // GPIO 16 - RX UART2 (recibe respuestas del DFPlayer)
+#define PIN_DFPLAYER_TX   18  // GPIO 18 - TX UART1 (envía comandos al DFPlayer)
+#define PIN_DFPLAYER_RX   17  // GPIO 17 - RX UART1 (recibe respuestas del DFPlayer)
 
 // ============================================================================
 // RELÉS DE POTENCIA (4x SRD-05VDC-SL-C)
@@ -227,13 +228,12 @@
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // 6 tornillos por rueda = 6 pulsos/revolución
 // Ordenados: FL, FR, RL, RR
-// ✅ v2.12.0: RL y RR reasignados (GPIO 17 y 15 ahora son UART1)
-//            Ahora usan GPIO 43 y 44 (liberados de UART0)
+// ✅ v2.12.0: Mantienen asignación en GPIO 15/16 (disponibles)
 // -----------------------
 #define PIN_WHEEL_FL      3   // GPIO 3  - Wheel Front Left ✅ Intercambiado v2.3.0 (antes GPIO 21)
 #define PIN_WHEEL_FR      36  // GPIO 36 - Wheel Front Right
-#define PIN_WHEEL_RL      43  // GPIO 43 - Wheel Rear Left ✅ v2.12.0: movido de GPIO 17 (ex UART0 TX)
-#define PIN_WHEEL_RR      44  // GPIO 44 - Wheel Rear Right ✅ v2.12.0: movido de GPIO 15 (ex UART0 RX)
+#define PIN_WHEEL_RL      15  // GPIO 15 - Wheel Rear Left
+#define PIN_WHEEL_RR      16  // GPIO 16 - Wheel Rear Right
 
 // -----------------------
 // Temperatura motores (4x DS18B20 OneWire)
@@ -283,10 +283,9 @@
 // 🔒 HISTORIAL DE CAMBIOS:
 // - v2.3.0: PIN_LED_REAR movido de GPIO 19 → GPIO 48 (liberar GPIO 19)
 // - v2.4.1: GPIO 19 reasignado a XSHUT_REAR (sensor obstáculos VL53L5X trasero)
-// - v2.12.0: GPIO 18 liberado de LEDs frontales, reasignado a UART1 RX (TOFSense-M S)
-// - v2.12.0: LEDs frontales movidos a GPIO 19 (liberado tras eliminar VL53L5X)
+// - v2.12.0: GPIO 18 ahora disponible, PIN_LED_FRONT se mantiene en GPIO 19
 
-#define PIN_LED_FRONT     19  // GPIO 19 - LEDs frontales (28 LEDs) ✅ v2.12.0: movido desde GPIO 18
+#define PIN_LED_FRONT     19  // GPIO 19 - LEDs frontales (28 LEDs)
 #define PIN_LED_REAR      48  // GPIO 48 - LEDs traseros (16 LEDs) ✅ v2.3.0: movido desde GPIO 19
 #define NUM_LEDS_FRONT    28  // Cantidad LEDs frontales (sin cambio)
 #define NUM_LEDS_REAR     16  // Cantidad LEDs traseros (sin cambio)
@@ -296,14 +295,14 @@
 // ============================================================================
 // 🔒 v2.12.0: Migración de VL53L5X I2C a TOFSense-M S UART
 // - Eliminados sensores VL53L5X (I2C) y multiplexador PCA9548A @ 0x71
-// - Nuevo sensor único TOFSense-M S conectado por UART1
+// - Nuevo sensor único TOFSense-M S conectado por UART0 (nativo)
 // - Protocolo: 9 bytes, header 0x57, baudrate 115200
-// - Pines: GPIO18=RX (recibe datos), GPIO17=TX (no usado)
-// - GPIO 46 y GPIO 19 liberados (antes XSHUT para VL53L5X)
+// - Pines: GPIO44=RX (recibe datos), GPIO43=TX (no usado por sensor)
+// - GPIO 46 liberado (antes XSHUT para VL53L5X)
 //
 // NOTA: La configuración UART está en la sección COMUNICACIONES UART más arriba
-// PIN_TOFSENSE_RX = 18 (GPIO 18)
-// PIN_TOFSENSE_TX = 17 (GPIO 17)
+// PIN_TOFSENSE_TX = 43 (GPIO 43 - no usado por el sensor)
+// PIN_TOFSENSE_RX = 44 (GPIO 44 - recibe TX del sensor)
 //
 // 🔒 ARQUITECTURA MULTIPLEXOR I2C (actualizada):
 // El sistema ahora usa UN SOLO multiplexor I2C:
@@ -332,11 +331,11 @@
 │ 12   │ TFT_MISO                │ Input     │ SPI MISO                        │
 │ 13   │ TFT_DC                  │ Output    │ Data/Command                    │
 │ 14   │ TFT_RST                 │ Output    │ Reset pantalla                  │
-│ 15   │ DFPLAYER_TX (UART2)     │ Output    │ ✅ v2.12.0: Mini Audio TX       │
-│ 16   │ DFPLAYER_RX (UART2)     │ Input     │ ✅ v2.12.0: Mini Audio RX       │
-│ 17   │ TOFSENSE_TX (UART1)     │ Output    │ ✅ v2.12.0: TOFSense TX (no usado) │
-│ 18   │ TOFSENSE_RX (UART1)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
-│ 19   │ LED_FRONT (WS2812B)     │ Output    │ ✅ v2.12.0: 28 LEDs frontales   │
+│ 15   │ WHEEL_RL                │ Input     │ ✅ v2.12.0: Rueda trasera izq   │
+│ 16   │ WHEEL_RR                │ Input     │ ✅ v2.12.0: Rueda trasera der   │
+│ 17   │ DFPLAYER_RX (UART1)     │ Input     │ ✅ v2.12.0: Mini Audio RX       │
+│ 18   │ DFPLAYER_TX (UART1)     │ Output    │ ✅ v2.12.0: Mini Audio TX       │
+│ 19   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
 │ 20   │ ONEWIRE                 │ I/O       │ 4x DS18B20 temperatura          │
 │ 21   │ TOUCH_CS                │ Output    │ ✅ CS Touch (seguro)             │
 │ 35   │ RELAY_MAIN              │ Output    │ ✅ v2.9.1: Relé principal        │
@@ -347,8 +346,8 @@
 │ 40   │ BTN_MEDIA               │ Input     │ Botón multimedia                │
 │ 41   │ BTN_4X4                 │ Input     │ Botón 4x4/4x2                   │
 │ 42   │ TFT_BL (PWM)            │ Output    │ Backlight pantalla              │
-│ 43   │ WHEEL_RL                │ Input     │ ✅ v2.12.0: Rueda trasera izq   │
-│ 44   │ WHEEL_RR                │ Input     │ ✅ v2.12.0: Rueda trasera der   │
+│ 43   │ TOFSENSE_TX (UART0)     │ Output    │ ✅ v2.12.0: TOFSense (no usado) │
+│ 44   │ TOFSENSE_RX (UART0)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
 │ 45   │ KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI       │
 │ 46   │ 🆓 LIBRE                │ -         │ ✅ v2.12.0: VL53L5X eliminado   │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
@@ -393,12 +392,11 @@ MEJORAS v2.9.1:
 
 MEJORAS v2.12.0:
 ✅ Migración VL53L5X I2C → TOFSense-M S UART
-✅ TOFSENSE UART1: GPIO 18=RX, GPIO 17=TX (sensor único LiDAR)
-✅ DFPLAYER UART2: GPIO 15=TX, GPIO 16=RX (movido de UART0)
-✅ WHEEL_RL: GPIO 17 → GPIO 43 (liberar para UART1)
-✅ WHEEL_RR: GPIO 15 → GPIO 44 (liberar para UART1)
-✅ LED_FRONT: GPIO 18 → GPIO 19 (liberar para UART1)
-✅ GPIO 43/44 liberados de UART0, ahora sensores de rueda
+✅ TOFSENSE UART0 nativo: GPIO 44=RX (datos sensor), GPIO 43=TX (no usado)
+✅ DFPLAYER UART1: GPIO 18=TX, GPIO 17=RX (movido de UART0)
+✅ WHEEL_RL/RR: Mantienen GPIO 15/16 (disponibles)
+✅ LED_FRONT: Mantiene GPIO 19
+✅ GPIO 43/44 ahora usados para TOFSense (UART0 nativo)
 ✅ GPIO 46 liberado (ya no se usa XSHUT)
 ✅ Eliminado multiplexor PCA9548A @ 0x71 (obstáculos)
 

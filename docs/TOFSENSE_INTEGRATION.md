@@ -11,27 +11,30 @@ This document describes the integration of the TOFSense-M S LiDAR sensor into th
 
 ### Sensor Migration
 - **Old System**: 2x VL53L5X sensors via I2C with PCA9548A multiplexer
-- **New System**: 1x TOFSense-M S via UART1
+- **New System**: 1x TOFSense-M S via UART0 (native hardware UART)
 
 ### Pin Assignments
 
-#### TOFSense-M S (UART1)
-- **RX (GPIO 18)**: Receives data from sensor
-- **TX (GPIO 17)**: Not used (sensor is output-only)
+#### TOFSense-M S (UART0 - Native)
+- **RX (GPIO 44)**: Receives data from sensor TX output
+- **TX (GPIO 43)**: Not used by sensor (no commands sent to sensor)
 - **Baudrate**: 115200
 - **Format**: 8N1 (8 data bits, no parity, 1 stop bit)
+- **Note**: Sensor only has 2 wires (VCC, GND, TX), connects TX to ESP32 GPIO44 RX
 
-#### DFPlayer Mini Audio (UART2)
-- **TX (GPIO 15)**: Sends commands to DFPlayer
-- **RX (GPIO 16)**: Receives responses from DFPlayer
+#### DFPlayer Mini Audio (UART1)
+- **TX (GPIO 18)**: Sends commands to DFPlayer
+- **RX (GPIO 17)**: Receives responses from DFPlayer
 - **Baudrate**: 9600
 - **Format**: 8N1
 
+#### Wheel Sensors
+- **RL (GPIO 15)**: Rear left wheel sensor
+- **RR (GPIO 16)**: Rear right wheel sensor
+
 #### Freed GPIOs
-- **GPIO 43**: Now used for wheel sensor RL (rear left)
-- **GPIO 44**: Now used for wheel sensor RR (rear right)
 - **GPIO 46**: Now free (was XSHUT for VL53L5X front)
-- **GPIO 19**: Now used for LED_FRONT (moved from GPIO 18)
+- **GPIO 19**: LED_FRONT (unchanged from v2.4.1)
 
 ## TOFSense-M S UART Protocol
 
@@ -92,10 +95,10 @@ Checksum: 0x44 (0x57+0x00+0x02+0xE8+0x03+0x00+0x00+0x00 = 0x144 & 0xFF = 0x44)
 Key constants:
 - `NUM_SENSORS = 1`: Single sensor
 - `UART_BAUDRATE = 115200`: Communication speed
-- `UART_NUM = 1`: Hardware UART1
+- `UART_NUM = 0`: Hardware UART0 (native pins)
 - `PACKET_LENGTH = 9`: Bytes per packet
 - `DISTANCE_MAX = 12000`: Max range 12 meters
-- `DISTANCE_INVALID = 65535`: Invalid reading marker
+- `DISTANCE_INVALID = UINT16_MAX`: Invalid reading marker
 
 ### Distance Thresholds
 
@@ -110,8 +113,8 @@ DISTANCE_MAX = 12000mm      // Maximum detection range
 
 #### Initialization Flow
 
-1. Initialize UART1 with 115200 baud
-2. Configure GPIO 18 (RX) and GPIO 17 (TX)
+1. Initialize UART0 with 115200 baud
+2. Configure GPIO 44 (RX) and GPIO 43 (TX - not used)
 3. Wait 100ms for UART stabilization
 4. Attempt to detect sensor by waiting for data (2 second timeout)
 5. If data received, set `hardwarePresent = true`
@@ -210,15 +213,15 @@ TOFSense-M S          ESP32-S3
 -----------           --------
 VCC (5V)      -->     5V
 GND           -->     GND
-TX (Output)   -->     GPIO 18 (RX)
-RX (Input)    -->     Not connected (sensor is output-only)
+TX (Output)   -->     GPIO 44 (RX)
+RX (Input)    -->     Not connected (sensor doesn't receive commands)
 ```
 
 ### Important Notes
 
 - **Power**: Sensor requires 5V, not 3.3V
 - **Logic Levels**: Sensor TX output is 3.3V compatible
-- **No TX Connection**: ESP32 GPIO 17 (TX) is not connected to sensor
+- **No RX Connection**: ESP32 GPIO 43 (TX) is not connected to sensor
 - **Update Rate**: Sensor transmits at ~100Hz continuously
 
 ## Troubleshooting

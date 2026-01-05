@@ -17,7 +17,7 @@ namespace ObstacleConfig {
     // Hardware configuration
     constexpr uint8_t NUM_SENSORS = 1;              // Un solo sensor TOFSense-M S
     constexpr uint32_t UART_BAUDRATE = 115200;      // Baudrate del TOFSense-M S
-    constexpr uint8_t UART_NUM = 1;                 // UART1 (HardwareSerial)
+    constexpr uint8_t UART_NUM = 0;                 // UART0 (HardwareSerial - pines nativos)
     
     // TOFSense-M S UART Protocol
     // Packet format: [Header][Function][Length][Data_L][Data_H][...][Checksum]

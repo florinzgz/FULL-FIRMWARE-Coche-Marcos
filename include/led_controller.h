@@ -6,8 +6,8 @@
 // LED Strip Configuration - Use centralized pin definitions from pins.h
 // ⚠️ IMPORTANTE: Los pines de LEDs se definen en pins.h como PIN_LED_FRONT y PIN_LED_REAR
 // No redefinir aquí para evitar conflictos
-// ✅ v2.12.0: PIN_LED_FRONT ahora en GPIO 19 (antes GPIO 18, movido para UART1)
-#define LED_FRONT_PIN PIN_LED_FRONT   // GPIO 19 - LEDs frontales (28 LEDs) ✅ v2.12.0
+// ✅ v2.12.0: PIN_LED_FRONT en GPIO 19 (sin cambios desde v2.4.1)
+#define LED_FRONT_PIN PIN_LED_FRONT   // GPIO 19 - LEDs frontales (28 LEDs)
 #define LED_REAR_PIN  PIN_LED_REAR    // GPIO 48 - LEDs traseros (16 LEDs)
 #define LED_FRONT_COUNT NUM_LEDS_FRONT // Number of front LEDs (28)
 #define LED_REAR_COUNT  NUM_LEDS_REAR  // Number of rear LEDs (16: 3 left + 10 center + 3 right)
