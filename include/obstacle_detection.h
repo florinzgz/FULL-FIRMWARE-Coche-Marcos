@@ -8,9 +8,16 @@
 // TOFSense-M S Obstacle Detection System - Public API
 // ============================================================================
 // 🔒 v2.12.0: Migrado de VL53L5X I2C a TOFSense-M S UART
-// - Sensor único LiDAR conectado por UART1 (115200 baud)
+// - Sensor único LiDAR conectado por UART0 (115200 baud, pines nativos)
 // - Protocolo: paquetes de 9 bytes según manual oficial
 // - Manual: https://ftp.nooploop.com/software/products/tofsense_m/doc/TOFSense-M_User_Manual_V1.4_en.pdf
+//
+// 🔒 FAIL-SAFE BEHAVIOR (Seguridad crítica):
+// - Si el sensor no responde (timeout 100ms): sensor.healthy = false
+// - Si hay errores consecutivos (>10): sensor.healthy = false
+// - El sistema de seguridad (obstacle_safety.cpp) aplica freno de emergencia
+//   cuando sensorsHealthy == 0 (fail-safe: detener si perdemos sensores)
+// - Recuperación automática cuando se reciben datos válidos nuevamente
 // ============================================================================
 
 namespace ObstacleDetection {

@@ -109,6 +109,11 @@ static void updateSensorData(uint8_t sensorIdx, uint16_t distanceMm) {
     // Update sensor state
     sensor.minDistance = static_cast<uint16_t>(calibratedDistance);
     sensor.lastUpdateMs = millis();
+    
+    // Sensor recovery: Mark as healthy when valid data received
+    if (!sensor.healthy) {
+        Logger::info("TOFSense: Sensor recovered, marking healthy");
+    }
     sensor.healthy = true;
     sensor.errorCount = 0;
     
