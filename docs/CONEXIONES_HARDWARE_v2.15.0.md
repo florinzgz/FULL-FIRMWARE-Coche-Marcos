@@ -141,10 +141,11 @@ Estado:
 | **GPIO 39** | RELAY_EMER | Relé emergencia (IN4) | 🟣 Púrpura | Corte emergencia |
 
 **⚠️ IMPORTANTE:**
-- GPIO 0 y GPIO 45 ahora **LIBRES** (eran power pins en versiones antiguas)
-- GPIO 0 es strapping pin - **NO usar para power control**
+- **GPIO 0, 45, 46 ahora LIBRES** tras migración v2.15.0
+- **GPIO 40/41 ahora usados para Power Control** (eran BTN_MEDIA/BTN_4X4)
+- GPIO 0, 45, 46 son strapping pins - **usar con precaución**
 - GPIO 40/41 son pines estables, no strapping pins
-- Usar optoacopladores para aislar 12V de 3.3V
+- Usar optoacopladores PC817 para aislar 12V de 3.3V
 - Resistencia 1kΩ en serie con LED del optoacoplador
 
 ---
@@ -759,21 +760,27 @@ Relé 1 (Main):              ESP32-S3:
 
 Tras la migración a TOFSense-M S v2.15.0, los siguientes GPIOs están **completamente libres**:
 
-| GPIO | Tipo | Uso Anterior | Disponible Para |
-|------|------|--------------|-----------------|
-| **GPIO 0** | Strapping | PIN_KEY_SYSTEM | ⚠️ Botón emergencia (con pull-up 10kΩ) |
-| **GPIO 45** | Strapping | PIN_KEY_DETECT | ⚠️ Expansión (cuidado VDD_SPI) |
-| **GPIO 46** | Strapping | XSHUT_FRONT (VL53L5X) | ⚠️ Expansión (con pull-up 10kΩ) |
+| GPIO | Tipo | Uso Anterior (v2.8.x-v2.14.x) | Disponible Para |
+|------|------|------------------------------|-----------------|
+| **GPIO 0** | Strapping | PIN_KEY_SYSTEM (power on) | ⚠️ Entrada digital (requiere pull-up 10kΩ) |
+| **GPIO 40** | Normal | BTN_MEDIA (multimedia button) | ✅ **AHORA: PIN_KEY_ON (power control)** |
+| **GPIO 41** | Normal | BTN_4X4 (4x4 mode button) | ✅ **AHORA: PIN_KEY_OFF (shutdown)** |
+| **GPIO 45** | Strapping | PIN_KEY_DETECT (shutdown) | ⚠️ Expansión (cuidado VDD_SPI) |
+| **GPIO 46** | Strapping | XSHUT_FRONT (VL53L5X sensor) | ⚠️ Expansión (requiere pull-up 10kΩ) |
 
 **⚠️ ADVERTENCIAS GPIOs Libres:**
-- **GPIO 0:** Strapping pin - Requiere pull-up 10kΩ externo. Solo usar para entrada con debounce.
-- **GPIO 45:** Strapping pin VDD_SPI - Evitar o usar con pull-down si es necesario.
-- **GPIO 46:** Strapping pin - Requiere pull-up 10kΩ externo. Mantener HIGH en boot.
+- **GPIO 0:** Strapping pin BOOT - Requiere pull-up 10kΩ externo. Debe estar HIGH en boot para modo normal.
+- **GPIO 45:** Strapping pin VDD_SPI - Evitar uso o consultar datasheet ESP32-S3.
+- **GPIO 46:** Strapping pin - Requiere pull-up 10kΩ externo. Debe estar HIGH en boot.
 
-**Recomendaciones de Uso:**
-- GPIO 0: Botón de emergencia (pull-up + debounce software)
-- GPIO 46: Señal de entrada digital (mantener HIGH en boot)
-- GPIO 45: Evitar o consultar datasheet ESP32-S3 primero
+**✅ GPIOs REASIGNADOS (v2.15.0):**
+- **GPIO 40:** Ahora PIN_KEY_ON (ignition/power ON detection)
+- **GPIO 41:** Ahora PIN_KEY_OFF (shutdown request detection)
+
+**Recomendaciones de Uso GPIOs Libres:**
+- **GPIO 0:** Solo para entrada (ej: botón emergencia con pull-up + debounce)
+- **GPIO 46:** Entrada digital (mantener HIGH en boot)
+- **GPIO 45:** Evitar - Usar GPIO 40/41 si necesitas más pines
 
 ---
 
@@ -785,8 +792,10 @@ Tras la migración a TOFSense-M S v2.15.0, los siguientes GPIOs están **complet
 - [ ] Fusible 5A instalado en línea 5V
 - [ ] Pull-ups 4.7kΩ en SDA/SCL I²C (físicos, externos)
 - [ ] Pull-up 4.7kΩ en OneWire GPIO 20
-- [ ] Pull-up 10kΩ en GPIO 0 (si se usa - strapping pin)
-- [ ] Pull-up 10kΩ en GPIO 46 (si se usa - strapping pin)
+- [ ] Pull-up 10kΩ en GPIO 40 (power ON, lado 3.3V optoacoplador)
+- [ ] Pull-up 10kΩ en GPIO 41 (shutdown, lado 3.3V optoacoplador)
+- [ ] Pull-up 10kΩ en GPIO 0 (solo si se usa - strapping pin)
+- [ ] Pull-up 10kΩ en GPIO 46 (solo si se usa - strapping pin)
 - [ ] Divisor de tensión pedal (2.7kΩ + 4.7kΩ)
 - [ ] Resistencias 330Ω en LEDs WS2812B DIN
 - [ ] Capacitores 1000µF en LEDs WS2812B VCC
@@ -824,7 +833,9 @@ Tras la migración a TOFSense-M S v2.15.0, los siguientes GPIOs están **complet
 - [ ] Freno de emergencia funciona (sensor falla)
 - [ ] Power hold mantiene alimentación
 - [ ] Shutdown ordenado funciona correctamente
-- [ ] GPIO 0/45/46 en estado correcto durante boot
+- [ ] GPIO 40 detecta llave ON (LOW activo)
+- [ ] GPIO 41 detecta shutdown request (LOW activo)
+- [ ] GPIO 0/45/46 libres en estado HIGH durante boot (si no se usan)
 
 ---
 
