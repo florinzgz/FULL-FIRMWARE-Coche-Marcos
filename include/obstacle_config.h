@@ -44,7 +44,7 @@ namespace ObstacleConfig {
     constexpr uint8_t POS_SYSTEM_TIME = 7;          // System time (4 bytes, little-endian)
     constexpr uint8_t POS_MATRIX_DATA = 11;         // Matrix data start (384 bytes)
     constexpr uint8_t POS_CHECKSUM = 395;           // Checksum byte
-    constexpr uint8_t POS_RESERVED = 396;           // Reserved (4 bytes)
+    constexpr uint16_t POS_RESERVED = 396;          // Reserved (4 bytes)
     
     // Distance thresholds (mm)
     constexpr uint16_t DISTANCE_CRITICAL = 200;     // 0-20cm: Emergency stop
