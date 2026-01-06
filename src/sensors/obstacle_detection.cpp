@@ -238,32 +238,6 @@ static void updateSensorData(uint8_t sensorIdx, uint16_t distanceMm) {
         zone.level = LEVEL_SAFE;
     }
 }
-    sensor.errorCount = 0;
-    
-    // Update single zone data
-    ObstacleZone& zone = sensor.zones[0];
-    zone.distanceMm = sensor.minDistance;
-    zone.valid = (sensor.minDistance < ObstacleConfig::DISTANCE_INVALID);
-    zone.confidence = 100;  // TOFSense-M S doesn't provide confidence, assume 100%
-    
-    // Determine proximity level
-    if (sensor.minDistance >= ObstacleConfig::DISTANCE_INVALID) {
-        sensor.proximityLevel = LEVEL_INVALID;
-        zone.level = LEVEL_INVALID;
-    } else if (sensor.minDistance < config.thresholdCritical) {
-        sensor.proximityLevel = LEVEL_CRITICAL;
-        zone.level = LEVEL_CRITICAL;
-    } else if (sensor.minDistance < config.thresholdWarning) {
-        sensor.proximityLevel = LEVEL_WARNING;
-        zone.level = LEVEL_WARNING;
-    } else if (sensor.minDistance < config.thresholdCaution) {
-        sensor.proximityLevel = LEVEL_CAUTION;
-        zone.level = LEVEL_CAUTION;
-    } else {
-        sensor.proximityLevel = LEVEL_SAFE;
-        zone.level = LEVEL_SAFE;
-    }
-}
 
 void init() {
     Logger::info("Initializing TOFSense-M S obstacle detection system...");
@@ -402,30 +376,6 @@ void update() {
                 bufferIndex = 0;
                 frameInProgress = false;
             }
-        }
-    }
-    
-    // Check for timeout (no data received for a while)
-    if (now - lastPacketMs > ObstacleConfig::UART_READ_TIMEOUT_MS && lastPacketMs > 0) {
-        sensorData[SENSOR_FRONT].healthy = false;
-        sensorData[SENSOR_FRONT].minDistance = ObstacleConfig::DISTANCE_INVALID;
-        sensorData[SENSOR_FRONT].proximityLevel = LEVEL_INVALID;
-        
-        static uint32_t lastTimeoutLog = 0;
-        if (now - lastTimeoutLog > ObstacleConfig::TIMEOUT_LOG_INTERVAL_MS) {
-            Logger::warn("TOFSense: Communication timeout");
-            System::logError(ObstacleConfig::ERROR_CODE_TIMEOUT);
-            lastTimeoutLog = now;
-        }
-    }
-    
-    lastUpdateMs = now;
-}
-                }
-            }
-            
-            // Reset buffer for next packet
-            bufferIndex = 0;
         }
     }
     

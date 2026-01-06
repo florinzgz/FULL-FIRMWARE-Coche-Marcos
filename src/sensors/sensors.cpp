@@ -204,8 +204,9 @@ namespace Sensors {
         status.buttonsOK = Buttons::initOK();
         auto btnsState = Buttons::get();
         status.lightsActive = btnsState.lights;
-        status.multimediaActive = btnsState.multimedia;
-        status.mode4x4Active = btnsState.mode4x4;
+        // multimedia y mode4x4 eliminados en v2.14.0 (ahora controlados por touch screen)
+        status.multimediaActive = false;  // Legacy - siempre false
+        status.mode4x4Active = false;     // Legacy - siempre false
         
         // Estado general - todos los inputs críticos deben estar OK
         status.allInputsOK = status.pedalOK && status.shifterOK && 
