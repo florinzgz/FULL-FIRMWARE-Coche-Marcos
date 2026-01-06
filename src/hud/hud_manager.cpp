@@ -50,6 +50,9 @@ void HUDManager::init() {
     // We want to ensure vehicle operation continues regardless of display failure
     try {
         tft.init();
+        // Set initialized flag immediately after successful tft.init()
+        // This ensures the flag reflects TFT initialization state accurately
+        initialized = true;
     } catch (const std::exception& e) {
         Logger::errorf("HUD: TFT init exception: %s - continuing in degraded mode", e.what());
         System::logError(602);
@@ -156,7 +159,7 @@ void HUDManager::init() {
     needsRedraw = true;
     currentMenu = MenuType::NONE;
     
-    initialized = true;  // 🔒 v2.5.0: Marcar como inicializado
+    // Note: initialized flag already set to true after successful tft.init() (line 54)
     Logger::info("HUDManager: Inicialización completada");
     Serial.println("[HUD] HUDManager initialization complete!");
 }
@@ -230,11 +233,11 @@ void HUDManager::showMenu(MenuType menu) {
         currentMenu = menu;
         needsRedraw = true;  // 🔒 v2.11.5: Asegurar limpieza de pantalla al cambiar menú
         
-        // 🔒 v2.11.5: Resetear flag de primer dibujado del menú oculto
-        // para forzar limpieza completa y evitar solapamiento de imágenes
+        // 🔒 v2.11.5: Al entrar en el menú oculto, needsRedraw=true provocará que
+        // renderHiddenMenu() resetee firstDraw=true, lo cual asegura limpieza completa
+        // de la pantalla y evita solapamiento de imágenes del menú anterior
         if (menu == MenuType::HIDDEN_MENU) {
-            // El flag firstDraw se reseteará en renderHiddenMenu
-            Logger::info("HUD: Entering hidden menu, will clear screen");
+            Logger::info("HUD: Entering hidden menu; needsRedraw will trigger screen clear");
         }
     }
 }
@@ -644,9 +647,14 @@ void HUDManager::renderHiddenMenu() {
     
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla COMPLETA solo en el primer dibujado
     // para eliminar cualquier resto de gauges/gráficos del dashboard
-    if (needsRedraw || firstDraw) {
-        tft.fillScreen(TFT_BLACK);
+    // needsRedraw signals menu change - reset firstDraw to ensure screen clear on re-entry
+    if (needsRedraw) {
+        firstDraw = true;  // Reset for screen clearing on menu re-entry
         needsRedraw = false;
+    }
+    
+    if (firstDraw) {
+        tft.fillScreen(TFT_BLACK);
         firstDraw = false;
         cacheValid = false;  // Invalidar cache para forzar redibujado completo
     }

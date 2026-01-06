@@ -162,7 +162,7 @@ if (!dataChanged && !sensorChanged && !inputChanged) {
 
 - ✅ Exception handling específico (std::exception)
 - ✅ Eliminado check redundante de initSuccess
-- ✅ Cache con flag cacheValid en lugar de memset
+- ✅ Cache con flag cacheValid: variables estáticas se inicializan a cero por defecto, y cacheValid indica explícitamente si los datos en caché son válidos para comparación
 - ✅ Comparación campo por campo documentada
 - ✅ Documentación actualizada a implementación real
 
