@@ -253,7 +253,9 @@ void init() {
     lastPacketMs = 0;
     
     // Initialize UART0 for TOFSense-M S (native UART pins)
-    // Note: Only RX is needed as sensor only transmits data
+    // Bidirectional UART: Both TX and RX configured for full communication
+    // TX (GPIO43) → Sensor RX: Allows configuration commands
+    // RX (GPIO44) ← Sensor TX: Receives 8x8 matrix data frames
     TOFSerial.begin(ObstacleConfig::UART_BAUDRATE, SERIAL_8N1, 
                     PIN_TOFSENSE_RX, PIN_TOFSENSE_TX);
     

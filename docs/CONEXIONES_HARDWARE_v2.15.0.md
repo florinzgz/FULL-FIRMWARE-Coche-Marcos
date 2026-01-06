@@ -169,8 +169,8 @@ TOFSense-M S:                ESP32-S3:
 ┌─────────────────┐         
 │  VCC (5V)    ●──┼────────── 5V (Buck converter)
 │  GND         ●──┼────────── GND
-│  TX (Data)   ●──┼────────── GPIO 44 (RX) ── UART0_RX
-│  RX (No usado) ─┼── NC      GPIO 43 (TX) ── UART0_TX (no conectado)
+│  TX (Datos) ●───┼────────── GPIO 44 (RX) ── UART0_RX
+│  RX (Config) ●──┼────────── GPIO 43 (TX) ── UART0_TX
 └─────────────────┘
 ```
 
@@ -180,8 +180,18 @@ TOFSense-M S:                ESP32-S3:
 |------------|-----------|-------------|---------|
 | **VCC** | 5V Buck | 🔴 Rojo | Alimentación 5V |
 | **GND** | GND | ⚫ Negro | Tierra común |
-| **TX** | GPIO 44 (RX) | 🟢 Verde | Datos UART (921600 baud) |
-| **RX** | - | - | **NO CONECTAR** (sensor solo TX) |
+| **TX** | GPIO 44 (RX) | 🟢 Verde | Datos UART (Sensor → ESP32) |
+| **RX** | GPIO 43 (TX) | 🟡 Amarillo | Configuración UART (ESP32 → Sensor) |
+
+**📌 NOTA IMPORTANTE - Comunicación Bidireccional UART:**
+- **Ambos pines RX y TX deben conectarse** para comunicación UART completa
+- **Sensor TX → ESP32 RX (GPIO 44):** Recepción de frames de datos 8x8 @ 921600 baud
+- **ESP32 TX → Sensor RX (GPIO 43):** Envío de comandos de configuración (si necesario)
+- Aunque el modo activo actual solo recibe datos, el UART bidireccional permite:
+  - Cambiar configuración del sensor (rango, frecuencia, modo)
+  - Consultar estado del sensor
+  - Actualizar firmware del sensor
+- **Sin conexión TX:** Funciona en modo solo-lectura pero pierde capacidades de configuración
 
 ### Protocolo de Datos (400 bytes)
 

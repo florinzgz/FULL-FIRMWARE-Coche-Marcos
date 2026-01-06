@@ -109,8 +109,8 @@
 // El sensor solo tiene TX (salida), se conecta a GPIO44 RX del ESP32
 // GPIO43 TX no se usa pero se asigna para completar el par UART0
 // -----------------------
-#define PIN_TOFSENSE_TX   43  // GPIO 43 - TX UART0 (no usado por el sensor)
-#define PIN_TOFSENSE_RX   44  // GPIO 44 - RX UART0 (recibe datos del sensor TX)
+#define PIN_TOFSENSE_TX   43  // GPIO 43 - TX UART0 (ESP32 → Sensor RX, bidireccional)
+#define PIN_TOFSENSE_RX   44  // GPIO 44 - RX UART0 (Sensor TX → ESP32, recibe datos)
 
 // -----------------------
 // UART1 (DFPlayer Mini - Audio)
@@ -301,8 +301,8 @@
 // - GPIO 46 LIBRE (antes XSHUT para VL53L5X) ⚠️ Strapping pin disponible
 //
 // NOTA: La configuración UART está en la sección COMUNICACIONES UART más arriba
-// PIN_TOFSENSE_TX = 43 (GPIO 43 - no usado por el sensor, output-only device)
-// PIN_TOFSENSE_RX = 44 (GPIO 44 - recibe TX del sensor)
+// PIN_TOFSENSE_TX = 43 (GPIO 43 - ESP32 TX → Sensor RX, para configuración bidireccional)
+// PIN_TOFSENSE_RX = 44 (GPIO 44 - Sensor TX → ESP32 RX, recibe datos)
 //
 // 🔒 ARQUITECTURA MULTIPLEXOR I2C (actualizada):
 // El sistema ahora usa UN SOLO multiplexor I2C:

@@ -11,7 +11,8 @@
 // - Protocolo: Frame de 400 bytes, header 0x57 0x01 0xFF 0x00
 // - Manual: https://ftp.nooploop.com/software/products/tofsense_m/doc/TOFSense-M_User_Manual_V1.4_en.pdf
 // - Rango: 4 metros, Campo de visión: 65°, Matriz: 8x8 = 64 puntos
-// - GPIO 44 (RX) recibe datos del sensor, GPIO 43 (TX) no usado
+// - GPIO 44 (RX): Sensor TX → ESP32 RX (recibe datos)
+// - GPIO 43 (TX): ESP32 TX → Sensor RX (configuración bidireccional UART)
 // ============================================================================
 
 namespace ObstacleConfig {
