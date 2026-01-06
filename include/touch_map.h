@@ -32,12 +32,11 @@ namespace TouchConstants {
 }
 
 // Acciones posibles al tocar la pantalla
+// v2.14.0: Lights and Multimedia removed - cleaner interface
 enum class TouchAction {
     None,
     Battery,
-    Lights,
-    Multimedia,
-    Mode4x4,
+    Mode4x4,  // Touch-controlled mode switching
     Warning
 };
 
@@ -52,11 +51,10 @@ struct TouchZone {
 
 // -----------------------
 // Definición de zonas
+// v2.14.0: Removed Lights and Multimedia zones
 // -----------------------
 constexpr TouchZone TOUCH_ZONES[] = {
     {Icons::BATTERY_X1,   Icons::BATTERY_Y1,   Icons::BATTERY_X2,   Icons::BATTERY_Y2,   TouchAction::Battery},
-    {Icons::LIGHTS_X1,    Icons::LIGHTS_Y1,    Icons::LIGHTS_X2,    Icons::LIGHTS_Y2,    TouchAction::Lights},
-    {Icons::MEDIA_X1,     Icons::MEDIA_Y1,     Icons::MEDIA_X2,     Icons::MEDIA_Y2,     TouchAction::Multimedia},
     {Icons::MODE4X4_X1,   Icons::MODE4X4_Y1,   Icons::MODE4X4_X2,   Icons::MODE4X4_Y2,   TouchAction::Mode4x4},
     {Icons::WARNING_X1,   Icons::WARNING_Y1,   Icons::WARNING_X2,   Icons::WARNING_Y2,   TouchAction::Warning}
 };

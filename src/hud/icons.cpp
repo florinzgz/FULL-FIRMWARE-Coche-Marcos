@@ -24,8 +24,7 @@ static inline bool isValidForDrawing() {
 // incluso si el estado inicial es false (que se convierte a 0)
 static System::State lastSysState = (System::State)CACHE_UNINITIALIZED;
 static Shifter::Gear lastGear = (Shifter::Gear)CACHE_UNINITIALIZED;
-static int lastLights = CACHE_UNINITIALIZED;     // Usar int para permitir valor -1 (no inicializado)
-static int lastMedia = CACHE_UNINITIALIZED;      // Usar int para permitir valor -1 (no inicializado)
+// v2.14.0: Simplified - only mode4x4 and regen cached
 static int lastMode4x4 = CACHE_UNINITIALIZED;    // Usar int para permitir valor -1 (no inicializado)
 static int lastRegen = CACHE_UNINITIALIZED;      // Usar int para permitir valor -1 (no inicializado)
 static float lastBattery = -999.0f;
@@ -187,14 +186,13 @@ void Icons::drawGear(Shifter::Gear g) {
     }
 }
 
-void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
+void Icons::drawFeatures(bool mode4x4, bool regenOn) {
     if (!isValidForDrawing()) return;
+    // v2.14.0: Simplified - only 4x4 mode and REGEN
     // Convertir bool a int para comparación con cache (que puede ser -1 = no inicializado)
-    int iLights = lights ? 1 : 0;
-    int iMedia = media ? 1 : 0;
     int iMode4x4 = mode4x4 ? 1 : 0;
     int iRegen = regenOn ? 1 : 0;
-    if(iLights==lastLights && iMedia==lastMedia && iMode4x4==lastMode4x4 && iRegen==lastRegen) return;
+    if(iMode4x4==lastMode4x4 && iRegen==lastRegen) return;
 
     // Colores para efectos 3D
     const uint16_t COLOR_BOX_BG = 0x2104;        // Fondo oscuro
@@ -205,8 +203,6 @@ void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
     // Colores para cada icono cuando activo
     const uint16_t COLOR_4X4_ACTIVE = 0x0410;    // Cian oscuro (4x4 activo)
     const uint16_t COLOR_4X2_ACTIVE = 0x4100;    // Naranja oscuro (4x2 activo)
-    const uint16_t COLOR_LIGHTS_ACTIVE = 0x4200; // Amarillo oscuro
-    const uint16_t COLOR_MEDIA_ACTIVE = 0x0320;  // Verde oscuro
     const uint16_t COLOR_REGEN_ACTIVE = 0x0015;  // Azul oscuro
     
     // Helper para dibujar cuadrado 3D con texto
@@ -255,19 +251,7 @@ void Icons::drawFeatures(bool lights, bool media, bool mode4x4, bool regenOn) {
         lastMode4x4 = iMode4x4;
     }
 
-    // Luces - Amarillo cuando activo
-    if(iLights != lastLights) {
-        draw3DBox(LIGHTS_X1, LIGHTS_Y1, LIGHTS_X2, LIGHTS_Y2, 
-                  "LUCES", lights, COLOR_LIGHTS_ACTIVE);
-        lastLights = iLights;
-    }
-
-    // Multimedia - Verde cuando activo
-    if(iMedia != lastMedia) {
-        draw3DBox(MEDIA_X1, MEDIA_Y1, MEDIA_X2, MEDIA_Y2, 
-                  "MEDIA", media, COLOR_MEDIA_ACTIVE);
-        lastMedia = iMedia;
-    }
+    // v2.14.0: Lights and Media removed - cleaner HUD
 
     // Regenerativo - Usar helper draw3DBox
     if(iRegen != lastRegen) {

@@ -5,6 +5,7 @@
 #include "shifter.h"
 #include "steering.h"
 #include "buttons.h"
+#include "obstacle_detection.h"  // v2.15.0: TOFSense-M S integration
 #include <Arduino.h>
 #include <cstdio>
 
@@ -15,13 +16,20 @@ namespace Sensors {
     static bool ok = false;
 
     void init() {
-        // Aquí inicializarías tus sensores reales
+        // v2.15.0: Initialize TOFSense-M S 8x8 Matrix obstacle detection
+        Logger::info("Sensors: Initializing TOFSense-M S (UART0, 921600 baud, 8x8 matrix)...");
+        ObstacleDetection::init();
+        
+        // Initialize other sensors
         ok = true;
-        Logger::info("Sensors init OK");
+        Logger::info("Sensors init OK (including obstacle detection)");
     }
 
     void update() {
-        // Aquí refrescarías lecturas reales
+        // v2.15.0: Update TOFSense-M S obstacle detection (reads UART, parses 400-byte frames)
+        ObstacleDetection::update();
+        
+        // Update other sensors as needed
     }
 
     bool initOK() {
@@ -196,8 +204,9 @@ namespace Sensors {
         status.buttonsOK = Buttons::initOK();
         auto btnsState = Buttons::get();
         status.lightsActive = btnsState.lights;
-        status.multimediaActive = btnsState.multimedia;
-        status.mode4x4Active = btnsState.mode4x4;
+        // multimedia y mode4x4 eliminados en v2.14.0 (ahora controlados por touch screen)
+        status.multimediaActive = false;  // Legacy - siempre false
+        status.mode4x4Active = false;     // Legacy - siempre false
         
         // Estado general - todos los inputs críticos deben estar OK
         status.allInputsOK = status.pedalOK && status.shifterOK && 

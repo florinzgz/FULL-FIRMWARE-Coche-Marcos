@@ -17,29 +17,28 @@ constexpr uint8_t DFPLAYER_MSG_FEEDBACK = 0x3F;
 
 // DFPlayer instance and Serial for communication
 static DFRobotDFPlayerMini dfPlayer;
-static HardwareSerial DFSerial(0);  // UART0 for DFPlayer
+static HardwareSerial DFSerial(1);  // UART1 for DFPlayer (v2.12.0: migrado de UART0)
 
 // Flag de inicialización
 static bool initialized = false;
 
 void Audio::DFPlayer::init() {
-    // Initialize Serial port for DFPlayer on UART0 pins (GPIO 43/44)
-    // ⚠️ WARNING: UART0 is shared with USB Serial for debugging
-    // This means:
-    //   - Serial.print() debug output may interfere with DFPlayer communication
-    //   - Serial Monitor must be closed during audio playback in some cases
-    //   - In production deployment, consider disabling Serial debugging entirely
+    // Initialize Serial port for DFPlayer on UART1 pins (GPIO 18/17)
+    // ✅ v2.12.0: Migrado de UART0 (GPIO 43/44) a UART1 (GPIO 18/17)
+    // - Libera UART0 nativo para TOFSense-M S LiDAR
+    // - GPIO 18 = TX (envía comandos al DFPlayer)
+    // - GPIO 17 = RX (recibe respuestas del DFPlayer)
     DFSerial.begin(9600, SERIAL_8N1, PIN_DFPLAYER_RX, PIN_DFPLAYER_TX);
     
     // Initialize DFPlayer with actual hardware check
     bool ok = dfPlayer.begin(DFSerial);  // Actual initialization result
     if (!ok) {
-        Logger::errorf("DFPlayer init failed");
+        Logger::errorf("DFPlayer init failed on UART1");
         System::logError(700); // código reservado: fallo init
         initialized = false;
         return;
     }
-    Logger::info("DFPlayer initialized");
+    Logger::info("DFPlayer initialized on UART1 (GPIO18/17)");
     initialized = true;
 }
 

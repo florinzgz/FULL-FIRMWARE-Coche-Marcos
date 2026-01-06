@@ -867,15 +867,12 @@ void HUD::update() {
     float wheelEffortRR = 28.0f;
     
     // Simulated button state (needed for MenuHidden)
+    // v2.14.0: Simplified to only lights
     Buttons::State btns;
     btns.lights = false;
-    btns.multimedia = false;
-    btns.mode4x4 = false;
-    btns.reserved = false;
     
     // Static feature states
-    bool lights = false;
-    bool multimedia = false;
+    // v2.14.0: Only 4x4 mode and eco (lights/multimedia removed)
     bool mode4x4 = true;
     bool eco = false;
     
@@ -927,10 +924,9 @@ void HUD::update() {
     float wheelEffortRL = cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : -1.0f;
     float wheelEffortRR = cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : -1.0f;
     Shifter::Gear gear = sh.gear;
-    bool lights = cfg.lightsEnabled && btns.lights;
-    bool multimedia = cfg.multimediaEnabled && btns.multimedia;
-    bool mode4x4 = tr.enabled4x4;
-    bool eco = pedal.percent > 0 && !btns.mode4x4;
+    // v2.14.0: lights and multimedia removed from display
+    bool mode4x4 = tr.enabled4x4;  // Still controlled via touch
+    bool eco = pedal.percent > 0 && !mode4x4;  // Changed from btns.mode4x4
     
     // Obtener estado de sensores para indicadores
     Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
@@ -1034,7 +1030,7 @@ void HUD::update() {
     // Iconos y estados
     Icons::drawSystemState(sys);
     Icons::drawGear(gear);
-    Icons::drawFeatures(lights, multimedia, mode4x4, eco);
+    Icons::drawFeatures(mode4x4, eco);  // v2.14.0: Simplified - only 4x4 mode and eco
 #ifdef STANDALONE_DISPLAY
     Icons::drawBattery(24.5f);  // Simulated battery voltage
 #else
@@ -1224,14 +1220,10 @@ void HUD::update() {
             case TouchAction::Battery:
                 batteryTouch = true;
                 break;
-            case TouchAction::Lights:
-                Logger::info("Toque en icono luces");
-                break;
-            case TouchAction::Multimedia:
-                Logger::info("Toque en icono multimedia");
-                break;
+            // v2.14.0: Lights and Multimedia removed - cleaner interface
             case TouchAction::Mode4x4:
-                Logger::info("Toque en icono 4x4");
+                Logger::info("Toque en icono 4x4 - toggle via traction system");
+                // Mode4x4 is controlled via traction system, not directly here
                 break;
             case TouchAction::Warning:
                 Logger::info("Toque en icono warning");

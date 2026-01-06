@@ -102,8 +102,24 @@ void update() {
     state.closestObstacleDistanceMm = ::ObstacleConfig::DISTANCE_MAX;
     state.closestObstacleSensor = 0xFF;
     
-    // Check if obstacle detection system is healthy
-    if (obstStatus.sensorsHealthy == 0) return;
+    // 🔒 CRITICAL SAFETY: If sensors are unhealthy (timeout/error), apply emergency brake
+    // This is fail-safe behavior - if we lose sensor data, assume danger and stop
+    if (obstStatus.sensorsHealthy == 0) {
+        if (config.collisionAvoidanceEnabled) {
+            state.emergencyBrakeApplied = true;
+            state.collisionImminent = true;
+            state.speedReductionFactor = 0.0f;  // Full stop
+            
+            // Alert periodically
+            static uint32_t lastSensorFailAlertMs = 0;
+            if (now - lastSensorFailAlertMs > ALERT_INTERVAL_MS * 3) {  // Every 3 seconds
+                Alerts::play(Audio::AUDIO_EMERGENCIA);
+                Logger::error("SENSOR FAILURE: Emergency brake applied (fail-safe)");
+                lastSensorFailAlertMs = now;
+            }
+        }
+        return;  // No valid sensor data, maintain emergency state
+    }
     
     // Get distances
     uint16_t frontDist = obstStatus.minDistanceFront;

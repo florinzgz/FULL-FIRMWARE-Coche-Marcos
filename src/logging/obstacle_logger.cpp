@@ -1,6 +1,8 @@
 // Obstacle Detection Data Logger - 3D environment mapping with CSV export
+// v2.12.0: Updated for single TOFSense-M S sensor
 #include "obstacle_logger.h"
 #include "obstacle_detection.h"
+#include "obstacle_config.h"
 #include "logger.h"
 #include <FS.h>
 #include <SPIFFS.h>
@@ -14,7 +16,7 @@ static uint16_t bufferHead = 0, bufferTail = 0;
 static uint32_t lastLogMs = 0;
 
 void init() {
-    Logger::info("ObstacleLogger: Init");
+    Logger::info("ObstacleLogger: Init (v2.12.0 - Single sensor)");
     config = LoggerConfig();
     status = LoggerStatus();
 }
@@ -24,7 +26,9 @@ void update() {
     uint32_t now = millis();
     if (now - lastLogMs < config.logInterval) return;
     lastLogMs = now;
-    for (uint8_t i = 0; i < 4; i++) {
+    
+    // v2.12.0: Solo un sensor (SENSOR_FRONT)
+    for (uint8_t i = 0; i < ObstacleConfig::NUM_SENSORS; i++) {
         const auto& sensor = ObstacleDetection::getSensor(i);
         if (!sensor.healthy) continue;
         LogEntry entry;
