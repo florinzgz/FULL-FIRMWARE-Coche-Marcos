@@ -251,7 +251,7 @@ RX (Input)    -->     Not connected (sensor doesn't receive commands)
 
 - **Update Rate**: ~100Hz (sensor transmits continuously)
 - **Firmware Processing**: 15Hz effective update rate
-- **Range**: 0.1m to 12m
+- **Range**: 0.1m to 4m (TOFSense-M S 8x8 Matrix specification)
 - **Accuracy**: ±3cm (typical)
 - **Response Time**: <10ms
 - **Power Consumption**: <200mA @ 5V

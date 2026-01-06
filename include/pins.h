@@ -441,7 +441,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_TFT_MISO:
         case PIN_TFT_DC:
         case PIN_TFT_RST:
-        case PIN_TFT_CS:
+        case PIN_TFT_CS:     // GPIO 16 - shared with WHEEL_RR (SPI CS multiplexed)
         case PIN_TFT_BL:
         // Touch
         case PIN_TOUCH_CS:
@@ -450,7 +450,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_WHEEL_FL:
         case PIN_WHEEL_FR:
         case PIN_WHEEL_RL:
-        case PIN_WHEEL_RR:
+        // case PIN_WHEEL_RR:  // GPIO 16 - same as PIN_TFT_CS (shared pin)
         // Encoder
         case PIN_ENCODER_A:
         case PIN_ENCODER_B:
