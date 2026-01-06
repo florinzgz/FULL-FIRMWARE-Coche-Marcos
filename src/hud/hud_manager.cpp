@@ -732,7 +732,7 @@ void HUDManager::renderHiddenMenu() {
     tft.printf("Controlador: %4.1fC", carData.controllerTemp);
     
     // Sección 4: Estado de dispositivos de entrada
-    Sensors::InputDeviceStatus inputStatus = Sensors::getInputDeviceStatus();
+    // inputStatus already declared at top of function (line 643)
     
     tft.setCursor(250, 125);
     tft.print("ENTRADAS:");
@@ -769,7 +769,7 @@ void HUDManager::renderHiddenMenu() {
     tft.printf("RPM: %6.0f", carData.rpm);
     
     // Sección 6: Estado de Sensores
-    Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
+    // sensorStatus already declared at top of function (line 642)
     tft.setCursor(5, 210);
     tft.print("SENSORES:");
     
