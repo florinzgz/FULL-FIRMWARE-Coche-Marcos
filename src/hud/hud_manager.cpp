@@ -41,9 +41,20 @@ void HUDManager::init() {
     // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en main.cpp)
     // La configuración de OUTPUT/HIGH se realiza únicamente en main.cpp.
     
-    // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT
+    // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT con protección ante fallos
     Serial.println("[HUD] Initializing TFT_eSPI...");
-    tft.init();
+    
+    // 🔒 v2.11.5: FAULT TOLERANCE - Proteger inicialización del display
+    // Si el display falla, el coche debe poder seguir funcionando
+    try {
+        tft.init();
+    } catch (...) {
+        Logger::error("HUD: TFT init exception - continuing in degraded mode");
+        System::logError(602);
+        initialized = false;
+        Serial.println("[HUD] CRITICAL: Display init failed, vehicle will operate without UI");
+        return;  // Salir sin bloquear el sistema
+    }
     
     // 🔒 v2.8.2: CRITICAL FIX - Set rotation IMMEDIATELY after tft.init()
     // Before v2.8.2, the boot screen was displayed before rotation was set,
@@ -143,6 +154,11 @@ void HUDManager::init() {
 }
 
 void HUDManager::update() {
+    // 🔒 v2.11.5: FAULT TOLERANCE - Si display no inicializó, salir silenciosamente
+    if (!initialized) {
+        return;  // No bloquear el sistema si el display falló
+    }
+    
     // 🔒 CORRECCIÓN: Control de frame rate con constante
     // 🔒 v2.8.4: No saltar el primer frame para permitir el primer dibujo
     static constexpr uint32_t FRAME_INTERVAL_MS = 33;  // 30 FPS
@@ -158,11 +174,9 @@ void HUDManager::update() {
     tft.drawRect(2, 2, 10, 6, TFT_YELLOW);
 #endif
     
-    // Renderizar según menú activo
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    // 🔒 v2.11.5: FLICKER FIX - Solo limpiar pantalla una vez al cambiar de menú
+    // El flag needsRedraw se maneja dentro de cada función de renderizado
+    // para evitar borrados innecesarios que causan parpadeo
     
     switch (currentMenu) {
         case MenuType::DASHBOARD:
@@ -206,7 +220,14 @@ void HUDManager::updateCarData(const CarData& data) {
 void HUDManager::showMenu(MenuType menu) {
     if (currentMenu != menu) {
         currentMenu = menu;
-        needsRedraw = true;
+        needsRedraw = true;  // 🔒 v2.11.5: Asegurar limpieza de pantalla al cambiar menú
+        
+        // 🔒 v2.11.5: Resetear flag de primer dibujado del menú oculto
+        // para forzar limpieza completa y evitar solapamiento de imágenes
+        if (menu == MenuType::HIDDEN_MENU) {
+            // El flag firstDraw se reseteará en renderHiddenMenu
+            Logger::info("HUD: Entering hidden menu, will clear screen");
+        }
     }
 }
 
@@ -244,6 +265,11 @@ void HUDManager::showError(const char* message) {
 void HUDManager::handleTouch([[maybe_unused]] int16_t x, 
                             [[maybe_unused]] int16_t y, 
                             [[maybe_unused]] bool pressed) {
+    // 🔒 v2.11.5: FAULT TOLERANCE - Si display no inicializó, ignorar touch
+    if (!initialized) {
+        return;  // No procesar touch si el display falló
+    }
+    
     // 🔒 v2.10.3: Touch handling delegated to active menu/screen
     // Each screen (Dashboard, MenuHidden, MenuLEDControl, etc.) handles its own touch
     // This function serves as a placeholder for future global touch gestures
@@ -251,8 +277,15 @@ void HUDManager::handleTouch([[maybe_unused]] int16_t x,
 }
 
 void HUDManager::setBrightness(uint8_t newBrightness) {
+    // 🔒 v2.11.5: FAULT TOLERANCE - Si display no inicializó, solo guardar valor
     brightness = newBrightness;
-    ledcWrite(0, brightness);
+    
+    if (initialized) {
+        ledcWrite(0, brightness);
+    } else {
+        // Display no disponible, pero guardamos el valor para cuando se recupere
+        Logger::warnf("HUD: Display not available, brightness saved: %d", brightness);
+    }
 }
 
 void HUDManager::activateHiddenMenu(bool activate) {
@@ -288,6 +321,12 @@ bool HUDManager::initOK() {
 // ===== Funciones de renderizado =====
 
 void HUDManager::renderDashboard() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en dashboard desde otro menú
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     // 🔒 v2.8.4: Diagnóstico visual - confirmar que renderDashboard se ejecuta
 #ifdef DEBUG_RENDER
     tft.drawRect(5, 5, 20, 12, TFT_GREEN);
@@ -303,6 +342,12 @@ void HUDManager::renderDashboard() {
 }
 
 void HUDManager::renderSettings() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en settings
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 20);
@@ -320,6 +365,12 @@ void HUDManager::renderSettings() {
 }
 
 void HUDManager::renderCalibration() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en calibration
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 20);
@@ -337,6 +388,12 @@ void HUDManager::renderCalibration() {
 }
 
 void HUDManager::renderHardwareTest() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en hardware test
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 5);
@@ -476,6 +533,12 @@ void HUDManager::renderHardwareTest() {
 }
 
 void HUDManager::renderWifiConfig() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en wifi config
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 20);
@@ -491,6 +554,12 @@ void HUDManager::renderWifiConfig() {
 }
 
 void HUDManager::renderINA226Monitor() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en INA226 monitor
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_ORANGE, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 20);
@@ -513,6 +582,12 @@ void HUDManager::renderINA226Monitor() {
 }
 
 void HUDManager::renderStatistics() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en statistics
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 20);
@@ -524,6 +599,12 @@ void HUDManager::renderStatistics() {
 }
 
 void HUDManager::renderQuickMenu() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en quick menu
+    if (needsRedraw) {
+        tft.fillScreen(TFT_BLACK);
+        needsRedraw = false;
+    }
+    
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(20, 20);
@@ -541,12 +622,48 @@ void HUDManager::renderQuickMenu() {
 }
 
 void HUDManager::renderHiddenMenu() {
-    // Menú oculto con TODOS los datos de calibración y sensores
-    // 🔒 CORRECCIÓN: Solo limpiar pantalla si necesita redibujo completo
-    if (needsRedraw) {
+    // 🔒 v2.11.5: ANTI-FLICKER - Cache de datos para evitar redibujo innecesario
+    // Solo redibujar cuando los datos realmente cambien
+    static CarData lastCarData = {};
+    static Sensors::SystemStatus lastSensorStatus = {};
+    static Sensors::InputDeviceStatus lastInputStatus = {};
+    static bool firstDraw = true;
+    
+    // Obtener datos actuales
+    Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
+    Sensors::InputDeviceStatus inputStatus = Sensors::getInputDeviceStatus();
+    
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla COMPLETA solo en el primer dibujado
+    // para eliminar cualquier resto de gauges/gráficos del dashboard
+    if (needsRedraw || firstDraw) {
         tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;  // Reset flag after full redraw
+        needsRedraw = false;
+        firstDraw = false;
+        
+        // Marcar que necesitamos redibujar todo
+        memset(&lastCarData, 0xFF, sizeof(lastCarData));  // Force redraw by invalidating cache
+        memset(&lastSensorStatus, 0xFF, sizeof(lastSensorStatus));
+        memset(&lastInputStatus, 0xFF, sizeof(lastInputStatus));
     }
+    
+    // 🔒 v2.11.5: FLICKER FIX - Solo redibujar secciones que cambiaron
+    // Comparar con datos anteriores para minimizar operaciones de display
+    bool dataChanged = (memcmp(&carData, &lastCarData, sizeof(CarData)) != 0);
+    bool sensorChanged = (memcmp(&sensorStatus, &lastSensorStatus, sizeof(Sensors::SystemStatus)) != 0);
+    bool inputChanged = (memcmp(&inputStatus, &lastInputStatus, sizeof(Sensors::InputDeviceStatus)) != 0);
+    
+    // Si nada cambió, no redibujar (elimina el parpadeo a 30 FPS)
+    if (!dataChanged && !sensorChanged && !inputChanged) {
+        return;
+    }
+    
+    // Actualizar cache
+    lastCarData = carData;
+    lastSensorStatus = sensorStatus;
+    lastInputStatus = inputStatus;
+    
+    // Menú oculto con TODOS los datos de calibración y sensores
+    // 🔒 v2.11.5: Dibujar sobre fondo negro sin borrar todo (reduce parpadeo)
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.setTextSize(2);
     tft.setCursor(10, 5);
