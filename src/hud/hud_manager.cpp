@@ -46,14 +46,30 @@ void HUDManager::init() {
     
     // 🔒 v2.11.5: FAULT TOLERANCE - Proteger inicialización del display
     // Si el display falla, el coche debe poder seguir funcionando
+    // NOTE: Catching general exception because TFT_eSPI may throw various types
+    // We want to ensure vehicle operation continues regardless of display failure
+    bool initSuccess = false;
     try {
         tft.init();
+        initSuccess = true;
+    } catch (const std::exception& e) {
+        Logger::errorf("HUD: TFT init exception: %s - continuing in degraded mode", e.what());
+        System::logError(602);
+        initialized = false;
+        Serial.printf("[HUD] CRITICAL: Display init failed: %s, vehicle will operate without UI\n", e.what());
+        return;  // Salir sin bloquear el sistema
     } catch (...) {
-        Logger::error("HUD: TFT init exception - continuing in degraded mode");
+        Logger::error("HUD: TFT init unknown exception - continuing in degraded mode");
         System::logError(602);
         initialized = false;
         Serial.println("[HUD] CRITICAL: Display init failed, vehicle will operate without UI");
         return;  // Salir sin bloquear el sistema
+    }
+    
+    if (!initSuccess) {
+        Logger::error("HUD: TFT init failed - continuing in degraded mode");
+        initialized = false;
+        return;
     }
     
     // 🔒 v2.8.2: CRITICAL FIX - Set rotation IMMEDIATELY after tft.init()
@@ -628,6 +644,7 @@ void HUDManager::renderHiddenMenu() {
     static Sensors::SystemStatus lastSensorStatus = {};
     static Sensors::InputDeviceStatus lastInputStatus = {};
     static bool firstDraw = true;
+    static bool cacheValid = false;  // 🔒 Flag para validez del cache
     
     // Obtener datos actuales
     Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
@@ -639,18 +656,30 @@ void HUDManager::renderHiddenMenu() {
         tft.fillScreen(TFT_BLACK);
         needsRedraw = false;
         firstDraw = false;
-        
-        // Marcar que necesitamos redibujar todo
-        memset(&lastCarData, 0xFF, sizeof(lastCarData));  // Force redraw by invalidating cache
-        memset(&lastSensorStatus, 0xFF, sizeof(lastSensorStatus));
-        memset(&lastInputStatus, 0xFF, sizeof(lastInputStatus));
+        cacheValid = false;  // Invalidar cache para forzar redibujado completo
     }
     
     // 🔒 v2.11.5: FLICKER FIX - Solo redibujar secciones que cambiaron
     // Comparar con datos anteriores para minimizar operaciones de display
-    bool dataChanged = (memcmp(&carData, &lastCarData, sizeof(CarData)) != 0);
-    bool sensorChanged = (memcmp(&sensorStatus, &lastSensorStatus, sizeof(Sensors::SystemStatus)) != 0);
-    bool inputChanged = (memcmp(&inputStatus, &lastInputStatus, sizeof(Sensors::InputDeviceStatus)) != 0);
+    // NOTE: Using field-by-field comparison to avoid memcmp padding issues
+    bool dataChanged = !cacheValid ||
+                       (carData.voltage != lastCarData.voltage) ||
+                       (carData.current != lastCarData.current) ||
+                       (carData.batteryPercent != lastCarData.batteryPercent) ||
+                       (carData.speed != lastCarData.speed) ||
+                       (carData.rpm != lastCarData.rpm);
+    
+    bool sensorChanged = !cacheValid ||
+                         (sensorStatus.currentSensorsOK != lastSensorStatus.currentSensorsOK) ||
+                         (sensorStatus.temperatureSensorsOK != lastSensorStatus.temperatureSensorsOK) ||
+                         (sensorStatus.wheelSensorsOK != lastSensorStatus.wheelSensorsOK) ||
+                         (sensorStatus.temperatureWarning != lastSensorStatus.temperatureWarning);
+    
+    bool inputChanged = !cacheValid ||
+                        (inputStatus.pedalOK != lastInputStatus.pedalOK) ||
+                        (inputStatus.steeringOK != lastInputStatus.steeringOK) ||
+                        (inputStatus.shifterOK != lastInputStatus.shifterOK) ||
+                        (inputStatus.allInputsOK != lastInputStatus.allInputsOK);
     
     // Si nada cambió, no redibujar (elimina el parpadeo a 30 FPS)
     if (!dataChanged && !sensorChanged && !inputChanged) {
@@ -661,6 +690,7 @@ void HUDManager::renderHiddenMenu() {
     lastCarData = carData;
     lastSensorStatus = sensorStatus;
     lastInputStatus = inputStatus;
+    cacheValid = true;
     
     // Menú oculto con TODOS los datos de calibración y sensores
     // 🔒 v2.11.5: Dibujar sobre fondo negro sin borrar todo (reduce parpadeo)
