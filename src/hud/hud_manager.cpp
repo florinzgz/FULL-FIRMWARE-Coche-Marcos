@@ -48,10 +48,8 @@ void HUDManager::init() {
     // Si el display falla, el coche debe poder seguir funcionando
     // NOTE: Catching general exception because TFT_eSPI may throw various types
     // We want to ensure vehicle operation continues regardless of display failure
-    bool initSuccess = false;
     try {
         tft.init();
-        initSuccess = true;
     } catch (const std::exception& e) {
         Logger::errorf("HUD: TFT init exception: %s - continuing in degraded mode", e.what());
         System::logError(602);
@@ -64,12 +62,6 @@ void HUDManager::init() {
         initialized = false;
         Serial.println("[HUD] CRITICAL: Display init failed, vehicle will operate without UI");
         return;  // Salir sin bloquear el sistema
-    }
-    
-    if (!initSuccess) {
-        Logger::error("HUD: TFT init failed - continuing in degraded mode");
-        initialized = false;
-        return;
     }
     
     // 🔒 v2.8.2: CRITICAL FIX - Set rotation IMMEDIATELY after tft.init()
@@ -661,7 +653,10 @@ void HUDManager::renderHiddenMenu() {
     
     // 🔒 v2.11.5: FLICKER FIX - Solo redibujar secciones que cambiaron
     // Comparar con datos anteriores para minimizar operaciones de display
-    // NOTE: Using field-by-field comparison to avoid memcmp padding issues
+    // NOTE: Using field-by-field comparison instead of memcmp to avoid issues with
+    // struct padding bytes that may contain uninitialized data. This requires manual
+    // maintenance if structs change, but ensures reliable change detection.
+    // Only comparing critical fields that affect display - not all struct fields.
     bool dataChanged = !cacheValid ||
                        (carData.voltage != lastCarData.voltage) ||
                        (carData.current != lastCarData.current) ||

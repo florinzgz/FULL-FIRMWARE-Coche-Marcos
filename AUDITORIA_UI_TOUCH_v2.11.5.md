@@ -55,15 +55,36 @@ try {
 static CarData lastCarData = {};
 static Sensors::SystemStatus lastSensorStatus = {};
 static Sensors::InputDeviceStatus lastInputStatus = {};
+static bool cacheValid = false;  // Flag para validez del cache
 
 // Solo redibujar cuando los datos realmente cambien
-bool dataChanged = (memcmp(&carData, &lastCarData, sizeof(CarData)) != 0);
-bool sensorChanged = (memcmp(&sensorStatus, &lastSensorStatus, sizeof(Sensors::SystemStatus)) != 0);
-bool inputChanged = (memcmp(&inputStatus, &lastInputStatus, sizeof(Sensors::InputDeviceStatus)) != 0);
+// Using field-by-field comparison to avoid memcmp padding issues
+bool dataChanged = !cacheValid ||
+                   (carData.voltage != lastCarData.voltage) ||
+                   (carData.current != lastCarData.current) ||
+                   (carData.batteryPercent != lastCarData.batteryPercent) ||
+                   (carData.speed != lastCarData.speed) ||
+                   (carData.rpm != lastCarData.rpm);
+
+bool sensorChanged = !cacheValid ||
+                     (sensorStatus.currentSensorsOK != lastSensorStatus.currentSensorsOK) ||
+                     (sensorStatus.temperatureSensorsOK != lastSensorStatus.temperatureSensorsOK) ||
+                     (sensorStatus.wheelSensorsOK != lastSensorStatus.wheelSensorsOK);
+
+bool inputChanged = !cacheValid ||
+                    (inputStatus.pedalOK != lastInputStatus.pedalOK) ||
+                    (inputStatus.steeringOK != lastInputStatus.steeringOK) ||
+                    (inputStatus.allInputsOK != lastInputStatus.allInputsOK);
 
 if (!dataChanged && !sensorChanged && !inputChanged) {
     return;  // No redibujar si nada cambió
 }
+
+// Actualizar cache
+lastCarData = carData;
+lastSensorStatus = sensorStatus;
+lastInputStatus = inputStatus;
+cacheValid = true;
 ```
 
 ### 3. Solapamiento de Imágenes al Entrar en Menú Oculto
@@ -80,11 +101,7 @@ if (needsRedraw || firstDraw) {
     tft.fillScreen(TFT_BLACK);
     needsRedraw = false;
     firstDraw = false;
-    
-    // Forzar redibujado completo invalidando cache
-    memset(&lastCarData, 0xFF, sizeof(lastCarData));
-    memset(&lastSensorStatus, 0xFF, sizeof(lastSensorStatus));
-    memset(&lastInputStatus, 0xFF, sizeof(lastInputStatus));
+    cacheValid = false;  // Invalidar cache para forzar redibujado completo
 }
 ```
 
