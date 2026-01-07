@@ -23,7 +23,10 @@ uint8_t HUDManager::longPressButtonId = 0;
 static bool initialized = false;
 
 // ✅ ÚNICA instancia global de TFT_eSPI - compartida con HUD y otros módulos
-TFT_eSPI tft = TFT_eSPI();
+// 🔒 v2.11.6: BOOTLOOP FIX - Removed () to use default constructor
+// Explicit constructor call TFT_eSPI() was running complex initialization
+// in global constructor (before main) which could crash on ESP32-S3 OPI mode
+TFT_eSPI tft;
 
 // ============================================================================
 // Boot Screen Configuration
