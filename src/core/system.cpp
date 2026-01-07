@@ -141,6 +141,47 @@ void System::init() {
     Logger::info("System init: Platform ESP32-S3 detected");
     #endif
     
+    // ========================================
+    // DIAGNÓSTICO COMPLETO DE PSRAM
+    // ========================================
+    Logger::info("System init: === DIAGNÓSTICO DE MEMORIA ===");
+    
+    // Heap total y libre
+    uint32_t totalHeap = ESP.getHeapSize();
+    Logger::infof("System init: Total Heap: %u bytes (%.2f KB)", totalHeap, totalHeap / 1024.0f);
+    Logger::infof("System init: Free Heap: %u bytes (%.2f KB)", freeHeap, freeHeap / 1024.0f);
+    
+    // Verificar PSRAM
+    if (psramFound()) {
+        uint32_t psramSize = ESP.getPsramSize();
+        uint32_t freePsram = ESP.getFreePsram();
+        uint32_t usedPsram = psramSize - freePsram;
+        
+        Logger::info("System init: ✅ PSRAM DETECTADA Y HABILITADA");
+        Logger::infof("System init: PSRAM Total: %u bytes (%.2f MB)", psramSize, psramSize / 1048576.0f);
+        Logger::infof("System init: PSRAM Libre: %u bytes (%.2f MB, %.1f%%)", 
+                     freePsram, freePsram / 1048576.0f, (freePsram * 100.0f) / psramSize);
+        Logger::infof("System init: PSRAM Usada: %u bytes (%.2f KB, %.1f%%)", 
+                     usedPsram, usedPsram / 1024.0f, (usedPsram * 100.0f) / psramSize);
+        
+        // Validar tamaño esperado (8MB = 8388608 bytes)
+        const uint32_t EXPECTED_PSRAM_SIZE = 8 * 1024 * 1024; // 8MB
+        if (psramSize >= EXPECTED_PSRAM_SIZE) {
+            Logger::info("System init: ✅ Tamaño de PSRAM coincide con hardware (8MB)");
+        } else {
+            Logger::warnf("System init: ⚠️ Tamaño de PSRAM menor al esperado: %.2f MB < 8 MB", 
+                         psramSize / 1048576.0f);
+        }
+    } else {
+        Logger::error("System init: ❌ PSRAM NO DETECTADA");
+        Logger::error("System init: Verificar:");
+        Logger::error("System init:   1. Hardware tiene PSRAM instalada");
+        Logger::error("System init:   2. platformio.ini tiene 'board_build.psram = enabled'");
+        Logger::error("System init:   3. Flag -DBOARD_HAS_PSRAM está configurado");
+        Logger::error("System init: El sistema continuará sin PSRAM (solo RAM interna)");
+    }
+    Logger::info("System init: === FIN DIAGNÓSTICO DE MEMORIA ===");
+    
     // 🔒 v2.11.2: VALIDACIÓN 3 - Cargar y validar configuración persistente
     Logger::info("System init: Cargando configuración persistente");
     if (!EEPROMPersistence::init()) {
