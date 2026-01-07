@@ -26,7 +26,10 @@ static const uint32_t MIN_FEED_INTERVAL_MS =
 // Public API Implementation
 // ============================================================================
 
-void init() { counters.initialize(); Logger::info("WatchdogTests: Initialized"); }
+void init() {
+  counters.initialize();
+  Logger::info("WatchdogTests: Initialized");
+}
 
 bool runAllTests() {
   if (!counters.initialized) { init(); }

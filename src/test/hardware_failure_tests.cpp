@@ -22,7 +22,10 @@ static TestUtils::TestCounters counters;
 // Public API Implementation
 // ============================================================================
 
-void init() { counters.initialize(); Logger::info("HardwareFailureTests: Initialized"); }
+void init() {
+  counters.initialize();
+  Logger::info("HardwareFailureTests: Initialized");
+}
 
 bool runAllTests() {
   if (!counters.initialized) { init(); }
@@ -143,9 +146,8 @@ bool testPowerVariations() {
 
 void printSummary() {
   TestUtils::printSummary(counters, "Hardware Failure Test");
-  if (counters.passedCount == counters.testCount && counters.testCount > 0) {
-    // Additional success message specific to hardware tests
-  } else {
+  // Additional failure message is already handled by TestUtils::printSummary
+  if (counters.failedCount > 0) {
     Logger::error("❌ HARDWARE FAILURE TESTS FAILED");
   }
 }
