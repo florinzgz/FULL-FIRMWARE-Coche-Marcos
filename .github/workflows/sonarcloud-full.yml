@@ -1,7 +1,7 @@
 name: SonarCloud Full Audit
 
 on:
-  push:  
+  push:   
     branches: [ "main" ]
   schedule:
     - cron: "0 3 * * 0"
@@ -10,13 +10,13 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  security-events: write
+  security-events:  write
 
 jobs:
   sonarcloud:  
     runs-on: ubuntu-latest
 
-    steps:
+    steps: 
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -41,7 +41,8 @@ jobs:
 
       - name: Build firmware and generate compile_commands.json
         run: |
-          pio run -e esp32-s3-devkitc1 --target compiledb
+          pio run -e esp32-s3-devkitc1
+          pio run -e esp32-s3-devkitc1 -t compiledb
 
       - name: Verify compile_commands.json exists
         run: |
@@ -49,7 +50,7 @@ jobs:
             echo "Error: compile_commands.json not found"
             exit 1
           fi
-          echo "✓ compile_commands.json generated successfully"
+          echo "✓ compile_commands. json generated successfully"
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
