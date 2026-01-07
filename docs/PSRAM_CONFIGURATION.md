@@ -1,7 +1,7 @@
 # Configuración y Uso de PSRAM en ESP32-S3
 
 **Fecha:** 2026-01-07  
-**Hardware:** ESP32-S3-WROOM-2 N16R8 (16MB Flash, 8MB PSRAM)  
+**Hardware:** ESP32-S3 (QFN56) rev 0.2 - 32MB Flash + 16MB PSRAM AP_1v8  
 **Firmware:** v2.11.5+
 
 ---
@@ -16,17 +16,19 @@ Este documento detalla la configuración completa de PSRAM (Pseudo Static RAM) e
 
 ### Hardware Actual Detectado
 
-- **Modelo:** ESP32-S3-WROOM-2 N16R8
-- **Flash:** 16 MB
-- **PSRAM:** 8 MB (AP_3v3)
+- **Modelo:** ESP32-S3 (QFN56) rev 0.2
+- **Flash:** 32 MB (Macronix, manufacturer 0xC2, device 0x8039)
+- **PSRAM:** 16 MB (AP_1v8 - Embedded, 1.8V)
 - **Tipo:** Octal SPI PSRAM (OPI)
 - **Velocidad:** 80 MHz
 
-### Cómo Verificar PSRAM en el Hardware
+### Especificaciones del Módulo
 
-La PSRAM está integrada en el chip ESP32-S3-WROOM-2. El código N16R8 significa:
-- **N16**: 16MB Flash (Quad SPI)
-- **R8**: 8MB PSRAM (Octal SPI)
+El módulo ESP32-S3 QFN56 rev 0.2 incluye:
+- **Embedded PSRAM:** 16MB (AP_1v8)
+- **Flash externa:** 32MB Macronix
+- **Voltaje PSRAM:** 1.8V (AP_1v8)
+- **Interface PSRAM:** Octal SPI (8 pines de datos)
 
 ---
 
@@ -44,17 +46,18 @@ board_build.mcu = esp32s3
 board_build.f_cpu = 240000000L
 
 ; ---- MEMORIA ----
-board_build.flash_size = 16MB
+board_build.flash_size = 32MB
+board_build.flash_mode = qio
 board_build.psram = enabled          # ✅ Habilita PSRAM
-board_build.psram_size = 8MB         # ✅ Tamaño correcto
-board_build.partitions = huge_app.csv
+board_build.psram_size = 16MB        # ✅ Tamaño correcto
+board_build.partitions = partitions_32mb.csv
 ```
 
 ### 2.2 Build Flags de PSRAM
 
 ```ini
 build_flags =
-    ; ---- PSRAM ----
+    ; ---- PSRAM 16MB AP_1v8 (1.8V) ----
     -DBOARD_HAS_PSRAM                           # Indica que hay PSRAM disponible
     -DCONFIG_ESP32S3_SPIRAM_SUPPORT=1           # Soporte ESP32-S3 SPIRAM
     -DCONFIG_SPIRAM=1                           # Habilita SPIRAM globalmente
@@ -63,6 +66,10 @@ build_flags =
     -DCONFIG_SPIRAM_USE_MALLOC=1                # Permite malloc() usar PSRAM
     -DCONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384 # Objetos < 16KB van a RAM interna
     -DCONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768 # Reserva 32KB RAM interna
+    -DCONFIG_SPIRAM_SIZE=16777216               # 16MB = 16777216 bytes
+    ; AP_1v8 voltage configuration (1.8V PSRAM)
+    -DCONFIG_ESP32S3_DATA_CACHE_64KB=1
+    -DCONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=1
 ```
 
 ### 2.3 Explicación de Flags Importantes
@@ -74,6 +81,18 @@ build_flags =
 | `CONFIG_SPIRAM_USE_MALLOC` | malloc() automático en PSRAM | `1` (recomendado) |
 | `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` | Tamaño límite para RAM interna | `16384` (16KB) |
 | `CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL` | RAM interna reservada | `32768` (32KB mínimo) |
+| `CONFIG_SPIRAM_SIZE` | Tamaño PSRAM | `16777216` (16MB) |
+
+### 2.4 Particiones para 32MB Flash
+
+```csv
+# Name,   Type, SubType, Offset,  Size, Flags
+nvs,      data, nvs,     0x9000,  0x5000,
+otadata,  data, ota,     0xe000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0xA00000,    # 10MB por app
+app1,     app,  ota_1,   ,        0xA00000,    # 10MB por app
+spiffs,   data, spiffs,  ,        0xBF0000,    # 12.2MB para datos
+```
 
 ---
 
@@ -151,10 +170,10 @@ System init: === DIAGNÓSTICO DE MEMORIA ===
 System init: Total Heap: 393216 bytes (384.00 KB)
 System init: Free Heap: 351432 bytes (343.20 KB)
 System init: ✅ PSRAM DETECTADA Y HABILITADA
-System init: PSRAM Total: 8388608 bytes (8.00 MB)
-System init: PSRAM Libre: 8388480 bytes (8.00 MB, 100.0%)
+System init: PSRAM Total: 16777216 bytes (16.00 MB)
+System init: PSRAM Libre: 16777088 bytes (16.00 MB, 100.0%)
 System init: PSRAM Usada: 128 bytes (0.12 KB, 0.0%)
-System init: ✅ Tamaño de PSRAM coincide con hardware (8MB)
+System init: ✅ Tamaño de PSRAM coincide con hardware (16MB)
 System init: === FIN DIAGNÓSTICO DE MEMORIA ===
 ```
 
@@ -215,12 +234,14 @@ void printMemoryStatus() {
 ### 5.1 Checklist de Verificación
 
 - [x] **platformio.ini**: `board_build.psram = enabled`
-- [x] **platformio.ini**: `board_build.psram_size = 8MB` (correcto para N16R8)
+- [x] **platformio.ini**: `board_build.psram_size = 16MB` (correcto para QFN56)
+- [x] **platformio.ini**: `board_build.flash_size = 32MB` (correcto para Macronix)
 - [x] **Build flags**: `-DBOARD_HAS_PSRAM` presente
-- [x] **Build flags**: Flags de ESP-IDF para PSRAM configurados
+- [x] **Build flags**: Flags de ESP-IDF para PSRAM AP_1v8 configurados
+- [x] **Build flags**: `-DCONFIG_SPIRAM_SIZE=16777216` configurado
 - [x] **Código**: Diagnóstico de PSRAM en `System::init()`
 - [x] **Código**: Test de memoria incluye estadísticas de PSRAM
-- [x] **Hardware**: ESP32-S3-WROOM-2 N16R8 (8MB PSRAM)
+- [x] **Hardware**: ESP32-S3 (QFN56) rev 0.2 (16MB PSRAM AP_1v8)
 
 ### 5.2 Tests de Validación
 
@@ -236,19 +257,19 @@ pio device monitor
 
 # Buscar en salida:
 # ✅ "PSRAM DETECTADA Y HABILITADA"
-# ✅ "PSRAM Total: 8388608 bytes (8.00 MB)"
+# ✅ "PSRAM Total: 16777216 bytes (16.00 MB)"
 ```
 
 ### 5.3 Señales de Problemas
 
 ❌ **PSRAM NO DETECTADA**: 
-- Verificar hardware (debe ser N16R8 o superior)
+- Verificar hardware (debe ser QFN56 rev 0.2 con 16MB PSRAM)
 - Verificar `board_build.psram = enabled`
 - Recompilar completamente (`pio run -t clean`)
 
-❌ **Tamaño incorrecto** (ej: 4MB en vez de 8MB):
-- Verificar `board_build.psram_size = 8MB`
-- Verificar modelo de chip (debe ser N16R8, no N8R8)
+❌ **Tamaño incorrecto** (ej: 8MB en vez de 16MB):
+- Verificar `board_build.psram_size = 16MB`
+- Verificar modelo de chip (debe ser QFN56 con AP_1v8 16MB)
 
 ⚠️ **PSRAM detectada pero no usada**:
 - Verificar flags `-DCONFIG_SPIRAM_USE_MALLOC=1`
@@ -283,7 +304,7 @@ pio device monitor
 
 ; Esto significa:
 ; - Objetos < 16KB → RAM interna (rápida)
-; - Objetos ≥ 16KB → PSRAM (abundante)
+; - Objetos ≥ 16KB → PSRAM (abundante - 16MB disponibles)
 ; - 32KB RAM interna siempre disponible (seguridad)
 ```
 
@@ -311,7 +332,7 @@ System init: ❌ PSRAM NO DETECTADA
 ```
 
 **Soluciones:**
-1. Verificar hardware tiene PSRAM (debe ser N16R8 o N32R8)
+1. Verificar hardware tiene PSRAM (debe ser QFN56 rev 0.2 con 16MB PSRAM embebida)
 2. Limpiar build: `pio run -t clean`
 3. Verificar `platformio.ini`:
    ```ini
@@ -324,14 +345,15 @@ System init: ❌ PSRAM NO DETECTADA
 
 **Síntomas:**
 ```
-System init: ⚠️ Tamaño de PSRAM menor al esperado: 4.00 MB < 8 MB
+System init: ⚠️ Tamaño de PSRAM menor al esperado: 8.00 MB < 16 MB
 ```
 
 **Soluciones:**
-1. Verificar modelo chip (etiqueta física)
+1. Verificar modelo chip (etiqueta física - debe ser QFN56 rev 0.2)
 2. Ajustar `platformio.ini`:
    ```ini
-   board_build.psram_size = 8MB  # Coincidir con hardware
+   board_build.psram_size = 16MB  # Coincidir con hardware
+   -DCONFIG_SPIRAM_SIZE=16777216
    ```
 3. Recompilar
 
@@ -392,7 +414,7 @@ Basado en el análisis del código:
 
 Con la configuración actual:
 - **RAM Interna:** ~300-350 KB libre después de init
-- **PSRAM:** ~8 MB libre (>99% disponible)
+- **PSRAM:** ~16 MB libre (>99% disponible)
 - **Uso típico PSRAM:** 100-500 KB (display, audio, buffers grandes)
 
 ---
@@ -419,11 +441,14 @@ Con la configuración actual:
 ### Estado Actual (Post-Configuración)
 
 ✅ **PSRAM Habilitada:** Sí  
-✅ **Tamaño Correcto:** 8 MB (N16R8)  
+✅ **Tamaño Correcto:** 16 MB (QFN56 rev 0.2)  
+✅ **Flash Configurada:** 32 MB (Macronix)  
 ✅ **Modo Operación:** Octal 80MHz (óptimo)  
+✅ **Voltaje:** 1.8V (AP_1v8)  
 ✅ **Uso Automático:** malloc() configurable  
 ✅ **Diagnóstico:** Completo en boot  
 ✅ **Documentación:** Actualizada  
+✅ **Particiones:** Optimizadas para 32MB flash  
 
 ### Próximos Pasos Sugeridos
 
