@@ -41,8 +41,8 @@ jobs:
 
       - name: Build firmware and generate compile_commands.json
         run: |
-          pio run -e esp32-s3-devkitc1
-          pio run -e esp32-s3-devkitc1 -t compiledb --ide clion
+          pio run -e esp32-s3-n32r16v
+          pio run -e esp32-s3-n32r16v -t compiledb --ide clion
 
       - name: Debug compile_commands.json location
         run: |
@@ -50,11 +50,11 @@ jobs:
 
       - name: Verify compile_commands.json exists
         run: |
-          if [ ! -f .pio/build/esp32-s3-devkitc1/compile_commands.json ]; then
+          if [ ! -f .pio/build/esp32-s3-n32r16v/compile_commands.json ]; then
             echo "Error: compile_commands.json not found"
             exit 1
           fi
-          echo "✓ compile_commands. json generated successfully"
+          echo "✓ compile_commands.json generated successfully"
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
