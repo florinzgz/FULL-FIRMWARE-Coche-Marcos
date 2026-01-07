@@ -11,7 +11,11 @@
 #include <cmath>         // 🔒 v2.4.0: Para std::isfinite()
 
 // PCA9685 para motor dirección (I²C 0x42 según pins.h I2C_ADDR_PCA9685_STEERING)
-static Adafruit_PWMServoDriver pca = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_STEERING);
+// 🔒 v2.11.6: BOOTLOOP FIX - Use default constructor only
+// Explicit constructor call Adafruit_PWMServoDriver(addr) runs I2C init
+// in global constructor (before main) which can crash on ESP32-S3 OPI
+// The address will be set during begin() call in init()
+static Adafruit_PWMServoDriver pca;
 // MCP23017 manager for shared control IN1/IN2 (I²C 0x20)
 static MCP23017Manager* mcpManager = nullptr;
 static SteeringMotor::State s;
@@ -50,7 +54,7 @@ void SteeringMotor::init() {
     
     // 🔒 v2.4.0: Validar inicialización PCA9685 con retry no bloqueante
     if (!pcaOK && !pcaRetrying) {
-        pca.begin();
+        pca.begin(I2C_ADDR_PCA9685_STEERING);  // 🔒 v2.11.6: Explicit address since no constructor param
         Wire.beginTransmission(I2C_ADDR_PCA9685_STEERING);
         pcaOK = (Wire.endTransmission() == 0);
         if (!pcaOK) {
@@ -61,7 +65,7 @@ void SteeringMotor::init() {
     }
     
     if (pcaRetrying && (millis() - pcaRetryTime >= kRetryIntervalMs)) {
-        pca.begin();
+        pca.begin(I2C_ADDR_PCA9685_STEERING);  // 🔒 v2.11.6: Explicit address since no constructor param
         Wire.beginTransmission(I2C_ADDR_PCA9685_STEERING);
         pcaOK = (Wire.endTransmission() == 0);
         pcaRetrying = false;
