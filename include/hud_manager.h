@@ -2,6 +2,7 @@
 #define HUD_MANAGER_H
 
 #include "display_types.h"
+#include "sensors.h"  // For Sensors::InputDeviceStatus type
 #include <TFT_eSPI.h>
 
 /**
@@ -115,6 +116,13 @@ private:
     
     // Helper methods
     static void clearScreenIfNeeded();
+    
+    // Color calculation helpers for status display
+    static uint16_t getSensorStatusColor(uint8_t okCount, uint8_t totalCount);
+    static uint16_t getPedalColor(const Sensors::InputDeviceStatus& status);
+    static uint16_t getSteeringColor(const Sensors::InputDeviceStatus& status);
+    static uint16_t getShifterColor(const Sensors::InputDeviceStatus& status);
+    static const char* getGearName(uint8_t gear);
     
     // Funciones de renderizado
     static void renderDashboard();
