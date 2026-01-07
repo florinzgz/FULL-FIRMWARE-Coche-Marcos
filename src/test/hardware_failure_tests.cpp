@@ -146,7 +146,6 @@ bool testPowerVariations() {
 
 void printSummary() {
   TestUtils::printSummary(counters, "Hardware Failure Test");
-  // Additional failure message is already handled by TestUtils::printSummary
   if (counters.failedCount > 0) {
     Logger::error("❌ HARDWARE FAILURE TESTS FAILED");
   }
