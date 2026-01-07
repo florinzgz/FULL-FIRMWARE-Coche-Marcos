@@ -31,6 +31,13 @@ TFT_eSPI tft = TFT_eSPI();
 static constexpr uint16_t BOOT_SCREEN_BG_COLOR = TFT_BLUE;    // Background during boot
 static constexpr uint16_t BOOT_SCREEN_TEXT_COLOR = TFT_WHITE; // Text during boot
 
+// ============================================================================
+// Gear names constant (shared between renderHardwareTest and renderHiddenMenu)
+// Gear index mapping: 0=P (Park), 1=D2 (Drive 2), 2=D1 (Drive 1), 3=N (Neutral), 4=R (Reverse)
+// ============================================================================
+static constexpr const char* GEAR_NAMES[] = {"P", "D2", "D1", "N", "R"};
+static constexpr uint8_t GEAR_COUNT = sizeof(GEAR_NAMES) / sizeof(GEAR_NAMES[0]);
+
 void HUDManager::init() {
     // 🔒 v2.8.1: Hardware reset y backlight ahora se hacen en main.cpp setup()
     // para asegurar que el display tiene luz incluso si la inicialización falla.
@@ -340,6 +347,77 @@ void HUDManager::clearScreenIfNeeded() {
     }
 }
 
+// ============================================================================
+// Color calculation helpers - eliminates code duplication between
+// renderHardwareTest() and renderHiddenMenu()
+// ============================================================================
+
+/**
+ * @brief Calculate color for sensor status based on OK count vs total count
+ * @param okCount Number of sensors working correctly
+ * @param totalCount Total number of sensors
+ * @return TFT_GREEN if all OK, TFT_RED if none OK, TFT_YELLOW if partial
+ */
+uint16_t HUDManager::getSensorStatusColor(uint8_t okCount, uint8_t totalCount) {
+    if (okCount == totalCount) {
+        return TFT_GREEN;
+    } else if (okCount == 0) {
+        return TFT_RED;
+    } else {
+        return TFT_YELLOW;
+    }
+}
+
+/**
+ * @brief Calculate color for pedal status
+ * @param status Input device status structure
+ * @return TFT_GREEN if OK and valid, TFT_YELLOW if OK but not valid, TFT_RED if not OK
+ */
+uint16_t HUDManager::getPedalColor(const Sensors::InputDeviceStatus& status) {
+    if (status.pedalOK && status.pedalValid) {
+        return TFT_GREEN;
+    } else if (status.pedalOK) {
+        return TFT_YELLOW;
+    } else {
+        return TFT_RED;
+    }
+}
+
+/**
+ * @brief Calculate color for steering status
+ * @param status Input device status structure
+ * @return TFT_GREEN if OK and centered, TFT_YELLOW if OK but not centered, TFT_RED if not OK
+ */
+uint16_t HUDManager::getSteeringColor(const Sensors::InputDeviceStatus& status) {
+    if (status.steeringOK && status.steeringCentered) {
+        return TFT_GREEN;
+    } else if (status.steeringOK) {
+        return TFT_YELLOW;
+    } else {
+        return TFT_RED;
+    }
+}
+
+/**
+ * @brief Calculate color for shifter status
+ * @param status Input device status structure
+ * @return TFT_GREEN if OK, TFT_RED if not OK
+ */
+uint16_t HUDManager::getShifterColor(const Sensors::InputDeviceStatus& status) {
+    return status.shifterOK ? TFT_GREEN : TFT_RED;
+}
+
+/**
+ * @brief Get gear name from gear index
+ * @param gear Gear index (0 to GEAR_COUNT-1). Values >= GEAR_COUNT default to 0 (Park).
+ * @return Gear name string (P, D2, D1, N, R). Out-of-range values return "P" as safe fallback.
+ */
+const char* HUDManager::getGearName(uint8_t gear) {
+    // Default invalid or out-of-range gear indices to 0 ("P") as a safe fallback
+    uint8_t gearIdx = gear < GEAR_COUNT ? gear : 0;
+    return GEAR_NAMES[gearIdx];
+}
+
 // ===== Funciones de renderizado =====
 
 void HUDManager::renderDashboard() {
@@ -421,22 +499,19 @@ void HUDManager::renderHardwareTest() {
     tft.print("-- SENSORES --");
     
     // INA226 sensores
-    uint16_t colorINA = (status.currentSensorsOK == status.currentSensorsTotal) ? TFT_GREEN : 
-                        (status.currentSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    uint16_t colorINA = getSensorStatusColor(status.currentSensorsOK, status.currentSensorsTotal);
     tft.setTextColor(colorINA, TFT_BLACK);
     tft.setCursor(10, 50);
     tft.printf("INA226: %d/%d", status.currentSensorsOK, status.currentSensorsTotal);
     
     // DS18B20 sensores
-    uint16_t colorTemp = (status.temperatureSensorsOK == status.temperatureSensorsTotal) ? TFT_GREEN : 
-                         (status.temperatureSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    uint16_t colorTemp = getSensorStatusColor(status.temperatureSensorsOK, status.temperatureSensorsTotal);
     tft.setTextColor(colorTemp, TFT_BLACK);
     tft.setCursor(10, 65);
     tft.printf("DS18B20: %d/%d", status.temperatureSensorsOK, status.temperatureSensorsTotal);
     
     // Ruedas
-    uint16_t colorWheel = (status.wheelSensorsOK == status.wheelSensorsTotal) ? TFT_GREEN : 
-                          (status.wheelSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    uint16_t colorWheel = getSensorStatusColor(status.wheelSensorsOK, status.wheelSensorsTotal);
     tft.setTextColor(colorWheel, TFT_BLACK);
     tft.setCursor(10, 80);
     tft.printf("Ruedas: %d/%d", status.wheelSensorsOK, status.wheelSensorsTotal);
@@ -467,15 +542,13 @@ void HUDManager::renderHardwareTest() {
     tft.print("-- ENTRADAS --");
     
     // Pedal
-    uint16_t colorPedal = inputStatus.pedalOK && inputStatus.pedalValid ? TFT_GREEN : 
-                          inputStatus.pedalOK ? TFT_YELLOW : TFT_RED;
+    uint16_t colorPedal = getPedalColor(inputStatus);
     tft.setTextColor(colorPedal, TFT_BLACK);
     tft.setCursor(250, 50);
     tft.printf("Pedal: %.1f%% [%d]", inputStatus.pedalPercent, inputStatus.pedalRaw);
     
     // Steering
-    uint16_t colorSteer = inputStatus.steeringOK && inputStatus.steeringCentered ? TFT_GREEN :
-                          inputStatus.steeringOK ? TFT_YELLOW : TFT_RED;
+    uint16_t colorSteer = getSteeringColor(inputStatus);
     tft.setTextColor(colorSteer, TFT_BLACK);
     tft.setCursor(250, 65);
     tft.printf("Volante: %.1f deg", inputStatus.steeringAngle);
@@ -483,12 +556,10 @@ void HUDManager::renderHardwareTest() {
     tft.printf("Centrado: %s", inputStatus.steeringCentered ? "SI" : "NO");
     
     // Shifter
-    uint16_t colorShift = inputStatus.shifterOK ? TFT_GREEN : TFT_RED;
+    uint16_t colorShift = getShifterColor(inputStatus);
     tft.setTextColor(colorShift, TFT_BLACK);
     tft.setCursor(250, 95);
-    const char* gearNames[] = {"P", "D2", "D1", "N", "R"};
-    uint8_t gearIdx = inputStatus.shifterGear < 5 ? inputStatus.shifterGear : 0;
-    tft.printf("Marcha: %s", gearNames[gearIdx]);
+    tft.printf("Marcha: %s", getGearName(inputStatus.shifterGear));
     
     // Botones
     tft.setTextColor(inputStatus.buttonsOK ? TFT_GREEN : TFT_RED, TFT_BLACK);
@@ -733,26 +804,22 @@ void HUDManager::renderHiddenMenu() {
     tft.print("ENTRADAS:");
     
     // Estado del pedal con color
-    uint16_t colorPedal = inputStatus.pedalOK && inputStatus.pedalValid ? TFT_GREEN : 
-                          inputStatus.pedalOK ? TFT_YELLOW : TFT_RED;
+    uint16_t colorPedal = getPedalColor(inputStatus);
     tft.setTextColor(colorPedal, TFT_BLACK);
     tft.setCursor(250, 140);
     tft.printf("Pedal: %5.1f%% [%d]", inputStatus.pedalPercent, inputStatus.pedalRaw);
     
     // Estado del steering con color
-    uint16_t colorSteer = inputStatus.steeringOK && inputStatus.steeringCentered ? TFT_GREEN :
-                          inputStatus.steeringOK ? TFT_YELLOW : TFT_RED;
+    uint16_t colorSteer = getSteeringColor(inputStatus);
     tft.setTextColor(colorSteer, TFT_BLACK);
     tft.setCursor(250, 155);
     tft.printf("Volante: %5.1f deg", inputStatus.steeringAngle);
     
     // Estado del shifter con color
-    uint16_t colorShift = inputStatus.shifterOK ? TFT_GREEN : TFT_RED;
+    uint16_t colorShift = getShifterColor(inputStatus);
     tft.setTextColor(colorShift, TFT_BLACK);
     tft.setCursor(250, 170);
-    const char* gearNames[] = {"P", "D2", "D1", "N", "R"};
-    uint8_t gearIdx = inputStatus.shifterGear < 5 ? inputStatus.shifterGear : 0;
-    tft.printf("Marcha: %s", gearNames[gearIdx]);
+    tft.printf("Marcha: %s", getGearName(inputStatus.shifterGear));
     
     // Sección 5: Velocidad y RPM
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
@@ -769,22 +836,19 @@ void HUDManager::renderHiddenMenu() {
     tft.print("SENSORES:");
     
     // INA226 (corriente)
-    uint16_t colorINA = (sensorStatus.currentSensorsOK == sensorStatus.currentSensorsTotal) ? TFT_GREEN : 
-                        (sensorStatus.currentSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    uint16_t colorINA = getSensorStatusColor(sensorStatus.currentSensorsOK, sensorStatus.currentSensorsTotal);
     tft.setTextColor(colorINA, TFT_BLACK);
     tft.setCursor(5, 225);
     tft.printf("INA226: %d/%d", sensorStatus.currentSensorsOK, sensorStatus.currentSensorsTotal);
     
     // DS18B20 (temperatura)
-    uint16_t colorTemp = (sensorStatus.temperatureSensorsOK == sensorStatus.temperatureSensorsTotal) ? TFT_GREEN : 
-                         (sensorStatus.temperatureSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    uint16_t colorTemp = getSensorStatusColor(sensorStatus.temperatureSensorsOK, sensorStatus.temperatureSensorsTotal);
     tft.setTextColor(colorTemp, TFT_BLACK);
     tft.setCursor(80, 225);
     tft.printf("DS18B20: %d/%d", sensorStatus.temperatureSensorsOK, sensorStatus.temperatureSensorsTotal);
     
     // Ruedas
-    uint16_t colorWheel = (sensorStatus.wheelSensorsOK == sensorStatus.wheelSensorsTotal) ? TFT_GREEN : 
-                          (sensorStatus.wheelSensorsOK == 0) ? TFT_RED : TFT_YELLOW;
+    uint16_t colorWheel = getSensorStatusColor(sensorStatus.wheelSensorsOK, sensorStatus.wheelSensorsTotal);
     tft.setTextColor(colorWheel, TFT_BLACK);
     tft.setCursor(175, 225);
     tft.printf("RUEDAS: %d/%d", sensorStatus.wheelSensorsOK, sensorStatus.wheelSensorsTotal);
