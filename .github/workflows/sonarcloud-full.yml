@@ -48,3 +48,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectKey: florinzgz_FULL-FIRMWARE-Coche-Marcos
+          organization: florinzgz
