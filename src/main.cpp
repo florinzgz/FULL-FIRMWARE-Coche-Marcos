@@ -105,9 +105,15 @@ void initializeSystem() {
     // STANDALONE DISPLAY INIT
     // ===========================
     Serial.println("🧪 STANDALONE DISPLAY MODE");
+    Serial.flush();
+    delay(100);  // Ensure UART message is sent
+    
     Serial.println("[INIT] HUD Manager initialization...");
+    Serial.flush();
 
     if (!HUDManager::init()) {
+        Serial.println("[ERROR] HUD Manager initialization failed");
+        Serial.flush();
         handleCriticalError("HUD Manager initialization failed");
     }
 
@@ -115,6 +121,7 @@ void initializeSystem() {
     Watchdog::feed();
 
     Serial.println("🧪 STANDALONE: Skipping other managers");
+    Serial.flush();
     return;   // ¡MUY IMPORTANTE!
 
 #else
