@@ -39,9 +39,10 @@ jobs:
         run: |
           pip install platformio
 
-      - name: Build firmware
+      # 👇 IMPORTANTE: genera el compile_commands.json
+      - name: Build firmware + compile database
         run: |
-          pio run -e esp32-s3-n32r16v
+          pio run --target compiledb -e esp32-s3-n32r16v
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
