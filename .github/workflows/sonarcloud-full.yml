@@ -42,7 +42,11 @@ jobs:
       - name: Build firmware and generate compile_commands.json
         run: |
           pio run -e esp32-s3-devkitc1
-          pio run -e esp32-s3-devkitc1 -t compiledb
+          pio run -e esp32-s3-devkitc1 -t compiledb --ide clion
+
+      - name: Debug compile_commands.json location
+        run: |
+          find . -name "compile_commands.json" -type f
 
       - name: Verify compile_commands.json exists
         run: |
