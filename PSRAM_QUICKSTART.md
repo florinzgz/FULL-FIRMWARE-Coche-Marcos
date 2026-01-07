@@ -20,8 +20,8 @@ Si ves esto, **todo está bien** ✅:
 
 ```
 System init: ✅ PSRAM DETECTADA Y HABILITADA
-System init: PSRAM Total: 8388608 bytes (8.00 MB)
-System init: ✅ Tamaño de PSRAM coincide con hardware (8MB)
+System init: PSRAM Total: 16777216 bytes (16.00 MB)
+System init: ✅ Tamaño de PSRAM coincide con hardware (16MB)
 ```
 
 ### 3. Si NO Aparece PSRAM
@@ -31,7 +31,7 @@ System init: ❌ PSRAM NO DETECTADA
 ```
 
 **Soluciones:**
-1. Verifica que el chip sea **N16R8** (mira etiqueta física)
+1. Verifica que el chip sea **ESP32-S3 (QFN56) rev 0.2** (mira etiqueta física)
 2. Haz clean completo: `rm -rf .pio/build`
 3. Recompila: `pio run -e esp32-s3-devkitc1`
 
@@ -41,8 +41,8 @@ System init: ❌ PSRAM NO DETECTADA
 
 | Parámetro | Valor |
 |-----------|-------|
-| **Flash** | 16 MB |
-| **PSRAM** | 8 MB |
+| **Flash** | 32 MB (Macronix) |
+| **PSRAM** | 16 MB (AP_1v8 - 1.8V) |
 | **Modo** | Octal SPI (OPI) |
 | **Velocidad** | 80 MHz |
 | **malloc() automático** | Objetos ≥16KB → PSRAM |
@@ -96,8 +96,8 @@ ESP32-S3 Memoria Total
 │   ├── Reservada: 32 KB (siempre disponible)
 │   └── Uso: Objetos <16KB, stacks, código crítico
 │
-└── PSRAM: 8 MB
-    ├── Libre: ~8 MB (99%+ después de init)
+└── PSRAM: 16 MB
+    ├── Libre: ~16 MB (99%+ después de init)
     └── Uso: Buffers grandes (display, audio, etc.)
 ```
 
@@ -129,9 +129,9 @@ uint8_t* audio = (uint8_t*)heap_caps_malloc(
 1. `ANALISIS_PSRAM_COMPLETO.md` - Sección "Solución de Problemas"
 2. `docs/PSRAM_CONFIGURATION.md` - Sección "Troubleshooting"
 
-**¿Funciona?** ¡Disfruta de tus 8MB de PSRAM! 🎉
+**¿Funciona?** ¡Disfruta de tus 16MB de PSRAM! 🎉
 
 ---
 
 **Última actualización:** 2026-01-07  
-**Versión:** 1.0
+**Versión:** 2.0 - Hardware Real QFN56
