@@ -39,22 +39,9 @@ jobs:
         run: |
           pip install platformio
 
-      - name: Build firmware and generate compile_commands.json
+      - name: Build firmware
         run: |
           pio run -e esp32-s3-n32r16v
-          pio run -e esp32-s3-n32r16v -t compiledb
-
-      - name: Debug compile_commands.json location
-        run: |
-          find . -name "compile_commands.json" -type f
-
-      - name: Verify compile_commands.json exists
-        run: |
-          if [ ! -f .pio/build/esp32-s3-n32r16v/compile_commands.json ]; then
-            echo "Error: compile_commands.json not found"
-            exit 1
-          fi
-          echo "✓ compile_commands.json generated successfully"
 
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
