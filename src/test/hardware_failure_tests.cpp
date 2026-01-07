@@ -8,6 +8,7 @@
 #include "i2c_recovery.h"
 #include "logger.h"
 #include "temperature.h"
+#include "test_utils.h"
 
 namespace HardwareFailureTests {
 
@@ -15,50 +16,26 @@ namespace HardwareFailureTests {
 // Private State
 // ============================================================================
 
-static uint32_t testCount = 0;
-static uint32_t passedCount = 0;
-static uint32_t failedCount = 0;
-static bool initialized = false;
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-static void recordTest(const char *name, bool passed) {
-  testCount++;
-  if (passed) {
-    passedCount++;
-    Logger::infof("✅ HW TEST PASSED: %s", name);
-  } else {
-    failedCount++;
-    Logger::errorf("❌ HW TEST FAILED: %s", name);
-  }
-}
+static TestUtils::TestCounters counters;
 
 // ============================================================================
 // Public API Implementation
 // ============================================================================
 
 void init() {
-  testCount = 0;
-  passedCount = 0;
-  failedCount = 0;
-  initialized = true;
-
+  counters.initialize();
   Logger::info("HardwareFailureTests: Initialized");
 }
 
 bool runAllTests() {
-  if (!initialized) { init(); }
+  if (!counters.initialized) { init(); }
 
   Logger::info("\n========================================");
   Logger::info("Starting Hardware Failure Scenario Tests");
   Logger::info("========================================");
 
   // Reset counters
-  testCount = 0;
-  passedCount = 0;
-  failedCount = 0;
+  counters.reset();
 
   bool allPassed = true;
 
@@ -89,7 +66,7 @@ bool testI2CBusRecovery() {
     recoveryAvailable = I2CRecovery::isBusHealthy();
   }
 
-  recordTest("I2C Bus Recovery", recoveryAvailable);
+  recordTest(counters, "I2C Bus Recovery", recoveryAvailable, "HW TEST");
 
   return recoveryAvailable;
 }
@@ -117,7 +94,7 @@ bool testSensorDisconnection() {
 
   // Even if sensors are disconnected, system should return valid
   // default values, not NaN or infinity
-  recordTest("Sensor Disconnection Handling", allSensorsValid);
+  recordTest(counters, "Sensor Disconnection Handling", allSensorsValid, "HW TEST");
 
   return allSensorsValid;
 }
@@ -138,7 +115,7 @@ bool testDisplayFailure() {
   delay(100);
 
   // If we get here, system is stable
-  recordTest("Display Failure Handling", systemStable);
+  recordTest(counters, "Display Failure Handling", systemStable, "HW TEST");
 
   return systemStable;
 }
@@ -162,29 +139,20 @@ bool testPowerVariations() {
     if (voltage > 30.0f) { Logger::warn("High battery voltage detected"); }
   }
 
-  recordTest("Power Variation Monitoring", voltageValid);
+  recordTest(counters, "Power Variation Monitoring", voltageValid, "HW TEST");
 
   return voltageValid;
 }
 
 void printSummary() {
-  Logger::info("\n========================================");
-  Logger::info("Hardware Failure Test Summary");
-  Logger::info("========================================");
-  Logger::infof("Total Tests: %lu", testCount);
-  Logger::infof("Passed: %lu", passedCount);
-  Logger::infof("Failed: %lu", failedCount);
-
-  if (passedCount == testCount && testCount > 0) {
-    Logger::info("✅ ALL HARDWARE FAILURE TESTS PASSED");
-  } else {
+  TestUtils::printSummary(counters, "Hardware Failure Test");
+  if (counters.failedCount > 0) {
     Logger::error("❌ HARDWARE FAILURE TESTS FAILED");
   }
-  Logger::info("========================================\n");
 }
 
-uint32_t getPassedCount() { return passedCount; }
+uint32_t getPassedCount() { return counters.passedCount; }
 
-uint32_t getFailedCount() { return failedCount; }
+uint32_t getFailedCount() { return counters.failedCount; }
 
 } // namespace HardwareFailureTests

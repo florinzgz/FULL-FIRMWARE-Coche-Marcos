@@ -329,14 +329,22 @@ bool HUDManager::initOK() {
     return initialized;
 }
 
-// ===== Funciones de renderizado =====
+// ============================================================================
+// Helper Methods
+// ============================================================================
 
-void HUDManager::renderDashboard() {
-    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en dashboard desde otro menú
+void HUDManager::clearScreenIfNeeded() {
     if (needsRedraw) {
         tft.fillScreen(TFT_BLACK);
         needsRedraw = false;
     }
+}
+
+// ===== Funciones de renderizado =====
+
+void HUDManager::renderDashboard() {
+    // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en dashboard desde otro menú
+    clearScreenIfNeeded();
     
     // 🔒 v2.8.4: Diagnóstico visual - confirmar que renderDashboard se ejecuta
 #ifdef DEBUG_RENDER
@@ -354,10 +362,7 @@ void HUDManager::renderDashboard() {
 
 void HUDManager::renderSettings() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en settings
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.setTextSize(2);
@@ -377,10 +382,7 @@ void HUDManager::renderSettings() {
 
 void HUDManager::renderCalibration() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en calibration
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.setTextSize(2);
@@ -400,10 +402,7 @@ void HUDManager::renderCalibration() {
 
 void HUDManager::renderHardwareTest() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en hardware test
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_GREEN, TFT_BLACK);
     tft.setTextSize(2);
@@ -545,10 +544,7 @@ void HUDManager::renderHardwareTest() {
 
 void HUDManager::renderWifiConfig() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en wifi config
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
     tft.setTextSize(2);
@@ -566,10 +562,7 @@ void HUDManager::renderWifiConfig() {
 
 void HUDManager::renderINA226Monitor() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en INA226 monitor
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_ORANGE, TFT_BLACK);
     tft.setTextSize(2);
@@ -594,10 +587,7 @@ void HUDManager::renderINA226Monitor() {
 
 void HUDManager::renderStatistics() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en statistics
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setTextSize(2);
@@ -611,10 +601,7 @@ void HUDManager::renderStatistics() {
 
 void HUDManager::renderQuickMenu() {
     // 🔒 v2.11.5: OVERLAP FIX - Limpiar pantalla al entrar en quick menu
-    if (needsRedraw) {
-        tft.fillScreen(TFT_BLACK);
-        needsRedraw = false;
-    }
+    clearScreenIfNeeded();
     
     tft.setTextColor(TFT_CYAN, TFT_BLACK);
     tft.setTextSize(2);

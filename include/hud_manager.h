@@ -113,6 +113,9 @@ private:
     static bool needsRedraw;
     static uint8_t brightness;
     
+    // Helper methods
+    static void clearScreenIfNeeded();
+    
     // Funciones de renderizado
     static void renderDashboard();
     static void renderSettings();

@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "pins.h"
 #include "watchdog.h"
+#include "test_utils.h"
 
 namespace WatchdogTests {
 
@@ -13,10 +14,7 @@ namespace WatchdogTests {
 // Private State
 // ============================================================================
 
-static uint32_t testCount = 0;
-static uint32_t passedCount = 0;
-static uint32_t failedCount = 0;
-static bool initialized = false;
+static TestUtils::TestCounters counters;
 
 // Test parameters
 static const uint32_t MAX_ACCEPTABLE_FEED_INTERVAL_MS =
@@ -25,44 +23,23 @@ static const uint32_t MIN_FEED_INTERVAL_MS =
     50; // Should feed at least every 50ms
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-static void recordTest(const char *name, bool passed) {
-  testCount++;
-  if (passed) {
-    passedCount++;
-    Logger::infof("✅ WATCHDOG TEST PASSED: %s", name);
-  } else {
-    failedCount++;
-    Logger::errorf("❌ WATCHDOG TEST FAILED: %s", name);
-  }
-}
-
-// ============================================================================
 // Public API Implementation
 // ============================================================================
 
 void init() {
-  testCount = 0;
-  passedCount = 0;
-  failedCount = 0;
-  initialized = true;
-
+  counters.initialize();
   Logger::info("WatchdogTests: Initialized");
 }
 
 bool runAllTests() {
-  if (!initialized) { init(); }
+  if (!counters.initialized) { init(); }
 
   Logger::info("\n========================================");
   Logger::info("Starting Watchdog Timer Verification Tests");
   Logger::info("========================================");
 
   // Reset counters
-  testCount = 0;
-  passedCount = 0;
-  failedCount = 0;
+  counters.reset();
 
   bool allPassed = true;
 
@@ -89,7 +66,7 @@ bool testWatchdogConfiguration() {
     Logger::error("Watchdog is NOT enabled - critical safety issue!");
   }
 
-  recordTest("Watchdog Configuration", enabled);
+  recordTest(counters, "Watchdog Configuration", enabled, "WATCHDOG TEST");
 
   return enabled;
 }
@@ -128,7 +105,7 @@ bool testFeedInterval() {
   bool intervalReset = (newInterval < 100);
 
   bool passed = intervalOk && intervalReset;
-  recordTest("Feed Interval", passed);
+  recordTest(counters, "Feed Interval", passed, "WATCHDOG TEST");
 
   return passed;
 }
@@ -152,7 +129,7 @@ bool testFeedCounting() {
   Logger::infof("Feed count increased from %lu to %lu", countBefore,
                 countAfter);
 
-  recordTest("Feed Count Tracking", countIncreased);
+  recordTest(counters, "Feed Count Tracking", countIncreased, "WATCHDOG TEST");
 
   return countIncreased;
 }
@@ -172,7 +149,7 @@ bool testStatusReporting() {
   Logger::infof("  Feed Count: %lu", feedCount);
   Logger::infof("  Last Feed Interval: %lu ms", feedInterval);
 
-  recordTest("Status Reporting", statusValid);
+  recordTest(counters, "Status Reporting", statusValid, "WATCHDOG TEST");
 
   return statusValid;
 }
@@ -203,31 +180,23 @@ bool testEmergencyShutdown() {
       "⚠️  Full test requires watchdog timeout trigger (would reset system)");
 
   // Mark test as passed with caveat
-  recordTest("Emergency Shutdown Mechanism (limited)", true);
+  recordTest(counters, "Emergency Shutdown Mechanism (limited)", true, "WATCHDOG TEST");
 
   return true;
 }
 
 void printSummary() {
-  Logger::info("\n========================================");
-  Logger::info("Watchdog Timer Test Summary");
-  Logger::info("========================================");
-  Logger::infof("Total Tests: %lu", testCount);
-  Logger::infof("Passed: %lu", passedCount);
-  Logger::infof("Failed: %lu", failedCount);
-
-  if (passedCount == testCount && testCount > 0) {
-    Logger::info("✅ ALL WATCHDOG TESTS PASSED");
+  TestUtils::printSummary(counters, "Watchdog Timer Test");
+  if (counters.passedCount == counters.testCount && counters.testCount > 0) {
     Logger::info("Watchdog timer is properly configured and operational");
   } else {
     Logger::error("❌ WATCHDOG TESTS FAILED");
     Logger::error("⚠️  CRITICAL: System may not be safe for deployment!");
   }
-  Logger::info("========================================\n");
 }
 
-uint32_t getPassedCount() { return passedCount; }
+uint32_t getPassedCount() { return counters.passedCount; }
 
-uint32_t getFailedCount() { return failedCount; }
+uint32_t getFailedCount() { return counters.failedCount; }
 
 } // namespace WatchdogTests
