@@ -36,7 +36,7 @@ static constexpr uint16_t BOOT_SCREEN_TEXT_COLOR = TFT_WHITE; // Text during boo
 // Gear index mapping: 0=P (Park), 1=D2 (Drive 2), 2=D1 (Drive 1), 3=N (Neutral), 4=R (Reverse)
 // ============================================================================
 static constexpr const char* GEAR_NAMES[] = {"P", "D2", "D1", "N", "R"};
-static constexpr size_t GEAR_COUNT = sizeof(GEAR_NAMES) / sizeof(GEAR_NAMES[0]);
+static constexpr uint8_t GEAR_COUNT = sizeof(GEAR_NAMES) / sizeof(GEAR_NAMES[0]);
 
 void HUDManager::init() {
     // 🔒 v2.8.1: Hardware reset y backlight ahora se hacen en main.cpp setup()
@@ -409,10 +409,11 @@ uint16_t HUDManager::getShifterColor(const Sensors::InputDeviceStatus& status) {
 
 /**
  * @brief Get gear name from gear index
- * @param gear Gear index (0-4)
- * @return Gear name string (P, D2, D1, N, R)
+ * @param gear Gear index (0 to GEAR_COUNT-1). Values >= GEAR_COUNT default to 0 (Park).
+ * @return Gear name string (P, D2, D1, N, R). Out-of-range values return "P" as safe fallback.
  */
 const char* HUDManager::getGearName(uint8_t gear) {
+    // Default invalid or out-of-range gear indices to 0 ("P") as a safe fallback
     uint8_t gearIdx = gear < GEAR_COUNT ? gear : 0;
     return GEAR_NAMES[gearIdx];
 }
