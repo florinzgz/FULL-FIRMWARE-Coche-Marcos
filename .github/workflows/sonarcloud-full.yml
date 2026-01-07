@@ -1,7 +1,7 @@
 name: SonarCloud Full Audit
 
 on:
-  push:   
+  push:
     branches: [ "main" ]
   schedule:
     - cron: "0 3 * * 0"
@@ -10,13 +10,13 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  security-events:  write
+  security-events: write
 
 jobs:
-  sonarcloud:  
+  sonarcloud:
     runs-on: ubuntu-latest
 
-    steps: 
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -42,7 +42,7 @@ jobs:
       - name: Build firmware and generate compile_commands.json
         run: |
           pio run -e esp32-s3-n32r16v
-          pio run -e esp32-s3-n32r16v -t compiledb --ide clion
+          pio run -e esp32-s3-n32r16v -t compiledb
 
       - name: Debug compile_commands.json location
         run: |
