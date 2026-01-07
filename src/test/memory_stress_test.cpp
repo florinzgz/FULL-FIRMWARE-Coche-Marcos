@@ -262,6 +262,10 @@ uint32_t getFreeHeap() { return ESP.getFreeHeap(); }
 uint32_t getMinFreeHeap() { return minFreeHeap; }
 
 void printMemoryStats() {
+  // Constantes para conversión de bytes
+  constexpr float BYTES_PER_KB = 1024.0f;
+  constexpr float BYTES_PER_MB = 1048576.0f; // 1024 * 1024
+  
   uint32_t freeHeap = ESP.getFreeHeap();
   uint32_t totalHeap = ESP.getHeapSize();
   uint32_t largestBlock = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
@@ -272,6 +276,23 @@ void printMemoryStats() {
                 (freeHeap * 100.0f / totalHeap));
   Logger::infof("Min Free Heap: %lu bytes", minFreeHeap);
   Logger::infof("Largest Free Block: %lu bytes", largestBlock);
+  
+  // PSRAM diagnostics
+  if (psramFound()) {
+    uint32_t psramSize = ESP.getPsramSize();
+    uint32_t freePsram = ESP.getFreePsram();
+    Logger::infof("PSRAM Total: %lu bytes (%.2f MB)", psramSize, psramSize / BYTES_PER_MB);
+    Logger::infof("PSRAM Free: %lu bytes (%.2f MB, %.1f%%)", 
+                  freePsram, freePsram / BYTES_PER_MB, (freePsram * 100.0f) / psramSize);
+    
+    // Obtener mayor bloque disponible en PSRAM
+    uint32_t largestPsramBlock = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+    Logger::infof("Largest PSRAM Block: %lu bytes (%.2f KB)", 
+                  largestPsramBlock, largestPsramBlock / BYTES_PER_KB);
+  } else {
+    Logger::warn("PSRAM: Not available or not enabled");
+  }
+  
   Logger::info("-------------------------\n");
 }
 
