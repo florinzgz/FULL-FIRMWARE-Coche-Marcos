@@ -105,7 +105,7 @@ board_build.partitions = partitions_32mb.csv
 6. **partitions_32mb.csv** (NUEVO)
    - app0: 10MB (OTA partition 0) ✅
    - app1: 10MB (OTA partition 1) ✅
-   - spiffs: 15MB (datos) ✅
+   - spiffs: 12.2MB (datos) ✅
 
 ---
 
@@ -117,17 +117,17 @@ nvs,      data, nvs,     0x9000,  0x5000,      # 20KB
 otadata,  data, ota,     0xe000,  0x2000,      # 8KB
 app0,     app,  ota_0,   0x10000, 0xA00000,    # 10MB
 app1,     app,  ota_1,   ,        0xA00000,    # 10MB
-spiffs,   data, spiffs,  ,        0xF00000,    # 15MB
+spiffs,   data, spiffs,  ,        0xBF0000,    # 12.2MB
 ```
 
-**Total usado:** ~30.5MB de 32MB
-**Reservado:** ~1.5MB para sistema
+**Total usado:** ~31.5MB de 32MB
+**Reservado:** ~0.5MB para sistema
 
 **Ventajas:**
 - ✅ Particiones OTA grandes (10MB cada una)
 - ✅ Suficiente espacio para firmware futuro
-- ✅ 15MB para almacenamiento de datos
-- ✅ Aprovecha completamente la flash de 32MB
+- ✅ 12.2MB para almacenamiento de datos
+- ✅ Aprovecha casi completamente la flash de 32MB
 
 ---
 
@@ -169,7 +169,7 @@ System init: === FIN DIAGNÓSTICO DE MEMORIA ===
 El firmware ahora aprovecha completamente los 32MB de flash:
 - 10MB para app0 (OTA partition 0)
 - 10MB para app1 (OTA partition 1)
-- 15MB para SPIFFS (almacenamiento de datos)
+- 12.2MB para SPIFFS (almacenamiento de datos)
 
 ---
 
@@ -182,7 +182,7 @@ El firmware ahora aprovecha completamente los 32MB de flash:
 | Voltaje PSRAM | 3.3V ❌ | 1.8V (AP_1v8) ✅ |
 | Partición app0 | ~3MB ❌ | 10MB ✅ |
 | Partición app1 | ~3MB ❌ | 10MB ✅ |
-| Almacenamiento | ~5MB ❌ | 15MB ✅ |
+| Almacenamiento | ~5MB ❌ | 12.2MB ✅ |
 | Modelo documentado | N16R8 ❌ | QFN56 rev 0.2 ✅ |
 
 ---
@@ -213,7 +213,7 @@ Tu ESP32-S3 (QFN56) rev 0.2 tiene:
 El proyecto está ahora completamente migrado al hardware REAL con:
 
 ✅ **Configuración óptima** (Octal 80MHz, 1.8V)  
-✅ **Particiones grandes** (10MB por app, 15MB datos)  
+✅ **Particiones grandes** (10MB por app, 12.2MB datos)  
 ✅ **Diagnóstico completo** (verificación en boot)  
 ✅ **Documentación actualizada** (sin referencias antiguas)
 

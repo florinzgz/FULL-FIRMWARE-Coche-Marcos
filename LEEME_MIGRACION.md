@@ -37,7 +37,7 @@ ESP32-S3 (QFN56) rev 0.2
 | **PSRAM Total** | 8MB | 16MB | +100% |
 | **App OTA 0** | ~3MB | 10MB | +233% |
 | **App OTA 1** | ~3MB | 10MB | +233% |
-| **Almacenamiento** | ~5MB | 15MB | +200% |
+| **Almacenamiento** | ~5MB | 12.2MB | +144% |
 
 ### Archivos Modificados
 
@@ -146,7 +146,7 @@ Cuando ejecutes el firmware, verifica:
 ✅ **+8MB PSRAM** para buffers y datos  
 ✅ **+16MB Flash** para código y almacenamiento  
 ✅ **Particiones OTA grandes** (10MB cada una)  
-✅ **15MB de datos** para audio, logs, configs  
+✅ **12.2MB de datos** para audio, logs, configs  
 
 ### Mejor Rendimiento
 

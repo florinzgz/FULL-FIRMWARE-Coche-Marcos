@@ -84,13 +84,13 @@ nvs,      data, nvs,     0x9000,  0x5000,      # 20KB
 otadata,  data, ota,     0xe000,  0x2000,      # 8KB  
 app0,     app,  ota_0,   0x10000, 0xA00000,    # 10MB
 app1,     app,  ota_1,   ,        0xA00000,    # 10MB
-spiffs,   data, spiffs,  ,        0xF00000,    # 15MB
+spiffs,   data, spiffs,  ,        0xBF0000,    # 12.2MB
 ```
 
 **Ventajas:**
 - ✅ Particiones OTA grandes (10MB cada una) para firmware futuro
-- ✅ 15MB para almacenamiento de datos (audio, logs, etc.)
-- ✅ Aprovecha completamente la flash de 32MB
+- ✅ 12.2MB para almacenamiento de datos (audio, logs, etc.)
+- ✅ Aprovecha casi completamente la flash de 32MB (~31.5MB usados)
 
 **Antes:** huge_app.csv solo aprovechaba ~16MB
 
@@ -166,7 +166,7 @@ psram_type = Embedded AP_1v8 (1.8V)
 | **Voltaje PSRAM** | 3.3V (asumido) | 1.8V (AP_1v8) | Correcto |
 | **App OTA 0** | ~3MB | 10MB | +7MB (233%) |
 | **App OTA 1** | ~3MB | 10MB | +7MB (233%) |
-| **Almacenamiento** | ~5MB | 15MB | +10MB (200%) |
+| **Almacenamiento** | ~5MB | 12.2MB | +7.2MB (144%) |
 | **Modelo Documentado** | N16R8 | QFN56 rev 0.2 | Correcto |
 | **Manufacturer Flash** | Desconocido | Macronix 0xC2/0x8039 | Documentado |
 
@@ -191,7 +191,7 @@ psram_type = Embedded AP_1v8 (1.8V)
 
 ### 4. Particiones Optimizadas
 **Problema:** huge_app.csv no aprovechaba los 32MB disponibles.  
-**Solución:** partitions_32mb.csv con 10MB por app y 15MB de datos.  
+**Solución:** partitions_32mb.csv con 10MB por app y 12.2MB de datos.  
 **Beneficio:** Apps más grandes y más almacenamiento para datos.
 
 ---
@@ -278,7 +278,7 @@ Se han eliminado todas las referencias a:
 
 ### Desarrollo
 - ✅ Particiones OTA grandes (10MB) para firmware complejo
-- ✅ 15MB de almacenamiento para datos
+- ✅ 12.2MB de almacenamiento para datos
 - ✅ Espacio para features futuras
 
 ### Estabilidad

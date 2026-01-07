@@ -91,7 +91,7 @@ nvs,      data, nvs,     0x9000,  0x5000,
 otadata,  data, ota,     0xe000,  0x2000,
 app0,     app,  ota_0,   0x10000, 0xA00000,    # 10MB por app
 app1,     app,  ota_1,   ,        0xA00000,    # 10MB por app
-spiffs,   data, spiffs,  ,        0xF00000,    # 15MB para datos
+spiffs,   data, spiffs,  ,        0xBF0000,    # 12.2MB para datos
 ```
 
 ---
@@ -332,7 +332,7 @@ System init: ❌ PSRAM NO DETECTADA
 ```
 
 **Soluciones:**
-1. Verificar hardware tiene PSRAM (debe ser N16R8 o N32R8)
+1. Verificar hardware tiene PSRAM (debe ser QFN56 rev 0.2 con 16MB PSRAM embebida)
 2. Limpiar build: `pio run -t clean`
 3. Verificar `platformio.ini`:
    ```ini

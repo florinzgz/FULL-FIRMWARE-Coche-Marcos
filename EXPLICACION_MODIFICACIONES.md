@@ -101,7 +101,7 @@ board_build.partitions = partitions_32mb.csv
 - No aprovecha los 32MB disponibles
 - El nuevo archivo tiene particiones optimizadas:
   - 10MB por app OTA (antes ~3MB)
-  - 15MB para datos (antes ~5MB)
+  - 12.2MB para datos (antes ~5MB)
 
 ---
 
@@ -177,7 +177,7 @@ nvs,      data, nvs,     0x9000,  0x5000,      # 20KB
 otadata,  data, ota,     0xe000,  0x2000,      # 8KB
 app0,     app,  ota_0,   0x10000, 0xA00000,    # 10MB
 app1,     app,  ota_1,   ,        0xA00000,    # 10MB
-spiffs,   data, spiffs,  ,        0xF00000,    # 15MB
+spiffs,   data, spiffs,  ,        0xBF0000,    # 12.2MB
 ```
 
 **Por qué se creó:**
@@ -188,13 +188,13 @@ spiffs,   data, spiffs,  ,        0xF00000,    # 15MB
   - **otadata (8KB):** Información de OTA
   - **app0 (10MB):** Primera partición de app
   - **app1 (10MB):** Segunda partición de app (para OTA)
-  - **spiffs (15MB):** Almacenamiento de archivos
+  - **spiffs (12.2MB):** Almacenamiento de archivos
 
 **Beneficios:**
 - ✅ Apps de hasta 10MB (antes ~3MB)
-- ✅ 15MB para audio, logs, configs
+- ✅ 12.2MB para audio, logs, configs
 - ✅ OTA robusto con 2 particiones completas
-- ✅ Utiliza ~30.5MB de los 32MB disponibles
+- ✅ Utiliza ~31.5MB de los 32MB disponibles
 
 ---
 
@@ -344,7 +344,7 @@ psram_type = Embedded AP_1v8 (1.8V)
 - Flash: 32MB configurada (100% utilizada)
 - PSRAM: 16MB configurada (100% utilizada)
 - App OTA: 10MB cada una (+233%)
-- Datos: 15MB (+200%)
+- Datos: 12.2MB (+144%)
 
 ### Capacidades Nuevas
 
