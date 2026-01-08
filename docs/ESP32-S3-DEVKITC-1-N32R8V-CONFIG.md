@@ -77,7 +77,7 @@ This configuration tells the ESP-IDF SDK to use:
 ## Differences from N32R16V Configuration
 
 The existing `esp32-s3-n32r16v` configuration targets:
-- **Flash:** 32MB OPI
+- **Flash:** 32MB QIO
 - **PSRAM:** 16MB OPI
 
 The new `esp32-s3-devkitc-1` configuration targets:
