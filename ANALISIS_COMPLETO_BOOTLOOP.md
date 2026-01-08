@@ -2,13 +2,13 @@
 
 ## Resumen Ejecutivo
 
-Se han identificado y corregido **7 constructores globales críticos** que causaban bootloop en ESP32-S3 N32R16V (OPI Flash 32MB, OPI PSRAM 16MB) en modo STANDALONE_DISPLAY.
+Se han identificado y corregido **5 constructores globales críticos** que causaban bootloop en ESP32-S3 N32R16V (OPI Flash 32MB, OPI PSRAM 16MB) en modo STANDALONE_DISPLAY.
 
 ---
 
 ## 🚨 PROBLEMAS CRÍTICOS ENCONTRADOS Y CORREGIDOS
 
-### Categoría 1: Objetos TFT_eSPI (4 instancias)
+### Categoría 1: Objetos TFT_eSPI (2 instancias)
 
 | # | Archivo | Línea | Estado | Commit |
 |---|---------|-------|--------|--------|
@@ -323,7 +323,7 @@ board_build.partitions = partitions_32mb.csv  ✅
 
 ## 📊 ESTADÍSTICAS FINALES
 
-### Constructores Globales Corregidos: 7
+### Constructores Globales Corregidos: 5
 
 | Tipo | Cantidad | Archivos |
 |------|----------|----------|

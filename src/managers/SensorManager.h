@@ -12,11 +12,20 @@
 #include "../../include/buttons.h"
 
 namespace SensorManager {
+    // Check if sensors are disabled at compile time
+    inline bool sensorsDisabled() {
+#ifdef DISABLE_SENSORS
+        return true;
+#else
+        return false;
+#endif
+    }
+    
     inline bool init() {
 #ifdef DISABLE_SENSORS
         // 🔒 v2.11.6: BOOTLOOP FIX - Skip sensor initialization in DISABLE_SENSORS mode
-        Serial.println("[SensorManager] DISABLE_SENSORS mode - skipping all sensor init");
-        return true;  // Report success to allow boot to continue
+        Serial.println("[SensorManager] DISABLE_SENSORS mode - sensors disabled");
+        return true;  // Return success to allow boot to continue (sensors are intentionally disabled)
 #else
         // Initialize input devices (always needed for vehicle operation)
         Pedal::init();

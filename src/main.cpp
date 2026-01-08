@@ -31,18 +31,15 @@ void handleCriticalError(const char* errorMsg);
 
 void setup() {
     // 🔒 v2.11.6: BOOTLOOP FIX - Early UART diagnostic output
-    // Use hardware UART0 directly before Serial.begin() for early boot diagnostics
-    // This helps identify crashes that happen before Serial is initialized
-    #ifdef STANDALONE_DISPLAY
-    // Send raw bytes to UART0 for early boot confirmation
-    // These will appear as garbage if UART isn't configured, but prove code execution
+    // Initialize Serial first for all modes
     Serial.begin(115200);
+    
+    #ifdef STANDALONE_DISPLAY
+    // Early diagnostic output for standalone mode
     delay(100);  // Give UART time to stabilize
     Serial.println("\n\n=== ESP32-S3 EARLY BOOT ===");
     Serial.println("[STANDALONE] Mode active");
     Serial.flush();
-    #else
-    Serial.begin(115200);
     #endif
     
     while (!Serial && millis() < 2000) { ; }
