@@ -30,7 +30,18 @@ void initializeSystem();
 void handleCriticalError(const char* errorMsg);
 
 void setup() {
+    // 🔒 v2.11.6: BOOTLOOP FIX - Early UART diagnostic output
+    // Initialize Serial first for all modes
     Serial.begin(115200);
+    
+    #ifdef STANDALONE_DISPLAY
+    // Early diagnostic output for standalone mode
+    delay(100);  // Give UART time to stabilize
+    Serial.println("\n\n=== ESP32-S3 EARLY BOOT ===");
+    Serial.println("[STANDALONE] Mode active");
+    Serial.flush();
+    #endif
+    
     while (!Serial && millis() < 2000) { ; }
 
     Serial.println("[BOOT] Starting vehicle firmware...");
@@ -91,9 +102,15 @@ void initializeSystem() {
     // STANDALONE DISPLAY INIT
     // ===========================
     Serial.println("🧪 STANDALONE DISPLAY MODE");
+    Serial.flush();
+    delay(100);  // Ensure UART message is sent
+    
     Serial.println("[INIT] HUD Manager initialization...");
+    Serial.flush();
 
     if (!HUDManager::init()) {
+        Serial.println("[ERROR] HUD Manager initialization failed");
+        Serial.flush();
         handleCriticalError("HUD Manager initialization failed");
     }
 
@@ -101,6 +118,7 @@ void initializeSystem() {
     Watchdog::feed();
 
     Serial.println("🧪 STANDALONE: Skipping other managers");
+    Serial.flush();
     return;   // ¡MUY IMPORTANTE!
 
 #else

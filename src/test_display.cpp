@@ -21,7 +21,10 @@
 #include "pins.h"
 
 // Create a local TFT instance for standalone testing
-static TFT_eSPI testTft = TFT_eSPI();
+// 🔒 v2.11.6: BOOTLOOP FIX - Use default constructor only
+// Explicit TFT_eSPI() call runs complex init in global constructor (before main)
+// which can crash on ESP32-S3 with OPI PSRAM
+static TFT_eSPI testTft;
 
 // Test configuration
 static constexpr uint32_t TEST_COLOR_DELAY_MS = 500;     // Delay between color screens

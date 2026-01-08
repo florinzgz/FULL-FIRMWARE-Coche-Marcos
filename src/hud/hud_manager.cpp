@@ -23,7 +23,10 @@ uint8_t HUDManager::longPressButtonId = 0;
 static bool initialized = false;
 
 // ✅ ÚNICA instancia global de TFT_eSPI - compartida con HUD y otros módulos
-TFT_eSPI tft = TFT_eSPI();
+// 🔒 v2.11.6: BOOTLOOP FIX - Removed () to use default constructor
+// Explicit constructor call TFT_eSPI() was running complex initialization
+// in global constructor (before main) which could crash on ESP32-S3 OPI mode
+TFT_eSPI tft;
 
 // ============================================================================
 // Boot Screen Configuration
@@ -44,12 +47,16 @@ void HUDManager::init() {
     // Aquí solo verificamos que ya están configurados y procedemos con TFT init.
     
     Serial.println("[HUD] Starting HUDManager initialization...");
+    Serial.flush();
+    delay(50);  // 🔒 v2.11.6: Ensure UART output is sent before potential crash
     
     // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en main.cpp)
     // La configuración de OUTPUT/HIGH se realiza únicamente en main.cpp.
     
     // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT con protección ante fallos
     Serial.println("[HUD] Initializing TFT_eSPI...");
+    Serial.flush();
+    delay(50);  // 🔒 v2.11.6: Critical delay to ensure message is visible before crash
     
     // 🔒 v2.11.5: FAULT TOLERANCE - Proteger inicialización del display
     // Si el display falla, el coche debe poder seguir funcionando
@@ -60,17 +67,21 @@ void HUDManager::init() {
         // Set initialized flag immediately after successful tft.init()
         // This ensures the flag reflects TFT initialization state accurately
         initialized = true;
+        Serial.println("[HUD] TFT_eSPI init SUCCESS");
+        Serial.flush();
     } catch (const std::exception& e) {
         Logger::errorf("HUD: TFT init exception: %s - continuing in degraded mode", e.what());
         System::logError(602);
         initialized = false;
         Serial.printf("[HUD] CRITICAL: Display init failed: %s, vehicle will operate without UI\n", e.what());
+        Serial.flush();
         return;  // Salir sin bloquear el sistema
     } catch (...) {
         Logger::error("HUD: TFT init unknown exception - continuing in degraded mode");
         System::logError(602);
         initialized = false;
         Serial.println("[HUD] CRITICAL: Display init failed, vehicle will operate without UI");
+        Serial.flush();
         return;  // Salir sin bloquear el sistema
     }
     

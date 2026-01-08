@@ -24,8 +24,12 @@
 extern Storage::Config cfg;
 
 // PCA9685 objects for traction motor control
-static Adafruit_PWMServoDriver pcaFront = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_FRONT);
-static Adafruit_PWMServoDriver pcaRear = Adafruit_PWMServoDriver(I2C_ADDR_PCA9685_REAR);
+// 🔒 v2.11.6: BOOTLOOP FIX - Use default constructor only
+// Explicit constructor call Adafruit_PWMServoDriver(addr) runs I2C init
+// in global constructor (before main) which can crash on ESP32-S3 OPI
+// The address will be set during begin() call in init()
+static Adafruit_PWMServoDriver pcaFront;
+static Adafruit_PWMServoDriver pcaRear;
 static bool pcaFrontOK = false;
 static bool pcaRearOK = false;
 
@@ -213,7 +217,7 @@ void Traction::init() {
 
   // Initialize PCA9685 front axle (0x40) with non-blocking retry
   if (!pcaFrontOK && !pcaFrontRetrying) {
-    pcaFront.begin();
+    pcaFront.begin(I2C_ADDR_PCA9685_FRONT);  // 🔒 v2.11.6: Explicit address since no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_FRONT);
     pcaFrontOK = (Wire.endTransmission() == 0);
     if (!pcaFrontOK) {
@@ -224,7 +228,7 @@ void Traction::init() {
   }
 
   if (pcaFrontRetrying && (millis() - pcaFrontRetryTime >= I2C_RETRY_INTERVAL_MS)) {
-    pcaFront.begin();
+    pcaFront.begin(I2C_ADDR_PCA9685_FRONT);  // 🔒 v2.11.6: Explicit address since no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_FRONT);
     pcaFrontOK = (Wire.endTransmission() == 0);
     pcaFrontRetrying = false;
@@ -247,7 +251,7 @@ void Traction::init() {
 
   // Initialize PCA9685 rear axle (0x41) with non-blocking retry
   if (!pcaRearOK && !pcaRearRetrying) {
-    pcaRear.begin();
+    pcaRear.begin(I2C_ADDR_PCA9685_REAR);  // 🔒 v2.11.6: Explicit address since no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_REAR);
     pcaRearOK = (Wire.endTransmission() == 0);
     if (!pcaRearOK) {
@@ -257,7 +261,7 @@ void Traction::init() {
     }
   }
   if (pcaRearRetrying && (millis() - pcaRearRetryTime >= I2C_RETRY_INTERVAL_MS)) {
-    pcaRear.begin();
+    pcaRear.begin(I2C_ADDR_PCA9685_REAR);  // 🔒 v2.11.6: Explicit address since no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_REAR);
     pcaRearOK = (Wire.endTransmission() == 0);
     pcaRearRetrying = false;
