@@ -2,7 +2,7 @@
   "build": {
     "arduino": {
       "partitions": "partitions_32mb.csv",
-      "memory_type": "opi_opi"
+      "memory_type": "qio_opi"
     },
     "core": "esp32",
     "extra_flags": [
@@ -40,7 +40,7 @@
     "arduino",
     "espidf"
   ],
-  "name": "ESP32-S3-WROOM-2 N32R16V (32MB OPI Flash, 16MB OPI PSRAM)",
+  "name": "ESP32-S3-WROOM-2 N32R16V (32MB QIO Flash, 16MB OPI PSRAM)",
   "upload": {
     "flash_size": "32MB",
     "maximum_ram_size": 327680,
