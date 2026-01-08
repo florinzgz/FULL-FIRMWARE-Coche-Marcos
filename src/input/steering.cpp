@@ -13,6 +13,11 @@ static long zeroOffset = 0;
 static long ticksPerTurn = 1024;  // ajustar a tu encoder
 static volatile bool zSeen = false;
 
+// 🔒 v2.16.0: OVERFLOW PROTECTION - Encoder safety limits
+// E6B2-CWZ6C 1200 PPR encoder can overflow int32 after ~1.79 million rotations
+// Limit to ±100,000 ticks (~83 full rotations) to prevent overflow and erroneous steering commands
+static const int32_t TICKS_MAX_ABS = 100000;  // Safety limit: prevents overflow
+
 // Flag de inicialización
 static bool initialized = false;
 
@@ -33,10 +38,29 @@ static long getTicksSafe() {
 void IRAM_ATTR isrEncA() {
     int a = digitalRead(PIN_ENCODER_A);
     int b = digitalRead(PIN_ENCODER_B);
+    
+    // 🔒 v2.16.0: OVERFLOW PROTECTION - Saturate ticks at safety limits
+    // Prevents integer overflow that could cause sudden steering angle jumps
+    // If encoder accumulated ±100,000 ticks without centering, saturate at limit
+    // This prevents overflow from +2^31 to -2^31 which would cause dangerous steering command
+    int32_t delta;
     if(a == HIGH) {
-        ticks += (b == HIGH) ? +1 : -1;
+        delta = (b == HIGH) ? +1 : -1;
     } else {
-        ticks += (b == HIGH) ? -1 : +1;
+        delta = (b == HIGH) ? -1 : +1;
+    }
+    
+    int32_t newTicks = ticks + delta;
+    
+    // Saturate at limits instead of overflowing
+    if (newTicks > TICKS_MAX_ABS) {
+        ticks = TICKS_MAX_ABS;
+        // Note: Cannot call Logger from ISR, will be detected in update() loop
+    } else if (newTicks < -TICKS_MAX_ABS) {
+        ticks = -TICKS_MAX_ABS;
+        // Note: Cannot call Logger from ISR, will be detected in update() loop
+    } else {
+        ticks = newTicks;
     }
 }
 
@@ -105,6 +129,21 @@ void Steering::update() {
     // 🔒 CORRECCIÓN 1.1: Lectura atómica de ticks
     long t = getTicksSafe();
     s.ticks = t;
+    
+    // 🔒 v2.16.0: OVERFLOW DETECTION - Warn if encoder reached safety limits
+    // This indicates encoder has not been centered for very long time (~83 full rotations)
+    // Suggests Z signal not working or very unusual steering behavior
+    if (t >= TICKS_MAX_ABS || t <= -TICKS_MAX_ABS) {
+        static uint32_t lastOverflowWarning = 0;
+        uint32_t now = millis();
+        // Throttle warning to once every 10 seconds
+        if (now - lastOverflowWarning > 10000) {
+            Logger::warnf("Steering: encoder at safety limit %ld ticks - check Z signal", t);
+            System::logError(214);  // código: encoder overflow protection activated
+            lastOverflowWarning = now;
+        }
+    }
+    
     s.angleDeg = ticksToDegrees(t);
 
     // Clamp de ángulo global

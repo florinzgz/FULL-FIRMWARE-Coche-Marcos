@@ -1141,6 +1141,23 @@ void HUD::update() {
         int x = (int)touchX;
         int y = (int)touchY;
         
+        // 🔒 v2.16.0: SECURITY FIX - Bounds checking to prevent framebuffer overflow
+        // Malformed touch coordinates (bad calibration or hardware glitch) could cause:
+        // - Buffer overflow in TFT_eSPI internal framebuffer
+        // - Memory corruption if coordinates exceed display dimensions
+        // - Crash from out-of-bounds array access
+        if (x < 0 || x >= 480 || y < 0 || y >= 320) {
+            static uint32_t lastBoundsWarning = 0;
+            uint32_t now = millis();
+            // Throttle warning to once per second to avoid serial spam
+            if (now - lastBoundsWarning > 1000) {
+                Logger::warnf("Touch: coordinates out of bounds (%d, %d) - IGNORED", x, y);
+                lastBoundsWarning = now;
+            }
+            // Do NOT process this touch event - skip to next iteration
+            continue;
+        }
+        
         // Touch coordinates are now correct after X-axis inversion fix
         // Visual debug indicators removed per user request
         // Touch logging remains for diagnostics

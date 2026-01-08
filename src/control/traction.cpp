@@ -171,6 +171,7 @@ constexpr float PWM_MIN = 0.0f;
 constexpr float TEMP_MIN_VALID = -40.0f;
 constexpr float TEMP_MAX_VALID = 150.0f;
 constexpr float TEMP_CRITICAL = 120.0f;
+constexpr float TEMP_EMERGENCY_SHUTDOWN = 130.0f;  // 🔒 v2.16.0: Emergency motor shutdown threshold
 constexpr float CURRENT_MAX_REASONABLE = 200.0f;
 constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;
 
@@ -435,8 +436,23 @@ void Traction::update() {
           System::logError(820 + i);  // códigos 820-823 para motores FL-RR
           Logger::warnf("Axis rotation: invalid temp wheel %d: %.1f°C", i, tempC);
           tempC = 0.0f;
-        } else if (tempC > TEMP_CRITICAL) {
-          Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i, tempC);
+        } else {
+          // 🔒 v2.16.0: EMERGENCY SHUTDOWN at critical temperature
+          // Prevents motor damage and fire risk
+          if (tempC > TEMP_EMERGENCY_SHUTDOWN) {
+            Logger::errorf("EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, tempC);
+            System::logError(825 + i);  // códigos 825-828 para emergency shutdown
+            
+            // Detener motor inmediatamente con hardware cutoff
+            s.w[i].demandPct = 0.0f;
+            s.w[i].outPWM = 0.0f;
+            applyHardwareControl(i, 0, false);
+            
+            // Mark motor as failed to prevent restart in this update cycle
+            tempC = TEMP_EMERGENCY_SHUTDOWN;  // Keep emergency state
+          } else if (tempC > TEMP_CRITICAL) {
+            Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i, tempC);
+          }
         }
         s.w[i].tempC = tempC;
       }
@@ -594,8 +610,20 @@ void Traction::update() {
                       i, t, TEMP_MIN_VALID, TEMP_MAX_VALID);
         t = 0.0f;
       } else {
-        // Advertir si temperatura es crítica
-        if (t > TEMP_CRITICAL) {
+        // 🔒 v2.16.0: EMERGENCY SHUTDOWN at critical temperature
+        // Prevents motor damage and fire risk
+        if (t > TEMP_EMERGENCY_SHUTDOWN) {
+          Logger::errorf("EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, t);
+          System::logError(825 + i);  // Códigos 825-828 para emergency shutdown
+          
+          // Detener motor inmediatamente con hardware cutoff
+          s.w[i].demandPct = 0.0f;
+          s.w[i].outPWM = 0.0f;
+          applyHardwareControl(i, 0, false);
+          
+          // Mark motor as failed to prevent restart in this update cycle
+          t = TEMP_EMERGENCY_SHUTDOWN;  // Keep emergency state
+        } else if (t > TEMP_CRITICAL) {
           Logger::warnf("Traction: temperatura crítica rueda %d: %.1f°C (>%.0f°C)", 
                        i, t, TEMP_CRITICAL);
         }
