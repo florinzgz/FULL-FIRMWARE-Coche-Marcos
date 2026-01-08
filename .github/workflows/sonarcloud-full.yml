@@ -58,14 +58,16 @@ jobs:
           pio run -e esp32-s3-n32r16v --target compiledb -v
 
       # ------------------------------------------------------------
-      # 3️⃣ Inspect .pio directory (DEBUG)
+      # 3️⃣ Inspect directories (DEBUG)
       # ------------------------------------------------------------
-      - name: Inspect .pio directory
+      - name: Inspect project root and .pio
         run: |
           set -euxo pipefail
-          echo "===== TREE .pio ====="
+          echo "===== ROOT DIR ====="
+          ls -la
+          echo "===== .pio DIR ====="
           find .pio -maxdepth 3 -type f
-          echo "===== END TREE ====="
+          echo "===== END ====="
 
       # ------------------------------------------------------------
       # 4️⃣ HARD CHECK (CORRECT PATH)
@@ -73,11 +75,11 @@ jobs:
       - name: Verify compile_commands.json
         run: |
           set -euxo pipefail
-          if [ ! -f .pio/compile_commands.json ]; then
-            echo "❌ compile_commands.json NOT FOUND in .pio/"
+          if [ ! -f compile_commands.json ]; then
+            echo "❌ compile_commands.json NOT FOUND in project root"
             exit 1
           fi
-          echo "✅ compile_commands.json FOUND at .pio/compile_commands.json"
+          echo "✅ compile_commands.json FOUND at project root"
 
       # ------------------------------------------------------------
       # 5️⃣ SonarCloud Scan
