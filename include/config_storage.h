@@ -42,6 +42,15 @@ namespace ConfigStorage {
         char bt_mac_address[18];    // MAC address of paired controller (XX:XX:XX:XX:XX:XX)
         bool bt_auto_reconnect;     // Auto-reconnect on power up
         
+        // 🔒 v2.13.1: Obstacle detection configuration
+        // Note: Single front sensor (TOFSense-M S). Structure supports future expansion to multiple sensors.
+        uint16_t obstacle_critical_distance;  // Critical distance threshold (mm)
+        uint16_t obstacle_warning_distance;   // Warning distance threshold (mm)
+        uint16_t obstacle_caution_distance;   // Caution distance threshold (mm)
+        bool obstacle_sensor_enabled;         // Front sensor enabled (index 0)
+        bool obstacle_audio_alerts;           // Audio alerts enabled
+        bool obstacle_visual_alerts;          // Visual alerts enabled
+        
         // Checksum for validation
         uint32_t checksum;
     };
@@ -74,6 +83,13 @@ namespace ConfigStorage {
         
         "0",  // bt_mac_address (empty until paired)
         true,   // bt_auto_reconnect
+        
+        200,   // obstacle_critical_distance (default from ObstacleConfig)
+        500,   // obstacle_warning_distance
+        1000,  // obstacle_caution_distance
+        true,  // obstacle_sensor_enabled
+        true,  // obstacle_audio_alerts
+        true,  // obstacle_visual_alerts
         
         0       // checksum
     };

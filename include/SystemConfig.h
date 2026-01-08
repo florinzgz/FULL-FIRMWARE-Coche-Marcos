@@ -4,9 +4,11 @@
 #include "version.h"  // For FIRMWARE_VERSION
 #include "pins.h"     // For PIN_TFT_RST
 
-// Watchdog timeout configuration (reserved for future use)
-// Note: Current implementation uses fixed 30-second hardware timeout internally
-#define WATCHDOG_TIMEOUT_MS 5000
+// Watchdog timeout configuration
+// Note: Watchdog implementation in watchdog.cpp uses 30-second hardware timeout
+// This constant is reserved for future configurable timeout feature
+// DO NOT USE - refer to watchdog.cpp for actual timeout value
+// #define WATCHDOG_TIMEOUT_MS 5000  // DEPRECATED - see watchdog.cpp
 
 // Logging level configuration (reserved for future use)
 // 0=DEBUG, 1=INFO, 2=WARNING, 3=ERROR
