@@ -15,17 +15,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ------------------------------------------------------------
+      # Checkout
+      # ------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
+      # ------------------------------------------------------------
+      # System dependencies
+      # ------------------------------------------------------------
       - name: Install system dependencies
         run: |
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip
 
+      # ------------------------------------------------------------
+      # PlatformIO
+      # ------------------------------------------------------------
       - name: Install PlatformIO
         run: |
           set -euxo pipefail
@@ -49,26 +58,26 @@ jobs:
           pio run -e esp32-s3-n32r16v --target compiledb -v
 
       # ------------------------------------------------------------
-      # 3️⃣ Inspect build directory (ALWAYS PRINT)
+      # 3️⃣ Inspect .pio directory (DEBUG)
       # ------------------------------------------------------------
-      - name: Inspect .pio build directory
+      - name: Inspect .pio directory
         run: |
           set -euxo pipefail
-          echo "===== TREE .pio/build ====="
-          find .pio/build -maxdepth 4 -type f
+          echo "===== TREE .pio ====="
+          find .pio -maxdepth 3 -type f
           echo "===== END TREE ====="
 
       # ------------------------------------------------------------
-      # 4️⃣ HARD CHECK (with context)
+      # 4️⃣ HARD CHECK (CORRECT PATH)
       # ------------------------------------------------------------
       - name: Verify compile_commands.json
         run: |
           set -euxo pipefail
-          if [ ! -f .pio/build/esp32-s3-n32r16v/compile_commands.json ]; then
-            echo "❌ compile_commands.json NOT FOUND"
+          if [ ! -f .pio/compile_commands.json ]; then
+            echo "❌ compile_commands.json NOT FOUND in .pio/"
             exit 1
           fi
-          echo "✅ compile_commands.json FOUND"
+          echo "✅ compile_commands.json FOUND at .pio/compile_commands.json"
 
       # ------------------------------------------------------------
       # 5️⃣ SonarCloud Scan
