@@ -30,20 +30,42 @@ jobs:
             .pio
           key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip
 
       - name: Install PlatformIO
         run: |
-          pip install platformio
+          pip install -U platformio
+          pio --version
 
-      # 👇 IMPORTANTE: genera el compile_commands.json
-      - name: Build firmware + compile database
+      # ------------------------------------------------------------
+      # 1️⃣ Build firmware (must succeed)
+      # ------------------------------------------------------------
+      - name: Build firmware
         run: |
-          pio run --target compiledb -e esp32-s3-n32r16v
+          pio run -e esp32-s3-n32r16v
 
+      # ------------------------------------------------------------
+      # 2️⃣ Generate compile_commands.json (C/C++ analysis)
+      # ------------------------------------------------------------
+      - name: Generate compile_commands.json
+        run: |
+          pio run -e esp32-s3-n32r16v --target compiledb
+
+      # ------------------------------------------------------------
+      # 3️⃣ Verify compile_commands.json exists (HARD FAIL if missing)
+      # ------------------------------------------------------------
+      - name: Verify compile_commands.json
+        run: |
+          echo "Checking compile_commands.json..."
+          ls -l .pio/build/esp32-s3-n32r16v/
+          test -f .pio/build/esp32-s3-n32r16v/compile_commands.json
+
+      # ------------------------------------------------------------
+      # 4️⃣ SonarCloud Scan
+      # ------------------------------------------------------------
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
