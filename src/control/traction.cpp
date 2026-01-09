@@ -501,6 +501,14 @@ void Traction::update() {
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
     float x = angleNormalized;
     float x_pow_1_2 = static_cast<float>(std::pow(x, 1.2f));  // x^1.2 exacto
+    
+    // 🔒 SECURITY FIX: Validate pow() result before using
+    if (!std::isfinite(x_pow_1_2)) {
+      Logger::errorf("Traction: pow() returned invalid value for angle %.1f", angle);
+      System::logError(804);  // código: cálculo Ackermann inválido
+      x_pow_1_2 = 0.0f;
+    }
+    
     float scale = 1.0f - x_pow_1_2 * 0.3f;
     scale = clampf(scale, 0.70f, 1.0f);  // Mínimo 70% en curvas máximas
 
@@ -564,6 +572,14 @@ void Traction::update() {
   }
 
   // Aplicar reparto por rueda con factores combinados
+  // 🔒 SECURITY FIX: Validate combined factor before applying to prevent extreme scenarios
+  if (!std::isfinite(combinedFactor) || combinedFactor < 0.0f) {
+    Logger::errorf("Traction: invalid combined factor %.3f, using 0", combinedFactor);
+    System::logError(803);  // código: factor de reducción inválido
+    combinedFactor = 0.0f;
+  }
+  combinedFactor = clampf(combinedFactor, 0.0f, 1.0f);  // Ensure 0-100% range
+  
   s.w[FL].demandPct = clampf(front * factorFL * combinedFactor, 0.0f, 100.0f);
   s.w[FR].demandPct = clampf(front * factorFR * combinedFactor, 0.0f, 100.0f);
   s.w[RL].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
