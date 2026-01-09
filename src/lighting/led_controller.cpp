@@ -1,6 +1,7 @@
 #include "led_controller.h"
 #include "logger.h"
 #include "pins.h"
+#include "watchdog.h"  // 🔒 v2.17.1: Watchdog protection for FastLED
 #include <Arduino.h>
 
 namespace LEDController {
@@ -338,12 +339,16 @@ void init() {
     // 🔒 Test de comunicación básico con hardware
     fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Blue);
     fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Blue);
+    
+    // 🔒 v2.17.1: Feed watchdog before FastLED.show() (can take >10ms with interrupts disabled)
+    Watchdog::feed();
     FastLED.show();
     delay(100);
     
     // Apagar LEDs después del test
     fill_solid(frontLeds, LED_FRONT_COUNT, CRGB::Black);
     fill_solid(rearLeds, LED_REAR_COUNT, CRGB::Black);
+    Watchdog::feed();
     FastLED.show();
     
     lastUpdateMs = millis();
@@ -403,6 +408,10 @@ void update() {
                     emergencyFlashStartTime = 0; // reset timeout
                 }
             }
+            
+            // 🔒 v2.17.1: Feed watchdog before FastLED.show()
+            // FastLED.show() disables interrupts and can take >10ms with 44 LEDs
+            Watchdog::feed();
             FastLED.show();
         }
         return; // Skip normal update during emergency flash
@@ -424,6 +433,12 @@ void update() {
         updateFrontLEDs();
         updateRearCenter();
         updateTurnSignals();
+        
+        // 🔒 v2.17.1: Feed watchdog before FastLED.show()
+        // FastLED.show() disables interrupts globally and can take >10ms
+        // With 44 LEDs total (28 front + 16 rear) at 800kHz, transmission takes ~4.4ms
+        // Plus RMT setup overhead, this can exceed 10ms and risk watchdog timeout
+        Watchdog::feed();
         
         // Show LEDs
         FastLED.show();
