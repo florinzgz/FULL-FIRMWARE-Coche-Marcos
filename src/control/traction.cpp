@@ -171,6 +171,7 @@ constexpr float PWM_MIN = 0.0f;
 constexpr float TEMP_MIN_VALID = -40.0f;
 constexpr float TEMP_MAX_VALID = 150.0f;
 constexpr float TEMP_CRITICAL = 120.0f;
+constexpr float TEMP_EMERGENCY_SHUTDOWN = 130.0f;  // 🔒 v2.16.0: Emergency motor shutdown threshold
 constexpr float CURRENT_MAX_REASONABLE = 200.0f;
 constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;
 
@@ -435,8 +436,23 @@ void Traction::update() {
           System::logError(820 + i);  // códigos 820-823 para motores FL-RR
           Logger::warnf("Axis rotation: invalid temp wheel %d: %.1f°C", i, tempC);
           tempC = 0.0f;
-        } else if (tempC > TEMP_CRITICAL) {
-          Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i, tempC);
+        } else {
+          // 🔒 v2.16.0: EMERGENCY SHUTDOWN at critical temperature
+          // Prevents motor damage and fire risk
+          if (tempC > TEMP_EMERGENCY_SHUTDOWN) {
+            Logger::errorf("EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, tempC);
+            System::logError(825 + i);  // códigos 825-828 para emergency shutdown
+            
+            // Detener motor inmediatamente con hardware cutoff
+            s.w[i].demandPct = 0.0f;
+            s.w[i].outPWM = 0.0f;
+            applyHardwareControl(i, 0, false);
+            
+            // Mark motor as failed to prevent restart in this update cycle
+            tempC = TEMP_EMERGENCY_SHUTDOWN;  // Keep emergency state
+          } else if (tempC > TEMP_CRITICAL) {
+            Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i, tempC);
+          }
         }
         s.w[i].tempC = tempC;
       }
@@ -485,6 +501,14 @@ void Traction::update() {
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
     float x = angleNormalized;
     float x_pow_1_2 = static_cast<float>(std::pow(x, 1.2f));  // x^1.2 exacto
+    
+    // 🔒 SECURITY FIX: Validate pow() result before using
+    if (!std::isfinite(x_pow_1_2)) {
+      Logger::errorf("Traction: pow() returned invalid value for angle %.1f", angle);
+      System::logError(804);  // código: cálculo Ackermann inválido
+      x_pow_1_2 = 0.0f;
+    }
+    
     float scale = 1.0f - x_pow_1_2 * 0.3f;
     scale = clampf(scale, 0.70f, 1.0f);  // Mínimo 70% en curvas máximas
 
@@ -548,6 +572,14 @@ void Traction::update() {
   }
 
   // Aplicar reparto por rueda con factores combinados
+  // 🔒 SECURITY FIX: Validate combined factor before applying to prevent extreme scenarios
+  if (!std::isfinite(combinedFactor) || combinedFactor < 0.0f) {
+    Logger::errorf("Traction: invalid combined factor %.3f, using 0", combinedFactor);
+    System::logError(803);  // código: factor de reducción inválido
+    combinedFactor = 0.0f;
+  }
+  combinedFactor = clampf(combinedFactor, 0.0f, 1.0f);  // Ensure 0-100% range
+  
   s.w[FL].demandPct = clampf(front * factorFL * combinedFactor, 0.0f, 100.0f);
   s.w[FR].demandPct = clampf(front * factorFR * combinedFactor, 0.0f, 100.0f);
   s.w[RL].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
@@ -594,8 +626,20 @@ void Traction::update() {
                       i, t, TEMP_MIN_VALID, TEMP_MAX_VALID);
         t = 0.0f;
       } else {
-        // Advertir si temperatura es crítica
-        if (t > TEMP_CRITICAL) {
+        // 🔒 v2.16.0: EMERGENCY SHUTDOWN at critical temperature
+        // Prevents motor damage and fire risk
+        if (t > TEMP_EMERGENCY_SHUTDOWN) {
+          Logger::errorf("EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, t);
+          System::logError(825 + i);  // Códigos 825-828 para emergency shutdown
+          
+          // Detener motor inmediatamente con hardware cutoff
+          s.w[i].demandPct = 0.0f;
+          s.w[i].outPWM = 0.0f;
+          applyHardwareControl(i, 0, false);
+          
+          // Mark motor as failed to prevent restart in this update cycle
+          t = TEMP_EMERGENCY_SHUTDOWN;  // Keep emergency state
+        } else if (t > TEMP_CRITICAL) {
           Logger::warnf("Traction: temperatura crítica rueda %d: %.1f°C (>%.0f°C)", 
                        i, t, TEMP_CRITICAL);
         }

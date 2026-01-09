@@ -34,6 +34,11 @@ static float calculateVehicleSpeed(const float wheelSpeeds[4]) {
     int validCount = 0;
     
     for (int i = 0; i < 4; i++) {
+        // 🔒 SECURITY FIX: Validate wheel speed before using
+        if (!std::isfinite(wheelSpeeds[i]) || wheelSpeeds[i] < 0.0f) {
+            Logger::warnf("TCS: Invalid wheel speed %.2f on wheel %d", wheelSpeeds[i], i);
+            continue;
+        }
         if (wheelSpeeds[i] > 0.1f && Sensors::isWheelSensorOk(i)) {
             if (wheelSpeeds[i] < minSpeed) {
                 minSpeed = wheelSpeeds[i];
@@ -48,7 +53,9 @@ static float calculateVehicleSpeed(const float wheelSpeeds[4]) {
 
 // Calculate slip ratio for a wheel during acceleration
 static float calculateSlipRatio(float wheelSpeed, float vehicleSpeed) {
-    if (vehicleSpeed < 0.1f) return 0.0f;
+    // 🔒 SECURITY FIX: Validate inputs before calculation
+    if (!std::isfinite(wheelSpeed) || wheelSpeed < 0.0f) return 0.0f;
+    if (!std::isfinite(vehicleSpeed) || vehicleSpeed < 0.1f) return 0.0f;
     
     float slip = ((wheelSpeed - vehicleSpeed) / vehicleSpeed) * 100.0f;
     return clampf(slip, 0.0f, 100.0f);
@@ -56,18 +63,33 @@ static float calculateSlipRatio(float wheelSpeed, float vehicleSpeed) {
 
 // Estimate lateral G force from steering angle and speed
 static float estimateLateralG(float speedKmh, float steeringDeg) {
-    if (speedKmh < 5.0f) return 0.0f;
+    // 🔒 SECURITY FIX: Validate inputs before calculation
+    if (!std::isfinite(speedKmh) || speedKmh < 5.0f) return 0.0f;
+    if (!std::isfinite(steeringDeg)) return 0.0f;
     
     // Simplified lateral acceleration calculation
     // a = v² / r, where r is turn radius
     float speedMs = speedKmh / 3.6f;
     float angleRad = (steeringDeg * M_PI) / 180.0f;
     
+    // 🔒 SECURITY FIX: Validate angle after conversion
+    if (!std::isfinite(angleRad)) return 0.0f;
+    
     // Approximate turn radius from steering angle (simplified)
-    float turnRadius = 3.0f / (tan(fabs(angleRad)) + 0.001f); // wheelbase ~3m
+    float tanValue = tan(fabs(angleRad));
+    // 🔒 SECURITY FIX: Validate tan result and prevent division by zero
+    if (!std::isfinite(tanValue)) return 0.0f;
+    
+    float turnRadius = 3.0f / (tanValue + 0.001f); // wheelbase ~3m
+    
+    // 🔒 SECURITY FIX: Validate turn radius before division
+    if (!std::isfinite(turnRadius) || turnRadius < 0.1f) return 0.0f;
     
     float lateralAccel = (speedMs * speedMs) / turnRadius;
     float lateralG = lateralAccel / 9.81f;
+    
+    // 🔒 SECURITY FIX: Validate final result
+    if (!std::isfinite(lateralG)) return 0.0f;
     
     return clampf(lateralG, 0.0f, 1.5f);
 }

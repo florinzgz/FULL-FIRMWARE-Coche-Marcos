@@ -1,5 +1,6 @@
 #include "system.h"
 #include "error_codes.h"      // 🔒 v2.11.0: Códigos de error centralizados
+#include "boot_guard.h"       // 🔒 v2.17.1: Boot counter and safe mode detection
 #include "dfplayer.h"
 #include "current.h"
 #include "temperature.h"
@@ -218,9 +219,16 @@ void System::init() {
     }
     
     // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
+    // 🔒 v2.17.1: Skip LEDs in safe mode (non-critical system)
     LEDConfig ledConfig;
     
-    if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
+    // Check if safe mode is active (bootloop detected)
+    bool safeModeActive = BootGuard::shouldEnterSafeMode();
+    
+    if (safeModeActive) {
+        Logger::warn("System init: SAFE MODE - Skipping LED initialization (non-critical)");
+        LEDController::setEnabled(false);
+    } else if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
         Logger::info("System init: Configuración LED cargada exitosamente");
         
         // 🔒 Validar configuración (brightness es uint8_t, siempre válido 0-255)

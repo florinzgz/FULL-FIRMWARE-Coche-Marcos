@@ -10,6 +10,10 @@
 #ifndef INA226_1100_us
 #define INA226_1100_us 7
 #endif
+
+#ifndef INA226_ERR_NONE
+#define INA226_ERR_NONE 0
+#endif
 // --- FIN FIX ---
 
 #include "logger.h"
@@ -207,10 +211,15 @@ void Sensors::updateCurrent() {
         if(!sensorOk[i] || !ina[i]) {
             // Intentar recuperación si hay tiempo desde último intento
             if (millis() >= state.nextRetryMs) {
-                Logger::infof("INA226 ch %d attempting recovery", i);
-                if (I2CRecovery::reinitSensor(i, 0x40, i) && ina[i]->begin()) {
-                    sensorOk[i] = true;
-                    Logger::infof("INA226 ch %d recovered!", i);
+                // 🔒 SECURITY FIX: Validate TCA channel before recovery attempt
+                if (i >= 0 && i < 8) {  // TCA9548A has 8 channels (0-7)
+                    Logger::infof("INA226 ch %d attempting recovery", i);
+                    if (I2CRecovery::reinitSensor(i, 0x40, i) && ina[i]->begin()) {
+                        sensorOk[i] = true;
+                        Logger::infof("INA226 ch %d recovered!", i);
+                    }
+                } else {
+                    Logger::errorf("INA226 ch %d: invalid TCA channel for recovery", i);
                 }
             }
             continue; // Saltar si aún no está ok

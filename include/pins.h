@@ -225,12 +225,15 @@
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // 6 tornillos por rueda = 6 pulsos/revolución
 // Ordenados: FL, FR, RL, RR
-// ✅ v2.12.0: Mantienen asignación en GPIO 15/16 (disponibles)
+// ✅ v2.16.0: FIX CRÍTICO - WHEEL_RR movido GPIO 16 → GPIO 1
+// GPIO 16 causaba conflicto con PIN_TFT_CS (SPI display)
+// GPIO 46 es strapping pin (Boot mode/ROM log) - evitado
+// GPIO 1 es seguro, estable, no afecta boot (antes libre)
 // -----------------------
 #define PIN_WHEEL_FL      3   // GPIO 3  - Wheel Front Left ✅ Intercambiado v2.3.0 (antes GPIO 21)
 #define PIN_WHEEL_FR      36  // GPIO 36 - Wheel Front Right
 #define PIN_WHEEL_RL      15  // GPIO 15 - Wheel Rear Left
-#define PIN_WHEEL_RR      16  // GPIO 16 - Wheel Rear Right
+#define PIN_WHEEL_RR      1   // GPIO 1  - Wheel Rear Right ✅ v2.16.0: Movido GPIO 16→46→1 (evitar strapping)
 
 // -----------------------
 // Temperatura motores (4x DS18B20 OneWire)
@@ -317,7 +320,7 @@
 │ GPIO │ Función                 │ Tipo      │ Notas                           │
 ├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
 │  0   │ KEY_SYSTEM              │ Input     │ ⚠️ Strapping (Boot), pull-up ext │
-│  1   │ 🆓 LIBRE (ADC)          │ -         │ ADC sensible                    │
+│  1   │ WHEEL_RR                │ Input     │ ✅ v2.16.1: Rueda trasera der   │
 │  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
 │  3   │ WHEEL_FL                │ Input     │ Sensor rueda delantera izq      │
 │  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
@@ -332,7 +335,7 @@
 │ 13   │ TFT_DC                  │ Output    │ Data/Command                    │
 │ 14   │ TFT_RST                 │ Output    │ Reset pantalla                  │
 │ 15   │ WHEEL_RL                │ Input     │ ✅ v2.12.0: Rueda trasera izq   │
-│ 16   │ WHEEL_RR                │ Input     │ ✅ v2.12.0: Rueda trasera der   │
+│ 16   │ TFT_CS (SPI)            │ Output    │ ✅ Chip Select display          │
 │ 17   │ DFPLAYER_RX (UART1)     │ Input     │ ✅ v2.12.0: Mini Audio RX       │
 │ 18   │ DFPLAYER_TX (UART1)     │ Output    │ ✅ v2.12.0: Mini Audio TX       │
 │ 19   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
@@ -349,7 +352,7 @@
 │ 43   │ TOFSENSE_TX (UART0)     │ Output    │ ✅ v2.12.0: TOFSense (no usado) │
 │ 44   │ TOFSENSE_RX (UART0)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
 │ 45   │ KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI       │
-│ 46   │ 🆓 LIBRE                │ -         │ ✅ v2.12.0: VL53L5X eliminado   │
+│ 46   │ 🆓 LIBRE                │ -         │ ⚠️ STRAPPING PIN: Boot/ROM log  │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
@@ -441,7 +444,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_TFT_MISO:
         case PIN_TFT_DC:
         case PIN_TFT_RST:
-        case PIN_TFT_CS:     // GPIO 16 - shared with WHEEL_RR (SPI CS multiplexed)
+        case PIN_TFT_CS:     // GPIO 16 - SPI Chip Select (no conflict now)
         case PIN_TFT_BL:
         // Touch
         case PIN_TOUCH_CS:
@@ -450,7 +453,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_WHEEL_FL:
         case PIN_WHEEL_FR:
         case PIN_WHEEL_RL:
-        // case PIN_WHEEL_RR:  // GPIO 16 - same as PIN_TFT_CS (shared pin)
+        case PIN_WHEEL_RR:  // GPIO 1 - ✅ v2.16.1: Safe pin, avoids strapping pins
         // Encoder
         case PIN_ENCODER_A:
         case PIN_ENCODER_B:

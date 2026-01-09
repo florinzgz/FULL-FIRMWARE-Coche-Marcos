@@ -81,9 +81,19 @@ void SteeringMotor::init() {
     if (pcaOK) {
         pca.setPWMFreq(kFreqHz);
         
-        // 🔒 v2.4.0: Inicializar canales en estado apagado por seguridad
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
+        // 🔒 v2.16.0: SAFETY - Validate PWM channels before use to prevent crashes
+        // Invalid channel numbers can cause I2C bus errors or undefined behavior
+        if (pwm_channel_valid(kChannelFwd) && pwm_channel_valid(kChannelRev)) {
+            // Inicializar canales en estado apagado por seguridad
+            pca.setPWM(kChannelFwd, 0, 0);
+            pca.setPWM(kChannelRev, 0, 0);
+        } else {
+            Logger::errorf("SteeringMotor: Invalid PWM channels FWD=%d REV=%d", kChannelFwd, kChannelRev);
+            System::logError(253);  // Código: PWM channel inválido en init
+            initialized = false;
+            pcaOK = false;
+            return;
+        }
     }
 
     // Get shared MCP23017 manager instance (initialized by ControlManager)
@@ -146,23 +156,28 @@ void SteeringMotor::update() {
 
     // Control bidireccional usando canales FWD/REV según signo del error
     // 🔒 CORRECCIÓN: Zona muerta para evitar oscilación del motor con errores pequeños
+    // 🔒 v2.16.0: PWM channel validation to prevent crashes from invalid channels
     uint16_t ticks = pctToTicks(cmdPct);
     if (absError < kDeadbandDeg) {
         // Error dentro de zona muerta: parar motor para evitar oscilación
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, 0);
+        if (pwm_channel_valid(kChannelFwd)) pca.setPWM(kChannelFwd, 0, 0);
+        if (pwm_channel_valid(kChannelRev)) pca.setPWM(kChannelRev, 0, 0);
         mcpManager->digitalWrite(MCP_PIN_STEER_IN1, LOW);
         mcpManager->digitalWrite(MCP_PIN_STEER_IN2, LOW);
     } else if (error > 0) {
         // Girar hacia la derecha: activar canal FWD, desactivar REV
-        pca.setPWM(kChannelFwd, 0, ticks);
-        pca.setPWM(kChannelRev, 0, 0);
+        if (pwm_channel_valid(kChannelFwd) && pwm_channel_valid(kChannelRev)) {
+            pca.setPWM(kChannelFwd, 0, ticks);
+            pca.setPWM(kChannelRev, 0, 0);
+        }
         mcpManager->digitalWrite(MCP_PIN_STEER_IN1, HIGH);
         mcpManager->digitalWrite(MCP_PIN_STEER_IN2, LOW);
     } else {
         // Girar hacia la izquierda: activar canal REV, desactivar FWD
-        pca.setPWM(kChannelFwd, 0, 0);
-        pca.setPWM(kChannelRev, 0, ticks);
+        if (pwm_channel_valid(kChannelFwd) && pwm_channel_valid(kChannelRev)) {
+            pca.setPWM(kChannelFwd, 0, 0);
+            pca.setPWM(kChannelRev, 0, ticks);
+        }
         mcpManager->digitalWrite(MCP_PIN_STEER_IN1, LOW);
         mcpManager->digitalWrite(MCP_PIN_STEER_IN2, HIGH);
     }

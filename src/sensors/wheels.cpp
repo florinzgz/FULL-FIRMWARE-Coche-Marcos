@@ -1,5 +1,6 @@
 #include "wheels.h"
 #include <Arduino.h>
+#include <cmath>     // 🔒 For std::isfinite validation
 #include "pins.h"
 #include "settings.h"
 #include "constants.h"  // 🔒 Usar constantes centralizadas
@@ -75,12 +76,27 @@ void Sensors::updateWheels() {
             
             float revs = (float)currentPulses / PULSES_PER_REV;
 
-            // Distancia acumulada en mm
-            distance[i] += (unsigned long)(revs * WHEEL_CIRCUM_MM);
+            // 🔒 SECURITY FIX: Prevent distance overflow (unsigned long max ~4.3 billion mm = 4300 km)
+            // Check if adding new distance would overflow
+            unsigned long newDistanceMm = (unsigned long)(revs * WHEEL_CIRCUM_MM);
+            if (distance[i] > (ULONG_MAX - newDistanceMm)) {
+                // Would overflow, reset distance counter with warning
+                Logger::warnf("Wheel %d distance counter overflow, resetting (was %lu mm)", i, distance[i]);
+                distance[i] = newDistanceMm;
+            } else {
+                distance[i] += newDistanceMm;
+            }
 
             if(currentPulses > 0) {
                 float mm_per_s = (revs * WHEEL_CIRCUM_MM) / (dt / 1000.0f);
                 float kmh = (mm_per_s / 1000.0f) * 3.6f;
+                
+                // 🔒 SECURITY FIX: Validate calculated speed before using
+                if (!std::isfinite(kmh) || kmh < 0.0f) {
+                    Logger::warnf("Wheel %d: invalid speed calculation %.2f, setting to 0", i, kmh);
+                    kmh = 0.0f;
+                }
+                
                 // 🔒 Clamp a velocidad máxima definida en constants.h
                 if(kmh > WHEEL_MAX_SPEED_KMH) kmh = WHEEL_MAX_SPEED_KMH;
                 speed[i] = kmh;

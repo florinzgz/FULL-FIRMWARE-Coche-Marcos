@@ -81,23 +81,49 @@ void init() {
 }
 
 void loadConfig() {
-    // TODO: Implement obstacle config persistence in ConfigStorage
-    // For now, using hardcoded defaults from ObstacleConfig namespace
-    criticalDistance = ObstacleConfig::DISTANCE_CRITICAL;
-    warningDistance  = ObstacleConfig::DISTANCE_WARNING;
-    cautionDistance  = ObstacleConfig::DISTANCE_CAUTION;
-    for (int i = 0; i < kNumObstacles; i++) {
-        sensorEnabled[i] = true;
-    }
-    audioAlertsEnabled  = true;
-    visualAlertsEnabled = true;
+    // 🔒 v2.13.1: Load obstacle config from ConfigStorage
+    // Note: System has 1 front sensor (TOFSense-M S). Array supports future expansion.
+    ConfigStorage::init();
+    auto& cfg = ConfigStorage::getCurrentConfig();
+    
+    criticalDistance = cfg.obstacle_critical_distance;
+    warningDistance  = cfg.obstacle_warning_distance;
+    cautionDistance  = cfg.obstacle_caution_distance;
+    
+    // Load front sensor config (index 0)
+    // Future: If multiple sensors added, loop through kNumObstacles
+    sensorEnabled[0] = cfg.obstacle_sensor_enabled;
+    
+    audioAlertsEnabled  = cfg.obstacle_audio_alerts;
+    visualAlertsEnabled = cfg.obstacle_visual_alerts;
+    
+    Logger::info("ObstacleConfigMenu: Configuration loaded from persistent storage");
 }
 
 void saveConfig() {
-    // TODO: Implement obstacle config persistence in ConfigStorage
-    // For now, configuration is not persisted and will reset on reboot
-    Logger::info("ObstacleConfigMenu: Configuration saved (in-memory only)");
-    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+    // 🔒 v2.13.1: Save obstacle config to persistent storage
+    // Note: System has 1 front sensor (TOFSense-M S). Array supports future expansion.
+    ConfigStorage::init();
+    auto& cfg = ConfigStorage::getCurrentConfig();
+    
+    cfg.obstacle_critical_distance = criticalDistance;
+    cfg.obstacle_warning_distance  = warningDistance;
+    cfg.obstacle_caution_distance  = cautionDistance;
+    
+    // Save front sensor config (index 0)
+    // Future: If multiple sensors added, loop through kNumObstacles
+    cfg.obstacle_sensor_enabled = sensorEnabled[0];
+    
+    cfg.obstacle_audio_alerts   = audioAlertsEnabled;
+    cfg.obstacle_visual_alerts  = visualAlertsEnabled;
+    
+    if (ConfigStorage::save(cfg)) {
+        Logger::info("ObstacleConfigMenu: Configuration saved to persistent storage");
+        Alerts::play(Audio::AUDIO_CONFIG_GUARDADA);
+    } else {
+        Logger::error("ObstacleConfigMenu: Failed to save configuration");
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
+    }
 }
 
 void show() {
@@ -238,7 +264,7 @@ bool handleTouch(int16_t x, int16_t y) {
         if (y >= optionY && y <= optionY + OPTION_HEIGHT) {
             if (x >= SLIDER_X && x <= SLIDER_X + 80) {
                 sensorEnabled[i] = !sensorEnabled[i];
-                Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+                Alerts::play(Audio::AUDIO_BEEP);
                 needsRedraw = true;
                 return true;
             }
@@ -250,7 +276,7 @@ bool handleTouch(int16_t x, int16_t y) {
     if (y >= optionY && y <= optionY + OPTION_HEIGHT) {
         if (x >= SLIDER_X && x <= SLIDER_X + 80) {
             audioAlertsEnabled = !audioAlertsEnabled;
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            Alerts::play(Audio::AUDIO_BEEP);
             needsRedraw = true;
             return true;
         }
@@ -260,7 +286,7 @@ bool handleTouch(int16_t x, int16_t y) {
     if (y >= optionY && y <= optionY + OPTION_HEIGHT) {
         if (x >= SLIDER_X && x <= SLIDER_X + 80) {
             visualAlertsEnabled = !visualAlertsEnabled;
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            Alerts::play(Audio::AUDIO_BEEP);
             needsRedraw = true;
             return true;
         }
@@ -316,7 +342,7 @@ void handleSelect() {
     switch (selectedOption) {
         case 3:  // Solo Front sensor
             sensorEnabled[0] = !sensorEnabled[0];
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            Alerts::play(Audio::AUDIO_BEEP);
             needsRedraw = true;
             break;
         case 4: audioAlertsEnabled = !audioAlertsEnabled; needsRedraw = true; break;
@@ -335,7 +361,7 @@ void resetToDefaults() {
     audioAlertsEnabled  = true;
     visualAlertsEnabled = true;
     Logger::info("ObstacleConfigMenu: Reset to defaults");
-    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+    Alerts::play(Audio::AUDIO_CONFIG_RESTAURADA);
     saveConfig();
 }
 

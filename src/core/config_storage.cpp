@@ -51,6 +51,14 @@ namespace ConfigStorage {
         config.regen_enabled = preferences.getBool("regen", DEFAULT_CONFIG.regen_enabled);
         config.wifi_enabled = preferences.getBool("wifi", DEFAULT_CONFIG.wifi_enabled);
         
+        // 🔒 v2.13.1: Load obstacle detection config
+        config.obstacle_critical_distance = preferences.getUShort("obs_crit", DEFAULT_CONFIG.obstacle_critical_distance);
+        config.obstacle_warning_distance = preferences.getUShort("obs_warn", DEFAULT_CONFIG.obstacle_warning_distance);
+        config.obstacle_caution_distance = preferences.getUShort("obs_caut", DEFAULT_CONFIG.obstacle_caution_distance);
+        config.obstacle_sensor_enabled = preferences.getBool("obs_sen", DEFAULT_CONFIG.obstacle_sensor_enabled);
+        config.obstacle_audio_alerts = preferences.getBool("obs_aud", DEFAULT_CONFIG.obstacle_audio_alerts);
+        config.obstacle_visual_alerts = preferences.getBool("obs_vis", DEFAULT_CONFIG.obstacle_visual_alerts);
+        
         config.checksum = preferences.getUInt("checksum", 0);
         
         // Validate checksum
@@ -86,6 +94,14 @@ namespace ConfigStorage {
         preferences.putBool("tcs", temp.tcs_enabled);
         preferences.putBool("regen", temp.regen_enabled);
         preferences.putBool("wifi", temp.wifi_enabled);
+        
+        // 🔒 v2.13.1: Save obstacle detection config
+        preferences.putUShort("obs_crit", temp.obstacle_critical_distance);
+        preferences.putUShort("obs_warn", temp.obstacle_warning_distance);
+        preferences.putUShort("obs_caut", temp.obstacle_caution_distance);
+        preferences.putBool("obs_sen", temp.obstacle_sensor_enabled);
+        preferences.putBool("obs_aud", temp.obstacle_audio_alerts);
+        preferences.putBool("obs_vis", temp.obstacle_visual_alerts);
         
         preferences.putUInt("checksum", temp.checksum);
         

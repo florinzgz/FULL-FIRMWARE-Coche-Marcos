@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "alerts.h"
 #include <Arduino.h>
+#include <cmath>     // 🔒 For std::isfinite validation
 
 namespace ABSSystem {
     
@@ -30,6 +31,11 @@ namespace ABSSystem {
         
         for(int i = 0; i < 4; i++) {
             float wheelSpeed = Sensors::getWheelSpeed(i);
+            // 🔒 SECURITY FIX: Validate wheel speed before using
+            if (!std::isfinite(wheelSpeed) || wheelSpeed < 0.0f) {
+                Logger::warnf("ABS: Invalid wheel speed %.2f on wheel %d", wheelSpeed, i);
+                continue;
+            }
             if(Sensors::isWheelSensorOk(i) && wheelSpeed > 0.1f) {
                 // Only count wheels that are moving
                 if(!state.wheels[i].active || state.wheels[i].slipRatio < 50.0f) {
@@ -45,10 +51,18 @@ namespace ABSSystem {
     // Calculate slip ratio for a wheel
     // Slip ratio = (vehicle_speed - wheel_speed) / vehicle_speed * 100
     static float calculateSlipRatio(int wheel, float vehSpeed) {
-        if(vehSpeed < 0.1f) return 0.0f;
+        // 🔒 SECURITY FIX: Validate inputs before calculation
+        if (!std::isfinite(vehSpeed) || vehSpeed < 0.1f) return 0.0f;
+        if (wheel < 0 || wheel >= 4) return 0.0f;
         
         float wheelSpeed = Sensors::getWheelSpeed(wheel);
         if(!Sensors::isWheelSensorOk(wheel)) return 0.0f;
+        
+        // 🔒 SECURITY FIX: Validate wheel speed
+        if (!std::isfinite(wheelSpeed) || wheelSpeed < 0.0f) {
+            Logger::warnf("ABS: Invalid wheel speed %.2f on wheel %d for slip calc", wheelSpeed, wheel);
+            return 0.0f;
+        }
         
         float slip = ((vehSpeed - wheelSpeed) / vehSpeed) * 100.0f;
         return constrain(slip, -100.0f, 100.0f);

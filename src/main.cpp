@@ -16,6 +16,7 @@
 // Include core system components for proper boot sequence
 #include "system.h"
 #include "storage.h"
+#include "boot_guard.h"  // 🔒 v2.17.1: Boot counter for bootloop detection
 
 // ============================================================================
 // Critical error recovery configuration - v2.11.5
@@ -48,6 +49,15 @@ void setup() {
     Serial.print("[BOOT] Firmware version: ");
     Serial.println(FIRMWARE_VERSION);
 
+    // 🔒 v2.17.1: Initialize and check boot counter BEFORE any other init
+    BootGuard::initBootCounter();
+    BootGuard::incrementBootCounter();
+    
+    if (BootGuard::isBootloopDetected()) {
+        Serial.println("[BOOT] ⚠️  BOOTLOOP DETECTED - Safe mode will be activated");
+        Serial.printf("[BOOT] Boot count: %d within detection window\n", BootGuard::getBootCount());
+    }
+
     // Critical boot sequence
     System::init();
     Storage::init();
@@ -66,6 +76,15 @@ void setup() {
 
 void loop() {
     Watchdog::feed();
+    
+    // 🔒 v2.17.1: Clear boot counter after successful first loop iteration
+    // This indicates the system booted successfully and is stable
+    static bool firstLoop = true;
+    if (firstLoop) {
+        BootGuard::clearBootCounter();
+        Logger::info("Main loop: Boot successful - boot counter cleared");
+        firstLoop = false;
+    }
 
 #ifdef STANDALONE_DISPLAY
     // ===========================
@@ -96,6 +115,15 @@ void loop() {
 
 void initializeSystem() {
     Watchdog::feed();
+    
+    // 🔒 v2.17.1: Check if safe mode is requested due to bootloop
+    bool safeMode = BootGuard::shouldEnterSafeMode();
+    
+    if (safeMode) {
+        Serial.println("⚠️⚠️⚠️ SAFE MODE ACTIVATED ⚠️⚠️⚠️");
+        Serial.println("[SAFE MODE] Bootloop detected - initializing only critical systems");
+        Logger::error("SAFE MODE: Bootloop detected - minimal initialization");
+    }
 
 #ifdef STANDALONE_DISPLAY
     // ===========================
@@ -126,6 +154,7 @@ void initializeSystem() {
     // FULL VEHICLE INIT
     // ===========================
 
+    // CRITICAL SYSTEMS - Always initialize
     Serial.println("[INIT] Power Manager initialization...");
     if (!PowerManager::init()) {
         handleCriticalError("Power Manager initialization failed");
@@ -147,13 +176,20 @@ void initializeSystem() {
     Logger::info("Safety Manager initialized");
     Watchdog::feed();
 
+    // HUD - Try to initialize even in safe mode (for error display)
     Serial.println("[INIT] HUD Manager initialization...");
     if (!HUDManager::init()) {
-        handleCriticalError("HUD Manager initialization failed");
+        if (!safeMode) {
+            handleCriticalError("HUD Manager initialization failed");
+        } else {
+            Logger::warn("Safe Mode: HUD initialization failed - continuing without display");
+        }
+    } else {
+        Logger::info("HUD Manager initialized");
     }
-    Logger::info("HUD Manager initialized");
     Watchdog::feed();
 
+    // Control Manager - Critical
     Serial.println("[INIT] Control Manager initialization...");
     if (!ControlManager::init()) {
         handleCriticalError("Control Manager initialization failed");
@@ -161,19 +197,26 @@ void initializeSystem() {
     Logger::info("Control Manager initialized");
     Watchdog::feed();
 
-    Serial.println("[INIT] Telemetry Manager initialization...");
-    if (!TelemetryManager::init()) {
-        handleCriticalError("Telemetry Manager initialization failed");
-    }
-    Logger::info("Telemetry Manager initialized");
-    Watchdog::feed();
+    // NON-CRITICAL SYSTEMS - Skip in safe mode
+    if (safeMode) {
+        Serial.println("[SAFE MODE] Skipping Telemetry Manager (non-critical)");
+        Serial.println("[SAFE MODE] Skipping Mode Manager (non-critical)");
+        Logger::warn("Safe Mode: Non-critical managers disabled");
+    } else {
+        Serial.println("[INIT] Telemetry Manager initialization...");
+        if (!TelemetryManager::init()) {
+            handleCriticalError("Telemetry Manager initialization failed");
+        }
+        Logger::info("Telemetry Manager initialized");
+        Watchdog::feed();
 
-    Serial.println("[INIT] Mode Manager initialization...");
-    if (!ModeManager::init()) {
-        handleCriticalError("Mode Manager initialization failed");
+        Serial.println("[INIT] Mode Manager initialization...");
+        if (!ModeManager::init()) {
+            handleCriticalError("Mode Manager initialization failed");
+        }
+        Logger::info("Mode Manager initialized");
+        Watchdog::feed();
     }
-    Logger::info("Mode Manager initialized");
-    Watchdog::feed();
 
 #endif
 }

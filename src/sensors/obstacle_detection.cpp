@@ -100,6 +100,14 @@ static bool parseFrame() {
         return false;
     }
     
+    // 🔒 SECURITY FIX: Validate checksum position before access
+    if (ObstacleConfig::POS_CHECKSUM >= ObstacleConfig::FRAME_LENGTH) {
+        Logger::errorf("TOFSense: Invalid checksum position %u >= frame length %u",
+                      ObstacleConfig::POS_CHECKSUM, ObstacleConfig::FRAME_LENGTH);
+        System::logError(ObstacleConfig::ERROR_CODE_INVALID_DATA);
+        return false;
+    }
+    
     // Validate checksum
     uint8_t expectedChecksum = calculateChecksum(frameBuffer, ObstacleConfig::POS_CHECKSUM);
     uint8_t receivedChecksum = frameBuffer[ObstacleConfig::POS_CHECKSUM];
@@ -119,6 +127,16 @@ static bool parseFrame() {
     for (uint8_t pixelIdx = 0; pixelIdx < ObstacleConfig::ZONES_PER_SENSOR; pixelIdx++) {
         // Calculate pixel data offset in frame
         uint16_t pixelOffset = ObstacleConfig::POS_MATRIX_DATA + (pixelIdx * ObstacleConfig::BYTES_PER_PIXEL);
+        
+        // 🔒 SECURITY FIX: Bounds check before buffer access to prevent buffer overflow
+        // Each pixel needs 6 bytes (3 distance + 1 signal + 1 status + 1 reserved)
+        if (pixelOffset + ObstacleConfig::BYTES_PER_PIXEL > ObstacleConfig::FRAME_LENGTH) {
+            Logger::errorf("TOFSense: Pixel %u offset %u exceeds frame bounds %u",
+                          pixelIdx, pixelOffset + ObstacleConfig::BYTES_PER_PIXEL, 
+                          ObstacleConfig::FRAME_LENGTH);
+            System::logError(ObstacleConfig::ERROR_CODE_INVALID_DATA);
+            return false;
+        }
         
         // Parse distance from 3-byte format
         int16_t distanceMm = parsePixelDistance(&frameBuffer[pixelOffset]);
@@ -318,8 +336,13 @@ void update() {
     }
     
     // Read available UART data and accumulate frames
-    while (TOFSerial.available() > 0) {
+    // 🔒 SECURITY FIX: Limit UART read iterations to prevent infinite loop on corrupted data
+    uint16_t bytesRead = 0;
+    const uint16_t MAX_BYTES_PER_UPDATE = ObstacleConfig::FRAME_LENGTH * 2; // Max 2 frames per update
+    
+    while (TOFSerial.available() > 0 && bytesRead < MAX_BYTES_PER_UPDATE) {
         uint8_t byte = TOFSerial.read();
+        bytesRead++;
         
         // Look for frame header (4 bytes: 57 01 FF 00)
         if (bufferIndex == 0) {
@@ -345,6 +368,15 @@ void update() {
         } else {
             // Accumulating frame data after header
             frameBuffer[bufferIndex++] = byte;
+            
+            // 🔒 SECURITY FIX: Prevent buffer overflow if data exceeds expected frame length
+            if (bufferIndex > ObstacleConfig::FRAME_LENGTH) {
+                Logger::warnf("TOFSense: Buffer overflow detected at index %u, resetting", bufferIndex);
+                bufferIndex = 0;
+                frameInProgress = false;
+                System::logError(ObstacleConfig::ERROR_CODE_INVALID_DATA);
+                continue;
+            }
             
             // Check if we have a complete frame (400 bytes)
             if (bufferIndex >= ObstacleConfig::FRAME_LENGTH) {
