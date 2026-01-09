@@ -43,18 +43,17 @@ Esta auditoría cubre 8 componentes críticos del firmware ESP32-S3 que no fuero
 attachInterrupt(digitalPinToInterrupt(PIN_WHEEL_RR), wheelISR3, RISING);
 ```
 
-**Corrección OBLIGATORIA**:
+**Corrección IMPLEMENTADA** (v2.16.1):
 ```cpp
-// Opción 1: Reasignar WHEEL_RR a GPIO libre (ej: GPIO 46 ahora libre)
-#define PIN_WHEEL_RR      46  // GPIO 46 - LIBRE tras migración VL53L5X
-
-// Opción 2: Reasignar TFT_CS (menos recomendado, SPI ya configurado)
+// ✅ WHEEL_RR reasignado a GPIO 1 (seguro, no strapping)
+#define PIN_WHEEL_RR      1  // GPIO 1 - Evita strapping pins
+// GPIO 46 liberado - strapping pin Boot mode/ROM log (evitado)
 ```
 
 **Validación**:
-- Verificar que GPIO 46 no tenga conflictos de strapping durante boot
-- Actualizar documentación en pins.h tabla línea 352
-- Comprobar que optoacoplador HY-M158 soporta el cambio
+- ✅ GPIO 1 verificado: sin conflictos, no strapping, estable
+- ✅ Documentación actualizada en pins.h tabla línea 321
+- ✅ Optoacoplador HY-M158 compatible (entrada digital genérica)
 
 ---
 

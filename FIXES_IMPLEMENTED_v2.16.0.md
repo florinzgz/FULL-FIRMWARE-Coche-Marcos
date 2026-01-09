@@ -17,19 +17,22 @@ Se implementaron **5 correcciones prioritarias** (1 crítica + 4 altas).
 
 **Impacto**: Corrupción de datos SPI, pantalla congelada, lecturas erróneas de velocidad
 
-**Corrección**: 
+**Corrección** (actualizada v2.16.1): 
 ```cpp
-// include/pins.h línea 233
-#define PIN_WHEEL_RR      46  // Movido de GPIO 16 → GPIO 46
+// include/pins.h línea 235
+// v2.16.0: GPIO 16 → GPIO 46 (strapping pin temporal)
+// v2.16.1: GPIO 46 → GPIO 1 (evitar strapping, pin seguro)
+#define PIN_WHEEL_RR      1  // ✅ FINAL: GPIO 1 estable, no strapping
 
-// GPIO 46 está libre tras migración VL53L5X → TOFSense UART
+// GPIO 46 liberado - es strapping pin Boot mode/ROM log
 ```
 
 **Archivos modificados**:
-- `include/pins.h` (líneas 228-233, 334-336, 352, 444-453)
+- `include/pins.h` (líneas 228-235, 321, 354, 455)
 
 **Validación**:
-- ✅ GPIO 46 no tiene conflictos de strapping críticos
+- ✅ GPIO 1 verificado sin conflictos (antes libre)
+- ✅ No es strapping pin (GPIO 0,3,45,46 evitados)
 - ✅ Tabla de pines actualizada
 - ✅ Función `pin_is_assigned()` actualizada
 

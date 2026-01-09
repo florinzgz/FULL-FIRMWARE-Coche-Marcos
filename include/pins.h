@@ -225,14 +225,15 @@
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // 6 tornillos por rueda = 6 pulsos/revolución
 // Ordenados: FL, FR, RL, RR
-// ✅ v2.16.0: FIX CRÍTICO - WHEEL_RR movido GPIO 16 → GPIO 46
+// ✅ v2.16.0: FIX CRÍTICO - WHEEL_RR movido GPIO 16 → GPIO 1
 // GPIO 16 causaba conflicto con PIN_TFT_CS (SPI display)
-// GPIO 46 liberado tras migración VL53L5X → TOFSense UART
+// GPIO 46 es strapping pin (Boot mode/ROM log) - evitado
+// GPIO 1 es seguro, estable, no afecta boot (antes libre)
 // -----------------------
 #define PIN_WHEEL_FL      3   // GPIO 3  - Wheel Front Left ✅ Intercambiado v2.3.0 (antes GPIO 21)
 #define PIN_WHEEL_FR      36  // GPIO 36 - Wheel Front Right
 #define PIN_WHEEL_RL      15  // GPIO 15 - Wheel Rear Left
-#define PIN_WHEEL_RR      46  // GPIO 46 - Wheel Rear Right ✅ v2.16.0: Movido de GPIO 16 (conflicto TFT_CS)
+#define PIN_WHEEL_RR      1   // GPIO 1  - Wheel Rear Right ✅ v2.16.0: Movido GPIO 16→46→1 (evitar strapping)
 
 // -----------------------
 // Temperatura motores (4x DS18B20 OneWire)
@@ -319,7 +320,7 @@
 │ GPIO │ Función                 │ Tipo      │ Notas                           │
 ├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
 │  0   │ KEY_SYSTEM              │ Input     │ ⚠️ Strapping (Boot), pull-up ext │
-│  1   │ 🆓 LIBRE (ADC)          │ -         │ ADC sensible                    │
+│  1   │ WHEEL_RR                │ Input     │ ✅ v2.16.1: Rueda trasera der   │
 │  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
 │  3   │ WHEEL_FL                │ Input     │ Sensor rueda delantera izq      │
 │  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
@@ -351,7 +352,7 @@
 │ 43   │ TOFSENSE_TX (UART0)     │ Output    │ ✅ v2.12.0: TOFSense (no usado) │
 │ 44   │ TOFSENSE_RX (UART0)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
 │ 45   │ KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI       │
-│ 46   │ WHEEL_RR                │ Input     │ ✅ v2.16.0: Rueda trasera der   │
+│ 46   │ 🆓 LIBRE                │ -         │ ⚠️ STRAPPING PIN: Boot/ROM log  │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
@@ -452,7 +453,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
         case PIN_WHEEL_FL:
         case PIN_WHEEL_FR:
         case PIN_WHEEL_RL:
-        case PIN_WHEEL_RR:  // GPIO 46 - ✅ v2.16.0: Fixed conflict, now separate pin
+        case PIN_WHEEL_RR:  // GPIO 1 - ✅ v2.16.1: Safe pin, avoids strapping pins
         // Encoder
         case PIN_ENCODER_A:
         case PIN_ENCODER_B:
