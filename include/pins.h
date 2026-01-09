@@ -15,17 +15,17 @@
 // GPIO 0  - Boot mode (HIGH=SPI Boot, LOW=Download) → LIBRE (ya no se usa para power)
 // GPIO 3  - JTAG (evitar si se usa JTAG)
 // GPIO 45 - VDD_SPI voltage select → LIBRE (ya no se usa para power)
-// GPIO 46 - Boot mode / ROM log → LIBRE (ya no se usa para VL53L5X)
+// GPIO 46 - Boot mode / ROM log → EN USO (Relé auxiliar desde v2.11.3)
 // GPIO 43 - UART0 TX (TOFSense-M S, no conectado al sensor)
 // GPIO 44 - UART0 RX (TOFSense-M S, recibe datos del sensor)
 //
-// 🔒 ⚠️ GPIO 46 (STRAPPING PIN) - AHORA LIBRE:
-// v2.12.0+: GPIO 46 ya NO se usa (antes era XSHUT_FRONT del sensor VL53L5CX).
-// Con la migración a TOFSense-M S UART, este pin crítico de strapping está LIBRE.
-// Se puede usar para otras funciones que no requieran estado específico durante boot.
+// 🔒 ⚠️ GPIO 46 (STRAPPING PIN) - AHORA EN USO:
+// v2.11.3+: GPIO 46 asignado a PIN_RELAY_SPARE (Relé auxiliar).
+// ANTES v2.12.0: GPIO 46 NO se usaba (antes era XSHUT_FRONT del sensor VL53L5CX).
+// Con la migración a TOFSense-M S UART, este pin crítico de strapping se liberó.
 //
-// NOTA: Como strapping pin, evitar usarlo para señales que puedan estar LOW durante boot,
-// ya que esto podría activar modo ROM log o afectar el arranque del sistema.
+// NOTA: Como strapping pin, el relé debe estar configurado como OUTPUT y manejado
+// apropiadamente durante el boot para evitar activar modo ROM log.
 //
 // ✅ PINES MÁS SEGUROS Y ESTABLES:
 // GPIO 19, 20, 21 → Muy estables, ideales para SPI/I²C periféricos
@@ -127,7 +127,7 @@
 #define PIN_RELAY_MAIN    35  // GPIO 35 - Relé principal (Power Hold) ✅ Movido de GPIO 4
 #define PIN_RELAY_TRAC    5   // GPIO 5  - Relé tracción 24V
 #define PIN_RELAY_DIR     6   // GPIO 6  - Relé dirección 12V
-#define PIN_RELAY_SPARE   7   // GPIO 7  - Relé auxiliar (luces/media)
+#define PIN_RELAY_SPARE   46  // GPIO 46 - Relé auxiliar (luces/media) ✅ Movido de GPIO 7
 
 // ============================================================================
 // ENTRADA SISTEMA - CONTROL DE ALIMENTACIÓN
@@ -301,7 +301,7 @@
 // - Protocolo: 400 bytes, header 57 01 FF 00, baudrate 921600, 64 puntos de distancia
 // - Pines: GPIO44=RX (recibe datos), GPIO43=TX (no usado por sensor)
 // - Rango: 4 metros, FOV: 65°, Update rate: ~15Hz
-// - GPIO 46 LIBRE (antes XSHUT para VL53L5X) ⚠️ Strapping pin disponible
+// - GPIO 46 EN USO (Relé auxiliar desde v2.11.3) ⚠️ Strapping pin
 //
 // NOTA: La configuración UART está en la sección COMUNICACIONES UART más arriba
 // PIN_TOFSENSE_TX = 43 (GPIO 43 - ESP32 TX → Sensor RX, para configuración bidireccional)
@@ -326,7 +326,7 @@
 │  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
 │  5   │ RELAY_TRAC              │ Output    │ Relé tracción 24V               │
 │  6   │ RELAY_DIR               │ Output    │ Relé dirección 12V              │
-│  7   │ RELAY_SPARE             │ Output    │ Relé auxiliar                   │
+│  7   │ 🆓 LIBRE                │ -         │ ✅ v2.11.3: RELAY_SPARE→GPIO 46 │
 │  8   │ I2C_SDA                 │ I/O       │ Bus I²C Data                    │
 │  9   │ I2C_SCL                 │ I/O       │ Bus I²C Clock                   │
 │ 10   │ TFT_SCK                 │ Output    │ SPI Clock                       │
@@ -352,7 +352,7 @@
 │ 43   │ TOFSENSE_TX (UART0)     │ Output    │ ✅ v2.12.0: TOFSense (no usado) │
 │ 44   │ TOFSENSE_RX (UART0)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │
 │ 45   │ KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI       │
-│ 46   │ 🆓 LIBRE                │ -         │ ⚠️ STRAPPING PIN: Boot/ROM log  │
+│ 46   │ RELAY_SPARE             │ Output    │ ⚠️ STRAPPING: Relé auxiliar     │
 │ 47   │ TOUCH_IRQ               │ Input     │ Interrupción táctil             │
 │ 48   │ LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
