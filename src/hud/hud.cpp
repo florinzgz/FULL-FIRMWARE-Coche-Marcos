@@ -1154,9 +1154,8 @@ void HUD::update() {
                 Logger::warnf("Touch: coordinates out of bounds (%d, %d) - IGNORED", x, y);
                 lastBoundsWarning = now;
             }
-            // Do NOT process this touch event - skip to next iteration
-            continue;
-        }
+            // Do NOT process this touch event - skip remaining touch processing
+        } else {
         
         // Touch coordinates are now correct after X-axis inversion fix
         // Visual debug indicators removed per user request
@@ -1248,6 +1247,7 @@ void HUD::update() {
             default:
                 break;
         }
+        }  // End of else block for bounds checking
     } else {
 #ifdef STANDALONE_DISPLAY
         demoButtonWasPressed = false;
