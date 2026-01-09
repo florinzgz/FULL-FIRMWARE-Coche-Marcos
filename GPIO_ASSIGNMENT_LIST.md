@@ -91,11 +91,13 @@ Los siguientes GPIOs son strapping pins y afectan el comportamiento de boot:
 
 ## PINES EN USO - CLASIFICACIÓN POR FUNCIÓN
 
-### Control de Potencia y Relés (5 pines)
+### Relés (4 pines)
 - GPIO 35: RELAY_MAIN (Relé principal)
 - GPIO 5: RELAY_TRAC (Relé tracción 24V)
 - GPIO 6: RELAY_DIR (Relé dirección 12V)
 - GPIO 46: RELAY_SPARE (Relé auxiliar) ⚠️ Strapping pin
+
+### Control de Potencia (2 pines)
 - GPIO 40: KEY_ON (Detección ignición)
 - GPIO 41: KEY_OFF (Solicitud apagado)
 
@@ -166,16 +168,16 @@ Además de los GPIOs del ESP32-S3, el sistema usa un expansor MCP23017 con 16 pi
 
 ## CAMBIOS RECIENTES
 
-### v2.11.3 (2026-01-09)
-- ✅ **GPIO 46**: Asignado a RELAY_SPARE (antes libre)
-- ✅ **GPIO 7**: Liberado (antes RELAY_SPARE)
+### v2.16.1
+- ✅ **GPIO 1**: Asignado a WHEEL_RR (movido desde GPIO 16/46)
 
 ### v2.15.0 (2026-01-05)
 - ✅ **GPIO 40**: Asignado a KEY_ON (antes BTN_MEDIA)
 - ✅ **GPIO 41**: Asignado a KEY_OFF (antes BTN_4X4)
 
-### v2.16.1
-- ✅ **GPIO 1**: Asignado a WHEEL_RR (movido desde GPIO 16/46)
+### v2.11.3 (2026-01-09) - CAMBIO ACTUAL
+- ✅ **GPIO 46**: Asignado a RELAY_SPARE (antes libre desde v2.12.0)
+- ✅ **GPIO 7**: Liberado (antes RELAY_SPARE)
 
 ---
 

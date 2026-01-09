@@ -21,8 +21,8 @@
 //
 // 🔒 ⚠️ GPIO 46 (STRAPPING PIN) - AHORA EN USO:
 // v2.11.3+: GPIO 46 asignado a PIN_RELAY_SPARE (Relé auxiliar).
-// ANTES v2.12.0: GPIO 46 NO se usaba (antes era XSHUT_FRONT del sensor VL53L5CX).
-// Con la migración a TOFSense-M S UART, este pin crítico de strapping se liberó.
+// ANTES v2.11.3: GPIO 46 se usaba como XSHUT_FRONT del sensor VL53L5CX.
+// v2.12.0: Con la migración a TOFSense-M S UART, este pin crítico de strapping quedó liberado.
 //
 // NOTA: Como strapping pin, el relé debe estar configurado como OUTPUT y manejado
 // apropiadamente durante el boot para evitar activar modo ROM log.
