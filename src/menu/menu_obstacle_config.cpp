@@ -125,7 +125,6 @@ void saveConfig() {
         Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
     }
 }
-}
 
 void show() {
     visible = true;
