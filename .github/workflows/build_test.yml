@@ -22,7 +22,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          ~/.platformio
+          ~/.platformio/.cache
           ~/.cache/pip
         key: ${{ runner.os }}-pio-test-${{ hashFiles('platformio.ini') }}
         restore-keys: |
@@ -34,11 +34,22 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Clean PlatformIO framework cache
+      run: |
+        rm -rf ~/.platformio/packages/framework-arduinoespressif32 || true
+        rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3 || true
+        echo "✅ Framework and toolchain cache cleaned for fresh install"
+
     - name: Install PlatformIO
       run: pip install platformio
 
+    - name: Initialize PlatformIO environment
+      run: pio pkg install -e esp32-s3-n32r16v-touch-debug
+
     - name: Build test environment
-      run: pio run -e esp32-s3-n32r16v-touch-debug
+      run: |
+        pio run -t clean -e esp32-s3-n32r16v-touch-debug
+        pio run -e esp32-s3-n32r16v-touch-debug
 
     - name: Upload test firmware
       uses: actions/upload-artifact@v4
