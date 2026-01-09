@@ -5,12 +5,31 @@
 # Flash: 32MB QIO mode
 # PSRAM: 16MB OPI mode
 # ============================================================================
-# Note: PSRAM is primarily configured via platformio.ini build_flags:
-# - CONFIG_SPIRAM_MODE_OCT=1 (Octal mode)
-# - CONFIG_SPIRAM_TYPE_ESPPSRAM64=1 (PSRAM type)
-# - CONFIG_SPIRAM_SPEED_80M=1 (80MHz speed)
-# This file contains supplementary ESP-IDF system configuration.
+# PSRAM configuration is set via sdkconfig for proper ESP-IDF integration
+# Flash mode is controlled via platformio.ini: board_build.arduino.memory_type = qio
 # ============================================================================
+
+#
+# SPI RAM (PSRAM) Configuration
+#
+CONFIG_ESP32S3_SPIRAM_SUPPORT=y
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_TYPE_AUTO=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+#
+# PSRAM Memory Allocation Strategy
+#
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MEMTEST=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
+
+#
+# PSRAM Size Configuration (16MB = 16777216 bytes)
+#
+CONFIG_SPIRAM_SIZE=16777216
 
 #
 # Cache Configuration
