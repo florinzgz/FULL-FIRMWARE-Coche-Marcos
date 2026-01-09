@@ -77,7 +77,7 @@ jobs:
         # Recommended: Replace v1 with full 40-character SHA from:
         # https://github.com/coderabbitai/action/commits/v1
         # Example format: uses: coderabbitai/action@1234567890abcdef1234567890abcdef12345678
-        uses: coderabbitai/action@v1
+        uses: actions/checkout@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           language: "es"
