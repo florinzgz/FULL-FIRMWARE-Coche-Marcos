@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -38,31 +38,29 @@ jobs:
       run: |
         rm -rf ~/.platformio/packages/framework-arduinoespressif32 || true
         rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3 || true
+        rm -rf ~/.platformio/packages/framework-espidf || true
         echo "✅ Framework and toolchain cache cleaned for fresh install"
 
     - name: Install PlatformIO
       run: pip install platformio
 
-    - name: Install platform and verify framework
-      run: |
-        # Instalar platform completo para asegurar que sdkconfig.h se genera
-        pio platform install espressif32@6.12.0
-        # Verificar que sdkconfig.h existe
-        echo "=== Checking for sdkconfig.h ==="
-        if find ~/.platformio -name "sdkconfig.h" -type f | grep -q .; then
-          echo "✅ sdkconfig.h found"
-        else
-          echo "❌ ERROR: sdkconfig.h not found - framework installation incomplete"
-          exit 1
-        fi
-
     - name: Initialize PlatformIO environment
-      run: pio pkg install -e esp32-s3-n32r16v-touch-debug
+      run: |
+        pio pkg install -e esp32-s3-n32r16v-touch-debug
 
     - name: Build test environment
       run: |
         pio run -t clean -e esp32-s3-n32r16v-touch-debug
         pio run -e esp32-s3-n32r16v-touch-debug
+
+    - name: Verify sdkconfig was generated
+      run: |
+        if [ -f ".pio/build/esp32-s3-n32r16v-touch-debug/config/sdkconfig.h" ]; then
+          echo "✅ sdkconfig.h generated correctly"
+        else
+          echo "❌ sdkconfig.h missing after build"
+          exit 1
+        fi
 
     - name: Upload test firmware
       uses: actions/upload-artifact@v4
