@@ -5,32 +5,27 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch:   # Permite lanzarlo manualmente desde Actions
+  workflow_dispatch:
 
 permissions:
-  contents: read   # Only read access needed since we don't commit
+  contents: read
 
 jobs:
-  # ============================================
-permissions:
-  contents: read   # Only read access needed for checkout and build
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: 
+        environment:
           - esp32-s3-n32r16v
           - esp32-s3-n32r16v-release
           - esp32-s3-n32r16v-touch-debug
           - esp32-s3-n32r16v-no-touch
       fail-fast: false
-    
+
     steps:
-    # 1. Checkout del repo
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2. Cache PlatformIO dependencies
     - name: Cache PlatformIO
       uses: actions/cache@v4
       with:
@@ -41,7 +36,6 @@ permissions:
         restore-keys: |
           ${{ runner.os }}-pio-
 
-    # 3. Instalar Python y PlatformIO
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -50,26 +44,25 @@ permissions:
     - name: Install PlatformIO
       run: pip install platformio
 
-    - name: Install platform and verify framework
+    - name: Install platform and packages
       run: |
-        # Instalar platform completo para asegurar que sdkconfig.h se genera
         pio platform install espressif32@6.12.0
-        # Instalar dependencias del environment específico
         pio pkg install -e ${{ matrix.environment }}
-        # Verificar que sdkconfig.h existe
-        echo "=== Checking for sdkconfig.h ==="
-        if find ~/.platformio -name "sdkconfig.h" -type f | grep -q .; then
-          echo "✅ sdkconfig.h found"
+
+    - name: Build firmware (${{ matrix.environment }})
+      run: |
+        pio run -t clean -e ${{ matrix.environment }}
+        pio run -e ${{ matrix.environment }}
+
+    - name: Verify sdkconfig was generated (${{ matrix.environment }})
+      run: |
+        if [ -f ".pio/build/${{ matrix.environment }}/config/sdkconfig.h" ]; then
+          echo "✅ sdkconfig.h OK for ${{ matrix.environment }}"
         else
-          echo "❌ ERROR: sdkconfig.h not found - framework installation incomplete"
+          echo "❌ sdkconfig.h missing for ${{ matrix.environment }}"
           exit 1
         fi
 
-    # 4. Compilar el firmware para el entorno especificado
-    - name: Build firmware (${{ matrix.environment }})
-      run: pio run -e ${{ matrix.environment }} -v
-
-    # 5. Subir artefactos de compilación
     - name: Upload firmware artifact
       uses: actions/upload-artifact@v4
       with:
@@ -77,13 +70,10 @@ permissions:
         path: .pio/build/${{ matrix.environment }}/firmware.bin
         if-no-files-found: error
 
-  # ============================================
-  # Job 2: Verification and summary
-  # ============================================
   verify:
     runs-on: ubuntu-latest
     needs: build
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -97,21 +87,17 @@ permissions:
       run: |
         echo "🔍 Verificación de compilación de firmware"
         echo "=========================================="
-        
-        # Expected environments (must match matrix above)
+
         EXPECTED_ENVS=("esp32-s3-n32r16v" "esp32-s3-n32r16v-release" "esp32-s3-n32r16v-touch-debug" "esp32-s3-n32r16v-no-touch")
         TOTAL_ENVIRONMENTS=${#EXPECTED_ENVS[@]}
-        
-        # Count successful builds
+
         BUILD_COUNT=$(find artifacts -name "firmware.bin" | wc -l)
         echo "✅ Compilaciones exitosas: $BUILD_COUNT/$TOTAL_ENVIRONMENTS"
-        
-        # List all firmware files with sizes
+
         echo ""
         echo "📦 Artefactos generados:"
         find artifacts -name "firmware.bin" -exec ls -lh {} \;
-        
-        # Verify all expected builds exist
+
         if [ "$BUILD_COUNT" -eq "$TOTAL_ENVIRONMENTS" ]; then
           echo ""
           echo "✅ Todos los entornos compilaron correctamente"
@@ -123,9 +109,8 @@ permissions:
 
     - name: Generate verification report
       run: |
-        # Expected environments (must match matrix above)
         EXPECTED_ENVS=("esp32-s3-n32r16v" "esp32-s3-n32r16v-release" "esp32-s3-n32r16v-touch-debug" "esp32-s3-n32r16v-no-touch")
-        
+
         echo "# 🔧 Firmware Verification Report" > VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
         echo "**Fecha:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> VERIFICATION_REPORT.md
@@ -136,8 +121,7 @@ permissions:
         echo "" >> VERIFICATION_REPORT.md
         echo "| Entorno | Estado | Tamaño |" >> VERIFICATION_REPORT.md
         echo "|---------|--------|--------|" >> VERIFICATION_REPORT.md
-        
-        # Iterate using proper bash array
+
         for env in "${EXPECTED_ENVS[@]}"; do
           if [ -f "artifacts/firmware-$env/firmware.bin" ]; then
             SIZE=$(ls -lh "artifacts/firmware-$env/firmware.bin" | awk '{print $5}')
@@ -146,14 +130,14 @@ permissions:
             echo "| $env | ❌ FAIL | - |" >> VERIFICATION_REPORT.md
           fi
         done
-        
+
         echo "" >> VERIFICATION_REPORT.md
         echo "## ✅ Verificaciones Pasadas" >> VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
         echo "- [x] Todas las dependencias instaladas correctamente" >> VERIFICATION_REPORT.md
         echo "- [x] Código compila sin errores" >> VERIFICATION_REPORT.md
         echo "- [x] Artefactos de firmware generados" >> VERIFICATION_REPORT.md
-        echo "- [x] Todos los entornos (dev, release, OTA, test) verificados" >> VERIFICATION_REPORT.md
+        echo "- [x] Todos los entornos (dev, release, touch, no-touch) verificados" >> VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
         echo "---" >> VERIFICATION_REPORT.md
         echo "*Generado automáticamente por GitHub Actions*" >> VERIFICATION_REPORT.md
