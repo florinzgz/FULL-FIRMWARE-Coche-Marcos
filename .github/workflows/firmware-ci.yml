@@ -33,11 +33,10 @@ jobs:
 
       - name: Compile all environments
         run: |
-          pio run -e release
-          pio run -e ota
-          pio run -e test
-          pio run -e touch_debug
-          pio run -e no_touch
+          pio run -e esp32-s3-n32r16v
+          pio run -e esp32-s3-n32r16v-release
+          pio run -e esp32-s3-n32r16v-touch-debug
+          pio run -e esp32-s3-n32r16v-no-touch
 
   lint-format:
     name: Check formatting with clang-format
