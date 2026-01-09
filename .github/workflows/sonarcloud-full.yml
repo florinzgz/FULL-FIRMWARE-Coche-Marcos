@@ -15,75 +15,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ------------------------------------------------------------
-      # Checkout
-      # ------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # ------------------------------------------------------------
-      # System dependencies
-      # ------------------------------------------------------------
       - name: Install system dependencies
         run: |
-          set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip
 
-      # ------------------------------------------------------------
-      # PlatformIO
-      # ------------------------------------------------------------
       - name: Install PlatformIO
         run: |
-          set -euxo pipefail
           pip install -U platformio
           pio --version
 
-      # ------------------------------------------------------------
-      # 1️⃣ Build firmware (VERBOSE, FAIL FAST)
-      # ------------------------------------------------------------
       - name: Build firmware (verbose)
+        working-directory: ${{ github.workspace }}
         run: |
           set -euxo pipefail
           pio run -e esp32-s3-n32r16v -v
 
-      # ------------------------------------------------------------
-      # 2️⃣ Generate compile_commands.json (VERBOSE)
-      # ------------------------------------------------------------
       - name: Generate compile_commands.json (verbose)
+        working-directory: ${{ github.workspace }}
         run: |
           set -euxo pipefail
           pio run -e esp32-s3-n32r16v --target compiledb -v
 
-      # ------------------------------------------------------------
-      # 3️⃣ Inspect directories (DEBUG)
-      # ------------------------------------------------------------
       - name: Inspect project root and .pio
+        working-directory: ${{ github.workspace }}
         run: |
-          set -euxo pipefail
           echo "===== ROOT DIR ====="
           ls -la
           echo "===== .pio DIR ====="
           find .pio -maxdepth 3 -type f
-          echo "===== END ====="
 
-      # ------------------------------------------------------------
-      # 4️⃣ HARD CHECK (CORRECT PATH)
-      # ------------------------------------------------------------
       - name: Verify compile_commands.json
+        working-directory: ${{ github.workspace }}
         run: |
-          set -euxo pipefail
           if [ ! -f compile_commands.json ]; then
             echo "❌ compile_commands.json NOT FOUND in project root"
             exit 1
           fi
-          echo "✅ compile_commands.json FOUND at project root"
+          echo "✅ compile_commands.json FOUND"
 
-      # ------------------------------------------------------------
-      # 5️⃣ SonarCloud Scan
-      # ------------------------------------------------------------
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@v2
         env:
