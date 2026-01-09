@@ -1,8 +1,9 @@
 # ESP32-S3 Car Control System - FULL FIRMWARE
 
 **Versión:** 2.11.0  
-**Hardware:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2025-12-19
+**Hardware:** ESP32-S3-WROOM-2 N32R16V (32MB Flash QIO + 16MB PSRAM OPI)  
+**Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
+**Última actualización:** 2026-01-08
 
 ---
 
@@ -25,8 +26,11 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 ### Requisitos
 
 - [PlatformIO](https://platformio.org/) instalado
-- ESP32-S3-DevKitC-1 (44 pines)
+- ESP32-S3-WROOM-2 N32R16V (32MB Flash + 16MB PSRAM)
+  - Compatible con placa de desarrollo ESP32-S3-DevKitC-1 (44 pines)
 - Cable USB para programación
+
+**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3-WROOM-2** con 32MB Flash y 16MB PSRAM. NO es compatible con ESP32-S3-WROOM-1 (máximo 16MB Flash). Ver [HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md) para detalles.
 
 ### Compilación
 
@@ -36,10 +40,10 @@ git clone https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos.git
 cd FULL-FIRMWARE-Coche-Marcos
 
 # Compilar (entorno de desarrollo)
-pio run -e esp32-s3-devkitc
+pio run -e esp32-s3-n32r16v
 
 # Compilar y flashear (producción)
-pio run -e esp32-s3-devkitc-release -t upload
+pio run -e esp32-s3-n32r16v-release -t upload
 
 # Monitor serial
 pio device monitor
@@ -49,16 +53,19 @@ pio device monitor
 
 | Entorno | Descripción |
 |---------|-------------|
-| `esp32-s3-devkitc` | Desarrollo con debug (CORE_DEBUG_LEVEL=5) |
-| `esp32-s3-devkitc-release` | **Producción** - Optimizado (-O3, sin debug) |
-| `esp32-s3-devkitc-touch-debug` | Debug de touch (logs verbosos) |
-| `esp32-s3-devkitc-no-touch` | Sin touch (diagnóstico SPI) |
+| `esp32-s3-n32r16v` | Desarrollo con debug (CORE_DEBUG_LEVEL=3) |
+| `esp32-s3-n32r16v-release` | **Producción** - Optimizado (-O3, sin debug) |
+| `esp32-s3-n32r16v-touch-debug` | Debug de touch (logs verbosos) |
+| `esp32-s3-n32r16v-no-touch` | Sin touch (diagnóstico SPI) |
+| `esp32-s3-n32r16v-standalone` | Display standalone sin sensores |
+| `esp32-s3-n32r16v-standalone-debug` | Standalone con debug verboso |
 
 ## 📚 Documentación
 
 La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
+- **[HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md)** - ⚠️ **NUEVO** - Verificación de hardware y datasheets
 - **[BUILD_INSTRUCTIONS_v2.11.0.md](BUILD_INSTRUCTIONS_v2.11.0.md)** - Instrucciones de compilación detalladas
 - **[CHANGELOG_v2.11.0.md](CHANGELOG_v2.11.0.md)** - Historial de cambios
 - **[GUIA_RAPIDA.md](GUIA_RAPIDA.md)** - Guía rápida de calibración de touch
@@ -72,6 +79,16 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 - **Sistema:** [docs/FIRMWARE_FINAL_STATUS.md](docs/FIRMWARE_FINAL_STATUS.md)
 
 ## 🔧 Configuración Importante
+
+### Hardware ESP32-S3
+
+**Módulo:** ESP32-S3-WROOM-2 N32R16V  
+**Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
+**Memoria:**
+- Flash: 32MB (QIO mode - eFuses not burned)
+- PSRAM: 16MB (OPI mode)
+
+⚠️ **IMPORTANTE:** Ver [HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md) para confirmar compatibilidad de hardware.
 
 ### Pines Principales (ESP32-S3)
 
