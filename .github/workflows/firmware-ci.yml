@@ -21,63 +21,61 @@ jobs:
           python-version: '3.11'
 
       - name: Cache PlatformIO packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: ~/.platformio
-          key: ${{ runner.os }}-platformio-${{ hashFiles('**/platformio.ini') }}
+          path: |
+            ~/.platformio/packages
+            ~/.platformio/platforms
+            ~/.platformio/toolchains
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
           restore-keys: |
-            ${{ runner.os }}-platformio-
+            ${{ runner.os }}-pio-
 
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Clean previous builds
+        run: rm -rf .pio/build
+
       - name: Compile all environments
         run: |
-          pio run -e esp32-s3-n32r16v
-          pio run -e esp32-s3-n32r16v-release
-          pio run -e esp32-s3-n32r16v-touch-debug
-          pio run -e esp32-s3-n32r16v-no-touch
+          for env in \
+            esp32-s3-n32r16v \
+            esp32-s3-n32r16v-release \
+            esp32-s3-n32r16v-touch-debug \
+            esp32-s3-n32r16v-no-touch
+          do
+            echo "🔧 Building $env"
+            pio run -t clean -e $env
+            pio run -e $env
+          done
 
   lint-format:
     name: Check formatting with clang-format
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Install clang-format
-        run: sudo apt-get install -y clang-format
-
-      - name: Run clang-format check
-        run: |
-          find src include -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run --Werror
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y clang-format
+      - run: |
+          find src include -type f \( -name '*.cpp' -o -name '*.h' \) \
+            -exec clang-format --dry-run --Werror {} +
 
   static-analysis:
     name: Run cppcheck for static analysis
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Install cppcheck
-        run: sudo apt-get install -y cppcheck
-
-      - name: Run cppcheck
-        run: cppcheck --enable=all --inconclusive --quiet --error-exitcode=1 src include
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cppcheck
+      - run: cppcheck --enable=all --inconclusive --quiet --error-exitcode=1 src include
 
   coderabbit-review:
     name: AI Review with CodeRabbit
     runs-on: ubuntu-latest
-
     steps:
-      - name: CodeRabbit AI Review
-        # SECURITY: Using version tag instead of commit SHA
-        # Recommended: Replace v1 with full 40-character SHA from:
-        # https://github.com/coderabbitai/action/commits/v1
-        # Example format: uses: coderabbitai/action@1234567890abcdef1234567890abcdef12345678
-        uses: actions/checkout@v4
+      - uses: coderabbitai/action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           language: "es"
