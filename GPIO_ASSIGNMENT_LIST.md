@@ -83,7 +83,7 @@ Los siguientes GPIOs son strapping pins y afectan el comportamiento de boot:
 | GPIO | Función Strapping | Estado Actual | Notas |
 |------|-------------------|---------------|-------|
 | **0** | Boot mode | 🆓 LIBRE | Requiere pull-up externo. LOW durante boot = Download mode |
-| **3** | JTAG enable | ✅ EN USO (WHEEL_FL) | OK si no se usa JTAG para debug |
+| **3** | JTAG enable | 🆓 LIBRE | Liberado en v2.17.2 (WHEEL_FL movido a GPIO 7) |
 | **45** | VDD_SPI voltage | 🆓 LIBRE | Afecta voltaje flash. Usar con precaución |
 | **46** | Boot/ROM log | ✅ EN USO (RELAY_SPARE) | Debe estar HIGH durante boot. Configurar OUTPUT early |
 
