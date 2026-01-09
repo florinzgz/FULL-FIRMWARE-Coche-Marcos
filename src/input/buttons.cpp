@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "system.h"     // para logError()
 #include "alerts.h"
+#include "led_controller.h"  // 🔒 v2.11.3: Para control de luces hazard
 #include <Arduino.h>
 
 // 🆕 v2.9.4: Forward declaration para función en main.cpp
@@ -22,6 +23,9 @@ static bool longPressTriggered[BTN_COUNT]         = {false};
 static bool ev[BTN_COUNT] = {false};
 
 static bool initialized = false;
+
+// 🔒 v2.11.3: Estado de luces hazard (emergencia)
+static bool hazardLightsActive = false;
 
 // Logger antispam
 static bool invalidPinLogged[BTN_COUNT] = {false};
@@ -68,6 +72,8 @@ void Buttons::init() {
         pressStartMs[i] = 0;
     }
     // v2.14.0: Removed veryLongPressTriggered
+    // 🔒 v2.11.3: Inicializar estado de luces hazard
+    hazardLightsActive = false;
     initialized = true;
     Logger::info("Buttons init OK (lights only)");
 }
@@ -90,9 +96,16 @@ void Buttons::update() {
     } else if (state[BTN_LIGHTS] && lastState[BTN_LIGHTS]) {
         if (!longPressTriggered[BTN_LIGHTS] && now - pressStartMs[BTN_LIGHTS] >= LONG_PRESS_MS) {
             longPressTriggered[BTN_LIGHTS] = true;
-            Logger::info("Buttons: LIGHTS long-press detectado");
+            // 🔒 v2.11.3: Toggle hazard lights on long-press
+            hazardLightsActive = !hazardLightsActive;
+            if (hazardLightsActive) {
+                Logger::info("Buttons: Hazard lights ENABLED");
+                LEDController::setTurnSignal(LEDController::TURN_HAZARD);
+            } else {
+                Logger::info("Buttons: Hazard lights DISABLED");
+                LEDController::setTurnSignal(LEDController::TURN_OFF);
+            }
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
-            // TODO: activar luces emergencia/hazard aquí
         }
     } else if(!state[BTN_LIGHTS] && lastState[BTN_LIGHTS]) {
         // botón soltado
