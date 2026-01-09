@@ -1,37 +1,76 @@
-Analiza este proyecto ESP32-S3-WROOM-2 N32R16V usando PlatformIO + Arduino (NO ESP-IDF).
+Analiza este proyecto basado en {{MCU}} usando PlatformIO + Arduino (NO ESP-IDF).
+
+CONFIGURACIÓN DEL PROYECTO (NO MODIFICAR):
+- Plataforma: PlatformIO
+- MCU: {{MCU}}
+- framework = arduino
+- Flash: {{FLASH_SIZE}} en modo QIO
+- PSRAM: {{PSRAM_SIZE}} en modo OPI
+
+CONFIGURACIÓN DE MEMORIA CORRECTA (INTOCABLE):
+- board_build.flash_mode = qio
+- board_build.psram_type = opi
+- board_build.arduino.memory_type = qio
 
 REQUISITOS TÉCNICOS OBLIGATORIOS:
-- Flash: 32MB en modo QIO (NO OPI Flash)
-- PSRAM: 16MB en modo OPI usando solo board_build.psram_type = opi
-- memory_type = qio (NO qio_opi)
-- NO usar sdkconfig.h
-- NO usar sdkconfig.defaults
-- NO usar CONFIG_* de ESP-IDF
-- NO activar rutas de OPI Flash
-- NO cambiar framework = arduino
+1. NO usar ESP-IDF directamente.
+2. NO usar sdkconfig.h.
+3. NO usar sdkconfig.defaults.
+4. NO usar ninguna macro CONFIG_* de ESP-IDF.
+5. NO activar rutas de OPI Flash (solo PSRAM en OPI).
+6. NO cambiar framework = arduino.
+7. NO sugerir qio_opi, NO activar OPI Flash, NO migrar a ESP-IDF.
 
 PROBLEMA:
 El build falla con:
-    fatal error: sdkconfig.h: No such file or directory
+  fatal error: sdkconfig.h: No such file or directory
 
 OBJETIVO:
-Determinar qué archivos del código incluyen sdkconfig.h o usan CONFIG_* y corregirlos, porque Arduino-ESP32 NO genera sdkconfig.h y NO usa Kconfig.
+Identificar qué archivos del proyecto incluyen sdkconfig.h o usan CONFIG_*, y corregirlos de forma segura para Arduino-ESP32.
 
 TAREAS:
-1. Buscar en el repositorio cualquier línea que incluya:
-       #include <sdkconfig.h>
-   y eliminarla o reemplazarla.
 
-2. Buscar cualquier uso de CONFIG_* (por ejemplo CONFIG_SPIRAM_*) y reemplazarlo por defines manuales o APIs de Arduino equivalentes.
+1) AUDITORÍA COMPLETA:
+  - Buscar en TODO el repositorio:
+      #include <sdkconfig.h>
+      #include "sdkconfig.h"
+      CONFIG_*
+  - Para cada coincidencia, devolver:
+      • Ruta del archivo
+      • Número de línea
+      • Línea exacta
 
-3. NO modificar la configuración de memoria correcta:
-       board_build.flash_mode = qio
-       board_build.psram_type = opi
-       board_build.arduino.memory_type = qio
+2) CLASIFICAR ORIGEN:
+  - Indicar si el archivo es:
+      • Código propio
+      • Librería incluida en el repo
+  - NO analizar paquetes externos de PlatformIO fuera del repo.
 
-4. NO sugerir qio_opi, NO activar OPI Flash, NO usar ESP-IDF.
+3) PROPONER CORRECCIONES:
+  Para cada include de sdkconfig.h:
+    - Eliminarlo o reemplazarlo por includes válidos de Arduino.
+  Para cada macro CONFIG_*:
+    - Reemplazar por:
+        • Defines manuales en un header central (por ejemplo config_arduino.h)
+        • O APIs de Arduino equivalentes (ESP.getPsramSize(), etc.)
+    - NO usar CONFIG_* nuevas.
+    - NO usar sdkconfig.h.
 
-Devuélveme:
-- Los archivos exactos que contienen sdkconfig.h o CONFIG_*
-- Las líneas que deben eliminarse o corregirse
-- Las correcciones seguras para Arduino
+4) RESTRICCIONES:
+  - NO modificar:
+      board_build.flash_mode = qio
+      board_build.psram_type = opi
+      board_build.arduino.memory_type = qio
+  - NO sugerir qio_opi.
+  - NO activar OPI Flash.
+  - NO migrar a ESP-IDF.
+  - NO usar Kconfig.
+
+5) SALIDA ESPERADA:
+  - Lista de archivos afectados.
+  - Líneas exactas a corregir.
+  - Corrección propuesta para cada caso.
+  - Header sugerido con defines manuales (si aplica).
+  - Confirmación de que la configuración de memoria NO ha sido alterada.
+
+Quiero un análisis exhaustivo, preciso y seguro para PlatformIO + Arduino.
