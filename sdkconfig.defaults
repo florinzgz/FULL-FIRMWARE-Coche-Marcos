@@ -1,37 +1,15 @@
 # ============================================================================
-# ESP32-S3 SDK Configuration - SAFETY-CRITICAL SETTINGS
+# ESP32-S3 SDK Configuration
 # ============================================================================
 # Hardware: ESP32-S3-WROOM-2 N32R16V
-# Flash: 32MB QIO mode (eFuses NOT burned for OPI - MUST use QIO)
-# PSRAM: 16MB OPI mode (eFuses configured for OPI)
+# Flash: 32MB QIO mode
+# PSRAM: 16MB OPI mode
 # ============================================================================
-#
-# ⚠️  CRITICAL SAFETY WARNING - DO NOT ADD CONFIG_SPIRAM_* FLAGS ⚠️
-#
-# In Arduino-ESP32 framework (unlike pure ESP-IDF):
-# - PSRAM configuration is controlled by platformio.ini setting:
-#   board_build.arduino.memory_type = qio_opi
-# - CONFIG_SPIRAM_MODE_OCT does NOT control PSRAM mode
-# - CONFIG_SPIRAM_MODE_OCT controls OPI FLASH experimental routes
-# - This board has QIO Flash (NOT OPI Flash) - OPI Flash flags WILL BRICK IT
-# - Using CONFIG_SPIRAM_* flags conflicts with Arduino's memory_type system
-#
-# Previous dangerous configuration (REMOVED):
-# ❌ CONFIG_SPIRAM_MODE_OCT=y           <- Enabled OPI Flash routes (DANGEROUS!)
-# ❌ CONFIG_SPIRAM_USE_MALLOC=y         <- Conflicts with Arduino framework
-# ❌ CONFIG_SPIRAM_SIZE=16777216        <- Managed by Arduino framework
-# ❌ CONFIG_ESP32S3_SPIRAM_SUPPORT=y    <- Managed by Arduino framework
-#
-# Symptoms of OPI Flash misconfiguration:
-# - "Octal Flash option selected, but EFUSE not configured!" error
-# - Screen death, SPI failure, chip errors
-# - Bootloader unable to find flash
-# - Permanent boot loop requiring reflash
-#
-# ✅ CORRECT Configuration:
-# - PSRAM is enabled via platformio.ini: board_build.arduino.memory_type = qio_opi
-# - This file contains ONLY essential ESP-IDF system flags
-# - NO CONFIG_SPIRAM_* flags should be added to this file
+# Note: PSRAM is primarily configured via platformio.ini build_flags:
+# - CONFIG_SPIRAM_MODE_OCT=1 (Octal mode)
+# - CONFIG_SPIRAM_TYPE_ESPPSRAM64=1 (PSRAM type)
+# - CONFIG_SPIRAM_SPEED_80M=1 (80MHz speed)
+# This file contains supplementary ESP-IDF system configuration.
 # ============================================================================
 
 #
