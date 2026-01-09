@@ -41,16 +41,19 @@ jobs:
         run: pip install platformio
 
       - name: Install platform and packages
+        working-directory: ${{ github.workspace }}
         run: |
           pio platform install espressif32@6.12.0
           pio pkg install -e ${{ matrix.environment }}
 
       - name: Build firmware (${{ matrix.environment }})
+        working-directory: ${{ github.workspace }}
         run: |
           pio run -t clean -e ${{ matrix.environment }}
           pio run -e ${{ matrix.environment }}
 
       - name: Verify sdkconfig was generated (${{ matrix.environment }})
+        working-directory: ${{ github.workspace }}
         run: |
           if [ -f ".pio/build/${{ matrix.environment }}/config/sdkconfig.h" ]; then
             echo "✅ sdkconfig.h OK for ${{ matrix.environment }}"
@@ -113,24 +116,31 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
 
-      - run: |
+      - name: Install build tools
+        run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3-pip wget unzip
           pip install platformio
           wget https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
           unzip build-wrapper-linux-x86.zip
 
-      - run: rm -rf .pio/build bw-output
+      - name: Clean previous builds
+        working-directory: ${{ github.workspace }}
+        run: rm -rf .pio/build bw-output
 
-      - run: |
+      - name: Run build-wrapper
+        working-directory: ${{ github.workspace }}
+        run: |
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
             --out-dir bw-output \
             pio run -e esp32-s3-n32r16v -v
 
-      - run: |
-          test -f bw-output/build-wrapper-dump.json
+      - name: Verify build-wrapper output
+        working-directory: ${{ github.workspace }}
+        run: test -f bw-output/build-wrapper-dump.json
 
-      - uses: sonarsource/sonarcloud-github-action@v2
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with: 
