@@ -50,9 +50,24 @@ permissions:
     - name: Install PlatformIO
       run: pip install platformio
 
+    - name: Install platform and verify framework
+      run: |
+        # Instalar platform completo para asegurar que sdkconfig.h se genera
+        pio platform install espressif32@6.12.0
+        # Instalar dependencias del environment específico
+        pio pkg install -e ${{ matrix.environment }}
+        # Verificar que sdkconfig.h existe
+        echo "=== Checking for sdkconfig.h ==="
+        if find ~/.platformio -name "sdkconfig.h" -type f | grep -q .; then
+          echo "✅ sdkconfig.h found"
+        else
+          echo "❌ ERROR: sdkconfig.h not found - framework installation incomplete"
+          exit 1
+        fi
+
     # 4. Compilar el firmware para el entorno especificado
     - name: Build firmware (${{ matrix.environment }})
-      run: pio run -e ${{ matrix.environment }}
+      run: pio run -e ${{ matrix.environment }} -v
 
     # 5. Subir artefactos de compilación
     - name: Upload firmware artifact
