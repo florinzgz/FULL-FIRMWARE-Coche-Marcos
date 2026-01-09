@@ -34,6 +34,12 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Clean PlatformIO framework cache
+      run: |
+        rm -rf ~/.platformio/packages/framework-arduinoespressif32 || true
+        rm -rf ~/.platformio/packages/toolchain-xtensa-esp32s3 || true
+        echo "✅ Framework and toolchain cache cleaned for fresh install"
+
     - name: Install PlatformIO
       run: pip install platformio
 
