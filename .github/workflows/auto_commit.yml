@@ -30,7 +30,9 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          ~/.platformio
+          ~/.platformio/packages
+          ~/.platformio/platforms
+          ~/.platformio/toolchains
           ~/.cache/pip
         key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
         restore-keys: |
@@ -45,16 +47,19 @@ jobs:
       run: pip install platformio
 
     - name: Install platform and packages
+      working-directory: ${{ github.workspace }}
       run: |
         pio platform install espressif32@6.12.0
         pio pkg install -e ${{ matrix.environment }}
 
     - name: Build firmware (${{ matrix.environment }})
+      working-directory: ${{ github.workspace }}
       run: |
         pio run -t clean -e ${{ matrix.environment }}
         pio run -e ${{ matrix.environment }}
 
     - name: Verify sdkconfig was generated (${{ matrix.environment }})
+      working-directory: ${{ github.workspace }}
       run: |
         if [ -f ".pio/build/${{ matrix.environment }}/config/sdkconfig.h" ]; then
           echo "✅ sdkconfig.h OK for ${{ matrix.environment }}"
@@ -85,27 +90,17 @@ jobs:
 
     - name: Verify build outputs
       run: |
-        echo "🔍 Verificación de compilación de firmware"
-        echo "=========================================="
-
         EXPECTED_ENVS=("esp32-s3-n32r16v" "esp32-s3-n32r16v-release" "esp32-s3-n32r16v-touch-debug" "esp32-s3-n32r16v-no-touch")
         TOTAL_ENVIRONMENTS=${#EXPECTED_ENVS[@]}
 
         BUILD_COUNT=$(find artifacts -name "firmware.bin" | wc -l)
-        echo "✅ Compilaciones exitosas: $BUILD_COUNT/$TOTAL_ENVIRONMENTS"
 
-        echo ""
-        echo "📦 Artefactos generados:"
-        find artifacts -name "firmware.bin" -exec ls -lh {} \;
-
-        if [ "$BUILD_COUNT" -eq "$TOTAL_ENVIRONMENTS" ]; then
-          echo ""
-          echo "✅ Todos los entornos compilaron correctamente"
-        else
-          echo ""
-          echo "❌ Algunos entornos fallaron la compilación"
+        if [ "$BUILD_COUNT" -ne "$TOTAL_ENVIRONMENTS" ]; then
+          echo "❌ Some builds failed"
           exit 1
         fi
+
+        find artifacts -name "firmware.bin" -exec ls -lh {} \;
 
     - name: Generate verification report
       run: |
@@ -113,14 +108,11 @@ jobs:
 
         echo "# 🔧 Firmware Verification Report" > VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
-        echo "**Fecha:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> VERIFICATION_REPORT.md
         echo "**Commit:** ${{ github.sha }}" >> VERIFICATION_REPORT.md
         echo "**Branch:** ${{ github.ref_name }}" >> VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
-        echo "## 📊 Resultados de Compilación" >> VERIFICATION_REPORT.md
-        echo "" >> VERIFICATION_REPORT.md
-        echo "| Entorno | Estado | Tamaño |" >> VERIFICATION_REPORT.md
-        echo "|---------|--------|--------|" >> VERIFICATION_REPORT.md
+        echo "| Environment | Status | Size |" >> VERIFICATION_REPORT.md
+        echo "|-------------|--------|------|" >> VERIFICATION_REPORT.md
 
         for env in "${EXPECTED_ENVS[@]}"; do
           if [ -f "artifacts/firmware-$env/firmware.bin" ]; then
@@ -130,17 +122,6 @@ jobs:
             echo "| $env | ❌ FAIL | - |" >> VERIFICATION_REPORT.md
           fi
         done
-
-        echo "" >> VERIFICATION_REPORT.md
-        echo "## ✅ Verificaciones Pasadas" >> VERIFICATION_REPORT.md
-        echo "" >> VERIFICATION_REPORT.md
-        echo "- [x] Todas las dependencias instaladas correctamente" >> VERIFICATION_REPORT.md
-        echo "- [x] Código compila sin errores" >> VERIFICATION_REPORT.md
-        echo "- [x] Artefactos de firmware generados" >> VERIFICATION_REPORT.md
-        echo "- [x] Todos los entornos (dev, release, touch, no-touch) verificados" >> VERIFICATION_REPORT.md
-        echo "" >> VERIFICATION_REPORT.md
-        echo "---" >> VERIFICATION_REPORT.md
-        echo "*Generado automáticamente por GitHub Actions*" >> VERIFICATION_REPORT.md
 
     - name: Upload verification report
       uses: actions/upload-artifact@v4
