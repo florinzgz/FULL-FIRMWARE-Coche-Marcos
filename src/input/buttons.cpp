@@ -103,6 +103,8 @@ void Buttons::update() {
                 LEDController::setTurnSignal(LEDController::TURN_HAZARD);
             } else {
                 Logger::info("Buttons: Hazard lights DISABLED");
+                // Note: Setting TURN_OFF is intentional - hazard lights override any other turn signals
+                // and when disabled, we return to no-signal state (standard automotive behavior)
                 LEDController::setTurnSignal(LEDController::TURN_OFF);
             }
             Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
