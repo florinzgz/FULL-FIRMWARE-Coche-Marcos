@@ -1,7 +1,7 @@
 # Lista Completa de Asignación de GPIOs - ESP32-S3
 
 **Fecha**: 2026-01-09  
-**Versión**: v2.11.3+  
+**Versión**: v2.17.2  
 **Hardware**: ESP32-S3-WROOM-2 N32R16V (32MB Flash + 16MB PSRAM)
 
 ---
@@ -22,11 +22,11 @@ LADO 2: 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4
 | **0** | 🆓 **LIBRE** | - | - | ⚠️ Strapping pin (Boot mode). Antes KEY_SYSTEM |
 | **1** | ✅ EN USO | WHEEL_RR | Input | Rueda trasera derecha (v2.16.1) |
 | **2** | ✅ EN USO | BTN_LIGHTS | Input | Botón luces físico |
-| **3** | ✅ EN USO | WHEEL_FL | Input | Sensor rueda delantera izquierda |
+| **3** | 🆓 **LIBRE** | - | - | ⚠️ Strapping pin (JTAG). WHEEL_FL movido a GPIO 7 en v2.17.2 |
 | **4** | ✅ EN USO | PEDAL (ADC) | Analog In | Sensor Hall pedal (ADC1_CH3) |
 | **5** | ✅ EN USO | RELAY_TRAC | Output | Relé tracción 24V |
 | **6** | ✅ EN USO | RELAY_DIR | Output | Relé dirección 12V |
-| **7** | 🆓 **LIBRE** | - | - | ✅ Disponible (RELAY_SPARE movido a GPIO 46) |
+| **7** | ✅ EN USO | WHEEL_FL | Input | Sensor rueda delantera izquierda (v2.17.2) |
 | **8** | ✅ EN USO | I2C_SDA | I/O | Bus I²C Data |
 | **9** | ✅ EN USO | I2C_SCL | I/O | Bus I²C Clock |
 | **10** | ✅ EN USO | TFT_SCK | Output | SPI Clock (display) |
@@ -66,11 +66,11 @@ LADO 2: 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4
 | GPIO | Tipo Strapping | Notas de Seguridad |
 |------|----------------|-------------------|
 | **0** | ⚠️ SÍ | Boot mode pin - Evitar señales LOW durante boot |
-| **7** | ❌ NO | **PIN SEGURO** - Liberado en v2.11.3 |
+| **3** | ⚠️ SÍ | JTAG enable pin - Liberado en v2.17.2 (antes WHEEL_FL) |
 | **45** | ⚠️ SÍ | VDD_SPI voltage select - Usar con precaución |
 
 ### Recomendación de Uso
-- **GPIO 7**: 🟢 **MÁS RECOMENDADO** - Pin seguro, no strapping, sin restricciones
+- **GPIO 3**: 🟡 **USAR CON CUIDADO** - Strapping pin JTAG, puede interferir con debugging
 - **GPIO 0**: 🟡 **USAR CON CUIDADO** - Strapping pin, requiere pull-up externo
 - **GPIO 45**: 🟡 **USAR CON CUIDADO** - Strapping pin, puede afectar voltaje VDD_SPI
 
@@ -113,7 +113,7 @@ Los siguientes GPIOs son strapping pins y afectan el comportamiento de boot:
 - GPIO 47: TOUCH_IRQ (Touch Interrupt)
 
 ### Sensores de Ruedas (4 pines)
-- GPIO 3: WHEEL_FL (Rueda delantera izquierda)
+- GPIO 7: WHEEL_FL (Rueda delantera izquierda)
 - GPIO 36: WHEEL_FR (Rueda delantera derecha)
 - GPIO 15: WHEEL_RL (Rueda trasera izquierda)
 - GPIO 1: WHEEL_RR (Rueda trasera derecha)
@@ -168,6 +168,10 @@ Además de los GPIOs del ESP32-S3, el sistema usa un expansor MCP23017 con 16 pi
 
 ## CAMBIOS RECIENTES
 
+### v2.17.2 (2026-01-09)
+- ✅ **GPIO 7**: Asignado a WHEEL_FL (movido desde GPIO 3 para evitar strapping pin)
+- ✅ **GPIO 3**: Liberado (strapping pin JTAG, ahora disponible)
+
 ### v2.16.1
 - ✅ **GPIO 1**: Asignado a WHEEL_RR (movido desde GPIO 16/46)
 
@@ -190,7 +194,7 @@ Además de los GPIOs del ESP32-S3, el sistema usa un expansor MCP23017 con 16 pi
 
 ### ✅ Pines Más Seguros para Expansión
 Si necesitas más GPIOs, los más recomendados son:
-1. **GPIO 7** - Completamente seguro, sin restricciones
+1. **GPIO 3** - Strapping pin (JTAG), usar con precaución si no se usa JTAG
 2. Pines del MCP23017 Bank B (GPIOB5-B7) - 3 pines adicionales disponibles
 
 ### 🔒 Pines Reservados del Sistema
@@ -207,11 +211,11 @@ Los siguientes pines están reservados por hardware y NO están disponibles:
 GPIO 0:  🆓 LIBRE (strapping)
 GPIO 1:  ✅ EN USO (WHEEL_RR)
 GPIO 2:  ✅ EN USO (BTN_LIGHTS)
-GPIO 3:  ✅ EN USO (WHEEL_FL, strapping)
+GPIO 3:  🆓 LIBRE (strapping JTAG)
 GPIO 4:  ✅ EN USO (PEDAL ADC)
 GPIO 5:  ✅ EN USO (RELAY_TRAC)
 GPIO 6:  ✅ EN USO (RELAY_DIR)
-GPIO 7:  🆓 LIBRE ⭐ RECOMENDADO
+GPIO 7:  ✅ EN USO (WHEEL_FL) ⭐ v2.17.2
 GPIO 8:  ✅ EN USO (I2C_SDA)
 GPIO 9:  ✅ EN USO (I2C_SCL)
 GPIO 10: ✅ EN USO (TFT_SCK)
@@ -246,8 +250,8 @@ GPIO 48: ✅ EN USO (LED_REAR)
 
 **Total GPIOs ESP32-S3**: 36 disponibles  
 **En uso**: 33 pines  
-**Libres**: 3 pines (GPIO 0, 7, 45)  
-**Mejor opción para expansión**: **GPIO 7** ⭐
+**Libres**: 3 pines (GPIO 0, 3, 45)  
+**Mejor opción para expansión**: **GPIO 3** ⚠️ (strapping JTAG, usar con cuidado)
 
 ---
 

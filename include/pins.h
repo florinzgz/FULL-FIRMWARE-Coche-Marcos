@@ -230,7 +230,7 @@
 // GPIO 46 es strapping pin (Boot mode/ROM log) - evitado
 // GPIO 1 es seguro, estable, no afecta boot (antes libre)
 // -----------------------
-#define PIN_WHEEL_FL      3   // GPIO 3  - Wheel Front Left ✅ Intercambiado v2.3.0 (antes GPIO 21)
+#define PIN_WHEEL_FL      7   // GPIO 7  - Wheel Front Left ✅ v2.17.2: Movido de GPIO 3 (strapping JTAG)
 #define PIN_WHEEL_FR      36  // GPIO 36 - Wheel Front Right
 #define PIN_WHEEL_RL      15  // GPIO 15 - Wheel Rear Left
 #define PIN_WHEEL_RR      1   // GPIO 1  - Wheel Rear Right ✅ v2.16.0: Movido GPIO 16→46→1 (evitar strapping)
@@ -322,11 +322,11 @@
 │  0   │ KEY_SYSTEM              │ Input     │ ⚠️ Strapping (Boot), pull-up ext │
 │  1   │ WHEEL_RR                │ Input     │ ✅ v2.16.1: Rueda trasera der   │
 │  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
-│  3   │ WHEEL_FL                │ Input     │ Sensor rueda delantera izq      │
+│  3   │ 🆓 LIBRE                │ -         │ ✅ v2.17.2: WHEEL_FL→GPIO 7     │
 │  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal     │
 │  5   │ RELAY_TRAC              │ Output    │ Relé tracción 24V               │
 │  6   │ RELAY_DIR               │ Output    │ Relé dirección 12V              │
-│  7   │ 🆓 LIBRE                │ -         │ ✅ v2.11.3: RELAY_SPARE→GPIO 46 │
+│  7   │ WHEEL_FL                │ Input     │ ✅ v2.17.2: Movido desde GPIO 3 │
 │  8   │ I2C_SDA                 │ I/O       │ Bus I²C Data                    │
 │  9   │ I2C_SCL                 │ I/O       │ Bus I²C Clock                   │
 │ 10   │ TFT_SCK                 │ Output    │ SPI Clock                       │
@@ -384,6 +384,10 @@ MEJORAS v2.3.0:
 ✅ LED_REAR: GPIO 19 → GPIO 48 (resuelve conflicto)
 ✅ TOUCH_IRQ: GPIO 46 → GPIO 47 (evita strapping pin)
 ✅ SHIFTER COMPLETO: GPIOs dispersos → MCP23017 GPIOB0-B4 (pines consecutivos)
+
+MEJORAS v2.17.2:
+✅ PIN_WHEEL_FL: GPIO 3 → GPIO 7 (evita strapping pin JTAG, mejora confiabilidad)
+✅ GPIO 3 liberado (strapping pin, ahora disponible para uso futuro)
 
 MEJORAS v2.4.1:
 ✅ VL53L5X XSHUT: Asignados a GPIO 18, 19, 45, 46 (antes libres)
