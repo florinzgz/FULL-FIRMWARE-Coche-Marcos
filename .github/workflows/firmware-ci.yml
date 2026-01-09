@@ -36,9 +36,11 @@ jobs:
         run: pip install platformio
 
       - name: Clean previous builds
+        working-directory: ${{ github.workspace }}
         run: rm -rf .pio/build
 
       - name: Compile all environments
+        working-directory: ${{ github.workspace }}
         run: |
           for env in \
             esp32-s3-n32r16v \
