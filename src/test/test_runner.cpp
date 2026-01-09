@@ -63,8 +63,7 @@ bool runPreDeploymentTests() {
 #ifdef ENABLE_AUDIO_VALIDATION_TESTS
   Logger::info(
       "\n┌────────────────────────────────────────────────────────────┐");
-  Logger::info(
-      "│ 0/5: AUDIO VALIDATION TESTING (68 Tracks)                 │");
+  Logger::info("│ 0/5: AUDIO VALIDATION TESTING (68 Tracks)                 │");
   Logger::info(
       "└────────────────────────────────────────────────────────────┘");
 
@@ -72,13 +71,15 @@ bool runPreDeploymentTests() {
   bool audioOk = AudioValidationTests::runAllTests();
 
   uint32_t audioCount = 0;
-  const AudioValidationTests::TestResult* audioResults = 
+  const AudioValidationTests::TestResult *audioResults =
       AudioValidationTests::getResults(audioCount);
-  
+
   uint32_t audioPassed = 0, audioFailed = 0;
   for (uint32_t i = 0; i < audioCount; i++) {
-    if (audioResults[i].passed) audioPassed++;
-    else audioFailed++;
+    if (audioResults[i].passed)
+      audioPassed++;
+    else
+      audioFailed++;
   }
 
   totalPassed += audioPassed;
@@ -196,8 +197,8 @@ bool runPreDeploymentTests() {
 
 bool isTestModeEnabled() {
 #if defined(ENABLE_FUNCTIONAL_TESTS) || defined(ENABLE_MEMORY_STRESS_TESTS) || \
-    defined(ENABLE_HARDWARE_FAILURE_TESTS) || defined(ENABLE_WATCHDOG_TESTS) || \
-    defined(ENABLE_AUDIO_VALIDATION_TESTS)
+    defined(ENABLE_HARDWARE_FAILURE_TESTS) ||                                  \
+    defined(ENABLE_WATCHDOG_TESTS) || defined(ENABLE_AUDIO_VALIDATION_TESTS)
   return true;
 #else
   return false;

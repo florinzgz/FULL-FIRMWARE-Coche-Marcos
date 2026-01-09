@@ -1,6 +1,9 @@
 #include "traction.h"
+#include "adaptive_cruise.h"
 #include "current.h"
 #include "logger.h"
+#include "mcp23017_manager.h"
+#include "obstacle_safety.h"
 #include "pedal.h"
 #include "pins.h"
 #include "pwm_channels.h"
@@ -10,12 +13,9 @@
 #include "storage.h"
 #include "system.h"
 #include "wheels.h"
-#include "mcp23017_manager.h"
-#include "adaptive_cruise.h"
-#include "obstacle_safety.h"
 
-#include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <Wire.h>
 #include <algorithm> // std::min, std::max
 #include <cmath>     // std::isfinite, std::fabs, std::round
 #include <cstdint>
@@ -34,37 +34,36 @@ static bool pcaFrontOK = false;
 static bool pcaRearOK = false;
 
 // MCP23017 manager for shared motor direction control (IN1/IN2)
-static MCP23017Manager* mcpManager = nullptr;
+static MCP23017Manager *mcpManager = nullptr;
 
 static Traction::State s;
 static bool initialized = false;
-static uint32_t lastInterventionLogMs = 0;  // v2.12.0: Throttle intervention logging
+static uint32_t lastInterventionLogMs =
+    0; // v2.12.0: Throttle intervention logging
 
 // ============================================================================
 // Motor Safety Constants - v2.11.5
 // ============================================================================
 // Validación de PWM para prevenir crashes por canales inválidos
 namespace MotorSafety {
-    constexpr uint16_t PWM_MAX_VALUE = 4095;  // PCA9685 12-bit max
+constexpr uint16_t PWM_MAX_VALUE = 4095; // PCA9685 12-bit max
 }
 
 // ✅ NUEVO v2.11.5: Helper para validar canal PWM antes de uso
-static inline bool validatePWMChannel(uint8_t channel, const char* context) {
-    if (!pwm_channel_valid(channel)) {
-        Logger::errorf("PWM: Invalid channel %d in %s (max %d)", 
-                      channel, context, PCA9685_MAX_CHANNEL);
-        return false;
-    }
-    return true;
+static inline bool validatePWMChannel(uint8_t channel, const char *context) {
+  if (!pwm_channel_valid(channel)) {
+    Logger::errorf("PWM: Invalid channel %d in %s (max %d)", channel, context,
+                   PCA9685_MAX_CHANNEL);
+    return false;
+  }
+  return true;
 }
 
 namespace {
 // Implementación independiente de std::clamp para máxima compatibilidad
 inline float clampf(float v, float lo, float hi) {
-  if (v < lo)
-    return lo;
-  if (v > hi)
-    return hi;
+  if (v < lo) return lo;
+  if (v > hi) return hi;
   return v;
 }
 
@@ -82,7 +81,8 @@ inline uint16_t pwmToTicks(float pwm) {
   return static_cast<uint16_t>(std::round(ticks_f));
 }
 
-inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse) {
+inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks,
+                                 bool reverse) {
   if (wheelIndex < 0 || wheelIndex >= 4) {
     Logger::errorf("Traction: Invalid wheel index %d", wheelIndex);
     return;
@@ -97,7 +97,8 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
       } else {
         if (fwdValid) pcaFront.setPWM(PCA_FRONT_CH_FL_FWD, 0, 0);
         if (revValid) pcaFront.setPWM(PCA_FRONT_CH_FL_REV, 0, 0);
-        Logger::errorf("PWM: Channel pair invalid FL (fwd:%d, rev:%d)", fwdValid, revValid);
+        Logger::errorf("PWM: Channel pair invalid FL (fwd:%d, rev:%d)",
+                       fwdValid, revValid);
       }
     }
     if (mcpManager && mcpManager->isOK()) {
@@ -114,7 +115,8 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
       } else {
         if (fwdValid) pcaFront.setPWM(PCA_FRONT_CH_FR_FWD, 0, 0);
         if (revValid) pcaFront.setPWM(PCA_FRONT_CH_FR_REV, 0, 0);
-        Logger::errorf("PWM: Channel pair invalid FR (fwd:%d, rev:%d)", fwdValid, revValid);
+        Logger::errorf("PWM: Channel pair invalid FR (fwd:%d, rev:%d)",
+                       fwdValid, revValid);
       }
     }
     if (mcpManager && mcpManager->isOK()) {
@@ -131,7 +133,8 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
       } else {
         if (fwdValid) pcaRear.setPWM(PCA_REAR_CH_RL_FWD, 0, 0);
         if (revValid) pcaRear.setPWM(PCA_REAR_CH_RL_REV, 0, 0);
-        Logger::errorf("PWM: Channel pair invalid RL (fwd:%d, rev:%d)", fwdValid, revValid);
+        Logger::errorf("PWM: Channel pair invalid RL (fwd:%d, rev:%d)",
+                       fwdValid, revValid);
       }
     }
     if (mcpManager && mcpManager->isOK()) {
@@ -148,7 +151,8 @@ inline void applyHardwareControl(int wheelIndex, uint16_t pwmTicks, bool reverse
       } else {
         if (fwdValid) pcaRear.setPWM(PCA_REAR_CH_RR_FWD, 0, 0);
         if (revValid) pcaRear.setPWM(PCA_REAR_CH_RR_REV, 0, 0);
-        Logger::errorf("PWM: Channel pair invalid RR (fwd:%d, rev:%d)", fwdValid, revValid);
+        Logger::errorf("PWM: Channel pair invalid RR (fwd:%d, rev:%d)",
+                       fwdValid, revValid);
       }
     }
     if (mcpManager && mcpManager->isOK()) {
@@ -171,7 +175,8 @@ constexpr float PWM_MIN = 0.0f;
 constexpr float TEMP_MIN_VALID = -40.0f;
 constexpr float TEMP_MAX_VALID = 150.0f;
 constexpr float TEMP_CRITICAL = 120.0f;
-constexpr float TEMP_EMERGENCY_SHUTDOWN = 130.0f;  // 🔒 v2.16.0: Emergency motor shutdown threshold
+constexpr float TEMP_EMERGENCY_SHUTDOWN =
+    130.0f; // 🔒 v2.16.0: Emergency motor shutdown threshold
 constexpr float CURRENT_MAX_REASONABLE = 200.0f;
 constexpr uint32_t I2C_RETRY_INTERVAL_MS = 50;
 
@@ -181,14 +186,12 @@ inline float demandPctToPwm(float pct) {
 }
 
 inline bool isCurrentValid(float currentA) {
-  return std::isfinite(currentA) &&
-         currentA >= -CURRENT_MAX_REASONABLE &&
+  return std::isfinite(currentA) && currentA >= -CURRENT_MAX_REASONABLE &&
          currentA <= CURRENT_MAX_REASONABLE;
 }
 
 inline bool isTempValid(float tempC) {
-  return std::isfinite(tempC) &&
-         tempC >= TEMP_MIN_VALID &&
+  return std::isfinite(tempC) && tempC >= TEMP_MIN_VALID &&
          tempC <= TEMP_MAX_VALID;
 }
 } // namespace
@@ -218,29 +221,33 @@ void Traction::init() {
 
   // Initialize PCA9685 front axle (0x40) with non-blocking retry
   if (!pcaFrontOK && !pcaFrontRetrying) {
-    pcaFront.begin(I2C_ADDR_PCA9685_FRONT);  // 🔒 v2.11.6: Explicit address since no constructor param
+    pcaFront.begin(I2C_ADDR_PCA9685_FRONT); // 🔒 v2.11.6: Explicit address
+                                            // since no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_FRONT);
     pcaFrontOK = (Wire.endTransmission() == 0);
     if (!pcaFrontOK) {
-      Logger::error("Traction: PCA9685 Front (0x40) init FAIL - will retry asynchronously");
+      Logger::error("Traction: PCA9685 Front (0x40) init FAIL - will retry "
+                    "asynchronously");
       pcaFrontRetrying = true;
       pcaFrontRetryTime = millis();
     }
   }
 
-  if (pcaFrontRetrying && (millis() - pcaFrontRetryTime >= I2C_RETRY_INTERVAL_MS)) {
-    pcaFront.begin(I2C_ADDR_PCA9685_FRONT);  // 🔒 v2.11.6: Explicit address since no constructor param
+  if (pcaFrontRetrying &&
+      (millis() - pcaFrontRetryTime >= I2C_RETRY_INTERVAL_MS)) {
+    pcaFront.begin(I2C_ADDR_PCA9685_FRONT); // 🔒 v2.11.6: Explicit address
+                                            // since no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_FRONT);
     pcaFrontOK = (Wire.endTransmission() == 0);
     pcaFrontRetrying = false;
     if (!pcaFrontOK) {
       Logger::error("Traction: PCA9685 Front (0x40) init FAIL definitivo");
-      System::logError(830);  // Error code: PCA9685 Front init failure
+      System::logError(830); // Error code: PCA9685 Front init failure
     }
   }
 
   if (pcaFrontOK) {
-    pcaFront.setPWMFreq(1000);  // 1kHz for BTS7960
+    pcaFront.setPWMFreq(1000); // 1kHz for BTS7960
     for (int ch = 0; ch < 4; ch++) {
       pcaFront.setPWM(ch, 0, 0);
     }
@@ -252,28 +259,32 @@ void Traction::init() {
 
   // Initialize PCA9685 rear axle (0x41) with non-blocking retry
   if (!pcaRearOK && !pcaRearRetrying) {
-    pcaRear.begin(I2C_ADDR_PCA9685_REAR);  // 🔒 v2.11.6: Explicit address since no constructor param
+    pcaRear.begin(I2C_ADDR_PCA9685_REAR); // 🔒 v2.11.6: Explicit address since
+                                          // no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_REAR);
     pcaRearOK = (Wire.endTransmission() == 0);
     if (!pcaRearOK) {
-      Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - will retry asynchronously");
+      Logger::error("Traction: PCA9685 Rear (0x41) init FAIL - will retry "
+                    "asynchronously");
       pcaRearRetrying = true;
       pcaRearRetryTime = millis();
     }
   }
-  if (pcaRearRetrying && (millis() - pcaRearRetryTime >= I2C_RETRY_INTERVAL_MS)) {
-    pcaRear.begin(I2C_ADDR_PCA9685_REAR);  // 🔒 v2.11.6: Explicit address since no constructor param
+  if (pcaRearRetrying &&
+      (millis() - pcaRearRetryTime >= I2C_RETRY_INTERVAL_MS)) {
+    pcaRear.begin(I2C_ADDR_PCA9685_REAR); // 🔒 v2.11.6: Explicit address since
+                                          // no constructor param
     Wire.beginTransmission(I2C_ADDR_PCA9685_REAR);
     pcaRearOK = (Wire.endTransmission() == 0);
     pcaRearRetrying = false;
     if (!pcaRearOK) {
       Logger::error("Traction: PCA9685 Rear (0x41) init FAIL definitivo");
-      System::logError(831);  // Error code: PCA9685 Rear init failure
+      System::logError(831); // Error code: PCA9685 Rear init failure
     }
   }
 
   if (pcaRearOK) {
-    pcaRear.setPWMFreq(1000);  // 1kHz for BTS7960
+    pcaRear.setPWMFreq(1000); // 1kHz for BTS7960
     for (int ch = 0; ch < 4; ch++) {
       pcaRear.setPWM(ch, 0, 0);
     }
@@ -306,7 +317,7 @@ void Traction::setMode4x4(bool on) {
 // El parámetro speedPct se mantiene por compatibilidad pero no se usa
 void Traction::setAxisRotation(bool enabled, float speedPct) {
   (void)speedPct; // No se usa, velocidad controlada por pedal
-  
+
   bool wasEnabled = s.axisRotation;
   s.axisRotation = enabled;
 
@@ -321,7 +332,7 @@ void Traction::setAxisRotation(bool enabled, float speedPct) {
     // Reset controlado: asegurar que todas las ruedas vuelvan a modo normal
     for (int i = 0; i < 4; ++i) {
       s.w[i].reverse = false;
-      s.w[i].demandPct = 0.0f;  // Detener todas las ruedas suavemente
+      s.w[i].demandPct = 0.0f; // Detener todas las ruedas suavemente
       s.w[i].outPWM = 0.0f;
     }
     // Apagar motores en hardware
@@ -411,7 +422,7 @@ void Traction::update() {
     // Calcular PWM y leer sensores con validación mejorada
     for (int i = 0; i < 4; ++i) {
       s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
-      
+
       // Apply PWM and direction to hardware
       uint16_t pwmTicks = pwmToTicks(s.w[i].outPWM);
       applyHardwareControl(i, pwmTicks, s.w[i].reverse);
@@ -420,8 +431,9 @@ void Traction::update() {
       if (cfg.currentSensorsEnabled) {
         float currentA = Sensors::getCurrent(i);
         if (!isCurrentValid(currentA)) {
-          System::logError(810 + i);  // códigos 810-813 para motores FL-RR
-          Logger::warnf("Axis rotation: invalid current wheel %d: %.2fA", i, currentA);
+          System::logError(810 + i); // códigos 810-813 para motores FL-RR
+          Logger::warnf("Axis rotation: invalid current wheel %d: %.2fA", i,
+                        currentA);
           currentA = 0.0f;
         }
         s.w[i].currentA = currentA;
@@ -433,25 +445,30 @@ void Traction::update() {
       if (cfg.tempSensorsEnabled) {
         float tempC = Sensors::getTemperature(i);
         if (!isTempValid(tempC)) {
-          System::logError(820 + i);  // códigos 820-823 para motores FL-RR
-          Logger::warnf("Axis rotation: invalid temp wheel %d: %.1f°C", i, tempC);
+          System::logError(820 + i); // códigos 820-823 para motores FL-RR
+          Logger::warnf("Axis rotation: invalid temp wheel %d: %.1f°C", i,
+                        tempC);
           tempC = 0.0f;
         } else {
           // 🔒 v2.16.0: EMERGENCY SHUTDOWN at critical temperature
           // Prevents motor damage and fire risk
           if (tempC > TEMP_EMERGENCY_SHUTDOWN) {
-            Logger::errorf("EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, tempC);
-            System::logError(825 + i);  // códigos 825-828 para emergency shutdown
-            
+            Logger::errorf(
+                "EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i,
+                tempC);
+            System::logError(825 +
+                             i); // códigos 825-828 para emergency shutdown
+
             // Detener motor inmediatamente con hardware cutoff
             s.w[i].demandPct = 0.0f;
             s.w[i].outPWM = 0.0f;
             applyHardwareControl(i, 0, false);
-            
+
             // Mark motor as failed to prevent restart in this update cycle
-            tempC = TEMP_EMERGENCY_SHUTDOWN;  // Keep emergency state
+            tempC = TEMP_EMERGENCY_SHUTDOWN; // Keep emergency state
           } else if (tempC > TEMP_CRITICAL) {
-            Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i, tempC);
+            Logger::warnf("Axis rotation: critical temp wheel %d: %.1f°C", i,
+                          tempC);
           }
         }
         s.w[i].tempC = tempC;
@@ -500,17 +517,18 @@ void Traction::update() {
     // Fórmula optimizada: scale = 1.0 - (angle / 60.0)^1.2 * 0.3
     float angleNormalized = clampf(angle / 60.0f, 0.0f, 1.0f);
     float x = angleNormalized;
-    float x_pow_1_2 = static_cast<float>(std::pow(x, 1.2f));  // x^1.2 exacto
-    
+    float x_pow_1_2 = static_cast<float>(std::pow(x, 1.2f)); // x^1.2 exacto
+
     // 🔒 SECURITY FIX: Validate pow() result before using
     if (!std::isfinite(x_pow_1_2)) {
-      Logger::errorf("Traction: pow() returned invalid value for angle %.1f", angle);
-      System::logError(804);  // código: cálculo Ackermann inválido
+      Logger::errorf("Traction: pow() returned invalid value for angle %.1f",
+                     angle);
+      System::logError(804); // código: cálculo Ackermann inválido
       x_pow_1_2 = 0.0f;
     }
-    
+
     float scale = 1.0f - x_pow_1_2 * 0.3f;
-    scale = clampf(scale, 0.70f, 1.0f);  // Mínimo 70% en curvas máximas
+    scale = clampf(scale, 0.70f, 1.0f); // Mínimo 70% en curvas máximas
 
     if (steer.angleDeg > 0.0f) {
       // Giro a la derecha: reducir rueda derecha
@@ -526,11 +544,11 @@ void Traction::update() {
   // v2.12.0: Combined ACC and obstacle safety control
   float obstacleFactor = 1.0f;
   float accFactor = 1.0f;
-  
+
   // Get obstacle safety state
   ObstacleSafety::SafetyState safetyState;
   ObstacleSafety::getState(safetyState);
-  
+
   // Emergency stop <20cm with hardware cutoff
   if (safetyState.closestObstacleDistanceMm < 200) {
     // Hardware cutoff: set all PWM to 0
@@ -553,33 +571,36 @@ void Traction::update() {
     // Do not continue with normal PWM application logic after an emergency stop
     return;
   }
-  
+
   // Use obstacle safety reduction factor when not in emergency stop
   obstacleFactor = safetyState.speedReductionFactor;
-  
+
   // Get ACC factor (neutralize if obstacle emergency is active)
   accFactor = AdaptiveCruise::getSpeedAdjustment();
-  
+
   // Calculate combined reduction factor from obstacle safety and ACC
   float combinedFactor = obstacleFactor * accFactor;
-  
+
   // Conditional logging of interventions (throttled to once per second)
   uint32_t now = millis();
   if (combinedFactor < 0.95f && (now - lastInterventionLogMs > 1000)) {
-    Logger::debugf("Traction intervention: obstacle=%.2f, ACC=%.2f, combined=%.2f",
-                   obstacleFactor, accFactor, combinedFactor);
+    Logger::debugf(
+        "Traction intervention: obstacle=%.2f, ACC=%.2f, combined=%.2f",
+        obstacleFactor, accFactor, combinedFactor);
     lastInterventionLogMs = now;
   }
 
   // Aplicar reparto por rueda con factores combinados
-  // 🔒 SECURITY FIX: Validate combined factor before applying to prevent extreme scenarios
+  // 🔒 SECURITY FIX: Validate combined factor before applying to prevent
+  // extreme scenarios
   if (!std::isfinite(combinedFactor) || combinedFactor < 0.0f) {
-    Logger::errorf("Traction: invalid combined factor %.3f, using 0", combinedFactor);
-    System::logError(803);  // código: factor de reducción inválido
+    Logger::errorf("Traction: invalid combined factor %.3f, using 0",
+                   combinedFactor);
+    System::logError(803); // código: factor de reducción inválido
     combinedFactor = 0.0f;
   }
-  combinedFactor = clampf(combinedFactor, 0.0f, 1.0f);  // Ensure 0-100% range
-  
+  combinedFactor = clampf(combinedFactor, 0.0f, 1.0f); // Ensure 0-100% range
+
   s.w[FL].demandPct = clampf(front * factorFL * combinedFactor, 0.0f, 100.0f);
   s.w[FR].demandPct = clampf(front * factorFR * combinedFactor, 0.0f, 100.0f);
   s.w[RL].demandPct = clampf(rear * combinedFactor, 0.0f, 100.0f);
@@ -596,8 +617,9 @@ void Traction::update() {
       // 🔒 MEJORA: Validación robusta con verificación de rango
       if (!isCurrentValid(currentA)) {
         System::logError(810 + i); // códigos 810-813 para motores FL-RR
-        Logger::errorf("Traction: corriente inválida rueda %d: %.2fA (límite ±%.0fA)", 
-                      i, currentA, CURRENT_MAX_REASONABLE);
+        Logger::errorf(
+            "Traction: corriente inválida rueda %d: %.2fA (límite ±%.0fA)", i,
+            currentA, CURRENT_MAX_REASONABLE);
         currentA = 0.0f;
       }
       s.w[i].currentA = currentA;
@@ -618,33 +640,36 @@ void Traction::update() {
     if (cfg.tempSensorsEnabled) {
       // 🔒 API de Sensors::getTemperature() usa índices 0-based
       float t = Sensors::getTemperature(i);
-      
+
       // 🔒 MEJORA: Validación robusta con verificación de rango
       if (!isTempValid(t)) {
         System::logError(820 + i); // códigos 820-823 para motores FL-RR
-        Logger::errorf("Traction: temperatura inválida rueda %d: %.1f°C (rango %.0f-%.0f°C)", 
-                      i, t, TEMP_MIN_VALID, TEMP_MAX_VALID);
+        Logger::errorf("Traction: temperatura inválida rueda %d: %.1f°C (rango "
+                       "%.0f-%.0f°C)",
+                       i, t, TEMP_MIN_VALID, TEMP_MAX_VALID);
         t = 0.0f;
       } else {
         // 🔒 v2.16.0: EMERGENCY SHUTDOWN at critical temperature
         // Prevents motor damage and fire risk
         if (t > TEMP_EMERGENCY_SHUTDOWN) {
-          Logger::errorf("EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, t);
-          System::logError(825 + i);  // Códigos 825-828 para emergency shutdown
-          
+          Logger::errorf(
+              "EMERGENCY: Motor %d temp %.1f°C - IMMEDIATE SHUTDOWN!", i, t);
+          System::logError(825 + i); // Códigos 825-828 para emergency shutdown
+
           // Detener motor inmediatamente con hardware cutoff
           s.w[i].demandPct = 0.0f;
           s.w[i].outPWM = 0.0f;
           applyHardwareControl(i, 0, false);
-          
+
           // Mark motor as failed to prevent restart in this update cycle
-          t = TEMP_EMERGENCY_SHUTDOWN;  // Keep emergency state
+          t = TEMP_EMERGENCY_SHUTDOWN; // Keep emergency state
         } else if (t > TEMP_CRITICAL) {
-          Logger::warnf("Traction: temperatura crítica rueda %d: %.1f°C (>%.0f°C)", 
-                       i, t, TEMP_CRITICAL);
+          Logger::warnf(
+              "Traction: temperatura crítica rueda %d: %.1f°C (>%.0f°C)", i, t,
+              TEMP_CRITICAL);
         }
       }
-      
+
       s.w[i].tempC = clampf(t, TEMP_MIN_VALID, TEMP_MAX_VALID);
     } else {
       s.w[i].tempC = 0.0f;
@@ -654,9 +679,10 @@ void Traction::update() {
     // s.w[i].speedKmh = Sensors::getSpeedKmh(i);
 
     // -- PWM de salida (valor a aplicar al driver BTS7960 u otro)
-    // 🔒 MEJORA: Aplicar validación de techo de PWM (realizada dentro de demandPctToPwm)
+    // 🔒 MEJORA: Aplicar validación de techo de PWM (realizada dentro de
+    // demandPctToPwm)
     s.w[i].outPWM = demandPctToPwm(s.w[i].demandPct);
-    
+
     // Apply PWM and direction to hardware
     uint16_t pwmTicks = pwmToTicks(s.w[i].outPWM);
     applyHardwareControl(i, pwmTicks, s.w[i].reverse);

@@ -1,17 +1,18 @@
 #pragma once
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 
 /**
  * @file error_codes.h
- * @brief Centralized error codes and descriptions for the vehicle control system
+ * @brief Centralized error codes and descriptions for the vehicle control
+ * system
  * @version 2.9.5
  * @date 2025-12-05
- * 
+ *
  * This file contains all error codes used in the firmware along with their
  * human-readable descriptions. These are displayed in the hidden menu when
  * viewing system errors.
- * 
+ *
  * Error Code Ranges:
  * - 100-199: Input controls (pedal, buttons)
  * - 200-299: Steering system (encoder, steering motor)
@@ -100,7 +101,7 @@ constexpr uint16_t RELAY_UNSPECIFIED_ERROR = 699;
 // --- Audio System (700-799) ---
 constexpr uint16_t DFPLAYER_INIT_FAIL = 700;
 constexpr uint16_t DFPLAYER_COMM_ERROR = 701;
-constexpr uint16_t DFPLAYER_ERROR_BASE = 702;  // 702 + DFPlayer error code
+constexpr uint16_t DFPLAYER_ERROR_BASE = 702; // 702 + DFPlayer error code
 constexpr uint16_t ALERT_NOT_INITIALIZED = 720;
 constexpr uint16_t ALERT_INVALID_TRACK = 721;
 constexpr uint16_t ALERT_QUEUE_FULL = 722;
@@ -124,14 +125,15 @@ constexpr uint16_t TRACTION_MOTOR_RR_PWM_INVALID = 823;
 constexpr uint16_t TRACTION_PCA9685_FRONT_FAIL = 830;
 constexpr uint16_t TRACTION_PCA9685_REAR_FAIL = 831;
 constexpr uint16_t TRACTION_MCP23017_FAIL = 832;
-constexpr uint16_t MCP23017_SHARED_INIT_FAIL = 833;  // MCP23017 shared manager init fail
+constexpr uint16_t MCP23017_SHARED_INIT_FAIL =
+    833; // MCP23017 shared manager init fail
 
 // --- Storage System (900-999) ---
 constexpr uint16_t STORAGE_OPEN_FAIL = 970;
 constexpr uint16_t STORAGE_AUTO_RESTORE = 975;
 constexpr uint16_t STORAGE_WRITE_MAGIC_FAIL = 980;
 constexpr uint16_t STORAGE_WRITE_CONFIG_FAIL = 981;
-constexpr uint16_t STORAGE_FACTORY_RESET = 985;  // Informational, not an error
+constexpr uint16_t STORAGE_FACTORY_RESET = 985; // Informational, not an error
 
 // ============================================================================
 // ERROR DESCRIPTION FUNCTION
@@ -141,138 +143,149 @@ constexpr uint16_t STORAGE_FACTORY_RESET = 985;  // Informational, not an error
  * @brief Get human-readable description for an error code
  * @param code Error code (100-999)
  * @return Pointer to constant string with error description
- * 
+ *
  * Returns a brief description of the error that can be displayed in the
  * hidden menu. If the code is not recognized, returns "Error desconocido".
  */
-inline const char* getErrorDescription(uint16_t code) {
-    // Input Controls (100-199)
-    if (code == PEDAL_ERROR) return "Fallo sensor pedal";
-    
-    // Steering System (200-299)
-    if (code == STEERING_INIT_FAIL) return "Encoder no responde";
-    if (code == ENCODER_PINS_NOT_ASSIGNED) return "Pines encoder no asignados";
-    if (code == ENCODER_NOT_CENTERED) return "Encoder sin centrado";
-    if (code == ENCODER_CENTER_FAIL) return "Fallo centrado por Z";
-    if (code == ENCODER_TICKS_INVALID) return "Ticks/vuelta invalido";
-    if (code == ENCODER_Z_TIMEOUT) return "Timeout señal Z";
-    if (code == STEERING_PCA9685_NO_RESPONSE) return "PCA9685 direccion no responde";
-    if (code == STEERING_OVERCURRENT) return "Sobrecorriente motor direccion";
-    if (code == STEERING_PWM_CHANNEL_INVALID) return "Canal PWM invalido";
-    if (code == STEERING_MCP23017_FAIL) return "MCP23017 motor direccion fallo";
-    
-    // Current Sensors (300-399)
-    if (code >= 300 && code <= 303) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf300[48];  // Increased buffer size for safety margin
-        snprintf(buf300, sizeof(buf300), "INA226 %s fallo persistente", motorNames[code - 300]);
-        return buf300;
-    }
-    if (code >= 310 && code <= 313) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf310[48];  // Increased buffer size for safety margin
-        snprintf(buf310, sizeof(buf310), "INA226 %s config error", motorNames[code - 310]);
-        return buf310;
-    }
-    if (code >= 320 && code <= 323) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf320[48];  // Increased buffer size for safety margin
-        snprintf(buf320, sizeof(buf320), "INA226 %s voltaje error", motorNames[code - 320]);
-        return buf320;
-    }
-    if (code >= 330 && code <= 333) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf330[48];  // Increased buffer size for safety margin
-        snprintf(buf330, sizeof(buf330), "INA226 %s corriente error", motorNames[code - 330]);
-        return buf330;
-    }
-    if (code >= 340 && code <= 343) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf340[48];  // Increased buffer size for safety margin
-        snprintf(buf340, sizeof(buf340), "INA226 %s potencia error", motorNames[code - 340]);
-        return buf340;
-    }
-    if (code == CURRENT_SENSORS_INIT_FAIL) return "Init sensores corriente fallo";
-    
-    // Temperature Sensors (400-499)
-    if (code >= 400 && code <= 403) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf400[48];  // Increased buffer size for safety margin
-        snprintf(buf400, sizeof(buf400), "DS18B20 %s no encontrado", motorNames[code - 400]);
-        return buf400;
-    }
-    if (code == TEMP_CONVERSION_TIMEOUT) return "Timeout conversion temperatura";
-    
-    // Wheel Sensors (500-599)
-    if (code >= 500 && code <= 503) {
-        static const char* wheelNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf500[48];  // Increased buffer size for safety margin
-        snprintf(buf500, sizeof(buf500), "Sensor rueda %s sin pulsos", wheelNames[code - 500]);
-        return buf500;
-    }
-    
-    // Relay System (600-699)
-    if (code == RELAY_SYSTEM_FAIL) return "Fallo sistema reles";
-    if (code == RELAY_SHUTDOWN_SEQUENCE_FAIL) return "Secuencia apagado fallo";
-    if (code == RELAY_STARTUP_SEQUENCE_FAIL) return "Secuencia encendido fallo";
-    if (code == RELAY_MAIN_FAIL) return "Rele MAIN fallo";
-    if (code == RELAY_TRAC_FAIL) return "Rele TRAC fallo";
-    if (code == RELAY_DIR_FAIL) return "Rele DIR fallo";
-    if (code == RELAY_SPARE_FAIL) return "Rele SPARE fallo";
-    if (code == RELAY_STATE_TIMEOUT) return "Timeout estado rele";
-    if (code == RELAY_STATE_INCONSISTENT) return "Estado rele inconsistente";
-    if (code == RELAY_ERROR_DETECTION_FAIL) return "Deteccion error rele fallo";
-    if (code == SHIFTER_NOT_IN_PARK) return "Palanca no en PARK";
-    if (code == SHIFTER_INVALID_STATE) return "Palanca estado inválido";
-    if (code == SHIFTER_NOT_INITIALIZED) return "Palanca no inicializada";
-    if (code == RELAY_UNSPECIFIED_ERROR) return "Error rele no especificado";
-    
-    // Audio System (700-799)
-    if (code == DFPLAYER_INIT_FAIL) return "DFPlayer init fallo";
-    if (code == DFPLAYER_COMM_ERROR) return "DFPlayer comm error";
-    if (code >= DFPLAYER_ERROR_BASE && code < 720) {
-        thread_local char buf702[48];  // Increased buffer size for safety margin
-        snprintf(buf702, sizeof(buf702), "DFPlayer error %d", code - DFPLAYER_ERROR_BASE);
-        return buf702;
-    }
-    if (code == ALERT_NOT_INITIALIZED) return "Alertas sin inicializar";
-    if (code == ALERT_INVALID_TRACK) return "Track alerta invalido";
-    if (code == ALERT_QUEUE_FULL) return "Cola alertas llena";
-    if (code == AUDIO_QUEUE_INVALID_TRACK) return "Track cola invalido";
-    if (code == AUDIO_QUEUE_FULL) return "Cola audio llena";
-    if (code == AUDIO_DFPLAYER_NOT_READY) return "DFPlayer no listo";
-    if (code == BUTTONS_ERROR) return "Error botones";
-    
-    // Traction System (800-899)
-    if (code == TRACTION_DISTRIBUTION_ANOMALY) return "Reparto traccion anomalo";
-    if (code == TRACTION_DEMAND_INVALID) return "Demanda traccion invalida";
-    if (code == TRACTION_ASYMMETRY_EXTREME) return "Asimetria extrema";
-    if (code >= 810 && code <= 813) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf810[48];  // Increased buffer size for safety margin
-        snprintf(buf810, sizeof(buf810), "Motor %s sobrecorriente", motorNames[code - 810]);
-        return buf810;
-    }
-    if (code >= 820 && code <= 823) {
-        static const char* motorNames[] = {"FL", "FR", "RL", "RR"};
-        thread_local char buf820[48];  // Increased buffer size for safety margin
-        snprintf(buf820, sizeof(buf820), "Motor %s PWM invalido", motorNames[code - 820]);
-        return buf820;
-    }
-    if (code == TRACTION_PCA9685_FRONT_FAIL) return "PCA9685 Front (0x40) fallo";
-    if (code == TRACTION_PCA9685_REAR_FAIL) return "PCA9685 Rear (0x41) fallo";
-    if (code == TRACTION_MCP23017_FAIL) return "MCP23017 (0x20) fallo";
-    if (code == MCP23017_SHARED_INIT_FAIL) return "MCP23017 manager init fallo";
-    
-    // Storage System (900-999)
-    if (code == STORAGE_OPEN_FAIL) return "Apertura storage fallo";
-    if (code == STORAGE_AUTO_RESTORE) return "Restauracion automatica";
-    if (code == STORAGE_WRITE_MAGIC_FAIL) return "Escritura magic fallo";
-    if (code == STORAGE_WRITE_CONFIG_FAIL) return "Escritura config fallo";
-    if (code == STORAGE_FACTORY_RESET) return "Reset fabrica (info)";
-    
-    // Unknown error
-    return "Error desconocido";
+inline const char *getErrorDescription(uint16_t code) {
+  // Input Controls (100-199)
+  if (code == PEDAL_ERROR) return "Fallo sensor pedal";
+
+  // Steering System (200-299)
+  if (code == STEERING_INIT_FAIL) return "Encoder no responde";
+  if (code == ENCODER_PINS_NOT_ASSIGNED) return "Pines encoder no asignados";
+  if (code == ENCODER_NOT_CENTERED) return "Encoder sin centrado";
+  if (code == ENCODER_CENTER_FAIL) return "Fallo centrado por Z";
+  if (code == ENCODER_TICKS_INVALID) return "Ticks/vuelta invalido";
+  if (code == ENCODER_Z_TIMEOUT) return "Timeout señal Z";
+  if (code == STEERING_PCA9685_NO_RESPONSE)
+    return "PCA9685 direccion no responde";
+  if (code == STEERING_OVERCURRENT) return "Sobrecorriente motor direccion";
+  if (code == STEERING_PWM_CHANNEL_INVALID) return "Canal PWM invalido";
+  if (code == STEERING_MCP23017_FAIL) return "MCP23017 motor direccion fallo";
+
+  // Current Sensors (300-399)
+  if (code >= 300 && code <= 303) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf300[48]; // Increased buffer size for safety margin
+    snprintf(buf300, sizeof(buf300), "INA226 %s fallo persistente",
+             motorNames[code - 300]);
+    return buf300;
+  }
+  if (code >= 310 && code <= 313) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf310[48]; // Increased buffer size for safety margin
+    snprintf(buf310, sizeof(buf310), "INA226 %s config error",
+             motorNames[code - 310]);
+    return buf310;
+  }
+  if (code >= 320 && code <= 323) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf320[48]; // Increased buffer size for safety margin
+    snprintf(buf320, sizeof(buf320), "INA226 %s voltaje error",
+             motorNames[code - 320]);
+    return buf320;
+  }
+  if (code >= 330 && code <= 333) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf330[48]; // Increased buffer size for safety margin
+    snprintf(buf330, sizeof(buf330), "INA226 %s corriente error",
+             motorNames[code - 330]);
+    return buf330;
+  }
+  if (code >= 340 && code <= 343) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf340[48]; // Increased buffer size for safety margin
+    snprintf(buf340, sizeof(buf340), "INA226 %s potencia error",
+             motorNames[code - 340]);
+    return buf340;
+  }
+  if (code == CURRENT_SENSORS_INIT_FAIL) return "Init sensores corriente fallo";
+
+  // Temperature Sensors (400-499)
+  if (code >= 400 && code <= 403) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf400[48]; // Increased buffer size for safety margin
+    snprintf(buf400, sizeof(buf400), "DS18B20 %s no encontrado",
+             motorNames[code - 400]);
+    return buf400;
+  }
+  if (code == TEMP_CONVERSION_TIMEOUT) return "Timeout conversion temperatura";
+
+  // Wheel Sensors (500-599)
+  if (code >= 500 && code <= 503) {
+    static const char *wheelNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf500[48]; // Increased buffer size for safety margin
+    snprintf(buf500, sizeof(buf500), "Sensor rueda %s sin pulsos",
+             wheelNames[code - 500]);
+    return buf500;
+  }
+
+  // Relay System (600-699)
+  if (code == RELAY_SYSTEM_FAIL) return "Fallo sistema reles";
+  if (code == RELAY_SHUTDOWN_SEQUENCE_FAIL) return "Secuencia apagado fallo";
+  if (code == RELAY_STARTUP_SEQUENCE_FAIL) return "Secuencia encendido fallo";
+  if (code == RELAY_MAIN_FAIL) return "Rele MAIN fallo";
+  if (code == RELAY_TRAC_FAIL) return "Rele TRAC fallo";
+  if (code == RELAY_DIR_FAIL) return "Rele DIR fallo";
+  if (code == RELAY_SPARE_FAIL) return "Rele SPARE fallo";
+  if (code == RELAY_STATE_TIMEOUT) return "Timeout estado rele";
+  if (code == RELAY_STATE_INCONSISTENT) return "Estado rele inconsistente";
+  if (code == RELAY_ERROR_DETECTION_FAIL) return "Deteccion error rele fallo";
+  if (code == SHIFTER_NOT_IN_PARK) return "Palanca no en PARK";
+  if (code == SHIFTER_INVALID_STATE) return "Palanca estado inválido";
+  if (code == SHIFTER_NOT_INITIALIZED) return "Palanca no inicializada";
+  if (code == RELAY_UNSPECIFIED_ERROR) return "Error rele no especificado";
+
+  // Audio System (700-799)
+  if (code == DFPLAYER_INIT_FAIL) return "DFPlayer init fallo";
+  if (code == DFPLAYER_COMM_ERROR) return "DFPlayer comm error";
+  if (code >= DFPLAYER_ERROR_BASE && code < 720) {
+    thread_local char buf702[48]; // Increased buffer size for safety margin
+    snprintf(buf702, sizeof(buf702), "DFPlayer error %d",
+             code - DFPLAYER_ERROR_BASE);
+    return buf702;
+  }
+  if (code == ALERT_NOT_INITIALIZED) return "Alertas sin inicializar";
+  if (code == ALERT_INVALID_TRACK) return "Track alerta invalido";
+  if (code == ALERT_QUEUE_FULL) return "Cola alertas llena";
+  if (code == AUDIO_QUEUE_INVALID_TRACK) return "Track cola invalido";
+  if (code == AUDIO_QUEUE_FULL) return "Cola audio llena";
+  if (code == AUDIO_DFPLAYER_NOT_READY) return "DFPlayer no listo";
+  if (code == BUTTONS_ERROR) return "Error botones";
+
+  // Traction System (800-899)
+  if (code == TRACTION_DISTRIBUTION_ANOMALY) return "Reparto traccion anomalo";
+  if (code == TRACTION_DEMAND_INVALID) return "Demanda traccion invalida";
+  if (code == TRACTION_ASYMMETRY_EXTREME) return "Asimetria extrema";
+  if (code >= 810 && code <= 813) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf810[48]; // Increased buffer size for safety margin
+    snprintf(buf810, sizeof(buf810), "Motor %s sobrecorriente",
+             motorNames[code - 810]);
+    return buf810;
+  }
+  if (code >= 820 && code <= 823) {
+    static const char *motorNames[] = {"FL", "FR", "RL", "RR"};
+    thread_local char buf820[48]; // Increased buffer size for safety margin
+    snprintf(buf820, sizeof(buf820), "Motor %s PWM invalido",
+             motorNames[code - 820]);
+    return buf820;
+  }
+  if (code == TRACTION_PCA9685_FRONT_FAIL) return "PCA9685 Front (0x40) fallo";
+  if (code == TRACTION_PCA9685_REAR_FAIL) return "PCA9685 Rear (0x41) fallo";
+  if (code == TRACTION_MCP23017_FAIL) return "MCP23017 (0x20) fallo";
+  if (code == MCP23017_SHARED_INIT_FAIL) return "MCP23017 manager init fallo";
+
+  // Storage System (900-999)
+  if (code == STORAGE_OPEN_FAIL) return "Apertura storage fallo";
+  if (code == STORAGE_AUTO_RESTORE) return "Restauracion automatica";
+  if (code == STORAGE_WRITE_MAGIC_FAIL) return "Escritura magic fallo";
+  if (code == STORAGE_WRITE_CONFIG_FAIL) return "Escritura config fallo";
+  if (code == STORAGE_FACTORY_RESET) return "Reset fabrica (info)";
+
+  // Unknown error
+  return "Error desconocido";
 }
 
 /**
@@ -280,10 +293,10 @@ inline const char* getErrorDescription(uint16_t code) {
  * @param code Error code (100-999)
  * @return Pointer to constant string with detailed error description
  */
-inline const char* getErrorDetailedDescription(uint16_t code) {
-    // This could be expanded in the future for more detailed error descriptions
-    // For now, return the same as getErrorDescription
-    return getErrorDescription(code);
+inline const char *getErrorDetailedDescription(uint16_t code) {
+  // This could be expanded in the future for more detailed error descriptions
+  // For now, return the same as getErrorDescription
+  return getErrorDescription(code);
 }
 
 } // namespace ErrorCodes

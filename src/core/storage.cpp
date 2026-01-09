@@ -23,14 +23,15 @@ void Storage::init() {
   } else {
     // 🔒 v2.10.8: Confirm storage initialization
     Logger::info("Storage init: EEPROM namespace abierto correctamente");
-    
+
     // Verificar si hay datos guardados
     if (prefs.isKey(kKeyMagic)) {
       uint32_t magic = prefs.getUInt(kKeyMagic, 0);
       if (magic == MAGIC_NUMBER) {
         Logger::info("Storage init: Datos válidos detectados en EEPROM");
       } else {
-        Logger::warn("Storage init: Magic number incorrecto - EEPROM puede estar corrupta");
+        Logger::warn("Storage init: Magic number incorrecto - EEPROM puede "
+                     "estar corrupta");
       }
     } else {
       Logger::info("Storage init: EEPROM vacía o primera inicialización");
@@ -268,8 +269,7 @@ bool Storage::isCorrupted() {
 // ============================================================================
 
 void Storage::updateOdometer(float distanceKm) {
-  if (distanceKm <= 0.0f)
-    return;
+  if (distanceKm <= 0.0f) return;
 
   cfg.odometer.totalKm += distanceKm;
   cfg.odometer.tripKm += distanceKm;
@@ -308,8 +308,11 @@ bool Storage::isMaintenanceDue() {
 
   // 🔒 v2.10.3: Time-based maintenance check not implemented
   // RTC module not present in current hardware configuration
-  // Limitation: Maintenance tracking is currently based only on odometer readings due to lack of a real-time clock (RTC) module. Time-based maintenance is not supported and may be necessary for some components (e.g., battery, brake fluid). See future enhancement below.
-  // Future enhancement: add DS3231 RTC module for time-based maintenance alerts
+  // Limitation: Maintenance tracking is currently based only on odometer
+  // readings due to lack of a real-time clock (RTC) module. Time-based
+  // maintenance is not supported and may be necessary for some components
+  // (e.g., battery, brake fluid). See future enhancement below. Future
+  // enhancement: add DS3231 RTC module for time-based maintenance alerts
 
   return false;
 }

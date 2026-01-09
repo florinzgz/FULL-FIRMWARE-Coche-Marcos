@@ -1,26 +1,26 @@
 #pragma once
 namespace Sensors {
-    // Número de ruedas
-    constexpr int NUM_WHEELS = 4;
+// Número de ruedas
+constexpr int NUM_WHEELS = 4;
 
-    // Inicialización y actualización
-    void initWheels();
-    void updateWheels();
+// Inicialización y actualización
+void initWheels();
+void updateWheels();
 
-    // 🔎 Nuevo: estado de inicialización global de sensores de rueda
-    bool wheelsInitOK();
-    
-    // Verificar si un sensor de rueda específico está OK
-    bool isWheelSensorOk(int wheel);
+// 🔎 Nuevo: estado de inicialización global de sensores de rueda
+bool wheelsInitOK();
 
-    // Velocidad de rueda en km/h
-    // Índices:
-    // 0 = FL (Front Left)
-    // 1 = FR (Front Right)
-    // 2 = RL (Rear Left)
-    // 3 = RR (Rear Right)
-    float getWheelSpeed(int wheel);
+// Verificar si un sensor de rueda específico está OK
+bool isWheelSensorOk(int wheel);
 
-    // Distancia acumulada en milímetros
-    unsigned long getWheelDistance(int wheel);
-}
+// Velocidad de rueda en km/h
+// Índices:
+// 0 = FL (Front Left)
+// 1 = FR (Front Right)
+// 2 = RL (Rear Left)
+// 3 = RR (Rear Right)
+float getWheelSpeed(int wheel);
+
+// Distancia acumulada en milímetros
+unsigned long getWheelDistance(int wheel);
+} // namespace Sensors

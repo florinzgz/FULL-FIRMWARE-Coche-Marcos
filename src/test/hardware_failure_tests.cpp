@@ -94,7 +94,8 @@ bool testSensorDisconnection() {
 
   // Even if sensors are disconnected, system should return valid
   // default values, not NaN or infinity
-  recordTest(counters, "Sensor Disconnection Handling", allSensorsValid, "HW TEST");
+  recordTest(counters, "Sensor Disconnection Handling", allSensorsValid,
+             "HW TEST");
 
   return allSensorsValid;
 }

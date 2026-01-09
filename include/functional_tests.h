@@ -19,21 +19,21 @@ namespace FunctionalTests {
 
 // Test result structure
 struct TestResult {
-    const char* testName;
-    bool passed;
-    const char* failureReason;
-    uint32_t executionTimeMs;
+  const char *testName;
+  bool passed;
+  const char *failureReason;
+  uint32_t executionTimeMs;
 };
 
 // Test categories
 enum class TestCategory {
-    DISPLAY_TESTS,  // Renamed from DISPLAY to avoid Arduino.h conflict
-    SENSORS,
-    MOTORS,
-    SAFETY,
-    COMMUNICATION,
-    STORAGE,
-    ALL
+  DISPLAY_TESTS, // Renamed from DISPLAY to avoid Arduino.h conflict
+  SENSORS,
+  MOTORS,
+  SAFETY,
+  COMMUNICATION,
+  STORAGE,
+  ALL
 };
 
 // ============================================================================
@@ -87,7 +87,7 @@ void printSummary();
  * @param maxResults Maximum number of results to return
  * @return Number of results written
  */
-uint32_t getResults(TestResult* results, uint32_t maxResults);
+uint32_t getResults(TestResult *results, uint32_t maxResults);
 
 // ============================================================================
 // Individual Test Functions (can be called directly for debugging)

@@ -6,9 +6,10 @@ static uint8_t gLevel = 1;
 void Debug::setLevel(uint8_t lvl) { gLevel = lvl; }
 uint8_t Debug::level() { return gLevel; }
 
-// 🔒 v2.11.3: Buffer size reduced from 160 to 96 bytes to prevent stack overflow
-// during complex initialization sequences. 96 bytes is adequate for most debug
-// messages while significantly reducing stack pressure during nested calls.
+// 🔒 v2.11.3: Buffer size reduced from 160 to 96 bytes to prevent stack
+// overflow during complex initialization sequences. 96 bytes is adequate for
+// most debug messages while significantly reducing stack pressure during nested
+// calls.
 static void vlogf(const char *prefix, const char *tag, const char *fmt,
                   va_list args) {
   Serial.print(prefix);

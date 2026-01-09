@@ -4,12 +4,12 @@
 // #include <Arduino.h>
 
 namespace WheelsDisplay {
-    // Inicializa el módulo con el puntero a la pantalla
-    void init(TFT_eSPI *display);
+// Inicializa el módulo con el puntero a la pantalla
+void init(TFT_eSPI *display);
 
-    // Dibuja una rueda en (cx, cy) con:
-    // - angleDeg: ángulo de dirección en grados
-    // - tempC: temperatura en °C
-    // - effortPct: esfuerzo en porcentaje (0–100)
-    void drawWheel(int cx, int cy, float angleDeg, float tempC, float effortPct);
-}
+// Dibuja una rueda en (cx, cy) con:
+// - angleDeg: ángulo de dirección en grados
+// - tempC: temperatura en °C
+// - effortPct: esfuerzo en porcentaje (0–100)
+void drawWheel(int cx, int cy, float angleDeg, float tempC, float effortPct);
+} // namespace WheelsDisplay

@@ -1,7 +1,7 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
 #include <cstdarg>
+#include <cstddef>
+#include <cstdint>
 
 namespace Logger {
 
@@ -18,9 +18,7 @@ void error(uint16_t code, const char *msg);
 // sin necesidad de pasar un código explícito.
 // Usa un código genérico (999) por defecto.
 // ---------------------------------------------------------------------------
-inline void error(const char *msg) {
-    error(999, msg);
-}
+inline void error(const char *msg) { error(999, msg); }
 
 // ---------------------------------------------------------------------------
 // Wrappers con formato estilo printf

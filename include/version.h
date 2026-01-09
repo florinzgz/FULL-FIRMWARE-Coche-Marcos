@@ -7,7 +7,8 @@
 // ============================================================================
 
 // Firmware version string (semantic versioning)
-// v2.11.3: Stack overflow fixes - IPC stack increase, logger buffer reduction, watchdog feeds
+// v2.11.3: Stack overflow fixes - IPC stack increase, logger buffer reduction,
+// watchdog feeds
 #define FIRMWARE_VERSION "2.11.3"
 #define FIRMWARE_VERSION_MAJOR 2
 #define FIRMWARE_VERSION_MINOR 11
