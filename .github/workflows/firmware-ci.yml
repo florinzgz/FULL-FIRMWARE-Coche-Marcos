@@ -33,11 +33,10 @@ jobs:
 
       - name: Compile all environments
         run: |
-          pio run -e release
-          pio run -e ota
-          pio run -e test
-          pio run -e touch_debug
-          pio run -e no_touch
+          pio run -e esp32-s3-n32r16v
+          pio run -e esp32-s3-n32r16v-release
+          pio run -e esp32-s3-n32r16v-touch-debug
+          pio run -e esp32-s3-n32r16v-no-touch
 
   lint-format:
     name: Check formatting with clang-format
@@ -74,6 +73,10 @@ jobs:
 
     steps:
       - name: CodeRabbit AI Review
+        # SECURITY: Using version tag instead of commit SHA
+        # Recommended: Replace v1 with full 40-character SHA from:
+        # https://github.com/coderabbitai/action/commits/v1
+        # Example format: uses: coderabbitai/action@1234567890abcdef1234567890abcdef12345678
         uses: coderabbitai/action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

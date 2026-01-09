@@ -1,25 +1,25 @@
 #include "system.h"
-#include "error_codes.h"      // 🔒 v2.11.0: Códigos de error centralizados
-#include "boot_guard.h"       // 🔒 v2.17.1: Boot counter and safe mode detection
-#include "dfplayer.h"
+#include "abs_system.h" // 🔒 v2.11.0: Sistema ABS
+#include "boot_guard.h" // 🔒 v2.17.1: Boot counter and safe mode detection
 #include "current.h"
-#include "temperature.h"
-#include "wheels.h"
-#include "pedal.h"
-#include "steering.h"
-#include "relays.h"
+#include "dfplayer.h"
+#include "eeprom_persistence.h" // 🔒 v2.11.0: Persistencia de configuración
+#include "error_codes.h"        // 🔒 v2.11.0: Códigos de error centralizados
+#include "led_controller.h"     // 🔒 v2.11.0: Control LEDs
 #include "logger.h"
+#include "obstacle_safety.h" // 🔒 v2.11.0: Seguridad obstáculos
+#include "operation_modes.h" // Sistema de modos de operación con tolerancia a fallos
+#include "pedal.h"
+#include "regen_ai.h" // 🔒 v2.11.0: Freno regenerativo
+#include "relays.h"
+#include "shifter.h" // 🔒 v2.11.1: Validación de palanca de cambios
+#include "steering.h"
+#include "steering_motor.h" // 🔒 v2.4.0: Para verificar motor dirección
 #include "storage.h"
-#include "steering_motor.h"   // 🔒 v2.4.0: Para verificar motor dirección
-#include "traction.h"         // 🔒 v2.4.0: Para verificar tracción
-#include "eeprom_persistence.h"  // 🔒 v2.11.0: Persistencia de configuración
-#include "abs_system.h"          // 🔒 v2.11.0: Sistema ABS
-#include "tcs_system.h"          // 🔒 v2.11.0: Sistema TCS
-#include "regen_ai.h"            // 🔒 v2.11.0: Freno regenerativo
-#include "obstacle_safety.h"     // 🔒 v2.11.0: Seguridad obstáculos
-#include "led_controller.h"      // 🔒 v2.11.0: Control LEDs
-#include "shifter.h"             // 🔒 v2.11.1: Validación de palanca de cambios
-#include "operation_modes.h"     // Sistema de modos de operación con tolerancia a fallos
+#include "tcs_system.h" // 🔒 v2.11.0: Sistema TCS
+#include "temperature.h"
+#include "traction.h" // 🔒 v2.4.0: Para verificar tracción
+#include "wheels.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
@@ -27,494 +27,518 @@
 // Configuración de protección de inicialización
 // ========================================
 namespace SystemInitConfig {
-    constexpr uint32_t MUTEX_TIMEOUT_MS = 5000;        // Timeout para adquirir mutex
-    constexpr uint32_t MUTEX_CHECK_TIMEOUT_MS = 100;   // Timeout para check de estado
-    constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;      // 50KB heap mínimo
-    constexpr uint32_t MIN_HEAP_AFTER_INIT = 25000;    // 25KB después de init
-}
+constexpr uint32_t MUTEX_TIMEOUT_MS = 5000;      // Timeout para adquirir mutex
+constexpr uint32_t MUTEX_CHECK_TIMEOUT_MS = 100; // Timeout para check de estado
+constexpr uint32_t MIN_HEAP_FOR_INIT = 50000;    // 50KB heap mínimo
+constexpr uint32_t MIN_HEAP_AFTER_INIT = 25000;  // 25KB después de init
+} // namespace SystemInitConfig
 
 static System::State currentState = System::OFF;
-static bool systemInitialized = false;  // 🔒 v2.11.2: Guard contra re-inicialización
+static bool systemInitialized =
+    false; // 🔒 v2.11.2: Guard contra re-inicialización
 
 // 🔒 v2.11.6: Mutex para proteger inicialización thread-safe
 static SemaphoreHandle_t initMutex = nullptr;
 static bool initMutexCreated = false;
 
 static constexpr float PEDAL_REST_THRESHOLD_PERCENT =
-    5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal en reposo antes de dar potencia
+    5.0f; // Tolerancia fija (no configurable) para ruido ADC garantizando pedal
+          // en reposo antes de dar potencia
 
 void System::init() {
-    // ========================================
-    // PASO 1: Crear mutex en primera llamada
-    // ========================================
-    // Nota: Creación de mutex es thread-safe en ESP32 (usa atomic operations)
-    // ========================================
-    // PASO 1: Crear mutex en primera llamada (thread-safe)
-    // ========================================
-    // Use portENTER_CRITICAL/portEXIT_CRITICAL for atomic check-and-set
-    static portMUX_TYPE initMutexSpinlock = portMUX_INITIALIZER_UNLOCKED;
-    
-    portENTER_CRITICAL(&initMutexSpinlock);
-    bool needsCreate = !initMutexCreated;
-    if (needsCreate) {
-        initMutexCreated = true;  // Set flag inside critical section
-    }
-    portEXIT_CRITICAL(&initMutexSpinlock);
-    
-    if (needsCreate) {
-        initMutex = xSemaphoreCreateMutex();
-        if (initMutex == nullptr) {
-            // CRÍTICO: No se pudo crear mutex
-            Logger::error("System init: CRITICAL - Failed to create init mutex");
-            Serial.println("[CRITICAL] System::init() - mutex creation failed");
-            // Reset flag on failure
-            portENTER_CRITICAL(&initMutexSpinlock);
-            initMutexCreated = false;
-            portEXIT_CRITICAL(&initMutexSpinlock);
-            // Continuar sin protección (menos seguro pero permite boot)
-        } else {
-            Logger::info("System init: Init mutex created");
-        }
-    }
-    
-    // ========================================
-    // PASO 2: Tomar mutex ANTES de cualquier check
-    // ========================================
-    const TickType_t MUTEX_TIMEOUT = pdMS_TO_TICKS(SystemInitConfig::MUTEX_TIMEOUT_MS);  // 5 segundos timeout
-    
-    if (initMutex != nullptr) {
-        if (xSemaphoreTake(initMutex, MUTEX_TIMEOUT) != pdTRUE) {
-            Logger::error("System init: Failed to acquire init mutex (timeout)");
-            Serial.println("[ERROR] System::init() - mutex timeout");
-            return;  // Abortar si no se puede tomar mutex
-        }
-        Logger::debug("System init: Mutex acquired");
+  // ========================================
+  // PASO 1: Crear mutex en primera llamada
+  // ========================================
+  // Nota: Creación de mutex es thread-safe en ESP32 (usa atomic operations)
+  // ========================================
+  // PASO 1: Crear mutex en primera llamada (thread-safe)
+  // ========================================
+  // Use portENTER_CRITICAL/portEXIT_CRITICAL for atomic check-and-set
+  static portMUX_TYPE initMutexSpinlock = portMUX_INITIALIZER_UNLOCKED;
+
+  portENTER_CRITICAL(&initMutexSpinlock);
+  bool needsCreate = !initMutexCreated;
+  if (needsCreate) {
+    initMutexCreated = true; // Set flag inside critical section
+  }
+  portEXIT_CRITICAL(&initMutexSpinlock);
+
+  if (needsCreate) {
+    initMutex = xSemaphoreCreateMutex();
+    if (initMutex == nullptr) {
+      // CRÍTICO: No se pudo crear mutex
+      Logger::error("System init: CRITICAL - Failed to create init mutex");
+      Serial.println("[CRITICAL] System::init() - mutex creation failed");
+      // Reset flag on failure
+      portENTER_CRITICAL(&initMutexSpinlock);
+      initMutexCreated = false;
+      portEXIT_CRITICAL(&initMutexSpinlock);
+      // Continuar sin protección (menos seguro pero permite boot)
     } else {
-        Logger::warn("System init: Running without mutex protection");
+      Logger::info("System init: Init mutex created");
     }
-    
-    // ========================================
-    // PASO 3: Check de inicialización (ahora thread-safe)
-    // ========================================
-    if (systemInitialized) {
-        Logger::warn("System init: Sistema ya inicializado, ignorando llamada duplicada");
-        if (initMutex != nullptr) {
-            xSemaphoreGive(initMutex);
-        }
-        return;
+  }
+
+  // ========================================
+  // PASO 2: Tomar mutex ANTES de cualquier check
+  // ========================================
+  const TickType_t MUTEX_TIMEOUT =
+      pdMS_TO_TICKS(SystemInitConfig::MUTEX_TIMEOUT_MS); // 5 segundos timeout
+
+  if (initMutex != nullptr) {
+    if (xSemaphoreTake(initMutex, MUTEX_TIMEOUT) != pdTRUE) {
+      Logger::error("System init: Failed to acquire init mutex (timeout)");
+      Serial.println("[ERROR] System::init() - mutex timeout");
+      return; // Abortar si no se puede tomar mutex
     }
-    
-    // ========================================
-    // PASO 4: Inicialización normal
-    // ========================================
-    // NOTA: El flag systemInitialized se establece al FINAL de init()
-    // después de que toda la inicialización sea exitosa
-    // Inicializar sistema de modos de operación
-    SystemMode::init();
-    
-    Logger::info("System init: entrando en PRECHECK");
-    currentState = PRECHECK;
-    
-    // VALIDACIÓN: Verificar heap disponible
-    uint32_t freeHeap = ESP.getFreeHeap();
-    Logger::infof("System init: Free heap: %u bytes", freeHeap);
-    
-    if (freeHeap < SystemInitConfig::MIN_HEAP_FOR_INIT) {
-        Logger::errorf("System init: CRÍTICO - Heap insuficiente (%u bytes < %u bytes requeridos)", 
-                      freeHeap, SystemInitConfig::MIN_HEAP_FOR_INIT);
-        Logger::error("System init: Abortando inicialización - memoria insuficiente");
-        currentState = ERROR;
-        
-        // Resetear flag de inicialización para permitir retry
-        systemInitialized = false;
-        
-        // Liberar mutex antes de salir
-        if (initMutex != nullptr) {
-            xSemaphoreGive(initMutex);
-        }
-        return;
-    }
-    
-    // Enhanced diagnostic information
-    Logger::infof("System init: Estado inicial OK");
-    
-    #ifdef ARDUINO_ESP32S3_DEV
-    Logger::info("System init: Platform ESP32-S3 detected");
-    #endif
-    
-    // ========================================
-    // DIAGNÓSTICO COMPLETO DE PSRAM
-    // ========================================
-    Logger::info("System init: === DIAGNÓSTICO DE MEMORIA ===");
-    
-    // Constantes para conversión de bytes
-    constexpr float BYTES_PER_KB = 1024.0f;
-    constexpr float BYTES_PER_MB = 1048576.0f; // 1024 * 1024
-    
-    // Heap total y libre
-    uint32_t totalHeap = ESP.getHeapSize();
-    Logger::infof("System init: Total Heap: %u bytes (%.2f KB)", totalHeap, totalHeap / BYTES_PER_KB);
-    Logger::infof("System init: Free Heap: %u bytes (%.2f KB)", freeHeap, freeHeap / BYTES_PER_KB);
-    
-    // Verificar PSRAM
-    if (psramFound()) {
-        uint32_t psramSize = ESP.getPsramSize();
-        uint32_t freePsram = ESP.getFreePsram();
-        uint32_t usedPsram = psramSize - freePsram;
-        
-        Logger::info("System init: ✅ PSRAM DETECTADA Y HABILITADA");
-        Logger::infof("System init: PSRAM Total: %u bytes (%.2f MB)", psramSize, psramSize / BYTES_PER_MB);
-        Logger::infof("System init: PSRAM Libre: %u bytes (%.2f MB, %.1f%%)", 
-                     freePsram, freePsram / BYTES_PER_MB, (freePsram * 100.0f) / psramSize);
-        Logger::infof("System init: PSRAM Usada: %u bytes (%.2f KB, %.1f%%)", 
-                     usedPsram, usedPsram / BYTES_PER_KB, (usedPsram * 100.0f) / psramSize);
-        
-        // Validar tamaño esperado
-        constexpr uint32_t EXPECTED_PSRAM_SIZE = 16 * 1024 * 1024; // 16MB
-        if (psramSize >= EXPECTED_PSRAM_SIZE) {
-            Logger::info("System init: ✅ Tamaño de PSRAM coincide con hardware (16MB)");
-        } else {
-            Logger::warnf("System init: ⚠️ Tamaño de PSRAM menor al esperado: %.2f MB < 16 MB", 
-                         psramSize / BYTES_PER_MB);
-        }
+    Logger::debug("System init: Mutex acquired");
+  } else {
+    Logger::warn("System init: Running without mutex protection");
+  }
+
+  // ========================================
+  // PASO 3: Check de inicialización (ahora thread-safe)
+  // ========================================
+  if (systemInitialized) {
+    Logger::warn(
+        "System init: Sistema ya inicializado, ignorando llamada duplicada");
+    if (initMutex != nullptr) { xSemaphoreGive(initMutex); }
+    return;
+  }
+
+  // ========================================
+  // PASO 4: Inicialización normal
+  // ========================================
+  // NOTA: El flag systemInitialized se establece al FINAL de init()
+  // después de que toda la inicialización sea exitosa
+  // Inicializar sistema de modos de operación
+  SystemMode::init();
+
+  Logger::info("System init: entrando en PRECHECK");
+  currentState = PRECHECK;
+
+  // VALIDACIÓN: Verificar heap disponible
+  uint32_t freeHeap = ESP.getFreeHeap();
+  Logger::infof("System init: Free heap: %u bytes", freeHeap);
+
+  if (freeHeap < SystemInitConfig::MIN_HEAP_FOR_INIT) {
+    Logger::errorf("System init: CRÍTICO - Heap insuficiente (%u bytes < %u "
+                   "bytes requeridos)",
+                   freeHeap, SystemInitConfig::MIN_HEAP_FOR_INIT);
+    Logger::error(
+        "System init: Abortando inicialización - memoria insuficiente");
+    currentState = ERROR;
+
+    // Resetear flag de inicialización para permitir retry
+    systemInitialized = false;
+
+    // Liberar mutex antes de salir
+    if (initMutex != nullptr) { xSemaphoreGive(initMutex); }
+    return;
+  }
+
+  // Enhanced diagnostic information
+  Logger::infof("System init: Estado inicial OK");
+
+#ifdef ARDUINO_ESP32S3_DEV
+  Logger::info("System init: Platform ESP32-S3 detected");
+#endif
+
+  // ========================================
+  // DIAGNÓSTICO COMPLETO DE PSRAM
+  // ========================================
+  Logger::info("System init: === DIAGNÓSTICO DE MEMORIA ===");
+
+  // Constantes para conversión de bytes
+  constexpr float BYTES_PER_KB = 1024.0f;
+  constexpr float BYTES_PER_MB = 1048576.0f; // 1024 * 1024
+
+  // Heap total y libre
+  uint32_t totalHeap = ESP.getHeapSize();
+  Logger::infof("System init: Total Heap: %u bytes (%.2f KB)", totalHeap,
+                totalHeap / BYTES_PER_KB);
+  Logger::infof("System init: Free Heap: %u bytes (%.2f KB)", freeHeap,
+                freeHeap / BYTES_PER_KB);
+
+  // Verificar PSRAM
+  if (psramFound()) {
+    uint32_t psramSize = ESP.getPsramSize();
+    uint32_t freePsram = ESP.getFreePsram();
+    uint32_t usedPsram = psramSize - freePsram;
+
+    Logger::info("System init: ✅ PSRAM DETECTADA Y HABILITADA");
+    Logger::infof("System init: PSRAM Total: %u bytes (%.2f MB)", psramSize,
+                  psramSize / BYTES_PER_MB);
+    Logger::infof("System init: PSRAM Libre: %u bytes (%.2f MB, %.1f%%)",
+                  freePsram, freePsram / BYTES_PER_MB,
+                  (freePsram * 100.0f) / psramSize);
+    Logger::infof("System init: PSRAM Usada: %u bytes (%.2f KB, %.1f%%)",
+                  usedPsram, usedPsram / BYTES_PER_KB,
+                  (usedPsram * 100.0f) / psramSize);
+
+    // Validar tamaño esperado
+    constexpr uint32_t EXPECTED_PSRAM_SIZE = 16 * 1024 * 1024; // 16MB
+    if (psramSize >= EXPECTED_PSRAM_SIZE) {
+      Logger::info(
+          "System init: ✅ Tamaño de PSRAM coincide con hardware (16MB)");
     } else {
-        Logger::error("System init: ❌ PSRAM NO DETECTADA");
-        Logger::error("System init: Verificar:");
-        Logger::error("System init:   1. Hardware tiene PSRAM instalada");
-        Logger::error("System init:   2. platformio.ini tiene 'board_build.psram = enabled'");
-        Logger::error("System init:   3. Flag -DBOARD_HAS_PSRAM está configurado");
-        Logger::error("System init: El sistema continuará sin PSRAM (solo RAM interna)");
+      Logger::warnf(
+          "System init: ⚠️ Tamaño de PSRAM menor al esperado: %.2f MB < 16 MB",
+          psramSize / BYTES_PER_MB);
     }
-    Logger::info("System init: === FIN DIAGNÓSTICO DE MEMORIA ===");
-    
-    // 🔒 v2.11.2: VALIDACIÓN 3 - Cargar y validar configuración persistente
-    Logger::info("System init: Cargando configuración persistente");
-    if (!EEPROMPersistence::init()) {
-        Logger::warn("System init: EEPROM persistence init failed, using defaults");
-        // 🔒 No es crítico - continuamos con valores por defecto
-    }
-    
-    // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
-    GeneralSettings settings;
-    
-    if (EEPROMPersistence::loadGeneralSettings(settings)) {
-        Logger::info("System init: Configuración general cargada exitosamente");
-        
-        // Aplicar toggles de módulos según configuración cargada
-        ABSSystem::setEnabled(settings.absEnabled);
-        Logger::infof("System init: ABS %s", settings.absEnabled ? "enabled" : "disabled");
-        
-        TCSSystem::setEnabled(settings.tcsEnabled);
-        Logger::infof("System init: TCS %s", settings.tcsEnabled ? "enabled" : "disabled");
-        
-        RegenAI::setEnabled(settings.regenEnabled);
-        Logger::infof("System init: Regen %s", settings.regenEnabled ? "enabled" : "disabled");
+  } else {
+    Logger::error("System init: ❌ PSRAM NO DETECTADA");
+    Logger::error("System init: Verificar:");
+    Logger::error("System init:   1. Hardware tiene PSRAM instalada");
+    Logger::error(
+        "System init:   2. platformio.ini tiene 'board_build.psram = enabled'");
+    Logger::error("System init:   3. Flag -DBOARD_HAS_PSRAM está configurado");
+    Logger::error(
+        "System init: El sistema continuará sin PSRAM (solo RAM interna)");
+  }
+  Logger::info("System init: === FIN DIAGNÓSTICO DE MEMORIA ===");
+
+  // 🔒 v2.11.2: VALIDACIÓN 3 - Cargar y validar configuración persistente
+  Logger::info("System init: Cargando configuración persistente");
+  if (!EEPROMPersistence::init()) {
+    Logger::warn("System init: EEPROM persistence init failed, using defaults");
+    // 🔒 No es crítico - continuamos con valores por defecto
+  }
+
+  // 🔒 v2.11.2: VALIDACIÓN 4 - Cargar configuración general con validación
+  GeneralSettings settings;
+
+  if (EEPROMPersistence::loadGeneralSettings(settings)) {
+    Logger::info("System init: Configuración general cargada exitosamente");
+
+    // Aplicar toggles de módulos según configuración cargada
+    ABSSystem::setEnabled(settings.absEnabled);
+    Logger::infof("System init: ABS %s",
+                  settings.absEnabled ? "enabled" : "disabled");
+
+    TCSSystem::setEnabled(settings.tcsEnabled);
+    Logger::infof("System init: TCS %s",
+                  settings.tcsEnabled ? "enabled" : "disabled");
+
+    RegenAI::setEnabled(settings.regenEnabled);
+    Logger::infof("System init: Regen %s",
+                  settings.regenEnabled ? "enabled" : "disabled");
+  } else {
+    Logger::warn("System init: No se pudo cargar configuración general, usando "
+                 "defaults");
+    // 🔒 Aplicar configuración segura por defecto
+    ABSSystem::setEnabled(false); // Deshabilitado por seguridad
+    TCSSystem::setEnabled(false); // Deshabilitado por seguridad
+    RegenAI::setEnabled(false);   // Deshabilitado por seguridad
+    Logger::info("System init: Módulos avanzados deshabilitados (modo seguro)");
+  }
+
+  // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con
+  // validación 🔒 v2.17.1: Skip LEDs in safe mode (non-critical system)
+  LEDConfig ledConfig;
+
+  // Check if safe mode is active (bootloop detected)
+  bool safeModeActive = BootGuard::shouldEnterSafeMode();
+
+  if (safeModeActive) {
+    Logger::warn(
+        "System init: SAFE MODE - Skipping LED initialization (non-critical)");
+    LEDController::setEnabled(false);
+  } else if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
+    Logger::info("System init: Configuración LED cargada exitosamente");
+
+    // 🔒 Validar configuración (brightness es uint8_t, siempre válido 0-255)
+    // Validar pattern si tiene rango limitado
+    LEDController::setEnabled(ledConfig.enabled);
+    LEDController::setBrightness(ledConfig.brightness);
+
+    if (LEDController::initOK()) {
+      auto &cfgLed = LEDController::getConfig();
+      cfgLed.updateRateMs = 50; // Default update rate
     } else {
-        Logger::warn("System init: No se pudo cargar configuración general, usando defaults");
-        // 🔒 Aplicar configuración segura por defecto
-        ABSSystem::setEnabled(false);  // Deshabilitado por seguridad
-        TCSSystem::setEnabled(false);  // Deshabilitado por seguridad
-        RegenAI::setEnabled(false);    // Deshabilitado por seguridad
-        Logger::info("System init: Módulos avanzados deshabilitados (modo seguro)");
+      Logger::warn(
+          "System init: LEDController not initialized, skipping config");
     }
-    
-    // 🔒 v2.11.2: VALIDACIÓN 5 - Cargar y aplicar configuración de LEDs con validación
-    // 🔒 v2.17.1: Skip LEDs in safe mode (non-critical system)
-    LEDConfig ledConfig;
-    
-    // Check if safe mode is active (bootloop detected)
-    bool safeModeActive = BootGuard::shouldEnterSafeMode();
-    
-    if (safeModeActive) {
-        Logger::warn("System init: SAFE MODE - Skipping LED initialization (non-critical)");
-        LEDController::setEnabled(false);
-    } else if (EEPROMPersistence::loadLEDConfig(ledConfig)) {
-        Logger::info("System init: Configuración LED cargada exitosamente");
-        
-        // 🔒 Validar configuración (brightness es uint8_t, siempre válido 0-255)
-        // Validar pattern si tiene rango limitado
-        LEDController::setEnabled(ledConfig.enabled);
-        LEDController::setBrightness(ledConfig.brightness);
-        
-        if (LEDController::initOK()) {
-            auto &cfgLed = LEDController::getConfig();
-            cfgLed.updateRateMs = 50; // Default update rate
-        } else {
-            Logger::warn("System init: LEDController not initialized, skipping config");
-        }
-        
-        Logger::infof("System init: LEDs %s, brightness %d", 
-                      ledConfig.enabled ? "enabled" : "disabled", 
-                      ledConfig.brightness);
-    } else {
-        Logger::warn("System init: No se pudo cargar configuración LED, usando defaults");
-        // 🔒 Aplicar configuración segura por defecto
-        LEDController::setEnabled(false);  // Deshabilitado por defecto si no hay config
-        LEDController::setBrightness(128); // Brillo medio
-        Logger::info("System init: LEDs en modo seguro (deshabilitados)");
-    }
-    
-    // Habilitar características de seguridad de obstáculos
-    // Usar configuración por defecto ya que no hay persistencia específica para esto
-    ObstacleSafety::enableParkingAssist(true);
-    ObstacleSafety::enableCollisionAvoidance(true);
-    ObstacleSafety::enableBlindSpot(true);
-    Logger::info("System init: Seguridad de obstáculos habilitada");
-    
-    // 🔒 v2.11.2: VALIDACIÓN 6 - Verificar heap después de inicialización
-    uint32_t finalHeap = ESP.getFreeHeap();
-    uint32_t heapUsed = freeHeap - finalHeap;
-    Logger::infof("System init: Heap usado en init: %u bytes, restante: %u bytes", heapUsed, finalHeap);
-    
-    if (finalHeap < SystemInitConfig::MIN_HEAP_AFTER_INIT) {
-        Logger::warnf("System init: ADVERTENCIA - Heap bajo después de init (%u bytes)", finalHeap);
-    }
-    
-    // ========================================
-    // PASO 6: Marcar inicialización exitosa
-    // ========================================
-    systemInitialized = true;
-    Logger::info("System init: Marked as initialized (successful completion)");
-    
-    // ========================================
-    // PASO 7: Liberar mutex al finalizar
-    // ========================================
-    if (initMutex != nullptr) {
-        xSemaphoreGive(initMutex);
-        Logger::debug("System init: Mutex released");
-    }
-    
-    Logger::info("System init: Completed successfully");
+
+    Logger::infof("System init: LEDs %s, brightness %d",
+                  ledConfig.enabled ? "enabled" : "disabled",
+                  ledConfig.brightness);
+  } else {
+    Logger::warn(
+        "System init: No se pudo cargar configuración LED, usando defaults");
+    // 🔒 Aplicar configuración segura por defecto
+    LEDController::setEnabled(
+        false); // Deshabilitado por defecto si no hay config
+    LEDController::setBrightness(128); // Brillo medio
+    Logger::info("System init: LEDs en modo seguro (deshabilitados)");
+  }
+
+  // Habilitar características de seguridad de obstáculos
+  // Usar configuración por defecto ya que no hay persistencia específica para
+  // esto
+  ObstacleSafety::enableParkingAssist(true);
+  ObstacleSafety::enableCollisionAvoidance(true);
+  ObstacleSafety::enableBlindSpot(true);
+  Logger::info("System init: Seguridad de obstáculos habilitada");
+
+  // 🔒 v2.11.2: VALIDACIÓN 6 - Verificar heap después de inicialización
+  uint32_t finalHeap = ESP.getFreeHeap();
+  uint32_t heapUsed = freeHeap - finalHeap;
+  Logger::infof("System init: Heap usado en init: %u bytes, restante: %u bytes",
+                heapUsed, finalHeap);
+
+  if (finalHeap < SystemInitConfig::MIN_HEAP_AFTER_INIT) {
+    Logger::warnf(
+        "System init: ADVERTENCIA - Heap bajo después de init (%u bytes)",
+        finalHeap);
+  }
+
+  // ========================================
+  // PASO 6: Marcar inicialización exitosa
+  // ========================================
+  systemInitialized = true;
+  Logger::info("System init: Marked as initialized (successful completion)");
+
+  // ========================================
+  // PASO 7: Liberar mutex al finalizar
+  // ========================================
+  if (initMutex != nullptr) {
+    xSemaphoreGive(initMutex);
+    Logger::debug("System init: Mutex released");
+  }
+
+  Logger::info("System init: Completed successfully");
 }
 
 System::Health System::selfTest() {
-    Health h{true,true,true,true,true};
-    OperationMode mode = OperationMode::MODE_FULL;
-    
-    // 🔒 v2.11.2: VALIDACIÓN - Verificar que System::init() fue llamado
-    if (!systemInitialized) {
-        Logger::error("SelfTest: Sistema no inicializado - llamar System::init() primero");
-        h = Health{false,false,false,false,false};
-        SystemMode::setMode(OperationMode::MODE_SAFE);
-        return h;
-    }
+  Health h{true, true, true, true, true};
+  OperationMode mode = OperationMode::MODE_FULL;
 
-    // Actualizar entradas críticas antes de validar estados
-    Pedal::update();
-    Shifter::update();
-    Steering::update();
-
-    // ========================================================================
-    // SENSORES OPCIONALES (NO bloquean arranque - modo degradado)
-    // ========================================================================
-    
-    // Corriente (opcional)
-    if(cfg.currentSensorsEnabled) {
-        if(!Sensors::currentInitOK()) {
-            Logger::warn("SelfTest: Sensores corriente no disponibles - modo degradado");
-            mode = OperationMode::MODE_DEGRADED;
-            h.currentOK = false;
-            // NO marcar h.ok = false - continuar operación
-        }
-    }
-
-    // Temperatura (opcional)
-    if(cfg.tempSensorsEnabled) {
-        if(!Sensors::temperatureInitOK()) {
-            Logger::warn("SelfTest: Sensores temperatura no disponibles - modo degradado");
-            mode = OperationMode::MODE_DEGRADED;
-            h.tempsOK = false;
-            // NO marcar h.ok = false - continuar operación
-        }
-    }
-
-    // Ruedas (opcional)
-    if(cfg.wheelSensorsEnabled) {
-        if(!Sensors::wheelsInitOK()) {
-            Logger::warn("SelfTest: Sensores rueda limitados - modo degradado");
-            mode = OperationMode::MODE_DEGRADED;
-            h.wheelsOK = false;
-            // NO marcar h.ok = false - continuar operación
-        }
-    }
-
-    // ========================================================================
-    // COMPONENTES CRÍTICOS (bloquean arranque si fallan)
-    // ========================================================================
-
-    // Pedal (crítico)
-    if(!Pedal::initOK()) {
-        System::logError(ErrorCodes::PEDAL_ERROR);
-        Logger::error("SelfTest: CRÍTICO - pedal no responde");
-        h.ok = false;
-        mode = OperationMode::MODE_SAFE;
-    } else {
-        const auto &pedalState = Pedal::get();
-        if(pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
-            Logger::errorf("SelfTest: CRÍTICO - pedal no está en reposo (%.1f%%)", pedalState.percent);
-            h.ok = false;
-            mode = OperationMode::MODE_SAFE;
-        }
-    }
-
-    // Dirección (encoder) - crítico
-    if(cfg.steeringEnabled) {
-        if(!Steering::initOK()) {
-            System::logError(ErrorCodes::STEERING_INIT_FAIL);
-            Logger::error("SelfTest: CRÍTICO - encoder dirección no responde");
-            h.steeringOK = false;
-            h.ok = false;
-            mode = OperationMode::MODE_SAFE;
-        }
-        
-        // Motor dirección - advertencia pero no crítico
-        if(!SteeringMotor::initOK()) {
-            Logger::warn("SelfTest: motor dirección no responde (no crítico en arranque)");
-            h.steeringOK = false;
-            if (mode == OperationMode::MODE_FULL) {
-                mode = OperationMode::MODE_DEGRADED;
-            }
-        }
-    }
-
-    // Palanca de cambios (crítico para arranque seguro)
-    if(!Shifter::initOK()) {
-        System::logError(ErrorCodes::SHIFTER_NOT_INITIALIZED);
-        Logger::error("SelfTest: CRÍTICO - palanca de cambios no inicializada");
-        h.ok = false;
-        mode = OperationMode::MODE_SAFE;
-    } else {
-        auto gear = Shifter::get().gear;
-        
-        // Validate gear is in valid range
-        if(gear < Shifter::P || gear > Shifter::R) {
-            System::logError(ErrorCodes::SHIFTER_INVALID_STATE);
-            Logger::error("SelfTest: CRÍTICO - palanca en estado inválido");
-            h.ok = false;
-            mode = OperationMode::MODE_SAFE;
-        } else if(gear != Shifter::P) {
-            System::logError(ErrorCodes::SHIFTER_NOT_IN_PARK);
-            Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK (gear=%d)", static_cast<int>(gear));
-            h.ok = false;
-            mode = OperationMode::MODE_SAFE;
-        }
-    }
-
-    // Relés (crítico)
-    if(!Relays::initOK()) {
-        System::logError(ErrorCodes::RELAY_SYSTEM_FAIL);
-        Logger::error("SelfTest: CRÍTICO - Relés no responden - modo seguro");
-        h.ok = false;
-        mode = OperationMode::MODE_SAFE;
-    }
-    
-    // ========================================================================
-    // COMPONENTES NO CRÍTICOS (solo advertencias)
-    // ========================================================================
-    
-    // Tracción (no crítico)
-    if(cfg.tractionEnabled) {
-        if(!Traction::initOK()) {
-            Logger::warn("SelfTest: módulo tracción no inicializado (no crítico)");
-            if (mode == OperationMode::MODE_FULL) {
-                mode = OperationMode::MODE_DEGRADED;
-            }
-        }
-    }
-
-    // DFPlayer (no crítico)
-    if(!Audio::initOK()) {
-        Logger::warn("SelfTest: DFPlayer no inicializado (no crítico)");
-        if (mode == OperationMode::MODE_FULL) {
-            mode = OperationMode::MODE_DEGRADED;
-        }
-    }
-
-    // Establecer modo de operación según resultados
-    SystemMode::setMode(mode);
-    
+  // 🔒 v2.11.2: VALIDACIÓN - Verificar que System::init() fue llamado
+  if (!systemInitialized) {
+    Logger::error(
+        "SelfTest: Sistema no inicializado - llamar System::init() primero");
+    h = Health{false, false, false, false, false};
+    SystemMode::setMode(OperationMode::MODE_SAFE);
     return h;
+  }
+
+  // Actualizar entradas críticas antes de validar estados
+  Pedal::update();
+  Shifter::update();
+  Steering::update();
+
+  // ========================================================================
+  // SENSORES OPCIONALES (NO bloquean arranque - modo degradado)
+  // ========================================================================
+
+  // Corriente (opcional)
+  if (cfg.currentSensorsEnabled) {
+    if (!Sensors::currentInitOK()) {
+      Logger::warn(
+          "SelfTest: Sensores corriente no disponibles - modo degradado");
+      mode = OperationMode::MODE_DEGRADED;
+      h.currentOK = false;
+      // NO marcar h.ok = false - continuar operación
+    }
+  }
+
+  // Temperatura (opcional)
+  if (cfg.tempSensorsEnabled) {
+    if (!Sensors::temperatureInitOK()) {
+      Logger::warn(
+          "SelfTest: Sensores temperatura no disponibles - modo degradado");
+      mode = OperationMode::MODE_DEGRADED;
+      h.tempsOK = false;
+      // NO marcar h.ok = false - continuar operación
+    }
+  }
+
+  // Ruedas (opcional)
+  if (cfg.wheelSensorsEnabled) {
+    if (!Sensors::wheelsInitOK()) {
+      Logger::warn("SelfTest: Sensores rueda limitados - modo degradado");
+      mode = OperationMode::MODE_DEGRADED;
+      h.wheelsOK = false;
+      // NO marcar h.ok = false - continuar operación
+    }
+  }
+
+  // ========================================================================
+  // COMPONENTES CRÍTICOS (bloquean arranque si fallan)
+  // ========================================================================
+
+  // Pedal (crítico)
+  if (!Pedal::initOK()) {
+    System::logError(ErrorCodes::PEDAL_ERROR);
+    Logger::error("SelfTest: CRÍTICO - pedal no responde");
+    h.ok = false;
+    mode = OperationMode::MODE_SAFE;
+  } else {
+    const auto &pedalState = Pedal::get();
+    if (pedalState.percent > PEDAL_REST_THRESHOLD_PERCENT) {
+      Logger::errorf("SelfTest: CRÍTICO - pedal no está en reposo (%.1f%%)",
+                     pedalState.percent);
+      h.ok = false;
+      mode = OperationMode::MODE_SAFE;
+    }
+  }
+
+  // Dirección (encoder) - crítico
+  if (cfg.steeringEnabled) {
+    if (!Steering::initOK()) {
+      System::logError(ErrorCodes::STEERING_INIT_FAIL);
+      Logger::error("SelfTest: CRÍTICO - encoder dirección no responde");
+      h.steeringOK = false;
+      h.ok = false;
+      mode = OperationMode::MODE_SAFE;
+    }
+
+    // Motor dirección - advertencia pero no crítico
+    if (!SteeringMotor::initOK()) {
+      Logger::warn(
+          "SelfTest: motor dirección no responde (no crítico en arranque)");
+      h.steeringOK = false;
+      if (mode == OperationMode::MODE_FULL) {
+        mode = OperationMode::MODE_DEGRADED;
+      }
+    }
+  }
+
+  // Palanca de cambios (crítico para arranque seguro)
+  if (!Shifter::initOK()) {
+    System::logError(ErrorCodes::SHIFTER_NOT_INITIALIZED);
+    Logger::error("SelfTest: CRÍTICO - palanca de cambios no inicializada");
+    h.ok = false;
+    mode = OperationMode::MODE_SAFE;
+  } else {
+    auto gear = Shifter::get().gear;
+
+    // Validate gear is in valid range
+    if (gear < Shifter::P || gear > Shifter::R) {
+      System::logError(ErrorCodes::SHIFTER_INVALID_STATE);
+      Logger::error("SelfTest: CRÍTICO - palanca en estado inválido");
+      h.ok = false;
+      mode = OperationMode::MODE_SAFE;
+    } else if (gear != Shifter::P) {
+      System::logError(ErrorCodes::SHIFTER_NOT_IN_PARK);
+      Logger::errorf("SelfTest: CRÍTICO - palanca debe estar en PARK (gear=%d)",
+                     static_cast<int>(gear));
+      h.ok = false;
+      mode = OperationMode::MODE_SAFE;
+    }
+  }
+
+  // Relés (crítico)
+  if (!Relays::initOK()) {
+    System::logError(ErrorCodes::RELAY_SYSTEM_FAIL);
+    Logger::error("SelfTest: CRÍTICO - Relés no responden - modo seguro");
+    h.ok = false;
+    mode = OperationMode::MODE_SAFE;
+  }
+
+  // ========================================================================
+  // COMPONENTES NO CRÍTICOS (solo advertencias)
+  // ========================================================================
+
+  // Tracción (no crítico)
+  if (cfg.tractionEnabled) {
+    if (!Traction::initOK()) {
+      Logger::warn("SelfTest: módulo tracción no inicializado (no crítico)");
+      if (mode == OperationMode::MODE_FULL) {
+        mode = OperationMode::MODE_DEGRADED;
+      }
+    }
+  }
+
+  // DFPlayer (no crítico)
+  if (!Audio::initOK()) {
+    Logger::warn("SelfTest: DFPlayer no inicializado (no crítico)");
+    if (mode == OperationMode::MODE_FULL) {
+      mode = OperationMode::MODE_DEGRADED;
+    }
+  }
+
+  // Establecer modo de operación según resultados
+  SystemMode::setMode(mode);
+
+  return h;
 }
 
 void System::update() {
-    switch(currentState) {
-        case PRECHECK: {
-            auto h = selfTest();
-            if(h.ok) {
-                Logger::info("SelfTest OK → READY");
-                currentState = READY;
-            } else {
-                Logger::errorf("SelfTest FAIL → ERROR");
-                currentState = ERROR;
-            }
-        } break;
-
-        case READY:
-            Logger::info("System READY → RUN");
-            currentState = RUN;
-            break;
-
-        case RUN:
-            // Aquí se puede añadir lógica de watchdog o monitorización
-            break;
-
-        case ERROR:
-            Relays::disablePower();
-            break;
-
-        case OFF:
-        default:
-            break;
+  switch (currentState) {
+  case PRECHECK: {
+    auto h = selfTest();
+    if (h.ok) {
+      Logger::info("SelfTest OK → READY");
+      currentState = READY;
+    } else {
+      Logger::errorf("SelfTest FAIL → ERROR");
+      currentState = ERROR;
     }
+  } break;
+
+  case READY:
+    Logger::info("System READY → RUN");
+    currentState = RUN;
+    break;
+
+  case RUN:
+    // Aquí se puede añadir lógica de watchdog o monitorización
+    break;
+
+  case ERROR:
+    Relays::disablePower();
+    break;
+
+  case OFF:
+  default:
+    break;
+  }
 }
 
-System::State System::getState() {
-    return currentState;
-}
+System::State System::getState() { return currentState; }
 
 // --- API de diagnóstico persistente ---
 void System::logError(uint16_t code) {
-    for(int i=0; i<cfg.errorCount; i++) {
-        if(cfg.errors[i].code == code) return;
-    }
-    if(cfg.errorCount < Storage::Config::MAX_ERRORS) {
-        cfg.errors[cfg.errorCount++] = {code, millis()};
-    } else {
-        for(int i=1; i<Storage::Config::MAX_ERRORS; i++)
-            cfg.errors[i-1] = cfg.errors[i];
-        cfg.errors[Storage::Config::MAX_ERRORS-1] = {code, millis()};
-    }
-    Storage::save(cfg);
+  for (int i = 0; i < cfg.errorCount; i++) {
+    if (cfg.errors[i].code == code) return;
+  }
+  if (cfg.errorCount < Storage::Config::MAX_ERRORS) {
+    cfg.errors[cfg.errorCount++] = {code, millis()};
+  } else {
+    for (int i = 1; i < Storage::Config::MAX_ERRORS; i++)
+      cfg.errors[i - 1] = cfg.errors[i];
+    cfg.errors[Storage::Config::MAX_ERRORS - 1] = {code, millis()};
+  }
+  Storage::save(cfg);
 }
 
-const Storage::ErrorLog* System::getErrors() {
-    return cfg.errors;
-}
+const Storage::ErrorLog *System::getErrors() { return cfg.errors; }
 
-int System::getErrorCount() {
-    return cfg.errorCount;
-}
+int System::getErrorCount() { return cfg.errorCount; }
 
 void System::clearErrors() {
-    cfg.errorCount = 0;
-    for(int i=0; i<Storage::Config::MAX_ERRORS; i++) {
-        cfg.errors[i] = {0,0};
-    }
-    Storage::save(cfg);
+  cfg.errorCount = 0;
+  for (int i = 0; i < Storage::Config::MAX_ERRORS; i++) {
+    cfg.errors[i] = {0, 0};
+  }
+  Storage::save(cfg);
 }
 
-bool System::hasError() {
-    return currentState == ERROR || cfg.errorCount > 0;
-}
+bool System::hasError() { return currentState == ERROR || cfg.errorCount > 0; }
 
 // Diagnóstico de estado de inicialización (thread-safe)
 bool System::isInitialized() {
-    // Lectura de bool es atómica en ESP32, pero añadimos mutex por consistencia
-    if (initMutex != nullptr && xSemaphoreTake(initMutex, pdMS_TO_TICKS(SystemInitConfig::MUTEX_CHECK_TIMEOUT_MS)) == pdTRUE) {
-        bool state = systemInitialized;
-        xSemaphoreGive(initMutex);
-        return state;
-    }
-    // Fallback sin mutex
-    return systemInitialized;
+  // Lectura de bool es atómica en ESP32, pero añadimos mutex por consistencia
+  if (initMutex != nullptr &&
+      xSemaphoreTake(initMutex,
+                     pdMS_TO_TICKS(SystemInitConfig::MUTEX_CHECK_TIMEOUT_MS)) ==
+          pdTRUE) {
+    bool state = systemInitialized;
+    xSemaphoreGive(initMutex);
+    return state;
+  }
+  // Fallback sin mutex
+  return systemInitialized;
 }

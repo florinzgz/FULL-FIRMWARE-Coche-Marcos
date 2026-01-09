@@ -1,8 +1,8 @@
 // System-wide configuration constants for the vehicle firmware
 #pragma once
 
-#include "version.h"  // For FIRMWARE_VERSION
-#include "pins.h"     // For PIN_TFT_RST
+#include "pins.h"    // For PIN_TFT_RST
+#include "version.h" // For FIRMWARE_VERSION
 
 // Watchdog timeout configuration
 // Note: Watchdog implementation in watchdog.cpp uses 30-second hardware timeout

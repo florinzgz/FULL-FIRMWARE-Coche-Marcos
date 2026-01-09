@@ -5,8 +5,8 @@
 #include "watchdog_tests.h"
 #include "logger.h"
 #include "pins.h"
-#include "watchdog.h"
 #include "test_utils.h"
+#include "watchdog.h"
 
 namespace WatchdogTests {
 
@@ -180,7 +180,8 @@ bool testEmergencyShutdown() {
       "⚠️  Full test requires watchdog timeout trigger (would reset system)");
 
   // Mark test as passed with caveat
-  recordTest(counters, "Emergency Shutdown Mechanism (limited)", true, "WATCHDOG TEST");
+  recordTest(counters, "Emergency Shutdown Mechanism (limited)", true,
+             "WATCHDOG TEST");
 
   return true;
 }

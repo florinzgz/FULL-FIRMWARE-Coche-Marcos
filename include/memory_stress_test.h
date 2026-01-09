@@ -13,12 +13,12 @@ namespace MemoryStressTest {
 
 // Test result structure
 struct MemoryTestResult {
-    const char* testName;
-    bool passed;
-    uint32_t freeHeapBefore;
-    uint32_t freeHeapAfter;
-    int32_t heapDelta;
-    uint32_t executionTimeMs;
+  const char *testName;
+  bool passed;
+  uint32_t freeHeapBefore;
+  uint32_t freeHeapAfter;
+  int32_t heapDelta;
+  uint32_t executionTimeMs;
 };
 
 /**

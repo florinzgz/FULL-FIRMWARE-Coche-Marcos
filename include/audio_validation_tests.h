@@ -14,9 +14,9 @@ namespace AudioValidationTests {
  * @brief Test result structure
  */
 struct TestResult {
-    const char* testName;
-    bool passed;
-    const char* failureReason;
+  const char *testName;
+  bool passed;
+  const char *failureReason;
 };
 
 /**
@@ -40,6 +40,6 @@ void printSummary();
  * @param count Output parameter for number of results
  * @return Array of test results
  */
-const TestResult* getResults(uint32_t& count);
+const TestResult *getResults(uint32_t &count);
 
 } // namespace AudioValidationTests
