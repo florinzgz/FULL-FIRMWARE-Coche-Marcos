@@ -119,10 +119,10 @@ void saveConfig() {
     
     if (ConfigStorage::save(cfg)) {
         Logger::info("ObstacleConfigMenu: Configuration saved to persistent storage");
-        Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_CONFIG_GUARDADA);
     } else {
         Logger::error("ObstacleConfigMenu: Failed to save configuration");
-        Alerts::play({Audio::AUDIO_ERROR, Audio::Priority::PRIO_HIGH});
+        Alerts::play(Audio::AUDIO_ERROR_GENERAL);
     }
 }
 
@@ -264,7 +264,7 @@ bool handleTouch(int16_t x, int16_t y) {
         if (y >= optionY && y <= optionY + OPTION_HEIGHT) {
             if (x >= SLIDER_X && x <= SLIDER_X + 80) {
                 sensorEnabled[i] = !sensorEnabled[i];
-                Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+                Alerts::play(Audio::AUDIO_BEEP);
                 needsRedraw = true;
                 return true;
             }
@@ -276,7 +276,7 @@ bool handleTouch(int16_t x, int16_t y) {
     if (y >= optionY && y <= optionY + OPTION_HEIGHT) {
         if (x >= SLIDER_X && x <= SLIDER_X + 80) {
             audioAlertsEnabled = !audioAlertsEnabled;
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            Alerts::play(Audio::AUDIO_BEEP);
             needsRedraw = true;
             return true;
         }
@@ -286,7 +286,7 @@ bool handleTouch(int16_t x, int16_t y) {
     if (y >= optionY && y <= optionY + OPTION_HEIGHT) {
         if (x >= SLIDER_X && x <= SLIDER_X + 80) {
             visualAlertsEnabled = !visualAlertsEnabled;
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            Alerts::play(Audio::AUDIO_BEEP);
             needsRedraw = true;
             return true;
         }
@@ -342,7 +342,7 @@ void handleSelect() {
     switch (selectedOption) {
         case 3:  // Solo Front sensor
             sensorEnabled[0] = !sensorEnabled[0];
-            Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_NORMAL});
+            Alerts::play(Audio::AUDIO_BEEP);
             needsRedraw = true;
             break;
         case 4: audioAlertsEnabled = !audioAlertsEnabled; needsRedraw = true; break;
@@ -361,7 +361,7 @@ void resetToDefaults() {
     audioAlertsEnabled  = true;
     visualAlertsEnabled = true;
     Logger::info("ObstacleConfigMenu: Reset to defaults");
-    Alerts::play({Audio::AUDIO_MODULO_OK, Audio::Priority::PRIO_HIGH});
+    Alerts::play(Audio::AUDIO_CONFIG_RESTAURADA);
     saveConfig();
 }
 
