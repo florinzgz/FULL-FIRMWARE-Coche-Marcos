@@ -18,8 +18,6 @@
     "f_cpu": "240000000L",
 
     "flash_mode": "qio",
-    "flash_size": "32MB",
-
     "psram_type": "opi",
 
     "extra_flags": [
