@@ -11,6 +11,7 @@
 #include "icons.h"
 #include "menu_hidden.h"
 #include "operation_modes.h" // Sistema de modos de operación
+#include "render_engine.h"   // Sprite-based rendering engine
 #include "sensors.h"         // Para SystemStatus de sensores
 #include "touch_map.h"       // 👈 añadido
 #include "wheels_display.h"
@@ -554,6 +555,13 @@ static void drawCarBody() {
   // Only draw once (static background)
   if (carBodyDrawn) return;
 
+  // Get the CAR_BODY sprite
+  TFT_eSprite *sprite = RenderEngine::getSprite(RenderEngine::CAR_BODY);
+  if (sprite == nullptr) {
+    Logger::error("drawCarBody: CAR_BODY sprite not available");
+    return;
+  }
+
   int cx = CAR_BODY_X + CAR_BODY_W / 2; // Centro X del coche (240)
   int cy = CAR_BODY_Y + CAR_BODY_H / 2; // Centro Y del coche (175)
 
@@ -589,35 +597,35 @@ static void drawCarBody() {
 
   // Dibujar sombra del coche
   for (int i = 0; i < 7; i++) {
-    tft.fillTriangle(cx + sx, cy + sy, carPoints[i * 2] + sx,
+    sprite->fillTriangle(cx + sx, cy + sy, carPoints[i * 2] + sx,
                      carPoints[i * 2 + 1] + sy, carPoints[(i + 1) * 2] + sx,
                      carPoints[(i + 1) * 2 + 1] + sy, 0x1082);
   }
-  tft.fillTriangle(cx + sx, cy + sy, carPoints[14] + sx, carPoints[15] + sy,
+  sprite->fillTriangle(cx + sx, cy + sy, carPoints[14] + sx, carPoints[15] + sy,
                    carPoints[0] + sx, carPoints[1] + sy, 0x1082);
 
   // === CARROCERÍA PRINCIPAL (CHASIS EXTERIOR SIMPLIFICADO) ===
   // Dibujar cuerpo del coche (relleno con triángulos desde el centro)
   for (int i = 0; i < 7; i++) {
-    tft.fillTriangle(cx, cy, carPoints[i * 2], carPoints[i * 2 + 1],
+    sprite->fillTriangle(cx, cy, carPoints[i * 2], carPoints[i * 2 + 1],
                      carPoints[(i + 1) * 2], carPoints[(i + 1) * 2 + 1],
                      COLOR_CAR_BODY);
   }
-  tft.fillTriangle(cx, cy, carPoints[14], carPoints[15], carPoints[0],
+  sprite->fillTriangle(cx, cy, carPoints[14], carPoints[15], carPoints[0],
                    carPoints[1], COLOR_CAR_BODY);
 
   // Borde exterior del coche (contorno del chasis)
   for (int i = 0; i < 7; i++) {
-    tft.drawLine(carPoints[i * 2], carPoints[i * 2 + 1], carPoints[(i + 1) * 2],
+    sprite->drawLine(carPoints[i * 2], carPoints[i * 2 + 1], carPoints[(i + 1) * 2],
                  carPoints[(i + 1) * 2 + 1], COLOR_CAR_OUTLINE);
   }
-  tft.drawLine(carPoints[14], carPoints[15], carPoints[0], carPoints[1],
+  sprite->drawLine(carPoints[14], carPoints[15], carPoints[0], carPoints[1],
                COLOR_CAR_OUTLINE);
 
   // Highlights laterales (efecto 3D básico)
-  tft.drawLine(carPoints[0], carPoints[1], carPoints[2], carPoints[3],
+  sprite->drawLine(carPoints[0], carPoints[1], carPoints[2], carPoints[3],
                COLOR_CAR_HIGHLIGHT); // Lateral delantero derecho
-  tft.drawLine(carPoints[14], carPoints[15], carPoints[12], carPoints[13],
+  sprite->drawLine(carPoints[14], carPoints[15], carPoints[12], carPoints[13],
                COLOR_CAR_HIGHLIGHT); // Lateral delantero izquierdo
 
   // === PARTE FRONTAL SIMPLIFICADA ===
@@ -627,30 +635,30 @@ static void drawCarBody() {
   int hoodH = 28;
 
   // Forma del capó (trapezoidal simplificado)
-  tft.fillTriangle(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, hoodX + hoodW,
+  sprite->fillTriangle(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, hoodX + hoodW,
                    hoodY + hoodH, COLOR_CAR_GRILLE);
-  tft.fillTriangle(hoodX + 5, hoodY, hoodX + hoodW, hoodY + hoodH, hoodX,
+  sprite->fillTriangle(hoodX + 5, hoodY, hoodX + hoodW, hoodY + hoodH, hoodX,
                    hoodY + hoodH, COLOR_CAR_GRILLE);
-  tft.drawLine(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, COLOR_CAR_OUTLINE);
+  sprite->drawLine(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, COLOR_CAR_OUTLINE);
 
   // Faros delanteros (simplificados)
-  tft.fillRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
-  tft.drawRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, 0x8410);
-  tft.fillRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
-  tft.drawRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, 0x8410);
+  sprite->fillRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+  sprite->drawRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, 0x8410);
+  sprite->fillRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+  sprite->drawRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, 0x8410);
 
   // === PARTE TRASERA SIMPLIFICADA ===
   int trunkY = CAR_BODY_Y + bodyH - 32;
   int trunkH = 25;
 
-  tft.fillRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_GRILLE);
-  tft.drawRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_OUTLINE);
+  sprite->fillRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_GRILLE);
+  sprite->drawRoundRect(cx - 35, trunkY, 70, trunkH, 4, COLOR_CAR_OUTLINE);
 
   // Luces traseras
-  tft.fillRoundRect(cx - 48, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
-  tft.drawRoundRect(cx - 48, trunkY + 5, 20, 14, 3, 0x8000);
-  tft.fillRoundRect(cx + 28, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
-  tft.drawRoundRect(cx + 28, trunkY + 5, 20, 14, 3, 0x8000);
+  sprite->fillRoundRect(cx - 48, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
+  sprite->drawRoundRect(cx - 48, trunkY + 5, 20, 14, 3, 0x8000);
+  sprite->fillRoundRect(cx + 28, trunkY + 5, 20, 14, 3, COLOR_TAILLIGHT);
+  sprite->drawRoundRect(cx + 28, trunkY + 5, 20, 14, 3, 0x8000);
 
   // === SISTEMA DE TRACCIÓN - DIFERENCIALES Y EJES ===
   // Colores para el sistema de transmisión
@@ -663,69 +671,72 @@ static void drawCarBody() {
   int diffCenterY = cy + 5;
 
   // === DIFERENCIAL CENTRAL (caja de transferencia) ===
-  tft.fillRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_DIFF);
-  tft.drawRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_AXLE_DARK);
-  tft.fillCircle(cx, diffCenterY, 3, COLOR_AXLE_DARK);
+  sprite->fillRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_DIFF);
+  sprite->drawRoundRect(cx - 8, diffCenterY - 6, 16, 12, 3, COLOR_AXLE_DARK);
+  sprite->fillCircle(cx, diffCenterY, 3, COLOR_AXLE_DARK);
 
   // === EJE DELANTERO (conecta ruedas FL y FR) ===
   // Diferencial delantero
   int diffFrontY = Y_FL;
-  tft.fillRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_DIFF);
-  tft.drawRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_AXLE_DARK);
+  sprite->fillRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_DIFF);
+  sprite->drawRoundRect(cx - 6, diffFrontY - 5, 12, 10, 2, COLOR_AXLE_DARK);
 
   // Semi-ejes delanteros (del diferencial a las ruedas)
   // Eje izquierdo
-  tft.drawLine(cx - 6, diffFrontY, X_FL + 18, Y_FL, COLOR_AXLE);
-  tft.drawLine(cx - 6, diffFrontY + 1, X_FL + 18, Y_FL + 1, COLOR_AXLE_DARK);
+  sprite->drawLine(cx - 6, diffFrontY, X_FL + 18, Y_FL, COLOR_AXLE);
+  sprite->drawLine(cx - 6, diffFrontY + 1, X_FL + 18, Y_FL + 1, COLOR_AXLE_DARK);
   // Eje derecho
-  tft.drawLine(cx + 6, diffFrontY, X_FR - 18, Y_FR, COLOR_AXLE);
-  tft.drawLine(cx + 6, diffFrontY + 1, X_FR - 18, Y_FR + 1, COLOR_AXLE_DARK);
+  sprite->drawLine(cx + 6, diffFrontY, X_FR - 18, Y_FR, COLOR_AXLE);
+  sprite->drawLine(cx + 6, diffFrontY + 1, X_FR - 18, Y_FR + 1, COLOR_AXLE_DARK);
 
   // Juntas homocinéticas delanteras (círculos pequeños en las ruedas)
-  tft.fillCircle(X_FL + 18, Y_FL, 4, COLOR_CARDAN);
-  tft.drawCircle(X_FL + 18, Y_FL, 4, COLOR_AXLE_DARK);
-  tft.fillCircle(X_FR - 18, Y_FR, 4, COLOR_CARDAN);
-  tft.drawCircle(X_FR - 18, Y_FR, 4, COLOR_AXLE_DARK);
+  sprite->fillCircle(X_FL + 18, Y_FL, 4, COLOR_CARDAN);
+  sprite->drawCircle(X_FL + 18, Y_FL, 4, COLOR_AXLE_DARK);
+  sprite->fillCircle(X_FR - 18, Y_FR, 4, COLOR_CARDAN);
+  sprite->drawCircle(X_FR - 18, Y_FR, 4, COLOR_AXLE_DARK);
 
   // === EJE TRASERO (conecta ruedas RL y RR) ===
   // Diferencial trasero
   int diffRearY = Y_RL;
-  tft.fillRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_DIFF);
-  tft.drawRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_AXLE_DARK);
+  sprite->fillRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_DIFF);
+  sprite->drawRoundRect(cx - 6, diffRearY - 5, 12, 10, 2, COLOR_AXLE_DARK);
 
   // Semi-ejes traseros
   // Eje izquierdo
-  tft.drawLine(cx - 6, diffRearY, X_RL + 18, Y_RL, COLOR_AXLE);
-  tft.drawLine(cx - 6, diffRearY - 1, X_RL + 18, Y_RL - 1, COLOR_AXLE_DARK);
+  sprite->drawLine(cx - 6, diffRearY, X_RL + 18, Y_RL, COLOR_AXLE);
+  sprite->drawLine(cx - 6, diffRearY - 1, X_RL + 18, Y_RL - 1, COLOR_AXLE_DARK);
   // Eje derecho
-  tft.drawLine(cx + 6, diffRearY, X_RR - 18, Y_RR, COLOR_AXLE);
-  tft.drawLine(cx + 6, diffRearY - 1, X_RR - 18, Y_RR - 1, COLOR_AXLE_DARK);
+  sprite->drawLine(cx + 6, diffRearY, X_RR - 18, Y_RR, COLOR_AXLE);
+  sprite->drawLine(cx + 6, diffRearY - 1, X_RR - 18, Y_RR - 1, COLOR_AXLE_DARK);
 
   // Juntas homocinéticas traseras
-  tft.fillCircle(X_RL + 18, Y_RL, 4, COLOR_CARDAN);
-  tft.drawCircle(X_RL + 18, Y_RL, 4, COLOR_AXLE_DARK);
-  tft.fillCircle(X_RR - 18, Y_RR, 4, COLOR_CARDAN);
-  tft.drawCircle(X_RR - 18, Y_RR, 4, COLOR_AXLE_DARK);
+  sprite->fillCircle(X_RL + 18, Y_RL, 4, COLOR_CARDAN);
+  sprite->drawCircle(X_RL + 18, Y_RL, 4, COLOR_AXLE_DARK);
+  sprite->fillCircle(X_RR - 18, Y_RR, 4, COLOR_CARDAN);
+  sprite->drawCircle(X_RR - 18, Y_RR, 4, COLOR_AXLE_DARK);
 
   // === ÁRBOL DE TRANSMISIÓN (cardán central) ===
   // Conecta diferencial central con delantero
-  tft.drawLine(cx, diffCenterY - 6, cx, diffFrontY + 5, COLOR_AXLE);
-  tft.drawLine(cx - 1, diffCenterY - 6, cx - 1, diffFrontY + 5,
+  sprite->drawLine(cx, diffCenterY - 6, cx, diffFrontY + 5, COLOR_AXLE);
+  sprite->drawLine(cx - 1, diffCenterY - 6, cx - 1, diffFrontY + 5,
                COLOR_AXLE_DARK);
-  tft.drawLine(cx + 1, diffCenterY - 6, cx + 1, diffFrontY + 5, COLOR_AXLE);
+  sprite->drawLine(cx + 1, diffCenterY - 6, cx + 1, diffFrontY + 5, COLOR_AXLE);
 
   // Junta cardán frontal
-  tft.fillCircle(cx, diffFrontY + 5, 3, COLOR_CARDAN);
-  tft.drawCircle(cx, diffFrontY + 5, 3, COLOR_AXLE_DARK);
+  sprite->fillCircle(cx, diffFrontY + 5, 3, COLOR_CARDAN);
+  sprite->drawCircle(cx, diffFrontY + 5, 3, COLOR_AXLE_DARK);
 
   // Conecta diferencial central con trasero
-  tft.drawLine(cx, diffCenterY + 6, cx, diffRearY - 5, COLOR_AXLE);
-  tft.drawLine(cx - 1, diffCenterY + 6, cx - 1, diffRearY - 5, COLOR_AXLE_DARK);
-  tft.drawLine(cx + 1, diffCenterY + 6, cx + 1, diffRearY - 5, COLOR_AXLE);
+  sprite->drawLine(cx, diffCenterY + 6, cx, diffRearY - 5, COLOR_AXLE);
+  sprite->drawLine(cx - 1, diffCenterY + 6, cx - 1, diffRearY - 5, COLOR_AXLE_DARK);
+  sprite->drawLine(cx + 1, diffCenterY + 6, cx + 1, diffRearY - 5, COLOR_AXLE);
 
   // Junta cardán trasera
-  tft.fillCircle(cx, diffRearY - 5, 3, COLOR_CARDAN);
-  tft.drawCircle(cx, diffRearY - 5, 3, COLOR_AXLE_DARK);
+  sprite->fillCircle(cx, diffRearY - 5, 3, COLOR_CARDAN);
+  sprite->drawCircle(cx, diffRearY - 5, 3, COLOR_AXLE_DARK);
+
+  // Mark the car body bounding box as dirty
+  RenderEngine::markDirtyRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H);
 
   carBodyDrawn = true;
 }
@@ -749,8 +760,15 @@ static void drawSteeringWheel(float angleDeg) {
   if (fabs(angleDeg - lastSteeringAngle) < 0.5f) return;
   lastSteeringAngle = angleDeg;
 
+  // Get the STEERING sprite
+  TFT_eSprite *sprite = RenderEngine::getSprite(RenderEngine::STEERING);
+  if (sprite == nullptr) {
+    Logger::error("drawSteeringWheel: STEERING sprite not available");
+    return;
+  }
+
   // Limpiar área del volante
-  tft.fillCircle(cx, cy, wheelRadius + 5, TFT_BLACK);
+  sprite->fillCircle(cx, cy, wheelRadius + 5, TFT_BLACK);
 
   // Convertir ángulo a radianes
   float rad = angleDeg * DEG_TO_RAD;
@@ -771,12 +789,12 @@ static void drawSteeringWheel(float angleDeg) {
 
   // === Dibujar aro exterior del volante ===
   // Sombra del aro
-  tft.drawCircle(cx + 1, cy + 1, wheelRadius, 0x2104);
-  tft.drawCircle(cx + 1, cy + 1, wheelRadius - 1, 0x2104);
+  sprite->drawCircle(cx + 1, cy + 1, wheelRadius, 0x2104);
+  sprite->drawCircle(cx + 1, cy + 1, wheelRadius - 1, 0x2104);
   // Aro principal
-  tft.drawCircle(cx, cy, wheelRadius, rimColor);
-  tft.drawCircle(cx, cy, wheelRadius - 1, rimColor);
-  tft.drawCircle(cx, cy, wheelRadius - 2, COLOR_WHEEL_RIM);
+  sprite->drawCircle(cx, cy, wheelRadius, rimColor);
+  sprite->drawCircle(cx, cy, wheelRadius - 1, rimColor);
+  sprite->drawCircle(cx, cy, wheelRadius - 2, COLOR_WHEEL_RIM);
 
   // === Dibujar 3 radios del volante (rotados según ángulo) ===
   for (int i = 0; i < 3; i++) {
@@ -790,19 +808,19 @@ static void drawSteeringWheel(float angleDeg) {
     int y2 = cy + (int)(sinf(spokeAngle) * innerRadius);
 
     // Dibujar radio con grosor
-    tft.drawLine(x1, y1, x2, y2, COLOR_WHEEL_SPOKE);
-    tft.drawLine(x1 - 1, y1, x2 - 1, y2, COLOR_WHEEL_SPOKE);
-    tft.drawLine(x1 + 1, y1, x2 + 1, y2, COLOR_WHEEL_RIM);
+    sprite->drawLine(x1, y1, x2, y2, COLOR_WHEEL_SPOKE);
+    sprite->drawLine(x1 - 1, y1, x2 - 1, y2, COLOR_WHEEL_SPOKE);
+    sprite->drawLine(x1 + 1, y1, x2 + 1, y2, COLOR_WHEEL_RIM);
   }
 
   // === Dibujar centro del volante (hub) ===
   // Sombra 3D
-  tft.fillCircle(cx + 1, cy + 1, centerRadius, 0x2104);
+  sprite->fillCircle(cx + 1, cy + 1, centerRadius, 0x2104);
   // Centro principal
-  tft.fillCircle(cx, cy, centerRadius, COLOR_WHEEL_CENTER);
-  tft.drawCircle(cx, cy, centerRadius, COLOR_WHEEL_RIM);
+  sprite->fillCircle(cx, cy, centerRadius, COLOR_WHEEL_CENTER);
+  sprite->drawCircle(cx, cy, centerRadius, COLOR_WHEEL_RIM);
   // Highlight 3D
-  tft.fillCircle(cx - 2, cy - 2, 2, COLOR_WHEEL_HIGHLIGHT);
+  sprite->fillCircle(cx - 2, cy - 2, 2, COLOR_WHEEL_HIGHLIGHT);
 
   // === Indicador de posición 12 en punto (para referencia visual) ===
   // Línea que marca el "arriba" del volante rotado
@@ -810,17 +828,24 @@ static void drawSteeringWheel(float angleDeg) {
       rad - (90.0f * DEG_TO_RAD); // -90° es arriba en coords de pantalla
   int topX = cx + (int)(cosf(topAngle) * (wheelRadius - 5));
   int topY = cy + (int)(sinf(topAngle) * (wheelRadius - 5));
-  tft.fillCircle(topX, topY, 3, rimColor);
+  sprite->fillCircle(topX, topY, 3, rimColor);
 
   // === Mostrar grados debajo del volante ===
   const int textY = cy + wheelRadius + 12;
-  tft.fillRect(cx - 25, textY - 6, 50, 14, TFT_BLACK);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(rimColor, TFT_BLACK);
+  sprite->fillRect(cx - 25, textY - 6, 50, 14, TFT_BLACK);
+  sprite->setTextDatum(MC_DATUM);
+  sprite->setTextColor(rimColor, TFT_BLACK);
   char buf[16];
   snprintf(buf, sizeof(buf), "%+.0f\xB0",
            angleDeg); // Formato: +0° o -15° (0xB0 = símbolo grado)
-  tft.drawString(buf, cx, textY, 2);
+  sprite->drawString(buf, cx, textY, 2);
+
+  // Mark the steering wheel bounding box as dirty
+  int steerX = cx - wheelRadius - 5;
+  int steerY = cy - wheelRadius - 5;
+  int steerW = (wheelRadius + 5) * 2;
+  int steerH = (wheelRadius + 5) * 2 + 20; // Include text area
+  RenderEngine::markDirtyRect(steerX, steerY, steerW, steerH);
 }
 
 void HUD::drawPedalBar(float pedalPercent) {
@@ -1366,4 +1391,7 @@ void HUD::update() {
   // Menú oculto: botón físico o toque en batería
   MenuHidden::update(batteryTouch);
 #endif
+
+  // Render all sprite layers to display
+  RenderEngine::render();
 }
