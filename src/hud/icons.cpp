@@ -1,6 +1,7 @@
 #include "icons.h"
 #include "display_types.h" // para CACHE_UNINITIALIZED
 #include "logger.h"
+#include "shadow_render.h"  // Phase 3: Shadow mirroring support
 #include "system.h"  // para consultar errores persistentes
 #include <Arduino.h> // para constrain()
 #include <TFT_eSPI.h>

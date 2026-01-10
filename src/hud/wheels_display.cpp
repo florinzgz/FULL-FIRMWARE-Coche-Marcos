@@ -1,6 +1,7 @@
 #include "wheels_display.h"
 #include "logger.h"
 #include "settings.h"
+#include "shadow_render.h"  // Phase 3: Shadow mirroring support
 #include <Arduino.h> // para constrain() y DEG_TO_RAD
 #include <TFT_eSPI.h>
 #include <math.h> // para fabs()
@@ -79,6 +80,11 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
   int clearSize = h + 8; // h es la dimensión más larga
   tft->fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize, clearSize,
                 TFT_BLACK);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror wheel clear area to shadow sprite
+  SHADOW_MIRROR_fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize, 
+                          clearSize, TFT_BLACK);
+#endif
 
   // Sombra de la rueda (desplazada 2px abajo-derecha)
   tft->fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
@@ -231,6 +237,18 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     snprintf(buf, sizeof(buf), "%d C", (int)tempC);
   }
   tft->drawString(buf, cx, cy - 28, 2);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror temperature display to shadow sprite
+  SHADOW_MIRROR_fillRoundRect(cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
+  SHADOW_MIRROR_drawRoundRect(cx - 26, cy - 36, 52, 16, 3, TFT_DARKGREY);
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  if (tempC < -998.0f) {
+    SHADOW_MIRROR_setTextColor(TFT_DARKGREY, COLOR_INFO_BG);
+  } else {
+    SHADOW_MIRROR_setTextColor(colorByTemp(tempC), COLOR_INFO_BG);
+  }
+  SHADOW_MIRROR_drawString(buf, cx, cy - 28, 2);
+#endif
 
   // Esfuerzo debajo con fondo semitransparente
   tft->fillRoundRect(cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
@@ -245,6 +263,17 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     snprintf(buf, sizeof(buf), "%d%%", (int)effortPct);
   }
   tft->drawString(buf, cx, cy + 26, 2);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror effort display to shadow sprite
+  SHADOW_MIRROR_fillRoundRect(cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
+  SHADOW_MIRROR_drawRoundRect(cx - 26, cy + 18, 52, 16, 3, TFT_DARKGREY);
+  if (effortPct < 0.0f) {
+    SHADOW_MIRROR_setTextColor(TFT_DARKGREY, COLOR_INFO_BG);
+  } else {
+    SHADOW_MIRROR_setTextColor(colorByEffort(effortPct), COLOR_INFO_BG);
+  }
+  SHADOW_MIRROR_drawString(buf, cx, cy + 26, 2);
+#endif
 
   // Barra de esfuerzo 3D (solo si hay valor válido)
   int barW = 48, barH = 8;
@@ -254,6 +283,11 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
   // Fondo de barra con efecto 3D
   tft->fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
   tft->drawRoundRect(barX, barY, barW, barH, 2, TFT_DARKGREY);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror effort bar background to shadow sprite
+  SHADOW_MIRROR_fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawRoundRect(barX, barY, barW, barH, 2, TFT_DARKGREY);
+#endif
 
   if (effortPct >= 0.0f) {
     int filled = (int)((effortPct / 100.0f) * (barW - 4));
@@ -262,6 +296,11 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
       tft->fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1, barColor);
       // Highlight superior
       tft->drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
+#ifdef RENDER_SHADOW_MODE
+      // Phase 3: Mirror effort bar fill to shadow sprite
+      SHADOW_MIRROR_fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1, barColor);
+      SHADOW_MIRROR_drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
+#endif
     }
   }
 }
