@@ -1,8 +1,8 @@
 #include "wheels_display.h"
 #include "logger.h"
 #include "settings.h"
-#include "shadow_render.h"  // Phase 3: Shadow mirroring support
-#include <Arduino.h> // para constrain() y DEG_TO_RAD
+#include "shadow_render.h" // Phase 3: Shadow mirroring support
+#include <Arduino.h>       // para constrain() y DEG_TO_RAD
 #include <TFT_eSPI.h>
 #include <math.h> // para fabs()
 
@@ -82,8 +82,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
                 TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror wheel clear area to shadow sprite
-  SHADOW_MIRROR_fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize, 
-                          clearSize, TFT_BLACK);
+  SHADOW_MIRROR_fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
+                         clearSize, TFT_BLACK);
 #endif
 
   // Sombra de la rueda (desplazada 2px abajo-derecha)
@@ -94,9 +94,9 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror wheel shadow to shadow sprite
   SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
-                              COLOR_WHEEL_SHADOW);
+                             COLOR_WHEEL_SHADOW);
   SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
-                              COLOR_WHEEL_SHADOW);
+                             COLOR_WHEEL_SHADOW);
 #endif
 
   // Neumático exterior (banda de rodadura)
@@ -157,7 +157,7 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
     // Phase 3.5: Mirror tread marks to shadow sprite
     SHADOW_MIRROR_drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
     SHADOW_MIRROR_drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x,
-                            ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
+                           ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
 #endif
   }
 
@@ -340,7 +340,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
       tft->drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror effort bar fill to shadow sprite
-      SHADOW_MIRROR_fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1, barColor);
+      SHADOW_MIRROR_fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1,
+                                  barColor);
       SHADOW_MIRROR_drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
 #endif
     }

@@ -22,14 +22,14 @@ bool RenderEngine::isDirty[3];
 uint32_t RenderEngine::shadowComparisonCount = 0;
 uint32_t RenderEngine::shadowMismatchCount = 0;
 uint32_t RenderEngine::shadowLastMismatch = 0;
-uint32_t RenderEngine::shadowMaxMismatch = 0;        // Phase 4
-uint64_t RenderEngine::shadowTotalMismatch = 0;      // Phase 4
+uint32_t RenderEngine::shadowMaxMismatch = 0;   // Phase 4
+uint64_t RenderEngine::shadowTotalMismatch = 0; // Phase 4
 
 // Safety protection statistics (Phase 5)
-uint32_t RenderEngine::shadowClampedRects = 0;       // Dirty rects clamped to bounds
-uint32_t RenderEngine::shadowRejectedRects = 0;      // Invalid dirty rects rejected
-uint32_t RenderEngine::shadowNullSprites = 0;        // Null sprite accesses prevented
-uint32_t RenderEngine::shadowDMABlocks = 0;          // Invalid DMA transfers blocked
+uint32_t RenderEngine::shadowClampedRects = 0;  // Dirty rects clamped to bounds
+uint32_t RenderEngine::shadowRejectedRects = 0; // Invalid dirty rects rejected
+uint32_t RenderEngine::shadowNullSprites = 0; // Null sprite accesses prevented
+uint32_t RenderEngine::shadowDMABlocks = 0;   // Invalid DMA transfers blocked
 
 // Shadow ignore regions (Phase 3.6)
 static RenderEngine::ShadowMask shadowMasks[8];
@@ -99,9 +99,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
     sprites[id]->setTransparentColor(TFT_BLACK);
   }
 #else
-  if (id == STEERING) {
-    sprites[id]->setTransparentColor(TFT_BLACK);
-  }
+  if (id == STEERING) { sprites[id]->setTransparentColor(TFT_BLACK); }
 #endif
 
   isDirty[id] = true;
@@ -112,7 +110,8 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 
 #ifdef RENDER_SHADOW_MODE
   if (id == STEERING_SHADOW) {
-    Logger::infof("RenderEngine: Shadow sprite ready (%dx%d) - VALIDATION ONLY", w, h);
+    Logger::infof("RenderEngine: Shadow sprite ready (%dx%d) - VALIDATION ONLY",
+                  w, h);
   } else {
     Logger::infof("RenderEngine: Sprite %d ready (%dx%d)", id, w, h);
   }
@@ -126,7 +125,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
   // Phase 5: Add nullptr safety guard
   TFT_eSprite *sprite = sprites[id];
-  
+
 #ifdef RENDER_SHADOW_MODE
   // Track null sprite accesses for safety metrics
   if (sprite == nullptr) {
@@ -134,7 +133,7 @@ TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
     Logger::warnf("RenderEngine: getSprite(%d) returned nullptr", (int)id);
   }
 #endif
-  
+
   return sprite;
 }
 
@@ -144,13 +143,13 @@ void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
   // Sprite dimensions are 480×320
   const int SPRITE_WIDTH = 480;
   const int SPRITE_HEIGHT = 320;
-  
+
   // Clamp rectangle to sprite bounds
   int originalX = x, originalY = y, originalW = w, originalH = h;
-  
+
   // Clamp x and adjust width
   if (x < 0) {
-    w += x;  // Reduce width by the negative offset
+    w += x; // Reduce width by the negative offset
     x = 0;
   }
   if (x >= SPRITE_WIDTH) {
@@ -160,10 +159,10 @@ void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
 #endif
     return;
   }
-  
+
   // Clamp y and adjust height
   if (y < 0) {
-    h += y;  // Reduce height by the negative offset
+    h += y; // Reduce height by the negative offset
     y = 0;
   }
   if (y >= SPRITE_HEIGHT) {
@@ -173,17 +172,13 @@ void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
 #endif
     return;
   }
-  
+
   // Clamp width to not exceed right edge
-  if (x + w > SPRITE_WIDTH) {
-    w = SPRITE_WIDTH - x;
-  }
-  
+  if (x + w > SPRITE_WIDTH) { w = SPRITE_WIDTH - x; }
+
   // Clamp height to not exceed bottom edge
-  if (y + h > SPRITE_HEIGHT) {
-    h = SPRITE_HEIGHT - y;
-  }
-  
+  if (y + h > SPRITE_HEIGHT) { h = SPRITE_HEIGHT - y; }
+
   // Reject if invalid dimensions
   if (w <= 0 || h <= 0) {
 #ifdef RENDER_SHADOW_MODE
@@ -191,16 +186,17 @@ void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
 #endif
     return;
   }
-  
+
 #ifdef RENDER_SHADOW_MODE
   // Track if clamping occurred
   if (x != originalX || y != originalY || w != originalW || h != originalH) {
     shadowClampedRects++;
-    Logger::warnf("RenderEngine: Clamped dirty rect (%d,%d,%d,%d) -> (%d,%d,%d,%d)",
-                  originalX, originalY, originalW, originalH, x, y, w, h);
+    Logger::warnf(
+        "RenderEngine: Clamped dirty rect (%d,%d,%d,%d) -> (%d,%d,%d,%d)",
+        originalX, originalY, originalW, originalH, x, y, w, h);
   }
 #endif
-  
+
   updateDirtyBounds(CAR_BODY, x, y, w, h);
   updateDirtyBounds(STEERING, x, y, w, h);
 }
@@ -236,7 +232,7 @@ void RenderEngine::render() {
   if (isDirty[CAR_BODY]) {
     // Phase 5: Validate DMA bounds before transfer
     bool safeToTransfer = true;
-    
+
     // Check for nullptr
     if (sprites[CAR_BODY] == nullptr) {
       safeToTransfer = false;
@@ -245,7 +241,7 @@ void RenderEngine::render() {
       Logger::error("RenderEngine: Blocked CAR_BODY DMA - sprite is nullptr");
 #endif
     }
-    
+
     // Check dirty rectangle bounds
     if (safeToTransfer) {
       if (dirtyX[CAR_BODY] < 0 || dirtyY[CAR_BODY] < 0 ||
@@ -255,12 +251,14 @@ void RenderEngine::render() {
         safeToTransfer = false;
 #ifdef RENDER_SHADOW_MODE
         shadowDMABlocks++;
-        Logger::errorf("RenderEngine: Blocked CAR_BODY DMA - invalid bounds (%d,%d,%d,%d)",
-                      dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY], dirtyH[CAR_BODY]);
+        Logger::errorf(
+            "RenderEngine: Blocked CAR_BODY DMA - invalid bounds (%d,%d,%d,%d)",
+            dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY],
+            dirtyH[CAR_BODY]);
 #endif
       }
     }
-    
+
     if (safeToTransfer) {
       sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
                                       dirtyW[CAR_BODY], dirtyH[CAR_BODY],
@@ -268,7 +266,7 @@ void RenderEngine::render() {
                                           dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
                                       480);
     }
-    
+
     isDirty[CAR_BODY] = false;
   }
 
@@ -276,7 +274,7 @@ void RenderEngine::render() {
   if (isDirty[STEERING]) {
     // Phase 5: Validate DMA bounds before transfer
     bool safeToTransfer = true;
-    
+
     // Check for nullptr
     if (sprites[STEERING] == nullptr) {
       safeToTransfer = false;
@@ -285,7 +283,7 @@ void RenderEngine::render() {
       Logger::error("RenderEngine: Blocked STEERING DMA - sprite is nullptr");
 #endif
     }
-    
+
     // Check dirty rectangle bounds
     if (safeToTransfer) {
       if (dirtyX[STEERING] < 0 || dirtyY[STEERING] < 0 ||
@@ -295,12 +293,14 @@ void RenderEngine::render() {
         safeToTransfer = false;
 #ifdef RENDER_SHADOW_MODE
         shadowDMABlocks++;
-        Logger::errorf("RenderEngine: Blocked STEERING DMA - invalid bounds (%d,%d,%d,%d)",
-                      dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING], dirtyH[STEERING]);
+        Logger::errorf(
+            "RenderEngine: Blocked STEERING DMA - invalid bounds (%d,%d,%d,%d)",
+            dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING],
+            dirtyH[STEERING]);
 #endif
       }
     }
-    
+
     if (safeToTransfer) {
       sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
                                       dirtyW[STEERING], dirtyH[STEERING],
@@ -308,7 +308,7 @@ void RenderEngine::render() {
                                           dirtyX[STEERING], dirtyY[STEERING]),
                                       480);
     }
-    
+
     isDirty[STEERING] = false;
   }
 }
@@ -342,7 +342,7 @@ uint32_t RenderEngine::compareShadowSprites() {
 
   shadowComparisonCount++;
   uint32_t mismatchCount = 0;
-  uint32_t ignoredPixels = 0;  // Phase 3.6: Track skipped pixels
+  uint32_t ignoredPixels = 0; // Phase 3.6: Track skipped pixels
 
   // Get sprite dimensions
   int width = 480;
@@ -357,31 +357,28 @@ uint32_t RenderEngine::compareShadowSprites() {
         ignoredPixels++;
         continue;
       }
-      
+
       uint16_t pixelReal = sprites[STEERING]->readPixel(x, y);
       uint16_t pixelShadow = sprites[STEERING_SHADOW]->readPixel(x, y);
-      
-      if (pixelReal != pixelShadow) {
-        mismatchCount++;
-      }
+
+      if (pixelReal != pixelShadow) { mismatchCount++; }
     }
   }
 
   shadowLastMismatch = mismatchCount;
-  
+
   // Phase 4: Update enhanced statistics
   shadowTotalMismatch += mismatchCount;
-  if (mismatchCount > shadowMaxMismatch) {
-    shadowMaxMismatch = mismatchCount;
-  }
+  if (mismatchCount > shadowMaxMismatch) { shadowMaxMismatch = mismatchCount; }
 
   if (mismatchCount > 0) {
     shadowMismatchCount++;
-    
+
     // Log only if mismatch count is significant (>100 pixels)
     // to avoid spam from minor antialiasing differences
     if (mismatchCount > 100) {
-      Logger::warnf("RenderEngine: Shadow mismatch detected: %u pixels differ (%u ignored)", 
+      Logger::warnf("RenderEngine: Shadow mismatch detected: %u pixels differ "
+                    "(%u ignored)",
                     mismatchCount, ignoredPixels);
     }
   }
@@ -390,8 +387,8 @@ uint32_t RenderEngine::compareShadowSprites() {
 }
 
 void RenderEngine::getShadowStats(uint32_t &outTotalComparisons,
-                                   uint32_t &outTotalMismatches,
-                                   uint32_t &outLastMismatchCount) {
+                                  uint32_t &outTotalMismatches,
+                                  uint32_t &outLastMismatchCount) {
   outTotalComparisons = shadowComparisonCount;
   outTotalMismatches = shadowMismatchCount;
   outLastMismatchCount = shadowLastMismatch;
@@ -399,10 +396,10 @@ void RenderEngine::getShadowStats(uint32_t &outTotalComparisons,
 
 // Phase 4: Get detailed comparison metrics
 void RenderEngine::getShadowMetrics(float &outMatchPercentage,
-                                     uint32_t &outMaxMismatch,
-                                     float &outAvgMismatch) {
-  const uint32_t totalPixels = 480 * 320;  // 153,600 pixels
-  
+                                    uint32_t &outMaxMismatch,
+                                    float &outAvgMismatch) {
+  const uint32_t totalPixels = 480 * 320; // 153,600 pixels
+
   // Calculate match percentage based on last comparison
   if (totalPixels > 0) {
     uint32_t matchingPixels = totalPixels - shadowLastMismatch;
@@ -410,9 +407,9 @@ void RenderEngine::getShadowMetrics(float &outMatchPercentage,
   } else {
     outMatchPercentage = 0.0f;
   }
-  
+
   outMaxMismatch = shadowMaxMismatch;
-  
+
   // Calculate average mismatch
   if (shadowComparisonCount > 0) {
     outAvgMismatch = (float)shadowTotalMismatch / (float)shadowComparisonCount;
@@ -423,9 +420,9 @@ void RenderEngine::getShadowMetrics(float &outMatchPercentage,
 
 // Phase 5: Get safety protection statistics
 void RenderEngine::getSafetyStats(uint32_t &outClampedRects,
-                                   uint32_t &outRejectedRects,
-                                   uint32_t &outNullSprites,
-                                   uint32_t &outDMABlocks) {
+                                  uint32_t &outRejectedRects,
+                                  uint32_t &outNullSprites,
+                                  uint32_t &outDMABlocks) {
   outClampedRects = shadowClampedRects;
   outRejectedRects = shadowRejectedRects;
   outNullSprites = shadowNullSprites;
@@ -433,11 +430,10 @@ void RenderEngine::getSafetyStats(uint32_t &outClampedRects,
 }
 
 // Phase 3.6: Shadow ignore region management
-void RenderEngine::clearShadowIgnoreRegions() {
-  shadowMaskCount = 0;
-}
+void RenderEngine::clearShadowIgnoreRegions() { shadowMaskCount = 0; }
 
-void RenderEngine::addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+void RenderEngine::addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w,
+                                         uint16_t h) {
   if (shadowMaskCount < 8) {
     shadowMasks[shadowMaskCount].x = x;
     shadowMasks[shadowMaskCount].y = y;
@@ -450,10 +446,7 @@ void RenderEngine::addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w, uin
 bool RenderEngine::isShadowIgnored(uint16_t x, uint16_t y) {
   for (uint8_t i = 0; i < shadowMaskCount; i++) {
     const ShadowMask &m = shadowMasks[i];
-    if (x >= m.x && x < m.x + m.w &&
-        y >= m.y && y < m.y + m.h) {
-      return true;
-    }
+    if (x >= m.x && x < m.x + m.w && y >= m.y && y < m.y + m.h) { return true; }
   }
   return false;
 }

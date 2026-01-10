@@ -1,7 +1,7 @@
 #include "gauges.h"
 #include "settings.h"
-#include "shadow_render.h"  // Phase 3: Shadow mirroring support
-#include <Arduino.h> // para constrain(), snprintf, etc.
+#include "shadow_render.h" // Phase 3: Shadow mirroring support
+#include <Arduino.h>       // para constrain(), snprintf, etc.
 
 static TFT_eSPI *tft;
 
@@ -44,7 +44,7 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
                  color, true);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite for validation
-    SHADOW_MIRROR_drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle, 
+    SHADOW_MIRROR_drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
                           color, color, true);
 #endif
   }
@@ -150,7 +150,8 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
     tft->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror erase to shadow sprite
-    SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2, TFT_BLACK);
+    SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+                               TFT_BLACK);
     SHADOW_MIRROR_fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
 #endif
   } else {
@@ -173,10 +174,10 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
     tft->fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror needle drawing to shadow sprite
-    SHADOW_MIRROR_fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1, 
-                                baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
+    SHADOW_MIRROR_fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
+                               baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
     SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
-                                COLOR_NEEDLE_BASE);
+                               COLOR_NEEDLE_BASE);
     SHADOW_MIRROR_drawLine(cx, cy, midX, midY, COLOR_NEEDLE_TIP);
     SHADOW_MIRROR_fillCircle(cx, cy, 10, TFT_DARKGREY);
     SHADOW_MIRROR_fillCircle(cx, cy, 8, COLOR_GAUGE_RING);

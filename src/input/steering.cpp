@@ -38,10 +38,14 @@ static float steeringLastDeg = 0.0f;
 static bool steeringFilterInit = false;
 
 // Parámetros de protección
-static constexpr float STEERING_EMA_ALPHA = 0.18f;      // Suavizado (0 = lento, 1 = sin filtro)
-static constexpr float STEERING_MAX_JUMP = 15.0f;       // Rechazo EMI (grados por frame)
-static constexpr float STEERING_MAX_RATE = 8.0f;        // Máx grados permitidos por update
-static constexpr float STEERING_HYSTERESIS = 0.30f;     // Zona muerta para eliminar jitter
+static constexpr float STEERING_EMA_ALPHA =
+    0.18f; // Suavizado (0 = lento, 1 = sin filtro)
+static constexpr float STEERING_MAX_JUMP =
+    15.0f; // Rechazo EMI (grados por frame)
+static constexpr float STEERING_MAX_RATE =
+    8.0f; // Máx grados permitidos por update
+static constexpr float STEERING_HYSTERESIS =
+    0.30f; // Zona muerta para eliminar jitter
 
 // 🔒 Función segura para leer ticks desde código no-ISR
 static long getTicksSafe() {
@@ -184,9 +188,8 @@ void Steering::update() {
   }
 
   // --- EMA smoothing ---
-  steeringFilteredDeg =
-      STEERING_EMA_ALPHA * rawAngle +
-      (1.0f - STEERING_EMA_ALPHA) * steeringFilteredDeg;
+  steeringFilteredDeg = STEERING_EMA_ALPHA * rawAngle +
+                        (1.0f - STEERING_EMA_ALPHA) * steeringFilteredDeg;
 
   // --- Rate limiting (velocidad máxima de giro) ---
   float rateDelta = steeringFilteredDeg - s.angleDeg;

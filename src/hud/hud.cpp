@@ -1,6 +1,6 @@
 #include "hud.h"
-#include "shadow_render.h"  // Phase 3: Shadow mirroring support
-#include <Arduino.h> // Para DEG_TO_RAD, millis, constrain
+#include "shadow_render.h" // Phase 3: Shadow mirroring support
+#include <Arduino.h>       // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
 // 🔒 v2.8.8: Eliminada librería XPT2046_Touchscreen separada
 // Ahora usamos el touch integrado de TFT_eSPI para evitar conflictos SPI
@@ -960,7 +960,8 @@ void HUD::drawPedalBar(float pedalPercent) {
   // Phase 3: Mirror reference marks to shadow sprite
   SHADOW_MIRROR_drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
   SHADOW_MIRROR_drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
-  SHADOW_MIRROR_drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SHADOW_MIRROR_drawFastVLine(width * 3 / 4, y + 2, height - 4,
+                              COLOR_REF_MARKS);
 #endif
 }
 
@@ -1441,16 +1442,16 @@ void HUD::update() {
   // This runs BEFORE sprite push to capture the complete frame state
   static uint32_t comparisonFrameCount = 0;
   comparisonFrameCount++;
-  
+
   // Run comparison every frame for accurate statistics
   uint32_t mismatchPixels = RenderEngine::compareShadowSprites();
-  
+
   // Get detailed metrics
   float matchPercentage = 0.0f;
   uint32_t maxMismatch = 0;
   float avgMismatch = 0.0f;
   RenderEngine::getShadowMetrics(matchPercentage, maxMismatch, avgMismatch);
-  
+
   // Draw debug overlay every 30 frames (once per second at 30 FPS)
   // This avoids excessive TFT drawing overhead
   if (comparisonFrameCount % 30 == 0) {
@@ -1460,23 +1461,23 @@ void HUD::update() {
     const int overlayY = 50;
     const int overlayW = 115;
     const int overlayH = 40;
-    
+
     // Semi-transparent background
     tft.fillRect(overlayX, overlayY, overlayW, overlayH, 0x18E3); // Dark gray
     tft.drawRect(overlayX, overlayY, overlayW, overlayH, TFT_CYAN);
-    
+
     // Display match percentage
     tft.setTextDatum(TL_DATUM);
     tft.setTextColor(TFT_WHITE, 0x18E3);
     char buf[32];
     snprintf(buf, sizeof(buf), "MATCH: %.1f%%", matchPercentage);
     tft.drawString(buf, overlayX + 3, overlayY + 3, 1);
-    
+
     // Display mismatch pixel count
     tft.setTextColor(mismatchPixels > 10000 ? TFT_RED : TFT_GREEN, 0x18E3);
     snprintf(buf, sizeof(buf), "DIFF: %u px", mismatchPixels);
     tft.drawString(buf, overlayX + 3, overlayY + 13, 1);
-    
+
     // Display max and avg
     tft.setTextColor(TFT_YELLOW, 0x18E3);
     snprintf(buf, sizeof(buf), "MAX: %u", maxMismatch);

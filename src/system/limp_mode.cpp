@@ -26,12 +26,12 @@ static uint32_t lastTransition = 0;
 // Safety thresholds
 // ==========================================
 namespace Thresholds {
-constexpr float BATTERY_UNDERVOLTAGE = 20.0f;  // 24V system, critical at 20V
-constexpr float BATTERY_CRITICAL = 18.0f;      // Below this = CRITICAL
-constexpr float TEMP_WARNING = 80.0f;          // Motor temp warning (°C)
-constexpr float TEMP_CRITICAL = 90.0f;         // Motor temp critical (°C)
+constexpr float BATTERY_UNDERVOLTAGE = 20.0f; // 24V system, critical at 20V
+constexpr float BATTERY_CRITICAL = 18.0f;     // Below this = CRITICAL
+constexpr float TEMP_WARNING = 80.0f;         // Motor temp warning (°C)
+constexpr float TEMP_CRITICAL = 90.0f;        // Motor temp critical (°C)
 constexpr uint8_t ERROR_COUNT_DEGRADED = 1;   // 1+ errors = DEGRADED
-constexpr uint8_t ERROR_COUNT_LIMP = 3;        // 3+ errors = LIMP
+constexpr uint8_t ERROR_COUNT_LIMP = 3;       // 3+ errors = LIMP
 constexpr uint8_t ERROR_COUNT_CRITICAL = 5;   // 5+ errors = CRITICAL
 } // namespace Thresholds
 
@@ -139,9 +139,7 @@ static LimpState evaluateConditions() {
   // Check for CRITICAL conditions first (highest priority)
 
   // Both pedal AND steering invalid = CRITICAL
-  if (!cache.pedalValid && !cache.steeringValid) {
-    return LimpState::CRITICAL;
-  }
+  if (!cache.pedalValid && !cache.steeringValid) { return LimpState::CRITICAL; }
 
   // Battery critically low = CRITICAL
   if (cache.batteryVoltage > 0.0f &&
@@ -150,9 +148,7 @@ static LimpState evaluateConditions() {
   }
 
   // Temperature critical = CRITICAL
-  if (cache.temperatureCritical) {
-    return LimpState::CRITICAL;
-  }
+  if (cache.temperatureCritical) { return LimpState::CRITICAL; }
 
   // Too many errors = CRITICAL
   if (cache.systemErrorCount >= Thresholds::ERROR_COUNT_CRITICAL) {
@@ -173,14 +169,10 @@ static LimpState evaluateConditions() {
   }
 
   // Steering not centered (encoder not initialized) = LIMP
-  if (!cache.steeringCentered) {
-    return LimpState::LIMP;
-  }
+  if (!cache.steeringCentered) { return LimpState::LIMP; }
 
   // Either pedal OR steering invalid = LIMP
-  if (!cache.pedalValid || !cache.steeringValid) {
-    return LimpState::LIMP;
-  }
+  if (!cache.pedalValid || !cache.steeringValid) { return LimpState::LIMP; }
 
   // Check for DEGRADED conditions (low priority)
 
@@ -190,9 +182,7 @@ static LimpState evaluateConditions() {
   }
 
   // Temperature warning = DEGRADED
-  if (cache.temperatureWarning) {
-    return LimpState::DEGRADED;
-  }
+  if (cache.temperatureWarning) { return LimpState::DEGRADED; }
 
   // All conditions OK = NORMAL
   return LimpState::NORMAL;
@@ -202,14 +192,12 @@ static LimpState evaluateConditions() {
 // State transition
 // ==========================================
 static void transitionToState(LimpState newState) {
-  if (newState == currentState) {
-    return;
-  }
+  if (newState == currentState) { return; }
 
   // Log state change
   const char *stateNames[] = {"NORMAL", "DEGRADED", "LIMP", "CRITICAL"};
-  Logger::warn("[LimpMode] State transition: %s -> %s", stateNames[(int)currentState],
-               stateNames[(int)newState]);
+  Logger::warn("[LimpMode] State transition: %s -> %s",
+               stateNames[(int)currentState], stateNames[(int)newState]);
 
   currentState = newState;
   timeEnteredState = millis();
@@ -247,12 +235,8 @@ static void updateSensorCache() {
 
   for (int i = 0; i < 4; i++) { // Check 4 motor temps
     float temp = Sensors::getTemperature(i);
-    if (temp > Thresholds::TEMP_WARNING) {
-      cache.temperatureWarning = true;
-    }
-    if (temp > Thresholds::TEMP_CRITICAL) {
-      cache.temperatureCritical = true;
-    }
+    if (temp > Thresholds::TEMP_WARNING) { cache.temperatureWarning = true; }
+    if (temp > Thresholds::TEMP_CRITICAL) { cache.temperatureCritical = true; }
   }
 }
 
@@ -340,10 +324,8 @@ Diagnostics getDiagnostics() {
 
 float limitPower(float pedalPercent) {
   // Clamp input to valid range
-  if (pedalPercent < 0.0f)
-    pedalPercent = 0.0f;
-  if (pedalPercent > 100.0f)
-    pedalPercent = 100.0f;
+  if (pedalPercent < 0.0f) pedalPercent = 0.0f;
+  if (pedalPercent > 100.0f) pedalPercent = 100.0f;
 
   // Apply limit
   float limit = getPowerLimit(currentState);
@@ -352,10 +334,8 @@ float limitPower(float pedalPercent) {
 
 float limitSteering(float assistLevel) {
   // Clamp input to valid range
-  if (assistLevel < 0.0f)
-    assistLevel = 0.0f;
-  if (assistLevel > 1.0f)
-    assistLevel = 1.0f;
+  if (assistLevel < 0.0f) assistLevel = 0.0f;
+  if (assistLevel > 1.0f) assistLevel = 1.0f;
 
   // Apply limit
   float limit = getSteeringLimit(currentState);
@@ -364,8 +344,7 @@ float limitSteering(float assistLevel) {
 
 float limitSpeed(float speedKmh) {
   // Clamp input to valid range
-  if (speedKmh < 0.0f)
-    speedKmh = 0.0f;
+  if (speedKmh < 0.0f) speedKmh = 0.0f;
 
   // Apply limit
   float limit = getSpeedLimit(currentState);
@@ -373,7 +352,8 @@ float limitSpeed(float speedKmh) {
 }
 
 bool isSafeToOperate() {
-  return currentState == LimpState::NORMAL || currentState == LimpState::DEGRADED;
+  return currentState == LimpState::NORMAL ||
+         currentState == LimpState::DEGRADED;
 }
 
 bool isFullPowerAllowed() { return currentState == LimpState::NORMAL; }
