@@ -1435,6 +1435,57 @@ void HUD::update() {
   MenuHidden::update(batteryTouch);
 #endif
 
+#ifdef RENDER_SHADOW_MODE
+  // Phase 4: Automatic pixel comparison (measurement only)
+  // Compare STEERING vs STEERING_SHADOW to measure sprite bypass
+  // This runs BEFORE sprite push to capture the complete frame state
+  static uint32_t comparisonFrameCount = 0;
+  comparisonFrameCount++;
+  
+  // Run comparison every frame for accurate statistics
+  uint32_t mismatchPixels = RenderEngine::compareShadowSprites();
+  
+  // Get detailed metrics
+  float matchPercentage = 0.0f;
+  uint32_t maxMismatch = 0;
+  float avgMismatch = 0.0f;
+  RenderEngine::getShadowMetrics(matchPercentage, maxMismatch, avgMismatch);
+  
+  // Draw debug overlay every 30 frames (once per second at 30 FPS)
+  // This avoids excessive TFT drawing overhead
+  if (comparisonFrameCount % 30 == 0) {
+    // Draw small debug overlay in top-right corner (below battery icon)
+    // Using direct TFT to avoid affecting sprite comparison
+    const int overlayX = 360;
+    const int overlayY = 50;
+    const int overlayW = 115;
+    const int overlayH = 40;
+    
+    // Semi-transparent background
+    tft.fillRect(overlayX, overlayY, overlayW, overlayH, 0x18E3); // Dark gray
+    tft.drawRect(overlayX, overlayY, overlayW, overlayH, TFT_CYAN);
+    
+    // Display match percentage
+    tft.setTextDatum(TL_DATUM);
+    tft.setTextColor(TFT_WHITE, 0x18E3);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "MATCH: %.1f%%", matchPercentage);
+    tft.drawString(buf, overlayX + 3, overlayY + 3, 1);
+    
+    // Display mismatch pixel count
+    tft.setTextColor(mismatchPixels > 10000 ? TFT_RED : TFT_GREEN, 0x18E3);
+    snprintf(buf, sizeof(buf), "DIFF: %u px", mismatchPixels);
+    tft.drawString(buf, overlayX + 3, overlayY + 13, 1);
+    
+    // Display max and avg
+    tft.setTextColor(TFT_YELLOW, 0x18E3);
+    snprintf(buf, sizeof(buf), "MAX: %u", maxMismatch);
+    tft.drawString(buf, overlayX + 3, overlayY + 23, 1);
+    snprintf(buf, sizeof(buf), "AVG: %.0f", avgMismatch);
+    tft.drawString(buf, overlayX + 60, overlayY + 23, 1);
+  }
+#endif
+
   // Render all sprite layers to display
   RenderEngine::render();
 }

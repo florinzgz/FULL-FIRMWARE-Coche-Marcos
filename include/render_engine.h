@@ -106,6 +106,17 @@ public:
   static void getShadowStats(uint32_t &outTotalComparisons,
                              uint32_t &outTotalMismatches,
                              uint32_t &outLastMismatchCount);
+  
+  /**
+   * @brief Get detailed shadow comparison metrics (Phase 4)
+   * 
+   * @param outMatchPercentage Percentage of matching pixels (0.0 - 100.0)
+   * @param outMaxMismatch Maximum mismatch count seen across all frames
+   * @param outAvgMismatch Average mismatch count across all frames
+   */
+  static void getShadowMetrics(float &outMatchPercentage,
+                               uint32_t &outMaxMismatch,
+                               float &outAvgMismatch);
 #endif
 
 private:
@@ -125,10 +136,12 @@ private:
   static int dirtyH[3];
   static bool isDirty[3];
   
-  // Shadow rendering statistics
-  static uint32_t shadowComparisonCount;
-  static uint32_t shadowMismatchCount;
-  static uint32_t shadowLastMismatch;
+  // Shadow rendering statistics (Phase 2 & 4)
+  static uint32_t shadowComparisonCount;    // Total comparisons performed
+  static uint32_t shadowMismatchCount;      // Frames with mismatches
+  static uint32_t shadowLastMismatch;       // Last mismatch pixel count
+  static uint32_t shadowMaxMismatch;        // Maximum mismatch seen (Phase 4)
+  static uint64_t shadowTotalMismatch;      // Sum of all mismatches for average (Phase 4)
 #else
   static int dirtyX[2];
   static int dirtyY[2];

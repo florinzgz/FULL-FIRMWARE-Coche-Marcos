@@ -18,10 +18,12 @@ int RenderEngine::dirtyW[3];
 int RenderEngine::dirtyH[3];
 bool RenderEngine::isDirty[3];
 
-// Shadow rendering statistics
+// Shadow rendering statistics (Phase 2 & 4)
 uint32_t RenderEngine::shadowComparisonCount = 0;
 uint32_t RenderEngine::shadowMismatchCount = 0;
 uint32_t RenderEngine::shadowLastMismatch = 0;
+uint32_t RenderEngine::shadowMaxMismatch = 0;        // Phase 4
+uint64_t RenderEngine::shadowTotalMismatch = 0;      // Phase 4
 #else
 int RenderEngine::dirtyX[2];
 int RenderEngine::dirtyY[2];
@@ -212,6 +214,12 @@ uint32_t RenderEngine::compareShadowSprites() {
   }
 
   shadowLastMismatch = mismatchCount;
+  
+  // Phase 4: Update enhanced statistics
+  shadowTotalMismatch += mismatchCount;
+  if (mismatchCount > shadowMaxMismatch) {
+    shadowMaxMismatch = mismatchCount;
+  }
 
   if (mismatchCount > 0) {
     shadowMismatchCount++;
@@ -233,5 +241,29 @@ void RenderEngine::getShadowStats(uint32_t &outTotalComparisons,
   outTotalComparisons = shadowComparisonCount;
   outTotalMismatches = shadowMismatchCount;
   outLastMismatchCount = shadowLastMismatch;
+}
+
+// Phase 4: Get detailed comparison metrics
+void RenderEngine::getShadowMetrics(float &outMatchPercentage,
+                                     uint32_t &outMaxMismatch,
+                                     float &outAvgMismatch) {
+  const uint32_t totalPixels = 480 * 320;  // 153,600 pixels
+  
+  // Calculate match percentage based on last comparison
+  if (totalPixels > 0) {
+    uint32_t matchingPixels = totalPixels - shadowLastMismatch;
+    outMatchPercentage = (float)matchingPixels * 100.0f / (float)totalPixels;
+  } else {
+    outMatchPercentage = 0.0f;
+  }
+  
+  outMaxMismatch = shadowMaxMismatch;
+  
+  // Calculate average mismatch
+  if (shadowComparisonCount > 0) {
+    outAvgMismatch = (float)shadowTotalMismatch / (float)shadowComparisonCount;
+  } else {
+    outAvgMismatch = 0.0f;
+  }
 }
 #endif
