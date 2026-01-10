@@ -24,6 +24,12 @@ uint32_t RenderEngine::shadowMismatchCount = 0;
 uint32_t RenderEngine::shadowLastMismatch = 0;
 uint32_t RenderEngine::shadowMaxMismatch = 0;        // Phase 4
 uint64_t RenderEngine::shadowTotalMismatch = 0;      // Phase 4
+
+// Safety protection statistics (Phase 5)
+uint32_t RenderEngine::shadowClampedRects = 0;       // Dirty rects clamped to bounds
+uint32_t RenderEngine::shadowRejectedRects = 0;      // Invalid dirty rects rejected
+uint32_t RenderEngine::shadowNullSprites = 0;        // Null sprite accesses prevented
+uint32_t RenderEngine::shadowDMABlocks = 0;          // Invalid DMA transfers blocked
 #else
 int RenderEngine::dirtyX[2];
 int RenderEngine::dirtyY[2];
@@ -113,10 +119,84 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 }
 
 // ====== GET ======
-TFT_eSprite *RenderEngine::getSprite(SpriteID id) { return sprites[id]; }
+TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
+  // Phase 5: Add nullptr safety guard
+  TFT_eSprite *sprite = sprites[id];
+  
+#ifdef RENDER_SHADOW_MODE
+  // Track null sprite accesses for safety metrics
+  if (sprite == nullptr) {
+    shadowNullSprites++;
+    Logger::warnf("RenderEngine: getSprite(%d) returned nullptr", (int)id);
+  }
+#endif
+  
+  return sprite;
+}
 
 // ====== DIRTY TRACKING ======
 void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
+  // Phase 5: Bounds clamping to prevent memory corruption
+  // Sprite dimensions are 480×320
+  const int SPRITE_WIDTH = 480;
+  const int SPRITE_HEIGHT = 320;
+  
+  // Clamp rectangle to sprite bounds
+  int originalX = x, originalY = y, originalW = w, originalH = h;
+  
+  // Clamp x and adjust width
+  if (x < 0) {
+    w += x;  // Reduce width by the negative offset
+    x = 0;
+  }
+  if (x >= SPRITE_WIDTH) {
+    // Rectangle starts beyond sprite bounds - reject
+#ifdef RENDER_SHADOW_MODE
+    shadowRejectedRects++;
+#endif
+    return;
+  }
+  
+  // Clamp y and adjust height
+  if (y < 0) {
+    h += y;  // Reduce height by the negative offset
+    y = 0;
+  }
+  if (y >= SPRITE_HEIGHT) {
+    // Rectangle starts beyond sprite bounds - reject
+#ifdef RENDER_SHADOW_MODE
+    shadowRejectedRects++;
+#endif
+    return;
+  }
+  
+  // Clamp width to not exceed right edge
+  if (x + w > SPRITE_WIDTH) {
+    w = SPRITE_WIDTH - x;
+  }
+  
+  // Clamp height to not exceed bottom edge
+  if (y + h > SPRITE_HEIGHT) {
+    h = SPRITE_HEIGHT - y;
+  }
+  
+  // Reject if invalid dimensions
+  if (w <= 0 || h <= 0) {
+#ifdef RENDER_SHADOW_MODE
+    shadowRejectedRects++;
+#endif
+    return;
+  }
+  
+#ifdef RENDER_SHADOW_MODE
+  // Track if clamping occurred
+  if (x != originalX || y != originalY || w != originalW || h != originalH) {
+    shadowClampedRects++;
+    Logger::warnf("RenderEngine: Clamped dirty rect (%d,%d,%d,%d) -> (%d,%d,%d,%d)",
+                  originalX, originalY, originalW, originalH, x, y, w, h);
+  }
+#endif
+  
   updateDirtyBounds(CAR_BODY, x, y, w, h);
   updateDirtyBounds(STEERING, x, y, w, h);
 }
@@ -144,23 +224,87 @@ void RenderEngine::updateDirtyBounds(SpriteID id, int x, int y, int w, int h) {
 void RenderEngine::render() {
   if (!initialized) return;
 
+  // Phase 5: DMA transfer safety checks
+  const int SPRITE_WIDTH = 480;
+  const int SPRITE_HEIGHT = 320;
+
   // Bottom layer (car body)
   if (isDirty[CAR_BODY]) {
-    sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
-                                    dirtyW[CAR_BODY], dirtyH[CAR_BODY],
-                                    (uint16_t *)sprites[CAR_BODY]->getPointer(
-                                        dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
-                                    480);
+    // Phase 5: Validate DMA bounds before transfer
+    bool safeToTransfer = true;
+    
+    // Check for nullptr
+    if (sprites[CAR_BODY] == nullptr) {
+      safeToTransfer = false;
+#ifdef RENDER_SHADOW_MODE
+      shadowDMABlocks++;
+      Logger::error("RenderEngine: Blocked CAR_BODY DMA - sprite is nullptr");
+#endif
+    }
+    
+    // Check dirty rectangle bounds
+    if (safeToTransfer) {
+      if (dirtyX[CAR_BODY] < 0 || dirtyY[CAR_BODY] < 0 ||
+          dirtyX[CAR_BODY] + dirtyW[CAR_BODY] > SPRITE_WIDTH ||
+          dirtyY[CAR_BODY] + dirtyH[CAR_BODY] > SPRITE_HEIGHT ||
+          dirtyW[CAR_BODY] <= 0 || dirtyH[CAR_BODY] <= 0) {
+        safeToTransfer = false;
+#ifdef RENDER_SHADOW_MODE
+        shadowDMABlocks++;
+        Logger::errorf("RenderEngine: Blocked CAR_BODY DMA - invalid bounds (%d,%d,%d,%d)",
+                      dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY], dirtyH[CAR_BODY]);
+#endif
+      }
+    }
+    
+    if (safeToTransfer) {
+      sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
+                                      dirtyW[CAR_BODY], dirtyH[CAR_BODY],
+                                      (uint16_t *)sprites[CAR_BODY]->getPointer(
+                                          dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
+                                      480);
+    }
+    
     isDirty[CAR_BODY] = false;
   }
 
   // Top layer (steering wheel – transparent)
   if (isDirty[STEERING]) {
-    sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
-                                    dirtyW[STEERING], dirtyH[STEERING],
-                                    (uint16_t *)sprites[STEERING]->getPointer(
-                                        dirtyX[STEERING], dirtyY[STEERING]),
-                                    480);
+    // Phase 5: Validate DMA bounds before transfer
+    bool safeToTransfer = true;
+    
+    // Check for nullptr
+    if (sprites[STEERING] == nullptr) {
+      safeToTransfer = false;
+#ifdef RENDER_SHADOW_MODE
+      shadowDMABlocks++;
+      Logger::error("RenderEngine: Blocked STEERING DMA - sprite is nullptr");
+#endif
+    }
+    
+    // Check dirty rectangle bounds
+    if (safeToTransfer) {
+      if (dirtyX[STEERING] < 0 || dirtyY[STEERING] < 0 ||
+          dirtyX[STEERING] + dirtyW[STEERING] > SPRITE_WIDTH ||
+          dirtyY[STEERING] + dirtyH[STEERING] > SPRITE_HEIGHT ||
+          dirtyW[STEERING] <= 0 || dirtyH[STEERING] <= 0) {
+        safeToTransfer = false;
+#ifdef RENDER_SHADOW_MODE
+        shadowDMABlocks++;
+        Logger::errorf("RenderEngine: Blocked STEERING DMA - invalid bounds (%d,%d,%d,%d)",
+                      dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING], dirtyH[STEERING]);
+#endif
+      }
+    }
+    
+    if (safeToTransfer) {
+      sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
+                                      dirtyW[STEERING], dirtyH[STEERING],
+                                      (uint16_t *)sprites[STEERING]->getPointer(
+                                          dirtyX[STEERING], dirtyY[STEERING]),
+                                      480);
+    }
+    
     isDirty[STEERING] = false;
   }
 }
@@ -265,5 +409,16 @@ void RenderEngine::getShadowMetrics(float &outMatchPercentage,
   } else {
     outAvgMismatch = 0.0f;
   }
+}
+
+// Phase 5: Get safety protection statistics
+void RenderEngine::getSafetyStats(uint32_t &outClampedRects,
+                                   uint32_t &outRejectedRects,
+                                   uint32_t &outNullSprites,
+                                   uint32_t &outDMABlocks) {
+  outClampedRects = shadowClampedRects;
+  outRejectedRects = shadowRejectedRects;
+  outNullSprites = shadowNullSprites;
+  outDMABlocks = shadowDMABlocks;
 }
 #endif

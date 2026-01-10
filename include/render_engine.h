@@ -117,6 +117,19 @@ public:
   static void getShadowMetrics(float &outMatchPercentage,
                                uint32_t &outMaxMismatch,
                                float &outAvgMismatch);
+  
+  /**
+   * @brief Get safety protection statistics (Phase 5)
+   * 
+   * @param outClampedRects Number of dirty rectangles clamped to bounds
+   * @param outRejectedRects Number of invalid dirty rectangles rejected
+   * @param outNullSprites Number of null sprite accesses prevented
+   * @param outDMABlocks Number of invalid DMA transfers blocked
+   */
+  static void getSafetyStats(uint32_t &outClampedRects,
+                             uint32_t &outRejectedRects,
+                             uint32_t &outNullSprites,
+                             uint32_t &outDMABlocks);
 #endif
 
 private:
@@ -142,6 +155,12 @@ private:
   static uint32_t shadowLastMismatch;       // Last mismatch pixel count
   static uint32_t shadowMaxMismatch;        // Maximum mismatch seen (Phase 4)
   static uint64_t shadowTotalMismatch;      // Sum of all mismatches for average (Phase 4)
+  
+  // Safety protection statistics (Phase 5)
+  static uint32_t shadowClampedRects;       // Dirty rects clamped to bounds
+  static uint32_t shadowRejectedRects;      // Invalid dirty rects rejected
+  static uint32_t shadowNullSprites;        // Null sprite accesses prevented
+  static uint32_t shadowDMABlocks;          // Invalid DMA transfers blocked
 #else
   static int dirtyX[2];
   static int dirtyY[2];
