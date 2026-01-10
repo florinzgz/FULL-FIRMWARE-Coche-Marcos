@@ -18,7 +18,7 @@
     "f_cpu": "240000000L",
 
     "flash_mode": "qio",
-    "flash_size": 33554432,
+    "flash_size": "32MB",
 
     "psram_type": "opi",
     "memory_type": "qio_opi",
@@ -26,12 +26,13 @@
     "extra_flags": [
       "-DBOARD_HAS_PSRAM",
       "-DARDUINO_USB_MODE=1",
-      "-DARDUINO_USB_CDC_ON_BOOT=1"
+      "-DARDUINO_USB_CDC_ON_BOOT=1",
+      "-DCORE_DEBUG_LEVEL=0"
     ]
   },
 
   "upload": {
-    "flash_size": 33554432,
+    "flash_size": "32MB",
     "maximum_size": 33554432,
     "speed": 921600
   },
