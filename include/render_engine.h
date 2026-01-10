@@ -1,70 +1,47 @@
 #pragma once
 
-#include "layer_map.h"
 #include <TFT_eSPI.h>
 
-// Rendering engine for layered sprite-based HUD
-// Manages PSRAM-backed sprites, dirty tracking, and DMA transfers
+// Minimal rendering engine for sprite-based HUD elements
+// Only for static/semi-static elements (car body, steering wheel)
+// Everything else uses direct draw with dirty rect tracking
 namespace RenderEngine {
 
-// Layer sprite information
-struct LayerSprite {
-  TFT_eSprite *sprite; // Sprite buffer (allocated in PSRAM)
-  int16_t x;           // Screen position X
-  int16_t y;           // Screen position Y
-  int16_t w;           // Sprite width
-  int16_t h;           // Sprite height
-  bool dirty;          // Needs redraw
-  bool visible;        // Should be rendered
-  bool created;        // Sprite allocated
+// Sprite identifiers
+enum SpriteID : uint8_t {
+  SPRITE_CAR_BODY = 0,      // Static car visualization
+  SPRITE_STEERING = 1,       // Steering wheel overlay
+  SPRITE_COUNT = 2
+};
+
+// Dirty rectangle for direct-draw elements
+struct DirtyRect {
+  int16_t x, y, w, h;
+  bool dirty;
 };
 
 // Initialize rendering engine
-// Must be called after TFT_eSPI is initialized
 void init(TFT_eSPI *display);
 
-// Create a layer sprite with specified dimensions and position
-// Uses PSRAM for buffer allocation
-// colorDepth: 1, 8, 16, or 24 bits per pixel
-bool createLayer(RenderLayer::Layer layer, int16_t x, int16_t y, int16_t w,
-                 int16_t h, uint8_t colorDepth = 16);
+// Create sprite with PSRAM allocation
+bool createSprite(SpriteID id, int16_t x, int16_t y, int16_t w, int16_t h);
 
-// Delete a layer sprite and free PSRAM
-void deleteLayer(RenderLayer::Layer layer);
+// Get sprite for drawing
+TFT_eSprite *getSprite(SpriteID id);
 
-// Mark a layer as dirty (needs redraw)
-void markDirty(RenderLayer::Layer layer);
+// Mark sprite as dirty (needs push to screen)
+void markSpriteDirty(SpriteID id);
 
-// Mark all layers as dirty
-void markAllDirty();
+// Mark screen region as dirty (for direct draws)
+void markDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h);
 
-// Set layer visibility
-void setLayerVisible(RenderLayer::Layer layer, bool visible);
-
-// Get sprite for drawing (returns nullptr if not created)
-TFT_eSprite *getSprite(RenderLayer::Layer layer);
-
-// Render all dirty layers to screen
-// Only pushes dirty sprites to minimize bus traffic
-// Uses DMA when available for faster transfer
+// Render all dirty sprites using DMA
 void render();
 
-// Clear a specific layer (fill with transparent or background color)
-void clearLayer(RenderLayer::Layer layer, uint16_t color = TFT_BLACK);
+// Get sprite name for debugging
+const char *getSpriteName(SpriteID id);
 
-// Get layer info for manual positioning/sizing
-LayerSprite *getLayerInfo(RenderLayer::Layer layer);
-
-// Enable/disable DMA transfers (if supported by hardware)
-void setDMAEnabled(bool enabled);
-
-// Get current frame time in milliseconds
-uint32_t getFrameTime();
-
-// Get average FPS
-float getFPS();
-
-// Cleanup and free all resources
+// Cleanup
 void cleanup();
 
 } // namespace RenderEngine
