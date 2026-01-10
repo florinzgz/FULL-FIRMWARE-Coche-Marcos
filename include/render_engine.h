@@ -5,12 +5,12 @@
 
 /**
  * @brief Sprite-based rendering engine for optimized display updates
- * 
+ *
  * This engine manages two full-screen sprites (CAR_BODY and STEERING) to
  * optimize rendering performance. Sprites are created at full screen size
  * (480x320) to avoid coordinate translation - all existing draw calls keep
  * their original X,Y values.
- * 
+ *
  * The engine uses dirty rectangle tracking to push only changed regions
  * to the display via DMA, improving performance.
  */
@@ -20,8 +20,8 @@ public:
    * @brief Sprite identifiers
    */
   enum SpriteID {
-    CAR_BODY = 0,  // Car body layer (drawn first, static background)
-    STEERING = 1   // Steering wheel layer (drawn on top, dynamic)
+    CAR_BODY = 0, // Car body layer (drawn first, static background)
+    STEERING = 1  // Steering wheel layer (drawn on top, dynamic)
   };
 
   /**
@@ -57,7 +57,7 @@ public:
 
   /**
    * @brief Render all dirty sprite regions to the display
-   * 
+   *
    * This function pushes only the bounding box of dirty regions for each
    * sprite to the display, using DMA for optimal performance.
    */
@@ -76,9 +76,9 @@ public:
 
 private:
   static TFT_eSPI *tft;
-  static TFT_eSprite *sprites[2];  // CAR_BODY and STEERING sprites
+  static TFT_eSprite *sprites[2]; // CAR_BODY and STEERING sprites
   static bool initialized;
-  
+
   // Dirty rectangles for each sprite (bounding box)
   static int dirtyX[2];
   static int dirtyY[2];

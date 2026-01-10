@@ -27,7 +27,7 @@ void RenderEngine::init(TFT_eSPI *tftDisplay) {
 
   tft = tftDisplay;
   initialized = true;
-  
+
   Logger::info("RenderEngine: Initialized successfully");
 }
 
@@ -57,7 +57,7 @@ bool RenderEngine::createSprite(SpriteID id, int width, int height) {
 
   // Create sprite buffer with 16-bit color depth
   if (!sprites[id]->createSprite(width, height)) {
-    Logger::errorf("RenderEngine: Failed to create sprite buffer %d (%dx%d)", 
+    Logger::errorf("RenderEngine: Failed to create sprite buffer %d (%dx%d)",
                    id, width, height);
     delete sprites[id];
     sprites[id] = nullptr;
@@ -86,9 +86,7 @@ TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
 }
 
 void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
-  if (!initialized) {
-    return;
-  }
+  if (!initialized) { return; }
 
   // Mark both sprites as dirty in the specified region
   // (since they're layered, both need to be redrawn)
@@ -97,9 +95,7 @@ void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
 }
 
 void RenderEngine::updateDirtyBounds(SpriteID id, int x, int y, int w, int h) {
-  if (sprites[id] == nullptr) {
-    return;
-  }
+  if (sprites[id] == nullptr) { return; }
 
   if (!isDirty[id]) {
     // First dirty region - set initial bounds
@@ -114,7 +110,7 @@ void RenderEngine::updateDirtyBounds(SpriteID id, int x, int y, int w, int h) {
     int y1 = min(dirtyY[id], y);
     int x2 = max(dirtyX[id] + dirtyW[id], x + w);
     int y2 = max(dirtyY[id] + dirtyH[id], y + h);
-    
+
     dirtyX[id] = x1;
     dirtyY[id] = y1;
     dirtyW[id] = x2 - x1;
@@ -123,9 +119,7 @@ void RenderEngine::updateDirtyBounds(SpriteID id, int x, int y, int w, int h) {
 }
 
 void RenderEngine::render() {
-  if (!initialized || tft == nullptr) {
-    return;
-  }
+  if (!initialized || tft == nullptr) { return; }
 
   // Render CAR_BODY sprite (bottom layer)
   if (isDirty[CAR_BODY] && sprites[CAR_BODY] != nullptr) {
@@ -144,14 +138,10 @@ void RenderEngine::render() {
 }
 
 void RenderEngine::clear() {
-  if (!initialized) {
-    return;
-  }
+  if (!initialized) { return; }
 
   for (int i = 0; i < 2; i++) {
-    if (sprites[i] != nullptr) {
-      sprites[i]->fillSprite(TFT_BLACK);
-    }
+    if (sprites[i] != nullptr) { sprites[i]->fillSprite(TFT_BLACK); }
     isDirty[i] = false;
     dirtyX[i] = 0;
     dirtyY[i] = 0;
@@ -160,6 +150,4 @@ void RenderEngine::clear() {
   }
 }
 
-bool RenderEngine::isInitialized() {
-  return initialized;
-}
+bool RenderEngine::isInitialized() { return initialized; }

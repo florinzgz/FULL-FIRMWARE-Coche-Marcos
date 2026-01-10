@@ -4,8 +4,8 @@
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
 #include "render_engine.h" // Sprite-based rendering engine
-#include "sensors.h"  // Para estado de sensores
-#include "settings.h" // For DISPLAY_BRIGHTNESS_DEFAULT
+#include "sensors.h"       // Para estado de sensores
+#include "settings.h"      // For DISPLAY_BRIGHTNESS_DEFAULT
 #include "storage.h"
 #include "system.h"
 #include <Arduino.h>
@@ -191,7 +191,7 @@ void HUDManager::init() {
   // Initialize RenderEngine with sprite support
   Serial.println("[HUD] Initializing RenderEngine...");
   RenderEngine::init(&tft);
-  
+
   // Create full-screen sprites (480x320) for car body and steering
   if (!RenderEngine::createSprite(RenderEngine::CAR_BODY, 480, 320)) {
     Logger::error("HUD: Failed to create CAR_BODY sprite");

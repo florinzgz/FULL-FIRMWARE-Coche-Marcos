@@ -598,35 +598,36 @@ static void drawCarBody() {
   // Dibujar sombra del coche
   for (int i = 0; i < 7; i++) {
     sprite->fillTriangle(cx + sx, cy + sy, carPoints[i * 2] + sx,
-                     carPoints[i * 2 + 1] + sy, carPoints[(i + 1) * 2] + sx,
-                     carPoints[(i + 1) * 2 + 1] + sy, 0x1082);
+                         carPoints[i * 2 + 1] + sy, carPoints[(i + 1) * 2] + sx,
+                         carPoints[(i + 1) * 2 + 1] + sy, 0x1082);
   }
   sprite->fillTriangle(cx + sx, cy + sy, carPoints[14] + sx, carPoints[15] + sy,
-                   carPoints[0] + sx, carPoints[1] + sy, 0x1082);
+                       carPoints[0] + sx, carPoints[1] + sy, 0x1082);
 
   // === CARROCERÍA PRINCIPAL (CHASIS EXTERIOR SIMPLIFICADO) ===
   // Dibujar cuerpo del coche (relleno con triángulos desde el centro)
   for (int i = 0; i < 7; i++) {
     sprite->fillTriangle(cx, cy, carPoints[i * 2], carPoints[i * 2 + 1],
-                     carPoints[(i + 1) * 2], carPoints[(i + 1) * 2 + 1],
-                     COLOR_CAR_BODY);
+                         carPoints[(i + 1) * 2], carPoints[(i + 1) * 2 + 1],
+                         COLOR_CAR_BODY);
   }
   sprite->fillTriangle(cx, cy, carPoints[14], carPoints[15], carPoints[0],
-                   carPoints[1], COLOR_CAR_BODY);
+                       carPoints[1], COLOR_CAR_BODY);
 
   // Borde exterior del coche (contorno del chasis)
   for (int i = 0; i < 7; i++) {
-    sprite->drawLine(carPoints[i * 2], carPoints[i * 2 + 1], carPoints[(i + 1) * 2],
-                 carPoints[(i + 1) * 2 + 1], COLOR_CAR_OUTLINE);
+    sprite->drawLine(carPoints[i * 2], carPoints[i * 2 + 1],
+                     carPoints[(i + 1) * 2], carPoints[(i + 1) * 2 + 1],
+                     COLOR_CAR_OUTLINE);
   }
   sprite->drawLine(carPoints[14], carPoints[15], carPoints[0], carPoints[1],
-               COLOR_CAR_OUTLINE);
+                   COLOR_CAR_OUTLINE);
 
   // Highlights laterales (efecto 3D básico)
   sprite->drawLine(carPoints[0], carPoints[1], carPoints[2], carPoints[3],
-               COLOR_CAR_HIGHLIGHT); // Lateral delantero derecho
+                   COLOR_CAR_HIGHLIGHT); // Lateral delantero derecho
   sprite->drawLine(carPoints[14], carPoints[15], carPoints[12], carPoints[13],
-               COLOR_CAR_HIGHLIGHT); // Lateral delantero izquierdo
+                   COLOR_CAR_HIGHLIGHT); // Lateral delantero izquierdo
 
   // === PARTE FRONTAL SIMPLIFICADA ===
   int hoodX = cx - 30;
@@ -635,16 +636,18 @@ static void drawCarBody() {
   int hoodH = 28;
 
   // Forma del capó (trapezoidal simplificado)
-  sprite->fillTriangle(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, hoodX + hoodW,
-                   hoodY + hoodH, COLOR_CAR_GRILLE);
+  sprite->fillTriangle(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY,
+                       hoodX + hoodW, hoodY + hoodH, COLOR_CAR_GRILLE);
   sprite->fillTriangle(hoodX + 5, hoodY, hoodX + hoodW, hoodY + hoodH, hoodX,
-                   hoodY + hoodH, COLOR_CAR_GRILLE);
-  sprite->drawLine(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY, COLOR_CAR_OUTLINE);
+                       hoodY + hoodH, COLOR_CAR_GRILLE);
+  sprite->drawLine(hoodX + 5, hoodY, hoodX + hoodW - 5, hoodY,
+                   COLOR_CAR_OUTLINE);
 
   // Faros delanteros (simplificados)
   sprite->fillRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
   sprite->drawRoundRect(hoodX - 8, hoodY + 8, 18, 12, 3, 0x8410);
-  sprite->fillRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, COLOR_HEADLIGHT);
+  sprite->fillRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3,
+                        COLOR_HEADLIGHT);
   sprite->drawRoundRect(hoodX + hoodW - 10, hoodY + 8, 18, 12, 3, 0x8410);
 
   // === PARTE TRASERA SIMPLIFICADA ===
@@ -684,10 +687,12 @@ static void drawCarBody() {
   // Semi-ejes delanteros (del diferencial a las ruedas)
   // Eje izquierdo
   sprite->drawLine(cx - 6, diffFrontY, X_FL + 18, Y_FL, COLOR_AXLE);
-  sprite->drawLine(cx - 6, diffFrontY + 1, X_FL + 18, Y_FL + 1, COLOR_AXLE_DARK);
+  sprite->drawLine(cx - 6, diffFrontY + 1, X_FL + 18, Y_FL + 1,
+                   COLOR_AXLE_DARK);
   // Eje derecho
   sprite->drawLine(cx + 6, diffFrontY, X_FR - 18, Y_FR, COLOR_AXLE);
-  sprite->drawLine(cx + 6, diffFrontY + 1, X_FR - 18, Y_FR + 1, COLOR_AXLE_DARK);
+  sprite->drawLine(cx + 6, diffFrontY + 1, X_FR - 18, Y_FR + 1,
+                   COLOR_AXLE_DARK);
 
   // Juntas homocinéticas delanteras (círculos pequeños en las ruedas)
   sprite->fillCircle(X_FL + 18, Y_FL, 4, COLOR_CARDAN);
@@ -719,7 +724,7 @@ static void drawCarBody() {
   // Conecta diferencial central con delantero
   sprite->drawLine(cx, diffCenterY - 6, cx, diffFrontY + 5, COLOR_AXLE);
   sprite->drawLine(cx - 1, diffCenterY - 6, cx - 1, diffFrontY + 5,
-               COLOR_AXLE_DARK);
+                   COLOR_AXLE_DARK);
   sprite->drawLine(cx + 1, diffCenterY - 6, cx + 1, diffFrontY + 5, COLOR_AXLE);
 
   // Junta cardán frontal
@@ -728,7 +733,8 @@ static void drawCarBody() {
 
   // Conecta diferencial central con trasero
   sprite->drawLine(cx, diffCenterY + 6, cx, diffRearY - 5, COLOR_AXLE);
-  sprite->drawLine(cx - 1, diffCenterY + 6, cx - 1, diffRearY - 5, COLOR_AXLE_DARK);
+  sprite->drawLine(cx - 1, diffCenterY + 6, cx - 1, diffRearY - 5,
+                   COLOR_AXLE_DARK);
   sprite->drawLine(cx + 1, diffCenterY + 6, cx + 1, diffRearY - 5, COLOR_AXLE);
 
   // Junta cardán trasera
