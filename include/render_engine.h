@@ -13,6 +13,13 @@
  *
  * The engine uses dirty rectangle tracking to push only changed regions
  * to the display via DMA, improving performance.
+ *
+ * PHASE 2 ADDITION (Shadow Rendering):
+ * When RENDER_SHADOW_MODE is defined, an additional STEERING_SHADOW sprite
+ * is created for validation purposes. This shadow sprite receives the same
+ * drawing commands as the real STEERING sprite to enable pixel-level
+ * comparison and verification before migration. The shadow sprite is NEVER
+ * rendered to the display.
  */
 class RenderEngine {
 public:
@@ -20,8 +27,11 @@ public:
    * @brief Sprite identifiers
    */
   enum SpriteID {
-    CAR_BODY = 0, // Car body layer (drawn first, static background)
-    STEERING = 1  // Steering wheel layer (drawn on top, dynamic)
+    CAR_BODY = 0,        // Car body layer (drawn first, static background)
+    STEERING = 1,        // Steering wheel layer (drawn on top, dynamic)
+#ifdef RENDER_SHADOW_MODE
+    STEERING_SHADOW = 2  // Shadow sprite for validation (never displayed)
+#endif
   };
 
   /**
@@ -74,17 +84,58 @@ public:
    */
   static bool isInitialized();
 
+#ifdef RENDER_SHADOW_MODE
+  /**
+   * @brief Compare STEERING and STEERING_SHADOW sprites for pixel differences
+   * 
+   * This function compares the STEERING sprite (production) with the
+   * STEERING_SHADOW sprite (validation) to detect rendering mismatches.
+   * Results are logged via Logger and statistics are updated.
+   * 
+   * @return Number of pixel mismatches found (0 = perfect match)
+   */
+  static uint32_t compareShadowSprites();
+
+  /**
+   * @brief Get shadow rendering statistics
+   * 
+   * @param outTotalComparisons Total number of comparisons performed
+   * @param outTotalMismatches Total number of frames with mismatches
+   * @param outLastMismatchCount Last frame's mismatch pixel count
+   */
+  static void getShadowStats(uint32_t &outTotalComparisons,
+                             uint32_t &outTotalMismatches,
+                             uint32_t &outLastMismatchCount);
+#endif
+
 private:
   static TFT_eSPI *tft;
+#ifdef RENDER_SHADOW_MODE
+  static TFT_eSprite *sprites[3]; // CAR_BODY, STEERING, and STEERING_SHADOW
+#else
   static TFT_eSprite *sprites[2]; // CAR_BODY and STEERING sprites
+#endif
   static bool initialized;
 
   // Dirty rectangles for each sprite (bounding box)
+#ifdef RENDER_SHADOW_MODE
+  static int dirtyX[3];
+  static int dirtyY[3];
+  static int dirtyW[3];
+  static int dirtyH[3];
+  static bool isDirty[3];
+  
+  // Shadow rendering statistics
+  static uint32_t shadowComparisonCount;
+  static uint32_t shadowMismatchCount;
+  static uint32_t shadowLastMismatch;
+#else
   static int dirtyX[2];
   static int dirtyY[2];
   static int dirtyW[2];
   static int dirtyH[2];
   static bool isDirty[2];
+#endif
 
   /**
    * @brief Update the dirty bounding box with a new rectangle
