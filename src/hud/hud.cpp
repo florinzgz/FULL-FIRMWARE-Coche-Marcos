@@ -1,4 +1,5 @@
 #include "hud.h"
+#include "shadow_render.h"  // Phase 3: Shadow mirroring support
 #include <Arduino.h> // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
 // 🔒 v2.8.8: Eliminada librería XPT2046_Touchscreen separada
@@ -867,6 +868,14 @@ void HUD::drawPedalBar(float pedalPercent) {
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
     tft.drawString("-- PEDAL --", 240, y + height / 2, 2);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror invalid pedal bar to shadow sprite
+    SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+    SHADOW_MIRROR_drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
+    SHADOW_MIRROR_setTextDatum(MC_DATUM);
+    SHADOW_MIRROR_setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
+    SHADOW_MIRROR_drawString("-- PEDAL --", 240, y + height / 2, 2);
+#endif
     return;
   }
 
@@ -893,6 +902,11 @@ void HUD::drawPedalBar(float pedalPercent) {
   // Fondo de barra con efecto 3D (hundido)
   tft.fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
   tft.drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror pedal bar background to shadow sprite
+  SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+#endif
 
   // Barra de progreso principal
   if (barWidth > 0) {
@@ -908,6 +922,15 @@ void HUD::drawPedalBar(float pedalPercent) {
 
     // Borde de la barra activa
     tft.drawRoundRect(0, y, barWidth, height, radius, colorDark);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror pedal bar fill to shadow sprite
+    SHADOW_MIRROR_fillRoundRect(0, y, barWidth, height, radius, colorMain);
+    SHADOW_MIRROR_drawFastHLine(2, y + 2, barWidth - 4, colorLight);
+    SHADOW_MIRROR_drawFastHLine(2, y + 3, barWidth - 4, colorLight);
+    SHADOW_MIRROR_drawFastHLine(2, y + height - 3, barWidth - 4, colorDark);
+    SHADOW_MIRROR_drawFastHLine(2, y + height - 2, barWidth - 4, colorDark);
+    SHADOW_MIRROR_drawRoundRect(0, y, barWidth, height, radius, colorDark);
+#endif
   }
 
   // Texto con porcentaje en el centro (con sombra)
@@ -920,11 +943,25 @@ void HUD::drawPedalBar(float pedalPercent) {
   // Texto principal
   tft.setTextColor(TFT_WHITE);
   tft.drawString(txt, 240, y + height / 2, 2);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror pedal bar text to shadow sprite
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  SHADOW_MIRROR_setTextColor(0x0000, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawString(txt, 241, y + height / 2 + 1, 2);
+  SHADOW_MIRROR_setTextColor(TFT_WHITE, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawString(txt, 240, y + height / 2, 2);
+#endif
 
   // Marcas de referencia (25%, 50%, 75%)
   tft.drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
   tft.drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
   tft.drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror reference marks to shadow sprite
+  SHADOW_MIRROR_drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SHADOW_MIRROR_drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
+  SHADOW_MIRROR_drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+#endif
 }
 
 void HUD::update() {

@@ -1,5 +1,6 @@
 #include "gauges.h"
 #include "settings.h"
+#include "shadow_render.h"  // Phase 3: Shadow mirroring support
 #include <Arduino.h> // para constrain(), snprintf, etc.
 
 static TFT_eSPI *tft;
@@ -41,6 +42,11 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
     // thickness
     tft->drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle, color,
                  color, true);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror to shadow sprite for validation
+    SHADOW_MIRROR_drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle, 
+                          color, color, true);
+#endif
   }
 }
 
@@ -71,6 +77,11 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
     int y2 = cy + (int)(sinf(rad) * (r - 15));
     tft->drawLine(x1, y1, x2, y2, color);
     tft->drawLine(x1 + 1, y1, x2 + 1, y2, color);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror to shadow sprite
+    SHADOW_MIRROR_drawLine(x1, y1, x2, y2, color);
+    SHADOW_MIRROR_drawLine(x1 + 1, y1, x2 + 1, y2, color);
+#endif
 
     // Número de escala
     if (showNumbers && (i % 2 == 0 || numMarks <= 6)) {
@@ -81,6 +92,12 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       char buf[8];
       snprintf(buf, sizeof(buf), "%d", (int)value);
       tft->drawString(buf, xNum, yNum, 1);
+#ifdef RENDER_SHADOW_MODE
+      // Phase 3: Mirror text to shadow sprite
+      SHADOW_MIRROR_setTextDatum(MC_DATUM);
+      SHADOW_MIRROR_setTextColor(TFT_WHITE, TFT_BLACK);
+      SHADOW_MIRROR_drawString(buf, xNum, yNum, 1);
+#endif
     }
   }
 
@@ -96,6 +113,10 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       int x2 = cx + (int)(cosf(rad) * (r - 10));
       int y2 = cy + (int)(sinf(rad) * (r - 10));
       tft->drawLine(x1, y1, x2, y2, TFT_DARKGREY);
+#ifdef RENDER_SHADOW_MODE
+      // Phase 3: Mirror minor marks to shadow sprite
+      SHADOW_MIRROR_drawLine(x1, y1, x2, y2, TFT_DARKGREY);
+#endif
     }
   }
 }
@@ -127,6 +148,11 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
     // Borrar con negro
     tft->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2, TFT_BLACK);
     tft->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror erase to shadow sprite
+    SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2, TFT_BLACK);
+    SHADOW_MIRROR_fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
+#endif
   } else {
     // Sombra de la aguja (desplazada 2px)
     tft->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1, baseX2 + 1,
@@ -145,6 +171,17 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
     tft->fillCircle(cx, cy, 10, TFT_DARKGREY);
     tft->fillCircle(cx, cy, 8, COLOR_GAUGE_RING);
     tft->fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror needle drawing to shadow sprite
+    SHADOW_MIRROR_fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1, 
+                                baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
+    SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+                                COLOR_NEEDLE_BASE);
+    SHADOW_MIRROR_drawLine(cx, cy, midX, midY, COLOR_NEEDLE_TIP);
+    SHADOW_MIRROR_fillCircle(cx, cy, 10, TFT_DARKGREY);
+    SHADOW_MIRROR_fillCircle(cx, cy, 8, COLOR_GAUGE_RING);
+    SHADOW_MIRROR_fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
+#endif
   }
 }
 
@@ -165,10 +202,18 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
                      : (r == outerRadius)   ? COLOR_GAUGE_OUTER
                                             : COLOR_GAUGE_RING;
     tft->drawCircle(cx, cy, r, shade);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror gauge rings to shadow sprite
+    SHADOW_MIRROR_drawCircle(cx, cy, r, shade);
+#endif
   }
 
   // Interior negro
   tft->fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror gauge interior to shadow sprite
+  SHADOW_MIRROR_fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
+#endif
 
   // Arco de escala coloreado (verde-amarillo-rojo)
   // Verde (0-60%)
@@ -188,6 +233,12 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
   tft->drawString(unit, cx, cy + 35, 1);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror unit label to shadow sprite
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  SHADOW_MIRROR_setTextColor(TFT_CYAN, TFT_BLACK);
+  SHADOW_MIRROR_drawString(unit, cx, cy + 35, 1);
+#endif
 }
 
 // -----------------------
@@ -240,6 +291,13 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)kmh);
   tft->drawString(buf, cx, cy + 5, 4);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror speed value text to shadow sprite
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  SHADOW_MIRROR_fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
+  SHADOW_MIRROR_setTextColor(textColor, COLOR_GAUGE_INNER);
+  SHADOW_MIRROR_drawString(buf, cx, cy + 5, 4);
+#endif
 
   lastSpeed = kmh;
 }
@@ -282,6 +340,13 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm) {
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)rpm);
   tft->drawString(buf, cx, cy + 5, 4);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror RPM value text to shadow sprite
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  SHADOW_MIRROR_fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
+  SHADOW_MIRROR_setTextColor(textColor, COLOR_GAUGE_INNER);
+  SHADOW_MIRROR_drawString(buf, cx, cy + 5, 4);
+#endif
 
   lastRpm = rpm;
 }
