@@ -91,16 +91,35 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
                     COLOR_WHEEL_SHADOW);
   tft->fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
                     COLOR_WHEEL_SHADOW);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror wheel shadow to shadow sprite
+  SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
+                              COLOR_WHEEL_SHADOW);
+  SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
+                              COLOR_WHEEL_SHADOW);
+#endif
 
   // Neumático exterior (banda de rodadura)
   tft->fillTriangle(x0, y0, x1, y1, x2, y2, COLOR_WHEEL_TREAD);
   tft->fillTriangle(x0, y0, x2, y2, x3, y3, COLOR_WHEEL_TREAD);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror wheel tread to shadow sprite
+  SHADOW_MIRROR_fillTriangle(x0, y0, x1, y1, x2, y2, COLOR_WHEEL_TREAD);
+  SHADOW_MIRROR_fillTriangle(x0, y0, x2, y2, x3, y3, COLOR_WHEEL_TREAD);
+#endif
 
   // Borde exterior brillante
   tft->drawLine(x0, y0, x1, y1, COLOR_WHEEL_OUTER);
   tft->drawLine(x1, y1, x2, y2, COLOR_WHEEL_OUTER);
   tft->drawLine(x2, y2, x3, y3, COLOR_WHEEL_OUTER);
   tft->drawLine(x3, y3, x0, y0, COLOR_WHEEL_OUTER);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror wheel border to shadow sprite
+  SHADOW_MIRROR_drawLine(x0, y0, x1, y1, COLOR_WHEEL_OUTER);
+  SHADOW_MIRROR_drawLine(x1, y1, x2, y2, COLOR_WHEEL_OUTER);
+  SHADOW_MIRROR_drawLine(x2, y2, x3, y3, COLOR_WHEEL_OUTER);
+  SHADOW_MIRROR_drawLine(x3, y3, x0, y0, COLOR_WHEEL_OUTER);
+#endif
 
   // 🔒 v2.8.8: Marcas de neumático (líneas transversales simulando banda de
   // rodadura) Dibujar 5 marcas equidistantes a lo largo de la rueda
@@ -134,6 +153,12 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
     int offset_y = (int)roundf(-cosf(rad));
     tft->drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x,
                   ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3.5: Mirror tread marks to shadow sprite
+    SHADOW_MIRROR_drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
+    SHADOW_MIRROR_drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x,
+                            ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
+#endif
   }
 
   // Llanta interior (más clara)
@@ -149,6 +174,11 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
 
   tft->fillTriangle(ix0, iy0, ix1, iy1, ix2, iy2, COLOR_WHEEL_INNER);
   tft->fillTriangle(ix0, iy0, ix2, iy2, ix3, iy3, COLOR_WHEEL_INNER);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror inner wheel to shadow sprite
+  SHADOW_MIRROR_fillTriangle(ix0, iy0, ix1, iy1, ix2, iy2, COLOR_WHEEL_INNER);
+  SHADOW_MIRROR_fillTriangle(ix0, iy0, ix2, iy2, ix3, iy3, COLOR_WHEEL_INNER);
+#endif
 
   // Centro de la rueda (hub) con efecto 3D
   tft->fillCircle(cx, cy, 5, COLOR_HUB_CENTER);
@@ -156,6 +186,12 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
 
   // Punto de luz central (highlight)
   tft->fillCircle(cx - 1, cy - 1, 1, COLOR_HUB_BOLT);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror hub to shadow sprite
+  SHADOW_MIRROR_fillCircle(cx, cy, 5, COLOR_HUB_CENTER);
+  SHADOW_MIRROR_drawCircle(cx, cy, 5, COLOR_WHEEL_OUTER);
+  SHADOW_MIRROR_fillCircle(cx - 1, cy - 1, 1, COLOR_HUB_BOLT);
+#endif
 
   // Flecha de dirección mejorada (solo para ruedas que giran)
   if (fabs(angleDeg) > 0.1f) {
@@ -177,6 +213,12 @@ static void drawWheel3D(int cx, int cy, float angleDeg) {
 
     tft->drawLine(ax, ay, ax1, ay1, TFT_CYAN);
     tft->drawLine(ax, ay, ax2, ay2, TFT_CYAN);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3.5: Mirror direction arrow to shadow sprite
+    SHADOW_MIRROR_drawLine(cx, cy, ax, ay, TFT_CYAN);
+    SHADOW_MIRROR_drawLine(ax, ay, ax1, ay1, TFT_CYAN);
+    SHADOW_MIRROR_drawLine(ax, ay, ax2, ay2, TFT_CYAN);
+#endif
   }
 }
 
