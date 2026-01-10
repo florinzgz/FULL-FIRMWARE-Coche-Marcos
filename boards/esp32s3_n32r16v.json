@@ -11,6 +11,7 @@
     "mcu": "esp32s3",
     "variant": "esp32s3",
     "f_cpu": "240000000L",
+    "f_flash": "80000000L",
 
     "flash_mode": "qio",
     "flash_size": "32MB",
@@ -28,6 +29,7 @@
   "upload": {
     "flash_size": "32MB",
     "maximum_size": 33554432,
+    "maximum_ram_size": 16777216,
     "speed": 921600
   },
 
