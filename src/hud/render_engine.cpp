@@ -30,6 +30,10 @@ uint32_t RenderEngine::shadowClampedRects = 0;       // Dirty rects clamped to b
 uint32_t RenderEngine::shadowRejectedRects = 0;      // Invalid dirty rects rejected
 uint32_t RenderEngine::shadowNullSprites = 0;        // Null sprite accesses prevented
 uint32_t RenderEngine::shadowDMABlocks = 0;          // Invalid DMA transfers blocked
+
+// Shadow ignore regions (Phase 3.6)
+static RenderEngine::ShadowMask shadowMasks[8];
+static uint8_t shadowMaskCount = 0;
 #else
 int RenderEngine::dirtyX[2];
 int RenderEngine::dirtyY[2];
@@ -338,16 +342,22 @@ uint32_t RenderEngine::compareShadowSprites() {
 
   shadowComparisonCount++;
   uint32_t mismatchCount = 0;
+  uint32_t ignoredPixels = 0;  // Phase 3.6: Track skipped pixels
 
   // Get sprite dimensions
   int width = 480;
   int height = 320;
 
   // Compare pixel by pixel
-  // Note: For performance, we could limit comparison to dirty regions only
-  // For now, we compare the full sprite for maximum validation
+  // Phase 3.6: Skip pixels in ignore regions
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
+      // Phase 3.6: Check if this pixel should be ignored
+      if (isShadowIgnored(x, y)) {
+        ignoredPixels++;
+        continue;
+      }
+      
       uint16_t pixelReal = sprites[STEERING]->readPixel(x, y);
       uint16_t pixelShadow = sprites[STEERING_SHADOW]->readPixel(x, y);
       
@@ -371,8 +381,8 @@ uint32_t RenderEngine::compareShadowSprites() {
     // Log only if mismatch count is significant (>100 pixels)
     // to avoid spam from minor antialiasing differences
     if (mismatchCount > 100) {
-      Logger::warnf("RenderEngine: Shadow mismatch detected: %u pixels differ", 
-                    mismatchCount);
+      Logger::warnf("RenderEngine: Shadow mismatch detected: %u pixels differ (%u ignored)", 
+                    mismatchCount, ignoredPixels);
     }
   }
 
@@ -420,5 +430,31 @@ void RenderEngine::getSafetyStats(uint32_t &outClampedRects,
   outRejectedRects = shadowRejectedRects;
   outNullSprites = shadowNullSprites;
   outDMABlocks = shadowDMABlocks;
+}
+
+// Phase 3.6: Shadow ignore region management
+void RenderEngine::clearShadowIgnoreRegions() {
+  shadowMaskCount = 0;
+}
+
+void RenderEngine::addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
+  if (shadowMaskCount < 8) {
+    shadowMasks[shadowMaskCount].x = x;
+    shadowMasks[shadowMaskCount].y = y;
+    shadowMasks[shadowMaskCount].w = w;
+    shadowMasks[shadowMaskCount].h = h;
+    shadowMaskCount++;
+  }
+}
+
+bool RenderEngine::isShadowIgnored(uint16_t x, uint16_t y) {
+  for (uint8_t i = 0; i < shadowMaskCount; i++) {
+    const ShadowMask &m = shadowMasks[i];
+    if (x >= m.x && x < m.x + m.w &&
+        y >= m.y && y < m.y + m.h) {
+      return true;
+    }
+  }
+  return false;
 }
 #endif

@@ -130,6 +130,44 @@ public:
                              uint32_t &outRejectedRects,
                              uint32_t &outNullSprites,
                              uint32_t &outDMABlocks);
+  
+  /**
+   * @brief Shadow ignore region structure (Phase 3.6)
+   * 
+   * Defines rectangular regions that should be excluded from pixel
+   * comparison. Used to filter out non-HUD overlays (menus, dialogs,
+   * calibration screens) that are not part of normal HUD rendering.
+   */
+  struct ShadowMask {
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
+  };
+  
+  /**
+   * @brief Add a region to exclude from shadow pixel comparison (Phase 3.6)
+   * 
+   * @param x X coordinate of top-left corner
+   * @param y Y coordinate of top-left corner
+   * @param w Width of the region
+   * @param h Height of the region
+   */
+  static void addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+  
+  /**
+   * @brief Clear all shadow ignore regions (Phase 3.6)
+   */
+  static void clearShadowIgnoreRegions();
+  
+  /**
+   * @brief Check if a pixel should be ignored in shadow comparison (Phase 3.6)
+   * 
+   * @param x X coordinate of the pixel
+   * @param y Y coordinate of the pixel
+   * @return true if pixel is within an ignored region, false otherwise
+   */
+  static bool isShadowIgnored(uint16_t x, uint16_t y);
 #endif
 
 private:
