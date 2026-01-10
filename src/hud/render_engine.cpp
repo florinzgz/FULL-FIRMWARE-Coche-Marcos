@@ -47,9 +47,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   sprites[id]->fillSprite(TFT_BLACK);
 
   // Steering layer must be transparent
-  if (id == STEERING) {
-    sprites[id]->setTransparentColor(TFT_BLACK);
-  }
+  if (id == STEERING) { sprites[id]->setTransparentColor(TFT_BLACK); }
 
   isDirty[id] = true;
   dirtyX[id] = 0;
@@ -62,9 +60,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 }
 
 // ====== GET ======
-TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
-  return sprites[id];
-}
+TFT_eSprite *RenderEngine::getSprite(SpriteID id) { return sprites[id]; }
 
 // ====== DIRTY TRACKING ======
 void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
@@ -97,23 +93,21 @@ void RenderEngine::render() {
 
   // Bottom layer (car body)
   if (isDirty[CAR_BODY]) {
-    sprites[CAR_BODY]->pushImageDMA(
-      dirtyX[CAR_BODY], dirtyY[CAR_BODY],
-      dirtyW[CAR_BODY], dirtyH[CAR_BODY],
-      (uint16_t*)sprites[CAR_BODY]->getPointer(dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
-      480
-    );
+    sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
+                                    dirtyW[CAR_BODY], dirtyH[CAR_BODY],
+                                    (uint16_t *)sprites[CAR_BODY]->getPointer(
+                                        dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
+                                    480);
     isDirty[CAR_BODY] = false;
   }
 
   // Top layer (steering wheel – transparent)
   if (isDirty[STEERING]) {
-    sprites[STEERING]->pushImageDMA(
-      dirtyX[STEERING], dirtyY[STEERING],
-      dirtyW[STEERING], dirtyH[STEERING],
-      (uint16_t*)sprites[STEERING]->getPointer(dirtyX[STEERING], dirtyY[STEERING]),
-      480
-    );
+    sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
+                                    dirtyW[STEERING], dirtyH[STEERING],
+                                    (uint16_t *)sprites[STEERING]->getPointer(
+                                        dirtyX[STEERING], dirtyY[STEERING]),
+                                    480);
     isDirty[STEERING] = false;
   }
 }
@@ -130,6 +124,4 @@ void RenderEngine::clear() {
   }
 }
 
-bool RenderEngine::isInitialized() {
-  return initialized;
-}
+bool RenderEngine::isInitialized() { return initialized; }
