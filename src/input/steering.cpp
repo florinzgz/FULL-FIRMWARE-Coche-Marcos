@@ -28,6 +28,21 @@ static bool warnedNotCentered = false;
 
 static Steering::State s;
 
+// =============================
+// 🔒 Steering signal conditioning
+// =============================
+
+// Filtro EMA para suavizar ruido EMI
+static float steeringFilteredDeg = 0.0f;
+static float steeringLastDeg = 0.0f;
+static bool steeringFilterInit = false;
+
+// Parámetros de protección
+static constexpr float STEERING_EMA_ALPHA = 0.18f;      // Suavizado (0 = lento, 1 = sin filtro)
+static constexpr float STEERING_MAX_JUMP = 15.0f;       // Rechazo EMI (grados por frame)
+static constexpr float STEERING_MAX_RATE = 8.0f;        // Máx grados permitidos por update
+static constexpr float STEERING_HYSTERESIS = 0.30f;     // Zona muerta para eliminar jitter
+
 // 🔒 Función segura para leer ticks desde código no-ISR
 static long getTicksSafe() {
   noInterrupts();
@@ -146,6 +161,49 @@ void Steering::update() {
   }
 
   s.angleDeg = ticksToDegrees(t);
+
+  // =============================
+  // 🔒 EMI + JITTER FILTERING LAYER
+  // =============================
+  float rawAngle = s.angleDeg;
+
+  // Inicializar filtro en primer uso
+  if (!steeringFilterInit) {
+    steeringFilteredDeg = rawAngle;
+    steeringLastDeg = rawAngle;
+    steeringFilterInit = true;
+  }
+
+  // --- EMI spike rejection (saltos eléctricos) ---
+  float delta = rawAngle - steeringLastDeg;
+  if (fabs(delta) > STEERING_MAX_JUMP) {
+    // Ignorar salto imposible → ruido EMI
+    rawAngle = steeringLastDeg;
+  } else {
+    steeringLastDeg = rawAngle;
+  }
+
+  // --- EMA smoothing ---
+  steeringFilteredDeg =
+      STEERING_EMA_ALPHA * rawAngle +
+      (1.0f - STEERING_EMA_ALPHA) * steeringFilteredDeg;
+
+  // --- Rate limiting (velocidad máxima de giro) ---
+  float rateDelta = steeringFilteredDeg - s.angleDeg;
+  if (rateDelta > STEERING_MAX_RATE) {
+    steeringFilteredDeg = s.angleDeg + STEERING_MAX_RATE;
+  } else if (rateDelta < -STEERING_MAX_RATE) {
+    steeringFilteredDeg = s.angleDeg - STEERING_MAX_RATE;
+  }
+
+  // --- Hysteresis (eliminar micro-jitter) ---
+  float hystDelta = steeringFilteredDeg - s.angleDeg;
+  if (fabs(hystDelta) < STEERING_HYSTERESIS) {
+    steeringFilteredDeg = s.angleDeg; // mantener valor anterior
+  }
+
+  // 🔒 Aplicar resultado filtrado
+  s.angleDeg = steeringFilteredDeg;
 
   // Clamp de ángulo global
   if (s.angleDeg > 54.0f) s.angleDeg = 54.0f;
