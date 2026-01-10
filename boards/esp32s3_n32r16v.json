@@ -1,35 +1,38 @@
 {
+  "id": "esp32s3_n32r16v",
   "name": "ESP32-S3-WROOM-2 N32R16V",
   "vendor": "Espressif",
   "url": "https://www.espressif.com",
   "frameworks": ["arduino", "espidf"],
   "platforms": ["espressif32"],
+
   "build": {
     "core": "esp32",
     "mcu": "esp32s3",
     "variant": "esp32s3",
     "f_cpu": "240000000L",
+
     "flash_mode": "qio",
     "flash_size": "32MB",
+
     "psram_type": "opi",
     "memory_type": "qio_opi",
+
     "extra_flags": [
       "-DBOARD_HAS_PSRAM",
       "-DARDUINO_USB_MODE=1",
       "-DARDUINO_USB_CDC_ON_BOOT=1"
     ]
   },
+
   "upload": {
     "flash_size": "32MB",
     "maximum_size": 33554432,
-    "require_upload_port": true,
-    "speed": 460800
+    "speed": 921600
   },
-  "connectivity": [
-    "wifi",
-    "bluetooth",
-    "usb"
-  ],
+
+  "connectivity": ["wifi", "bluetooth", "usb"],
+
   "debug": {
     "openocd_target": "esp32s3.cfg"
   }
