@@ -2,6 +2,7 @@
 #include "settings.h"
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // para constrain(), snprintf, etc.
+#include <cmath>          // Phase 10: for fabs()
 
 static TFT_eSPI *tft;
 
@@ -380,4 +381,46 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
 #endif
 
   lastRpm = rpm;
+}
+
+// ============================================================================
+// PHASE 10: RenderContext versions for granular dirty tracking
+// ============================================================================
+
+void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
+                       HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if value changed significantly (> 0.5 km/h)
+  bool changed = (lastSpeed < 0) || (fabs(kmh - lastSpeed) > 0.5f);
+  
+  // Call sprite version
+  drawSpeed(cx, cy, kmh, maxKmh, pedalPct, ctx.sprite);
+  
+  // Mark dirty region if changed
+  if (changed) {
+    // Gauge bounding box: center ± (outerRadius + 5)
+    const int gaugeRadius = 73; // outerRadius (68) + 5
+    ctx.markDirty(cx - gaugeRadius, cy - gaugeRadius, 
+                  gaugeRadius * 2, gaugeRadius * 2);
+  }
+}
+
+void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
+                     HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if value changed significantly (> 5 RPM)
+  bool changed = (lastRpm < 0) || (fabs(rpm - lastRpm) > 5.0f);
+  
+  // Call sprite version
+  drawRPM(cx, cy, rpm, maxRpm, ctx.sprite);
+  
+  // Mark dirty region if changed
+  if (changed) {
+    // Gauge bounding box: center ± (outerRadius + 5)
+    const int gaugeRadius = 73; // outerRadius (68) + 5
+    ctx.markDirty(cx - gaugeRadius, cy - gaugeRadius,
+                  gaugeRadius * 2, gaugeRadius * 2);
+  }
 }

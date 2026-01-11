@@ -1,5 +1,6 @@
 #pragma once
 #include <TFT_eSPI.h>
+#include "hud_layer.h" // Phase 10: RenderContext support
 
 namespace Gauges {
 void init(TFT_eSPI *display);
@@ -8,4 +9,10 @@ void drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
                TFT_eSprite *sprite = nullptr);
 void drawRPM(int cx, int cy, float rpm, int maxRpm,
              TFT_eSprite *sprite = nullptr);
+
+// Phase 10: RenderContext versions for dirty tracking
+void drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
+               HudLayer::RenderContext &ctx);
+void drawRPM(int cx, int cy, float rpm, int maxRpm,
+             HudLayer::RenderContext &ctx);
 } // namespace Gauges

@@ -15,18 +15,18 @@
 #include <Arduino.h>
 
 // ============================================================================
-// PHASE 6.4: BASE HUD Layer Renderer
+// PHASE 10: BASE HUD Layer Renderer
 // ============================================================================
 // This renderer wraps HUD::update() to make it compatible with the compositor
 // layer system. It renders the entire base HUD (gauges, wheels, icons) into
-// the BASE layer sprite.
+// the BASE layer sprite with granular dirty tracking.
 namespace {
 class BaseHudRenderer : public HudLayer::LayerRenderer {
 public:
   void render(HudLayer::RenderContext &ctx) override {
     if (!ctx.isValid()) return;
-    // Call HUD::update with the sprite from the render context
-    HUD::update(ctx.sprite);
+    // Phase 10: Pass full RenderContext for dirty tracking
+    HUD::update(ctx);
   }
 
   bool isActive() const override {

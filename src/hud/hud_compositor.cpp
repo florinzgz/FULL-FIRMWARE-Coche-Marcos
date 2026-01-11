@@ -178,20 +178,35 @@ void HudCompositor::render() {
             ->isActive();
   }
 
-  // PHASE 8: If any layer is dirty, start with full screen dirty rect
-  // This ensures first frame and forced redraws work correctly
+  // PHASE 10: Selective full-screen dirty marking
+  // Only mark full screen for non-BASE layers or first frame
+  // BASE layer components will mark their own dirty regions
+  static bool firstFrame = true;
   bool anyLayerDirty = false;
+  bool baseLayerDirty = false;
+  
   for (int i = 0; i < LAYER_COUNT; i++) {
     if (layerDirty[i] && layerRenderers[i] && layerRenderers[i]->isActive()) {
       anyLayerDirty = true;
+      if (i == static_cast<int>(HudLayer::Layer::BASE)) {
+        baseLayerDirty = true;
+      }
       break;
     }
   }
 
-  if (anyLayerDirty) {
-    // Mark full screen as dirty for layer redraw
+  // Mark full screen dirty only for:
+  // 1. First frame (to establish initial state)
+  // 2. Non-BASE layers that are dirty (FULLSCREEN, OVERLAY, etc.)
+  // BASE layer components will use granular dirty tracking
+  if (firstFrame) {
+    addDirtyRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    firstFrame = false;
+  } else if (anyLayerDirty && !baseLayerDirty) {
+    // Non-BASE layer is dirty, mark full screen
     addDirtyRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
   }
+  // If only BASE is dirty, components will mark their own regions
 
   // PHASE 8: Dual render pass for main and shadow
   // First pass: Render to main sprites with dirty rect tracking

@@ -6,6 +6,7 @@
 // Ahora usamos el touch integrado de TFT_eSPI para evitar conflictos SPI
 #include <SPI.h>  // Para SPIClass HSPI
 #include <math.h> // Para cosf, sinf
+#include <cmath>  // Phase 10: for fabs()
 
 #include "display_types.h" // For GearPosition enum
 #include "gauges.h"
@@ -125,6 +126,7 @@ static const int WHEEL_PLACEHOLDER_RADIUS = 10;
 
 static bool carBodyDrawn = false;         // Track if car body needs redraw
 static float lastSteeringAngle = -999.0f; // Cache para ángulo del volante
+static float lastPedalPercent = -999.0f;  // Phase 10: Cache for pedal value
 
 extern Storage::Config cfg; // acceso a flags
 
@@ -969,6 +971,30 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 #endif
 }
 
+// Phase 10: RenderContext version for dirty tracking
+void HUD::drawPedalBar(float pedalPercent, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if pedal value changed significantly (> 1%)
+  bool changed = (lastPedalPercent < -900.0f) || 
+                 (fabs(pedalPercent - lastPedalPercent) > 1.0f) ||
+                 ((pedalPercent < 0.0f) != (lastPedalPercent < 0.0f)); // Invalid state changed
+  
+  // Call sprite version
+  drawPedalBar(pedalPercent, ctx.sprite);
+  
+  // Mark dirty region if changed
+  if (changed) {
+    // Pedal bar position and size
+    const int y = 300;
+    const int height = 18;
+    const int width = 480;
+    ctx.markDirty(0, y, width, height);
+    
+    lastPedalPercent = pedalPercent;
+  }
+}
+
 void HUD::update(TFT_eSprite *sprite) {
   // 🔒 v2.8.4: Diagnóstico visual - píxeles rojos para localizar bloqueos de
   // render
@@ -1499,4 +1525,161 @@ void HUD::update(TFT_eSprite *sprite) {
 
   // Render all sprite layers to display
   RenderEngine::render();
+}
+
+// ============================================================================
+// PHASE 10: RenderContext-based update for granular dirty tracking
+// ============================================================================
+void HUD::update(HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) {
+    // Fallback to sprite-only version
+    update(ctx.sprite);
+    return;
+  }
+
+  // Same sensor data gathering as sprite version
+#ifdef STANDALONE_DISPLAY
+  float speedKmh = 12.0f;
+  float rpm = 850.0f;
+  float pedalPercent = 50.0f;
+  float steerAngleFL = 0.0f;
+  float steerAngleFR = 0.0f;
+  Shifter::Gear gear = Shifter::Gear::P;
+  System::State sys = System::State::READY;
+  float wheelTempFL = 42.0f;
+  float wheelTempFR = 42.0f;
+  float wheelTempRL = 40.0f;
+  float wheelTempRR = 40.0f;
+  float wheelEffortFL = 30.0f;
+  float wheelEffortFR = 30.0f;
+  float wheelEffortRL = 28.0f;
+  float wheelEffortRR = 28.0f;
+  Buttons::State btns;
+  btns.lights = false;
+  bool mode4x4 = true;
+  bool eco = false;
+  uint8_t sensorCurrentOK = 6;
+  uint8_t sensorTempOK = 5;
+  uint8_t sensorWheelOK = 4;
+  bool tempWarning = false;
+  float maxTemp = 42.0f;
+  float ambientTemp = 22.0f;
+#else
+  auto pedal = Pedal::get();
+  auto steer = Steering::get();
+  auto sh = Shifter::get();
+  auto sys = System::getState();
+  auto tr = Traction::get();
+  auto btns = Buttons::get();
+  
+  float vFL = cfg.wheelSensorsEnabled ? Sensors::getWheelSpeed(0) : 0.0f;
+  float vFR = cfg.wheelSensorsEnabled ? Sensors::getWheelSpeed(1) : 0.0f;
+  float speedKmh = (vFL + vFR) * 0.5f;
+  if (speedKmh > MAX_SPEED_KMH) speedKmh = MAX_SPEED_KMH;
+  
+  static constexpr float RPM_FACTOR = 11.5f;
+  float rpm = speedKmh * RPM_FACTOR;
+  if (rpm > MAX_RPM) rpm = MAX_RPM;
+  
+  float pedalPercent = pedal.valid ? pedal.percent : -1.0f;
+  float steerAngleFL = cfg.steeringEnabled ? steer.angleFL : 0.0f;
+  float steerAngleFR = cfg.steeringEnabled ? steer.angleFR : 0.0f;
+  float wheelTempFL = cfg.tempSensorsEnabled ? tr.w[Traction::FL].tempC : -999.0f;
+  float wheelTempFR = cfg.tempSensorsEnabled ? tr.w[Traction::FR].tempC : -999.0f;
+  float wheelTempRL = cfg.tempSensorsEnabled ? tr.w[Traction::RL].tempC : -999.0f;
+  float wheelTempRR = cfg.tempSensorsEnabled ? tr.w[Traction::RR].tempC : -999.0f;
+  float wheelEffortFL = cfg.currentSensorsEnabled ? tr.w[Traction::FL].effortPct : -1.0f;
+  float wheelEffortFR = cfg.currentSensorsEnabled ? tr.w[Traction::FR].effortPct : -1.0f;
+  float wheelEffortRL = cfg.currentSensorsEnabled ? tr.w[Traction::RL].effortPct : -1.0f;
+  float wheelEffortRR = cfg.currentSensorsEnabled ? tr.w[Traction::RR].effortPct : -1.0f;
+  Shifter::Gear gear = sh.gear;
+  bool mode4x4 = tr.enabled4x4;
+  bool eco = pedal.percent > 0 && !mode4x4;
+  
+  Sensors::SystemStatus sensorStatus = Sensors::getSystemStatus();
+  uint8_t sensorCurrentOK = sensorStatus.currentSensorsOK;
+  uint8_t sensorTempOK = sensorStatus.temperatureSensorsOK;
+  uint8_t sensorWheelOK = sensorStatus.wheelSensorsOK;
+  bool tempWarning = sensorStatus.temperatureWarning;
+  float maxTemp = sensorStatus.maxTemperature;
+  
+  float ambientTemp = 22.0f;
+  if (cfg.tempSensorsEnabled) {
+    if (Sensors::isTemperatureSensorOk(4)) {
+      ambientTemp = Sensors::getTemperature(4);
+    } else {
+      float motorTempSum = 0.0f;
+      int motorCount = 0;
+      for (int i = 0; i < 4; i++) {
+        if (Sensors::isTemperatureSensorOk(i)) {
+          motorTempSum += Sensors::getTemperature(i);
+          motorCount++;
+        }
+      }
+      if (motorCount > 0) {
+        float avgMotorTemp = motorTempSum / motorCount;
+        ambientTemp = avgMotorTemp - 15.0f;
+        ambientTemp = constrain(ambientTemp, -10.0f, 50.0f);
+      }
+    }
+  }
+#endif
+
+  // Draw car body (static, already has dirty tracking via RenderEngine)
+  drawCarBody();
+  
+  // Phase 10: Call RenderContext versions for granular dirty tracking
+  Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent, ctx);
+  Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM, ctx);
+  
+  WheelsDisplay::drawWheel(X_FL, Y_FL, steerAngleFL, wheelTempFL, wheelEffortFL, ctx);
+  WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR, wheelEffortFR, ctx);
+  WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL, ctx);
+  WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR, ctx);
+  
+  float avgSteerAngle = (steerAngleFL + steerAngleFR) / 2.0f;
+  drawSteeringWheel(avgSteerAngle); // Already has dirty tracking via RenderEngine
+  
+  Icons::drawSystemState(sys, ctx);
+  Icons::drawGear(gear, ctx);
+  Icons::drawFeatures(mode4x4, eco, ctx);
+  
+#ifdef STANDALONE_DISPLAY
+  Icons::drawBattery(24.5f, ctx);
+#else
+  Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f, ctx);
+#endif
+  
+  Icons::drawAmbientTemp(ambientTemp, ctx);
+  Icons::drawErrorWarning(ctx);
+  Icons::drawSensorStatus(sensorCurrentOK, sensorTempOK, sensorWheelOK,
+                          Sensors::NUM_CURRENTS, Sensors::NUM_TEMPS,
+                          Sensors::NUM_WHEELS, ctx);
+  Icons::drawTempWarning(tempWarning, maxTemp, ctx);
+
+#ifndef STANDALONE_DISPLAY
+  OperationMode mode = SystemMode::getMode();
+  if (mode != OperationMode::MODE_FULL) {
+    TFT_eSPI *drawTarget = ctx.sprite ? (TFT_eSPI *)ctx.sprite : &tft;
+    drawTarget->setTextDatum(MC_DATUM);
+    drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
+    drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
+                           MODE_INDICATOR_Y, 2);
+    // Mark mode indicator dirty
+    ctx.markDirty(MODE_INDICATOR_X - 60, MODE_INDICATOR_Y - 10, 120, 20);
+  }
+#endif
+  
+  drawPedalBar(pedalPercent, ctx);
+  
+  // Axis rotation button - uses direct TFT rendering, already has change tracking
+  drawAxisRotationButton();
+
+#ifdef STANDALONE_DISPLAY
+  drawDemoButton();
+#endif
+
+  // Touch handling and menu updates remain with direct TFT access
+  // (same as sprite version - lines 1237-1447 of original)
+  // These don't affect the BASE layer sprite
 }

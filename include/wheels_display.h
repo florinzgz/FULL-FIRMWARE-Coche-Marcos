@@ -1,5 +1,6 @@
 #pragma once
 #include <TFT_eSPI.h>
+#include "hud_layer.h" // Phase 10: RenderContext support
 // Opcional: incluir Arduino.h si se usan utilidades de Arduino en el futuro
 // #include <Arduino.h>
 
@@ -14,4 +15,8 @@ void init(TFT_eSPI *display);
 // Phase 6.3: Added sprite parameter for compositor mode (nullptr = use TFT)
 void drawWheel(int cx, int cy, float angleDeg, float tempC, float effortPct,
                TFT_eSprite *sprite = nullptr);
+
+// Phase 10: RenderContext version for dirty tracking
+void drawWheel(int cx, int cy, float angleDeg, float tempC, float effortPct,
+               HudLayer::RenderContext &ctx);
 } // namespace WheelsDisplay
