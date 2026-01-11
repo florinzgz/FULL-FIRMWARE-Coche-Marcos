@@ -8,18 +8,19 @@
 namespace Icons {
 void init(TFT_eSPI *display);
 
-void drawSystemState(System::State st);
-void drawGear(Shifter::Gear g);
+// Phase 6.2: All drawing functions accept optional sprite for compositor mode
+void drawSystemState(System::State st, TFT_eSprite *sprite = nullptr);
+void drawGear(Shifter::Gear g, TFT_eSprite *sprite = nullptr);
 
 // v2.14.0: Simplified - only 4x4/4x2 mode and regenerative
 // Lights and multimedia removed (touch-only, no visual icons)
-void drawFeatures(bool mode4x4, bool regenOn);
+void drawFeatures(bool mode4x4, bool regenOn, TFT_eSprite *sprite = nullptr);
 
 // batería: voltaje en V (aprox)
-void drawBattery(float volts);
+void drawBattery(float volts, TFT_eSprite *sprite = nullptr);
 
 // advertencia de errores persistentes
-void drawErrorWarning();
+void drawErrorWarning(TFT_eSprite *sprite = nullptr);
 
 /**
  * @brief Dibuja indicador de estado de sensores
@@ -37,20 +38,22 @@ void drawErrorWarning();
  */
 void drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
                       uint8_t currentTotal, uint8_t tempTotal,
-                      uint8_t wheelTotal);
+                      uint8_t wheelTotal, TFT_eSprite *sprite = nullptr);
 
 /**
  * @brief Dibuja indicador de temperatura crítica
  * @param tempWarning true si hay temperatura crítica
  * @param maxTemp Temperatura máxima actual
+ * @param sprite Optional sprite for compositor mode
  */
-void drawTempWarning(bool tempWarning, float maxTemp);
+void drawTempWarning(bool tempWarning, float maxTemp, TFT_eSprite *sprite = nullptr);
 
 /**
  * @brief Dibuja temperatura ambiente en esquina superior derecha
  * @param ambientTemp Temperatura ambiente en grados Celsius
+ * @param sprite Optional sprite for compositor mode
  */
-void drawAmbientTemp(float ambientTemp);
+void drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite = nullptr);
 
 // ============================================================
 // Constantes de layout (480x320, rotación 1)
