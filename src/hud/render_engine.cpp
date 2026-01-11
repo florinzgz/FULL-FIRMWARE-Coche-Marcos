@@ -147,7 +147,8 @@ void RenderEngine::render() {
 
   // Push dirty regions to display
   // Note: Sprites are full-screen (480x320), so source and target coordinates
-  // are identical - we copy region (sx,sy,sw,sh) from sprite to (tx,ty) on display
+  // are identical - we copy region (sx,sy,sw,sh) from sprite to (tx,ty) on
+  // display
   if (isDirty[CAR_BODY] && sprites[CAR_BODY]) {
     sprites[CAR_BODY]->pushSprite(
         dirtyX[CAR_BODY], dirtyY[CAR_BODY],  // target position on display
