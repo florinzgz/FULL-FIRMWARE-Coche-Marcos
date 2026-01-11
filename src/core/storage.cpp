@@ -87,6 +87,9 @@ void Storage::defaults(Config &cfg) {
   cfg.touchCalibration[4] = 3;    // rotation (matches tft.setRotation(3))
   cfg.touchCalibrated = false;    // No calibration done yet (using defaults)
 
+  // PHASE 7: Shadow Mode validation
+  cfg.shadowHudEnabled = false; // Disabled by default (enable in hidden menu)
+
   // 🔒 v2.10.2: Límites de corriente configurables
   cfg.maxBatteryCurrentA = 100.0f; // Default: 100A para batería
   cfg.maxMotorCurrentA = 50.0f;    // Default: 50A por motor
