@@ -83,8 +83,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
   // Fondo negro para limpiar (cuadrado que cubre la rueda rotada)
   // Usar max(w,h) para asegurar que cubre cualquier rotación
   int clearSize = h + 8; // h es la dimensión más larga
-  drawTarget->fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize, clearSize,
-                TFT_BLACK);
+  drawTarget->fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
+                       clearSize, TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror wheel clear area to shadow sprite
   SHADOW_MIRROR_fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
@@ -93,9 +93,9 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
 
   // Sombra de la rueda (desplazada 2px abajo-derecha)
   drawTarget->fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
-                    COLOR_WHEEL_SHADOW);
+                           COLOR_WHEEL_SHADOW);
   drawTarget->fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
-                    COLOR_WHEEL_SHADOW);
+                           COLOR_WHEEL_SHADOW);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror wheel shadow to shadow sprite
   SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
@@ -157,7 +157,7 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
     int offset_x = (int)roundf(sinf(rad)); // perpendicular to wheel axis
     int offset_y = (int)roundf(-cosf(rad));
     drawTarget->drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x,
-                  ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
+                         ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror tread marks to shadow sprite
     SHADOW_MIRROR_drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
@@ -345,7 +345,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     int filled = (int)((effortPct / 100.0f) * (barW - 4));
     if (filled > 0) {
       uint16_t barColor = colorByEffort(effortPct);
-      drawTarget->fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1, barColor);
+      drawTarget->fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1,
+                                barColor);
       // Highlight superior
       drawTarget->drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
 #ifdef RENDER_SHADOW_MODE
