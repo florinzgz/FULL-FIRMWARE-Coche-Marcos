@@ -93,17 +93,8 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 
   sprites[id]->fillSprite(TFT_BLACK);
 
-  // Steering layers must be transparent (both real and shadow)
-  // Note: TFT_eSprite does not support setTransparentColor() method
-#ifdef RENDER_SHADOW_MODE
-  if (id == STEERING || id == STEERING_SHADOW) {
-    // Transparency handling removed - not supported by TFT_eSprite
-  }
-#else
-  if (id == STEERING) {
-    // Transparency handling removed - not supported by TFT_eSprite
-  }
-#endif
+  // Note: TFT_eSprite does not support setTransparentColor() method.
+  // Transparency for steering layers must be handled differently if needed.
 
   isDirty[id] = true;
   dirtyX[id] = 0;
