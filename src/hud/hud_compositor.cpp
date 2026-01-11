@@ -35,8 +35,6 @@ int HudCompositor::dirtyRectCount = 0;
 
 // PHASE 9: Render statistics static members
 HudCompositor::RenderStats HudCompositor::renderStats = {};
-uint32_t HudCompositor::frameTimeAccumulator = 0;
-uint32_t HudCompositor::lastFrameStartTime = 0;
 
 bool HudCompositor::init(TFT_eSPI *tftDisplay) {
   if (initialized) {

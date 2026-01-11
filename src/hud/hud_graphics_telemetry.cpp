@@ -84,8 +84,8 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
   int16_t cursorY = TELEMETRY_Y + MARGIN_Y;
   int16_t cursorX = TELEMETRY_X + MARGIN_X;
 
-  // Buffer for formatting
-  char buf[32];
+  // Buffer for formatting (static to avoid stack allocation overhead)
+  static char buf[32];
 
   // FPS (color-coded)
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);

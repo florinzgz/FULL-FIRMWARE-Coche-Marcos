@@ -200,8 +200,6 @@ private:
 
   // PHASE 9: Render statistics
   static RenderStats renderStats;           // Current render statistics
-  static uint32_t frameTimeAccumulator;     // For smoothed frame time calculation
-  static uint32_t lastFrameStartTime;       // Timestamp of last frame start
 
   // Helper to create a layer sprite
   static bool createLayerSprite(HudLayer::Layer layer);
