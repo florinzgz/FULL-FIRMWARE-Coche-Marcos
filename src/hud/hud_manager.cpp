@@ -1,5 +1,8 @@
 #include "hud_manager.h"
 #include "hud.h"
+#include "hud_compositor.h"        // Phase 5: Layered compositor
+#include "hud_limp_diagnostics.h"  // Phase 4.3: Limp diagnostics
+#include "hud_limp_indicator.h"    // Phase 4.2: Limp indicator
 #include "logger.h"
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
@@ -214,6 +217,31 @@ void HUDManager::init() {
 
   Serial.println("[HUD] RenderEngine initialized");
 
+  // ✅ PHASE 5: Initialize HUD Compositor
+  // The compositor manages layered rendering for all HUD elements
+  Serial.println("[HUD] Initializing HudCompositor...");
+  if (!HudCompositor::init(&tft)) {
+    Logger::error("HUD: Failed to initialize HudCompositor");
+    // Continue anyway - compositor is optional for backward compatibility
+  } else {
+    // Register layer renderers
+    // STATUS layer: Limp mode indicator
+    HudCompositor::registerLayer(HudLayer::Layer::STATUS,
+                                  HudLimpIndicator::getRenderer());
+    // DIAGNOSTICS layer: Limp mode diagnostics
+    HudCompositor::registerLayer(HudLayer::Layer::DIAGNOSTICS,
+                                  HudLimpDiagnostics::getRenderer());
+    
+    Logger::info("HUD: Compositor initialized with STATUS and DIAGNOSTICS layers");
+    Serial.println("[HUD] HudCompositor initialized");
+  }
+
+  // Initialize limp mode overlays
+  Serial.println("[HUD] Initializing limp mode overlays...");
+  HudLimpIndicator::init(&tft);
+  HudLimpDiagnostics::init(&tft);
+  Serial.println("[HUD] Limp mode overlays initialized");
+
   // Inicializar HUD básico (will show color test and initialize components)
   // Display is now ready with rotation=3 (480x320 landscape, ST7796S)
   Serial.println("[HUD] Initializing HUD components...");
@@ -289,6 +317,12 @@ void HUDManager::update() {
   default:
     // Sin menú activo - usar HUD básico
     HUD::update();
+    
+    // ✅ PHASE 5: Render compositor layers on top of base HUD
+    // This allows limp indicator and diagnostics to appear over the main HUD
+    if (HudCompositor::isInitialized()) {
+      HudCompositor::render();
+    }
     break;
   }
 }
