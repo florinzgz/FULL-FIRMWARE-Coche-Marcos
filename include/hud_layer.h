@@ -33,11 +33,11 @@ namespace HudLayer {
  * Otherwise, layers are composited BASE → STATUS → DIAGNOSTICS → OVERLAY.
  */
 enum class Layer {
-  BASE = 0,       // Base HUD (gauges, speed, RPM)
-  STATUS = 1,     // Status overlays (limp indicator)
+  BASE = 0,        // Base HUD (gauges, speed, RPM)
+  STATUS = 1,      // Status overlays (limp indicator)
   DIAGNOSTICS = 2, // Diagnostic overlays (limp diagnostics)
-  OVERLAY = 3,    // Modal overlays (menu, keypad)
-  FULLSCREEN = 4  // Full screen modes (calibrations)
+  OVERLAY = 3,     // Modal overlays (menu, keypad)
+  FULLSCREEN = 4   // Full screen modes (calibrations)
 };
 
 /**

@@ -24,7 +24,7 @@ static constexpr uint16_t COLOR_CRITICAL = TFT_RED;     // Danger
 // ========================================
 // State
 // ========================================
-static TFT_eSPI *tft = nullptr; // For backward compatibility
+static TFT_eSPI *tft = nullptr;       // For backward compatibility
 static TFT_eSprite *sprite = nullptr; // For compositor mode
 static LimpMode::LimpState lastState = LimpMode::LimpState::NORMAL;
 static bool initialized = false;
@@ -79,7 +79,7 @@ static const char *getTextForState(LimpMode::LimpState state) {
 static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = target ? (TFT_eSPI*)target : tft;
+  TFT_eSPI *drawTarget = target ? (TFT_eSPI *)target : tft;
   if (!drawTarget) return;
 
   const char *text = getTextForState(state);
@@ -87,22 +87,22 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   // NORMAL state: Don't show anything
   if (text == nullptr || state == LimpMode::LimpState::NORMAL) {
     // Clear the area
-    drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH, INDICATOR_HEIGHT,
-                  COLOR_BACKGROUND);
+    drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                         INDICATOR_HEIGHT, COLOR_BACKGROUND);
     return;
   }
 
   uint16_t color = getColorForState(state);
 
   // Draw background
-  drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH, INDICATOR_HEIGHT,
-                COLOR_BACKGROUND);
+  drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                       INDICATOR_HEIGHT, COLOR_BACKGROUND);
 
   // Draw border
-  drawTarget->drawRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH, INDICATOR_HEIGHT,
-                color);
+  drawTarget->drawRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                       INDICATOR_HEIGHT, color);
   drawTarget->drawRect(INDICATOR_X + 1, INDICATOR_Y + 1, INDICATOR_WIDTH - 2,
-                INDICATOR_HEIGHT - 2, color);
+                       INDICATOR_HEIGHT - 2, color);
 
   // Draw text centered
   drawTarget->setTextColor(color, COLOR_BACKGROUND);
@@ -165,11 +165,11 @@ void clear() {
   if (!tft && !sprite) return;
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI*)sprite : tft;
+  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
 
   // Clear indicator area
-  drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH, INDICATOR_HEIGHT,
-                COLOR_BACKGROUND);
+  drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                       INDICATOR_HEIGHT, COLOR_BACKGROUND);
 
   // Reset cached state so next draw() will redraw
   lastState = LimpMode::LimpState::NORMAL;
@@ -186,7 +186,7 @@ class LimpIndicatorRenderer : public HudLayer::LayerRenderer {
 public:
   void render(HudLayer::RenderContext &ctx) override {
     if (!ctx.isValid()) return;
-    
+
     // Store sprite for legacy draw() calls
     sprite = ctx.sprite;
 
@@ -213,8 +213,6 @@ static LimpIndicatorRenderer rendererInstance;
  * @brief Get the layer renderer for compositor registration
  * @return Pointer to the layer renderer instance
  */
-HudLayer::LayerRenderer *getRenderer() {
-  return &rendererInstance;
-}
+HudLayer::LayerRenderer *getRenderer() { return &rendererInstance; }
 
 } // namespace HudLimpIndicator
