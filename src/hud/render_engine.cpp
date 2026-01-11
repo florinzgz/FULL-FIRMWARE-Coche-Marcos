@@ -93,14 +93,9 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 
   sprites[id]->fillSprite(TFT_BLACK);
 
-  // Steering layers must be transparent (both real and shadow)
-#ifdef RENDER_SHADOW_MODE
-  if (id == STEERING || id == STEERING_SHADOW) {
-    sprites[id]->setTransparentColor(TFT_BLACK);
-  }
-#else
-  if (id == STEERING) { sprites[id]->setTransparentColor(TFT_BLACK); }
-#endif
+  // Note: TFT_eSprite doesn't support setTransparentColor() method
+  // Transparency is handled differently in the TFT_eSPI library
+  // The steering layer uses fillSprite with TFT_BLACK as background
 
   isDirty[id] = true;
   dirtyX[id] = 0;
@@ -262,9 +257,7 @@ void RenderEngine::render() {
     if (safeToTransfer) {
       sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
                                       dirtyW[CAR_BODY], dirtyH[CAR_BODY],
-                                      (uint16_t *)sprites[CAR_BODY]->getPointer(
-                                          dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
-                                      480);
+                                      (uint16_t *)sprites[CAR_BODY]->getPointer());
     }
 
     isDirty[CAR_BODY] = false;
@@ -304,9 +297,7 @@ void RenderEngine::render() {
     if (safeToTransfer) {
       sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
                                       dirtyW[STEERING], dirtyH[STEERING],
-                                      (uint16_t *)sprites[STEERING]->getPointer(
-                                          dirtyX[STEERING], dirtyY[STEERING]),
-                                      480);
+                                      (uint16_t *)sprites[STEERING]->getPointer());
     }
 
     isDirty[STEERING] = false;
