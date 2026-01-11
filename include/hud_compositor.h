@@ -199,7 +199,7 @@ private:
   static int dirtyRectCount;       // Number of dirty rectangles
 
   // PHASE 9: Render statistics
-  static RenderStats renderStats;           // Current render statistics
+  static RenderStats renderStats; // Current render statistics
 
   // Helper to create a layer sprite
   static bool createLayerSprite(HudLayer::Layer layer);

@@ -286,14 +286,14 @@ void HudCompositor::render() {
 
   // Update dirty rect statistics
   renderStats.dirtyRectCount = dirtyRectCount;
-  
+
   // Calculate dirty pixels
   uint32_t totalDirtyPixels = 0;
   for (int i = 0; i < dirtyRectCount; i++) {
     totalDirtyPixels += dirtyRects[i].w * dirtyRects[i].h;
   }
   renderStats.dirtyPixels = totalDirtyPixels;
-  
+
   // Calculate bytes pushed (16-bit color = 2 bytes per pixel)
   renderStats.bytesPushed = totalDirtyPixels * 2;
 
@@ -309,9 +309,7 @@ void HudCompositor::render() {
       psramUsed += SCREEN_WIDTH * SCREEN_HEIGHT * 2; // 16-bit per pixel
     }
   }
-  if (shadowSprite) {
-    psramUsed += SCREEN_WIDTH * SCREEN_HEIGHT * 2;
-  }
+  if (shadowSprite) { psramUsed += SCREEN_WIDTH * SCREEN_HEIGHT * 2; }
   renderStats.psramUsedBytes = psramUsed;
 }
 

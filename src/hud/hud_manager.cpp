@@ -1,9 +1,9 @@
 #include "hud_manager.h"
 #include "hud.h"
-#include "hud_compositor.h"          // Phase 5: Layered compositor
-#include "hud_graphics_telemetry.h"  // Phase 9: Graphics telemetry
-#include "hud_limp_diagnostics.h"    // Phase 4.3: Limp diagnostics
-#include "hud_limp_indicator.h"      // Phase 4.2: Limp indicator
+#include "hud_compositor.h"         // Phase 5: Layered compositor
+#include "hud_graphics_telemetry.h" // Phase 9: Graphics telemetry
+#include "hud_limp_diagnostics.h"   // Phase 4.3: Limp diagnostics
+#include "hud_limp_indicator.h"     // Phase 4.2: Limp indicator
 #include "logger.h"
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
@@ -49,16 +49,12 @@ public:
 
     // Render limp diagnostics (only when limp mode active)
     HudLayer::LayerRenderer *limpRenderer = HudLimpDiagnostics::getRenderer();
-    if (limpRenderer) {
-      limpRenderer->render(ctx);
-    }
+    if (limpRenderer) { limpRenderer->render(ctx); }
 
     // Render graphics telemetry (only when visible)
     HudLayer::LayerRenderer *telemetryRenderer =
         HudGraphicsTelemetry::getRenderer();
-    if (telemetryRenderer) {
-      telemetryRenderer->render(ctx);
-    }
+    if (telemetryRenderer) { telemetryRenderer->render(ctx); }
   }
 
   bool isActive() const override {
@@ -68,8 +64,7 @@ public:
         HudGraphicsTelemetry::getRenderer();
 
     bool limpActive = limpRenderer && limpRenderer->isActive();
-    bool telemetryActive =
-        telemetryRenderer && telemetryRenderer->isActive();
+    bool telemetryActive = telemetryRenderer && telemetryRenderer->isActive();
 
     return limpActive || telemetryActive;
   }
@@ -297,12 +292,14 @@ void HUDManager::init() {
     // STATUS layer: Limp mode indicator
     HudCompositor::registerLayer(HudLayer::Layer::STATUS,
                                  HudLimpIndicator::getRenderer());
-    // DIAGNOSTICS layer: Combined limp diagnostics + graphics telemetry (Phase 9)
+    // DIAGNOSTICS layer: Combined limp diagnostics + graphics telemetry (Phase
+    // 9)
     HudCompositor::registerLayer(HudLayer::Layer::DIAGNOSTICS,
                                  &combinedDiagnosticsRenderer);
 
-    Logger::info("HUD: Compositor initialized with BASE, STATUS and DIAGNOSTICS "
-                 "layers");
+    Logger::info(
+        "HUD: Compositor initialized with BASE, STATUS and DIAGNOSTICS "
+        "layers");
     Serial.println("[HUD] HudCompositor initialized");
 
     // PHASE 7: Initialize Shadow Mode if enabled in config

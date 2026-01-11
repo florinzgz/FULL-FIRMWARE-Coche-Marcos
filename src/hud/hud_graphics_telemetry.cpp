@@ -26,9 +26,9 @@ static constexpr uint16_t COLOR_BORDER_NORMAL = TFT_WHITE;
 static constexpr uint16_t COLOR_BORDER_ERROR = TFT_RED;
 
 // FPS color thresholds
-static constexpr uint16_t COLOR_FPS_GOOD = TFT_GREEN;     // FPS > 25
-static constexpr uint16_t COLOR_FPS_WARN = TFT_YELLOW;    // FPS 15-25
-static constexpr uint16_t COLOR_FPS_BAD = TFT_RED;        // FPS < 15
+static constexpr uint16_t COLOR_FPS_GOOD = TFT_GREEN;  // FPS > 25
+static constexpr uint16_t COLOR_FPS_WARN = TFT_YELLOW; // FPS 15-25
+static constexpr uint16_t COLOR_FPS_BAD = TFT_RED;     // FPS < 15
 
 // ========================================
 // State
@@ -71,8 +71,8 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
                        TELEMETRY_HEIGHT, COLOR_BACKGROUND);
 
   // Draw border (red if shadow errors, white otherwise)
-  uint16_t borderColor = (stats.shadowMismatches > 0) ? COLOR_BORDER_ERROR
-                                                       : COLOR_BORDER_NORMAL;
+  uint16_t borderColor =
+      (stats.shadowMismatches > 0) ? COLOR_BORDER_ERROR : COLOR_BORDER_NORMAL;
   drawTarget->drawRect(TELEMETRY_X, TELEMETRY_Y, TELEMETRY_WIDTH,
                        TELEMETRY_HEIGHT, borderColor);
 
@@ -159,8 +159,7 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
     drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
     drawTarget->drawString("Shadow errors:", cursorX, cursorY);
     snprintf(buf, sizeof(buf), "%u", stats.shadowMismatches);
-    uint16_t errorColor =
-        (stats.shadowMismatches > 0) ? TFT_RED : COLOR_TEXT;
+    uint16_t errorColor = (stats.shadowMismatches > 0) ? TFT_RED : COLOR_TEXT;
     drawTarget->setTextColor(errorColor, COLOR_BACKGROUND);
     drawTarget->drawString(buf, cursorX + 100, cursorY);
   }
@@ -204,8 +203,7 @@ public:
     sprite = ctx.sprite;
 
     // Get current render stats from compositor
-    const HudCompositor::RenderStats &stats =
-        HudCompositor::getRenderStats();
+    const HudCompositor::RenderStats &stats = HudCompositor::getRenderStats();
 
     // Always redraw when visible (stats change every frame)
     drawTelemetry(stats, ctx.sprite);
