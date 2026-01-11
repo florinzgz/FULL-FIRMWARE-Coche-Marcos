@@ -1,8 +1,8 @@
 #include "hud_manager.h"
 #include "hud.h"
-#include "hud_compositor.h"        // Phase 5: Layered compositor
-#include "hud_limp_diagnostics.h"  // Phase 4.3: Limp diagnostics
-#include "hud_limp_indicator.h"    // Phase 4.2: Limp indicator
+#include "hud_compositor.h"       // Phase 5: Layered compositor
+#include "hud_limp_diagnostics.h" // Phase 4.3: Limp diagnostics
+#include "hud_limp_indicator.h"   // Phase 4.2: Limp indicator
 #include "logger.h"
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
@@ -227,12 +227,13 @@ void HUDManager::init() {
     // Register layer renderers
     // STATUS layer: Limp mode indicator
     HudCompositor::registerLayer(HudLayer::Layer::STATUS,
-                                  HudLimpIndicator::getRenderer());
+                                 HudLimpIndicator::getRenderer());
     // DIAGNOSTICS layer: Limp mode diagnostics
     HudCompositor::registerLayer(HudLayer::Layer::DIAGNOSTICS,
-                                  HudLimpDiagnostics::getRenderer());
-    
-    Logger::info("HUD: Compositor initialized with STATUS and DIAGNOSTICS layers");
+                                 HudLimpDiagnostics::getRenderer());
+
+    Logger::info(
+        "HUD: Compositor initialized with STATUS and DIAGNOSTICS layers");
     Serial.println("[HUD] HudCompositor initialized");
   }
 
@@ -317,12 +318,10 @@ void HUDManager::update() {
   default:
     // Sin menú activo - usar HUD básico
     HUD::update();
-    
+
     // ✅ PHASE 5: Render compositor layers on top of base HUD
     // This allows limp indicator and diagnostics to appear over the main HUD
-    if (HudCompositor::isInitialized()) {
-      HudCompositor::render();
-    }
+    if (HudCompositor::isInitialized()) { HudCompositor::render(); }
     break;
   }
 }

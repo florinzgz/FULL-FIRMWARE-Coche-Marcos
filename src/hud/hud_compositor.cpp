@@ -54,9 +54,7 @@ bool HudCompositor::init(TFT_eSPI *tftDisplay) {
 
 bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   int idx = static_cast<int>(layer);
-  if (idx < 0 || idx >= LAYER_COUNT) {
-    return false;
-  }
+  if (idx < 0 || idx >= LAYER_COUNT) { return false; }
 
   // Clean up existing sprite if any
   if (layerSprites[idx]) {
@@ -69,7 +67,8 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   // Each sprite needs SCREEN_WIDTH * SCREEN_HEIGHT * 2 bytes (16-bit color)
   size_t spriteSize = SCREEN_WIDTH * SCREEN_HEIGHT * 2;
   if (ESP.getFreePsram() < spriteSize) {
-    Logger::errorf("HudCompositor: Insufficient PSRAM for layer %d (need %u bytes, have %u bytes)",
+    Logger::errorf("HudCompositor: Insufficient PSRAM for layer %d (need %u "
+                   "bytes, have %u bytes)",
                    idx, spriteSize, ESP.getFreePsram());
     return false;
   }
@@ -77,7 +76,8 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   // Create new sprite
   layerSprites[idx] = new (std::nothrow) TFT_eSprite(tft);
   if (!layerSprites[idx]) {
-    Logger::errorf("HudCompositor: Failed to allocate sprite for layer %d", idx);
+    Logger::errorf("HudCompositor: Failed to allocate sprite for layer %d",
+                   idx);
     return false;
   }
 
@@ -85,8 +85,8 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   void *spriteBuffer =
       layerSprites[idx]->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
-    Logger::errorf(
-        "HudCompositor: Failed to create sprite buffer for layer %d", idx);
+    Logger::errorf("HudCompositor: Failed to create sprite buffer for layer %d",
+                   idx);
     delete layerSprites[idx];
     layerSprites[idx] = nullptr;
     return false;
@@ -95,8 +95,9 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   // Initialize sprite to transparent/black
   layerSprites[idx]->fillSprite(TFT_BLACK);
 
-  Logger::infof("HudCompositor: Created sprite for layer %d (PSRAM remaining: %u bytes)",
-                idx, ESP.getFreePsram());
+  Logger::infof(
+      "HudCompositor: Created sprite for layer %d (PSRAM remaining: %u bytes)",
+      idx, ESP.getFreePsram());
   return true;
 }
 
@@ -115,18 +116,14 @@ void HudCompositor::registerLayer(HudLayer::Layer layer,
 
 void HudCompositor::unregisterLayer(HudLayer::Layer layer) {
   int idx = static_cast<int>(layer);
-  if (idx < 0 || idx >= LAYER_COUNT) {
-    return;
-  }
+  if (idx < 0 || idx >= LAYER_COUNT) { return; }
 
   layerRenderers[idx] = nullptr;
 }
 
 void HudCompositor::markLayerDirty(HudLayer::Layer layer) {
   int idx = static_cast<int>(layer);
-  if (idx < 0 || idx >= LAYER_COUNT) {
-    return;
-  }
+  if (idx < 0 || idx >= LAYER_COUNT) { return; }
 
   layerDirty[idx] = true;
 }
@@ -138,9 +135,7 @@ void HudCompositor::markAllDirty() {
 }
 
 void HudCompositor::render() {
-  if (!initialized) {
-    return;
-  }
+  if (!initialized) { return; }
 
   // Determine which layers to render
   bool fullscreenActive = false;
@@ -155,19 +150,13 @@ void HudCompositor::render() {
     HudLayer::Layer layer = static_cast<HudLayer::Layer>(i);
 
     // Skip if no renderer registered
-    if (!layerRenderers[i]) {
-      continue;
-    }
+    if (!layerRenderers[i]) { continue; }
 
     // Skip if renderer not active
-    if (!layerRenderers[i]->isActive()) {
-      continue;
-    }
+    if (!layerRenderers[i]->isActive()) { continue; }
 
     // If fullscreen is active, skip all other layers
-    if (fullscreenActive && layer != HudLayer::Layer::FULLSCREEN) {
-      continue;
-    }
+    if (fullscreenActive && layer != HudLayer::Layer::FULLSCREEN) { continue; }
 
     // Create render context
     HudLayer::RenderContext ctx(layerSprites[i], layerDirty[i]);
@@ -184,9 +173,7 @@ void HudCompositor::render() {
 }
 
 void HudCompositor::compositeLayers() {
-  if (!tft) {
-    return;
-  }
+  if (!tft) { return; }
 
   // Check if fullscreen is active
   bool fullscreenActive = false;
@@ -203,7 +190,7 @@ void HudCompositor::compositeLayers() {
     }
   } else {
     // Composite BASE → STATUS → DIAGNOSTICS → OVERLAY
-    // 
+    //
     // KNOWN LIMITATION: TFT_eSprite doesn't support true alpha blending.
     // We push each layer opaque, which works because:
     // 1. BASE layer is rendered directly to TFT (not via compositor yet)
@@ -214,7 +201,7 @@ void HudCompositor::compositeLayers() {
     // - Use pushSprite(x, y, transColor) with color key
     // - Implement custom pixel-by-pixel compositing
     // - Use DMA2D hardware acceleration on supported chips
-    
+
     // Push BASE layer first (it's the background)
     int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
     if (layerSprites[baseIdx] && layerRenderers[baseIdx] &&
@@ -239,9 +226,7 @@ void HudCompositor::compositeLayers() {
 
 void HudCompositor::clear() {
   for (int i = 0; i < LAYER_COUNT; i++) {
-    if (layerSprites[i]) {
-      layerSprites[i]->fillSprite(TFT_BLACK);
-    }
+    if (layerSprites[i]) { layerSprites[i]->fillSprite(TFT_BLACK); }
   }
   markAllDirty();
 }
@@ -250,8 +235,6 @@ bool HudCompositor::isInitialized() { return initialized; }
 
 TFT_eSprite *HudCompositor::getLayerSprite(HudLayer::Layer layer) {
   int idx = static_cast<int>(layer);
-  if (idx < 0 || idx >= LAYER_COUNT) {
-    return nullptr;
-  }
+  if (idx < 0 || idx >= LAYER_COUNT) { return nullptr; }
   return layerSprites[idx];
 }
