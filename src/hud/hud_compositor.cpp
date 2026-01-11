@@ -271,17 +271,18 @@ void HudCompositor::render() {
   renderStats.lastFrameTimeMs = frameTime;
   if (renderStats.avgFrameTimeMs == 0) {
     renderStats.avgFrameTimeMs = frameTime;
+    // Calculate FPS from average frame time
+    renderStats.fps = (frameTime > 0) ? (1000 / frameTime) : 0;
   } else {
     // Smoothed: avg = avg * 0.9 + new * 0.1
     // Using integer math: avg = (avg * 9 + new) / 10
-    renderStats.avgFrameTimeMs =
-        (renderStats.avgFrameTimeMs * 9 + frameTime) / 10;
+    uint32_t newAvg = (renderStats.avgFrameTimeMs * 9 + frameTime) / 10;
+    // Only recalculate FPS if average changed
+    if (newAvg != renderStats.avgFrameTimeMs) {
+      renderStats.avgFrameTimeMs = newAvg;
+      renderStats.fps = (newAvg > 0) ? (1000 / newAvg) : 0;
+    }
   }
-
-  // Calculate FPS from average frame time (avoid division by zero)
-  renderStats.fps = (renderStats.avgFrameTimeMs > 0)
-                        ? (1000 / renderStats.avgFrameTimeMs)
-                        : 0;
 
   // Update dirty rect statistics
   renderStats.dirtyRectCount = dirtyRectCount;

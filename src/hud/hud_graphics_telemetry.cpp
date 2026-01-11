@@ -1,6 +1,5 @@
 #include "hud_graphics_telemetry.h"
 #include "hud_compositor.h"
-#include <cstdio>
 
 namespace HudGraphicsTelemetry {
 
@@ -119,10 +118,12 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
   drawTarget->drawString(buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
-  // Bandwidth (convert bytes to KB/s, assuming ~30 FPS target)
+  // Bandwidth (convert bytes to KB/s)
+  // Use 64-bit arithmetic to prevent overflow
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
   drawTarget->drawString("Bandwidth:", cursorX, cursorY);
-  uint32_t bandwidthKBps = (stats.bytesPushed * stats.fps) / 1024;
+  uint32_t bandwidthKBps =
+      (uint32_t)(((uint64_t)stats.bytesPushed * stats.fps) / 1024);
   snprintf(buf, sizeof(buf), "%u KB/s", bandwidthKBps);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
   drawTarget->drawString(buf, cursorX + 100, cursorY);
