@@ -24,19 +24,38 @@ This guide provides a streamlined approach to executing Phase 11 validation test
 
 ## STEP 1: ENABLE SHADOW MODE
 
+You have two options to enable shadow mode:
+
+**Option A: Enable via Code (Requires Rebuild)**
+
 Edit the configuration to enable shadow mode validation:
 
 **File:** `include/config_storage.h`
 
+Find the `DEFAULT_CONFIG` constant (around line 64-102) and change:
+
 ```cpp
 const Config DEFAULT_CONFIG = {
-    // ... other settings ...
-    true, // shadowHudEnabled (changed from false to true)
+    // ... (many other settings) ...
+    true, // shadowHudEnabled (Line ~99: CHANGE from false to true)
     // ... other settings ...
 };
 ```
 
-Or enable via runtime configuration if available.
+Then rebuild and reflash firmware.
+
+**Option B: Enable via Hidden Menu (Runtime, No Rebuild)**
+
+If the firmware supports runtime configuration:
+
+1. Power on the device
+2. Long press the designated button for 3+ seconds
+3. Hidden Menu will open
+4. Navigate to: Diagnostics → Shadow Mode
+5. Toggle shadow mode to ON
+6. Telemetry will show "Shadow: ON"
+
+**Note:** Option B is preferred as it doesn't require rebuilding firmware.
 
 ---
 

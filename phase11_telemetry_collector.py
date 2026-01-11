@@ -5,17 +5,39 @@ PHASE 11 — Telemetry Data Collector & Analyzer
 This script helps automate the collection and analysis of graphics telemetry
 data from the ESP32-S3 serial output during Phase 11 validation testing.
 
+**IMPORTANT NOTE:**
+The current firmware implementation displays telemetry data on-screen only
+(via the graphics telemetry overlay). It does NOT output telemetry to serial.
+
+To use this script, you have two options:
+
+1. **Manual CSV Creation:**
+   - Manually record telemetry values from the on-screen display
+   - Create a CSV file with the format shown in TelemetryFrame structure
+   - Use the --analyze option to process your CSV file
+
+2. **Add Serial Logging (requires code modification):**
+   - Modify src/hud/hud_graphics_telemetry.cpp to add Serial.printf()
+   - Output format: [TELEMETRY] FPS:X Frame:Yms DirtyRects:Z Bytes:WKB Shadow:ON/OFF Errors:E
+   - Rebuild and flash firmware
+   - Then use this script for real-time monitoring
+
+For most users, Option 1 (manual CSV) is recommended.
+
 Features:
-- Real-time serial monitoring with telemetry extraction
+- Real-time serial monitoring with telemetry extraction (if serial logging added)
 - Statistical analysis (min/max/avg)
 - CSV export for further analysis
 - Pass/fail criteria validation
 - Summary report generation
 
 Usage:
+    # Analyze manually created CSV file (RECOMMENDED)
+    python3 phase11_telemetry_collector.py --analyze telemetry_data.csv
+    
+    # Monitor serial port (requires serial logging modification)
     python3 phase11_telemetry_collector.py --port /dev/ttyUSB0 --duration 60
     python3 phase11_telemetry_collector.py --port COM4 --test idle
-    python3 phase11_telemetry_collector.py --analyze telemetry_log.csv
 """
 
 import argparse
@@ -35,6 +57,7 @@ except ImportError:
     SERIAL_AVAILABLE = False
     print("Warning: pyserial not installed. Live monitoring not available.")
     print("Install with: pip install pyserial")
+    print("Note: Install 'pyserial' NOT 'serial' - they are different packages!")
 
 
 @dataclass
@@ -70,6 +93,13 @@ class TelemetryCollector:
     def parse_telemetry_line(self, line: str) -> Optional[TelemetryFrame]:
         """
         Parse a telemetry data line from serial output.
+        
+        Note: This script expects a specific telemetry output format that is NOT
+        currently implemented in the firmware. The existing graphics telemetry
+        displays data on-screen only.
+        
+        To use this script, you would need to add serial logging to
+        src/hud/hud_graphics_telemetry.cpp or manually create CSV files.
         
         Expected format (example):
         [TELEMETRY] FPS:28 Frame:35ms DirtyRects:3 Bytes:18KB Shadow:ON Errors:0
@@ -282,8 +312,6 @@ def monitor_serial(port: str, baudrate: int, duration: Optional[int], output_csv
                     frame = collector.parse_telemetry_line(line)
                     if frame:
                         collector.add_frame(frame)
-            except UnicodeDecodeError:
-                pass
             except KeyboardInterrupt:
                 print("\nStopping collection...")
                 break

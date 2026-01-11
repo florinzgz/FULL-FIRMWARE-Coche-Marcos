@@ -59,9 +59,23 @@ The following systems are being validated:
 ### Firmware Settings
 The following settings must be enabled for testing:
 
+**Option 1: Via Configuration File (Requires Rebuild)**
 ```cpp
 // File: include/config_storage.h
-Config.shadowHudEnabled = ON     // Enable shadow mode validation
+// Line ~99: Change default from false to true
+const Config DEFAULT_CONFIG = {
+    // ... other settings ...
+    true, // shadowHudEnabled (changed from false)
+    // ... other settings ...
+};
+```
+
+**Option 2: Via Hidden Menu (Runtime, No Rebuild)**
+```
+During testing, shadow mode can be toggled on/off via the Hidden Menu:
+1. Long press button for 3 seconds to open Hidden Menu
+2. Navigate to Diagnostics → Shadow Mode
+3. Toggle shadow mode ON
 ```
 
 To enable graphics telemetry overlay:
