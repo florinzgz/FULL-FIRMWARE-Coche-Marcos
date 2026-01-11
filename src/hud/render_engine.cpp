@@ -147,16 +147,14 @@ void RenderEngine::render() {
 
   if (isDirty[CAR_BODY] && sprites[CAR_BODY]) {
     sprites[CAR_BODY]->pushImageDMA(
-        dirtyX[CAR_BODY], dirtyY[CAR_BODY],
-        dirtyW[CAR_BODY], dirtyH[CAR_BODY],
+        dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY], dirtyH[CAR_BODY],
         (uint16_t *)sprites[CAR_BODY]->getPointer(), SPRITE_WIDTH);
     isDirty[CAR_BODY] = false;
   }
 
   if (isDirty[STEERING] && sprites[STEERING]) {
     sprites[STEERING]->pushImageDMA(
-        dirtyX[STEERING], dirtyY[STEERING],
-        dirtyW[STEERING], dirtyH[STEERING],
+        dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING], dirtyH[STEERING],
         (uint16_t *)sprites[STEERING]->getPointer(), SPRITE_WIDTH);
     isDirty[STEERING] = false;
   }
@@ -210,11 +208,9 @@ uint32_t RenderEngine::compareShadowSprites() {
 
 void RenderEngine::clearShadowIgnoreRegions() { shadowMaskCount = 0; }
 
-void RenderEngine::addShadowIgnoreRegion(uint16_t x, uint16_t y,
-                                        uint16_t w, uint16_t h) {
-  if (shadowMaskCount < 8) {
-    shadowMasks[shadowMaskCount++] = {x, y, w, h};
-  }
+void RenderEngine::addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w,
+                                         uint16_t h) {
+  if (shadowMaskCount < 8) { shadowMasks[shadowMaskCount++] = {x, y, w, h}; }
 }
 
 bool RenderEngine::isShadowIgnored(uint16_t x, uint16_t y) {
