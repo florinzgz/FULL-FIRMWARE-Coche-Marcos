@@ -1146,7 +1146,8 @@ void HUD::update(TFT_eSprite *sprite) {
 #endif
 
   // Render gauges (ya optimizados internamente)
-  Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent, sprite);
+  Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent,
+                    sprite);
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 4 - después de gauge velocidad
@@ -1162,12 +1163,14 @@ void HUD::update(TFT_eSprite *sprite) {
 
   // Ruedas (optimizado: solo redibuja si cambian ángulo/temp/esfuerzo)
   // Usar -999.0f para temp y -1.0f para effort cuando sensores deshabilitados
-  WheelsDisplay::drawWheel(X_FL, Y_FL, steerAngleFL, wheelTempFL,
-                           wheelEffortFL, sprite);
-  WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR,
-                           wheelEffortFR, sprite);
-  WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL, sprite);
-  WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR, sprite);
+  WheelsDisplay::drawWheel(X_FL, Y_FL, steerAngleFL, wheelTempFL, wheelEffortFL,
+                           sprite);
+  WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR, wheelEffortFR,
+                           sprite);
+  WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL,
+                           sprite);
+  WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR,
+                           sprite);
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 6 - después de dibujar ruedas
@@ -1181,12 +1184,13 @@ void HUD::update(TFT_eSprite *sprite) {
   // Iconos y estados
   Icons::drawSystemState(sys, sprite);
   Icons::drawGear(gear, sprite);
-  Icons::drawFeatures(mode4x4,
-                      eco, sprite); // v2.14.0: Simplified - only 4x4 mode and eco
+  Icons::drawFeatures(mode4x4, eco,
+                      sprite); // v2.14.0: Simplified - only 4x4 mode and eco
 #ifdef STANDALONE_DISPLAY
   Icons::drawBattery(24.5f, sprite); // Simulated battery voltage
 #else
-  Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f, sprite);
+  Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f,
+                     sprite);
 #endif
 
   // Temperatura ambiente (esquina superior derecha, debajo de batería)
@@ -1212,7 +1216,7 @@ void HUD::update(TFT_eSprite *sprite) {
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
     drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
-                   MODE_INDICATOR_Y, 2);
+                           MODE_INDICATOR_Y, 2);
   }
 #endif
 
