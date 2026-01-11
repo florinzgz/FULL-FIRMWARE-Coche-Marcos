@@ -2,6 +2,14 @@
 #include "logger.h"
 #include <Arduino.h>
 
+// ====== CONSTANTS ======
+static constexpr int SPRITE_WIDTH = 480;
+static constexpr int SPRITE_HEIGHT = 320;
+static constexpr uint32_t SPRITE_TOTAL_PIXELS = SPRITE_WIDTH * SPRITE_HEIGHT;  // 153,600 pixels
+#ifdef RENDER_SHADOW_MODE
+static constexpr uint32_t SHADOW_MISMATCH_LOG_THRESHOLD = 100;  // Only log if mismatch > 100 pixels
+#endif
+
 // ====== STATIC STORAGE ======
 TFT_eSPI *RenderEngine::tft = nullptr;
 #ifdef RENDER_SHADOW_MODE
@@ -133,9 +141,6 @@ TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
 // ====== DIRTY TRACKING ======
 void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
   // Phase 5: Bounds clamping to prevent memory corruption
-  // Sprite dimensions are 480×320
-  const int SPRITE_WIDTH = 480;
-  const int SPRITE_HEIGHT = 320;
   
   // Clamp rectangle to sprite bounds
   int originalX = x, originalY = y, originalW = w, originalH = h;
@@ -220,10 +225,6 @@ void RenderEngine::updateDirtyBounds(SpriteID id, int x, int y, int w, int h) {
 void RenderEngine::render() {
   if (!initialized) return;
 
-  // Phase 5: DMA transfer safety checks
-  const int SPRITE_WIDTH = 480;
-  const int SPRITE_HEIGHT = 320;
-
   // Bottom layer (car body)
   if (isDirty[CAR_BODY]) {
     // Phase 5: Validate DMA bounds before transfer
@@ -257,7 +258,7 @@ void RenderEngine::render() {
       sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
                                       dirtyW[CAR_BODY], dirtyH[CAR_BODY],
                                       (uint16_t *)sprites[CAR_BODY]->getPointer(),
-                                      480);
+                                      SPRITE_WIDTH);
     }
     
     isDirty[CAR_BODY] = false;
@@ -296,7 +297,7 @@ void RenderEngine::render() {
       sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
                                       dirtyW[STEERING], dirtyH[STEERING],
                                       (uint16_t *)sprites[STEERING]->getPointer(),
-                                      480);
+                                      SPRITE_WIDTH);
     }
     
     isDirty[STEERING] = false;
@@ -314,8 +315,8 @@ void RenderEngine::clear() {
     isDirty[i] = true;
     dirtyX[i] = 0;
     dirtyY[i] = 0;
-    dirtyW[i] = 480;
-    dirtyH[i] = 320;
+    dirtyW[i] = SPRITE_WIDTH;
+    dirtyH[i] = SPRITE_HEIGHT;
   }
 }
 
@@ -334,14 +335,10 @@ uint32_t RenderEngine::compareShadowSprites() {
   uint32_t mismatchCount = 0;
   uint32_t ignoredPixels = 0;  // Phase 3.6: Track skipped pixels
 
-  // Get sprite dimensions
-  int width = 480;
-  int height = 320;
-
   // Compare pixel by pixel
   // Phase 3.6: Skip pixels in ignore regions
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
+  for (int y = 0; y < SPRITE_HEIGHT; y++) {
+    for (int x = 0; x < SPRITE_WIDTH; x++) {
       // Phase 3.6: Check if this pixel should be ignored
       if (isShadowIgnored(x, y)) {
         ignoredPixels++;
@@ -368,9 +365,9 @@ uint32_t RenderEngine::compareShadowSprites() {
   if (mismatchCount > 0) {
     shadowMismatchCount++;
     
-    // Log only if mismatch count is significant (>100 pixels)
+    // Log only if mismatch count is significant
     // to avoid spam from minor antialiasing differences
-    if (mismatchCount > 100) {
+    if (mismatchCount > SHADOW_MISMATCH_LOG_THRESHOLD) {
       Logger::warnf("RenderEngine: Shadow mismatch detected: %u pixels differ (%u ignored)", 
                     mismatchCount, ignoredPixels);
     }
@@ -391,12 +388,10 @@ void RenderEngine::getShadowStats(uint32_t &outTotalComparisons,
 void RenderEngine::getShadowMetrics(float &outMatchPercentage,
                                      uint32_t &outMaxMismatch,
                                      float &outAvgMismatch) {
-  const uint32_t totalPixels = 480 * 320;  // 153,600 pixels
-  
   // Calculate match percentage based on last comparison
-  if (totalPixels > 0) {
-    uint32_t matchingPixels = totalPixels - shadowLastMismatch;
-    outMatchPercentage = (float)matchingPixels * 100.0f / (float)totalPixels;
+  if (SPRITE_TOTAL_PIXELS > 0) {
+    uint32_t matchingPixels = SPRITE_TOTAL_PIXELS - shadowLastMismatch;
+    outMatchPercentage = (float)matchingPixels * 100.0f / (float)SPRITE_TOTAL_PIXELS;
   } else {
     outMatchPercentage = 0.0f;
   }
