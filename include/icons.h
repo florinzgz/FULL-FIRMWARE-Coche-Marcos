@@ -46,7 +46,8 @@ void drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
  * @param maxTemp Temperatura máxima actual
  * @param sprite Optional sprite for compositor mode
  */
-void drawTempWarning(bool tempWarning, float maxTemp, TFT_eSprite *sprite = nullptr);
+void drawTempWarning(bool tempWarning, float maxTemp,
+                     TFT_eSprite *sprite = nullptr);
 
 /**
  * @brief Dibuja temperatura ambiente en esquina superior derecha

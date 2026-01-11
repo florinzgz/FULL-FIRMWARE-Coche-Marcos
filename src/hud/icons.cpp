@@ -146,21 +146,21 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
 
   // Sombra exterior (efecto profundidad)
   drawTarget->fillRoundRect(GEAR_PANEL_X + 3, GEAR_PANEL_Y + 3, GEAR_PANEL_W,
-                     GEAR_PANEL_H, 6, COLOR_PANEL_SHADOW);
+                            GEAR_PANEL_H, 6, COLOR_PANEL_SHADOW);
 
   // Fondo principal del panel
-  drawTarget->fillRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W, GEAR_PANEL_H, 6,
-                     COLOR_PANEL_BG);
+  drawTarget->fillRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
+                            GEAR_PANEL_H, 6, COLOR_PANEL_BG);
 
   // Borde del panel
-  drawTarget->drawRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W, GEAR_PANEL_H, 6,
-                     COLOR_PANEL_BORDER);
+  drawTarget->drawRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
+                            GEAR_PANEL_H, 6, COLOR_PANEL_BORDER);
 
   // Highlight superior (efecto 3D)
-  drawTarget->drawFastHLine(GEAR_PANEL_X + 8, GEAR_PANEL_Y + 2, GEAR_PANEL_W - 16,
-                     COLOR_PANEL_HIGHLIGHT);
-  drawTarget->drawFastHLine(GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3, GEAR_PANEL_W - 20,
-                     COLOR_PANEL_HIGHLIGHT);
+  drawTarget->drawFastHLine(GEAR_PANEL_X + 8, GEAR_PANEL_Y + 2,
+                            GEAR_PANEL_W - 16, COLOR_PANEL_HIGHLIGHT);
+  drawTarget->drawFastHLine(GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3,
+                            GEAR_PANEL_W - 20, COLOR_PANEL_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror gear panel to shadow sprite
   SHADOW_MIRROR_fillRoundRect(GEAR_PANEL_X + 3, GEAR_PANEL_Y + 3, GEAR_PANEL_W,
@@ -222,15 +222,17 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
     }
 
     // Fondo de la celda con esquinas redondeadas
-    drawTarget->fillRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4, bgColor);
+    drawTarget->fillRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
+                              bgColor);
 
     // Borde de la celda
-    drawTarget->drawRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4, borderColor);
+    drawTarget->drawRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
+                              borderColor);
 
     // Efecto 3D interno: highlight superior
     if (isActive) {
       drawTarget->drawFastHLine(cellX + 4, cellY + 2, GEAR_ITEM_W - 8,
-                         (g == Shifter::R) ? 0xFC10 : 0x07FF);
+                                (g == Shifter::R) ? 0xFC10 : 0x07FF);
     }
 
     // Dibujar texto de la marcha (font 2 para que quepa en celdas más pequeñas)
@@ -239,7 +241,7 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
 
     drawTarget->setTextColor(textColor, bgColor);
     drawTarget->drawString(gears[i], textX, textY,
-                    2); // Font 2 para celdas más pequeñas
+                           2); // Font 2 para celdas más pequeñas
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror gear cell to shadow sprite
     SHADOW_MIRROR_fillRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
@@ -390,7 +392,8 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   drawTarget->drawRoundRect(battX, battY, battW, battH, 3, 0x6B6D);
 
   // Terminal positivo
-  drawTarget->fillRect(battX + battW, battY + (battH - capH) / 2, capW, capH, 0x6B6D);
+  drawTarget->fillRect(battX + battW, battY + (battH - capH) / 2, capW, capH,
+                       0x6B6D);
 
   // Relleno según nivel
   int fillW = (int)((battW - 6) * percent / 100.0f);
@@ -404,7 +407,8 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   }
 
   if (fillW > 0) {
-    drawTarget->fillRoundRect(battX + 3, battY + 3, fillW, battH - 6, 1, fillColor);
+    drawTarget->fillRoundRect(battX + 3, battY + 3, fillW, battH - 6, 1,
+                              fillColor);
     // Highlight 3D
     drawTarget->drawFastHLine(battX + 3, battY + 3, fillW, 0xFFFF);
   }
@@ -449,12 +453,13 @@ void Icons::drawErrorWarning(TFT_eSprite *sprite) {
 
     // Sombra del triángulo
     drawTarget->fillTriangle(WARNING_X1 + 2, botY + 2, WARNING_X2 + 2, botY + 2,
-                      midX + 2, topY + 2, 0x8400);
+                             midX + 2, topY + 2, 0x8400);
 
     // Triángulo de warning con borde
     drawTarget->fillTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY,
-                      TFT_YELLOW);
-    drawTarget->drawTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY, 0x8400);
+                             TFT_YELLOW);
+    drawTarget->drawTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY,
+                             0x8400);
 
     // Signo de exclamación
     drawTarget->fillRect(midX - 1, topY + 8, 3, 10, TFT_BLACK);
@@ -480,7 +485,7 @@ void Icons::drawErrorWarning(TFT_eSprite *sprite) {
 #endif
   } else {
     drawTarget->fillRect(WARNING_X1, WARNING_Y1, (WARNING_X2 - WARNING_X1) + 40,
-                  WARNING_Y2 - WARNING_Y1, TFT_BLACK);
+                         WARNING_Y2 - WARNING_Y1, TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
     SHADOW_MIRROR_fillRect(WARNING_X1, WARNING_Y1,
                            (WARNING_X2 - WARNING_X1) + 40,
@@ -509,8 +514,8 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
 
   // Limpiar área
   drawTarget->fillRect(SENSOR_STATUS_X1, SENSOR_STATUS_Y1,
-                SENSOR_STATUS_X2 - SENSOR_STATUS_X1,
-                SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1, TFT_BLACK);
+                       SENSOR_STATUS_X2 - SENSOR_STATUS_X1,
+                       SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1, TFT_BLACK);
 
   // Helper para determinar color basado en proporción OK/Total
   auto getStatusColor = [](uint8_t ok, uint8_t total) -> uint16_t {
@@ -538,7 +543,8 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
   // LED 1: Corriente (INA226) con efecto 3D
   uint16_t colorCurrent = getStatusColor(currentOK, currentTotal);
   // Sombra del LED
-  drawTarget->fillCircle(startX + 1, ledY + 1, ledRadius, getDarkColor(colorCurrent));
+  drawTarget->fillCircle(startX + 1, ledY + 1, ledRadius,
+                         getDarkColor(colorCurrent));
   // LED principal
   drawTarget->fillCircle(startX, ledY, ledRadius, colorCurrent);
   // Highlight 3D (brillo)
@@ -553,10 +559,11 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
   // LED 2: Temperatura (DS18B20) con efecto 3D
   uint16_t colorTemp = getStatusColor(tempOK, tempTotal);
   drawTarget->fillCircle(startX + spacing + 1, ledY + 1, ledRadius,
-                  getDarkColor(colorTemp));
+                         getDarkColor(colorTemp));
   drawTarget->fillCircle(startX + spacing, ledY, ledRadius, colorTemp);
   drawTarget->fillCircle(startX + spacing - 2, ledY - 2, 2, 0xFFFF);
-  drawTarget->drawCircle(startX + spacing, ledY, ledRadius, getDarkColor(colorTemp));
+  drawTarget->drawCircle(startX + spacing, ledY, ledRadius,
+                         getDarkColor(colorTemp));
 
   drawTarget->setTextColor(colorTemp, TFT_BLACK);
   drawTarget->drawString("T", startX + spacing, textY, 1);
@@ -564,11 +571,11 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
   // LED 3: Ruedas con efecto 3D
   uint16_t colorWheel = getStatusColor(wheelOK, wheelTotal);
   drawTarget->fillCircle(startX + 2 * spacing + 1, ledY + 1, ledRadius,
-                  getDarkColor(colorWheel));
+                         getDarkColor(colorWheel));
   drawTarget->fillCircle(startX + 2 * spacing, ledY, ledRadius, colorWheel);
   drawTarget->fillCircle(startX + 2 * spacing - 2, ledY - 2, 2, 0xFFFF);
   drawTarget->drawCircle(startX + 2 * spacing, ledY, ledRadius,
-                  getDarkColor(colorWheel));
+                         getDarkColor(colorWheel));
 
   drawTarget->setTextColor(colorWheel, TFT_BLACK);
   drawTarget->drawString("W", startX + 2 * spacing, textY, 1);
@@ -607,7 +614,8 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
 #endif
 }
 
-void Icons::drawTempWarning(bool tempWarning, float maxTemp, TFT_eSprite *sprite) {
+void Icons::drawTempWarning(bool tempWarning, float maxTemp,
+                            TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
   TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
   if (!drawTarget) return;
@@ -620,8 +628,8 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp, TFT_eSprite *sprite
   lastTempWarning = tempWarning;
   lastMaxTemp = maxTemp;
 
-  drawTarget->fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W, TEMP_WARNING_H,
-                TFT_BLACK);
+  drawTarget->fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W,
+                       TEMP_WARNING_H, TFT_BLACK);
 
   if (tempWarning) {
     // Mostrar advertencia de temperatura crítica
@@ -630,7 +638,7 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp, TFT_eSprite *sprite
     char buf[16];
     snprintf(buf, sizeof(buf), "%.0fC!", maxTemp);
     drawTarget->drawString(buf, TEMP_WARNING_X + 5,
-                    TEMP_WARNING_Y + TEMP_WARNING_H / 2, 2);
+                           TEMP_WARNING_Y + TEMP_WARNING_H / 2, 2);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror temp warning to shadow sprite
     SHADOW_MIRROR_fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W,
@@ -662,8 +670,8 @@ void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
   lastAmbientTemp = ambientTemp;
 
   // Limpiar área
-  drawTarget->fillRect(AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W, AMBIENT_TEMP_H,
-                TFT_BLACK);
+  drawTarget->fillRect(AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W,
+                       AMBIENT_TEMP_H, TFT_BLACK);
 
   // Dibujar icono de termómetro pequeño
   int iconX = AMBIENT_TEMP_X + 2;
@@ -695,8 +703,8 @@ void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
   drawTarget->setTextColor(tempColor, TFT_BLACK);
   char buf[10];
   snprintf(buf, sizeof(buf), "%.0fC", ambientTemp);
-  drawTarget->drawString(buf, AMBIENT_TEMP_X + 14, AMBIENT_TEMP_Y + AMBIENT_TEMP_H / 2,
-                  2);
+  drawTarget->drawString(buf, AMBIENT_TEMP_X + 14,
+                         AMBIENT_TEMP_Y + AMBIENT_TEMP_H / 2, 2);
   drawTarget->setTextDatum(TL_DATUM);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror ambient temp to shadow sprite
