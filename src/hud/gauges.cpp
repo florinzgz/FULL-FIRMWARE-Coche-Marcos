@@ -34,14 +34,19 @@ static const uint16_t COLOR_SCALE_DANGER = 0xF800;    // Rojo
 // -----------------------
 
 // Dibujar arco grueso con efecto 3D
+// Phase 6: Added target parameter for compositor mode
 static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
-                         float startAngle, float endAngle) {
+                         float startAngle, float endAngle,
+                         TFT_eSPI *target = nullptr) {
+  TFT_eSPI *drawTarget = target ? target : tft;
+  if (!drawTarget) return;
+
   // Use TFT_eSPI's optimized drawArc() method for better performance
   for (int i = 0; i < thickness; i++) {
     // drawArc expects angles in degrees, and draws a ring segment with given
     // thickness
-    tft->drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle, color,
-                 color, true);
+    drawTarget->drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
+                        color, color, true);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite for validation
     SHADOW_MIRROR_drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
@@ -51,8 +56,12 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
 }
 
 // Dibujar marcas de escala con números
+// Phase 6: Added target parameter for compositor mode
 static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
-                           bool showNumbers) {
+                           bool showNumbers, TFT_eSPI *target = nullptr) {
+  TFT_eSPI *drawTarget = target ? target : tft;
+  if (!drawTarget) return;
+
   int numMarks = maxValue / step;
   for (int i = 0; i <= numMarks; i++) {
     float value = i * step;
@@ -75,8 +84,8 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
     int y1 = cy + (int)(sinf(rad) * (r - 5));
     int x2 = cx + (int)(cosf(rad) * (r - 15));
     int y2 = cy + (int)(sinf(rad) * (r - 15));
-    tft->drawLine(x1, y1, x2, y2, color);
-    tft->drawLine(x1 + 1, y1, x2 + 1, y2, color);
+    drawTarget->drawLine(x1, y1, x2, y2, color);
+    drawTarget->drawLine(x1 + 1, y1, x2 + 1, y2, color);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite
     SHADOW_MIRROR_drawLine(x1, y1, x2, y2, color);
@@ -87,11 +96,11 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
     if (showNumbers && (i % 2 == 0 || numMarks <= 6)) {
       int xNum = cx + (int)(cosf(rad) * (r - 25));
       int yNum = cy + (int)(sinf(rad) * (r - 25));
-      tft->setTextDatum(MC_DATUM);
-      tft->setTextColor(TFT_WHITE, TFT_BLACK);
+      drawTarget->setTextDatum(MC_DATUM);
+      drawTarget->setTextColor(TFT_WHITE, TFT_BLACK);
       char buf[8];
       snprintf(buf, sizeof(buf), "%d", (int)value);
-      tft->drawString(buf, xNum, yNum, 1);
+      drawTarget->drawString(buf, xNum, yNum, 1);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror text to shadow sprite
       SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -112,7 +121,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       int y1 = cy + (int)(sinf(rad) * (r - 5));
       int x2 = cx + (int)(cosf(rad) * (r - 10));
       int y2 = cy + (int)(sinf(rad) * (r - 10));
-      tft->drawLine(x1, y1, x2, y2, TFT_DARKGREY);
+      drawTarget->drawLine(x1, y1, x2, y2, TFT_DARKGREY);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror minor marks to shadow sprite
       SHADOW_MIRROR_drawLine(x1, y1, x2, y2, TFT_DARKGREY);
@@ -122,8 +131,12 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
 }
 
 // Aguja 3D con efecto de profundidad
+// Phase 6: Added target parameter for compositor mode
 static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
-                         bool erase) {
+                         bool erase, TFT_eSPI *target = nullptr) {
+  TFT_eSPI *drawTarget = target ? target : tft;
+  if (!drawTarget) return;
+
   // 🔒 CORRECCIÓN ALTA: Proteger contra división por cero
   if (maxValue <= 0.0f) {
     maxValue = 1.0f; // Fallback seguro
@@ -146,8 +159,8 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 
   if (erase) {
     // Borrar con negro
-    tft->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2, TFT_BLACK);
-    tft->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
+    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2, TFT_BLACK);
+    drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror erase to shadow sprite
     SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
@@ -156,22 +169,22 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 #endif
   } else {
     // Sombra de la aguja (desplazada 2px)
-    tft->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1, baseX2 + 1,
+    drawTarget->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1, baseX2 + 1,
                       baseY2 + 1, COLOR_NEEDLE_SHADOW);
 
     // Aguja principal
-    tft->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
                       COLOR_NEEDLE_BASE);
 
     // Línea central blanca (efecto brillo)
     int midX = cx + (int)(cosf(rad) * (r * 0.6f));
     int midY = cy + (int)(sinf(rad) * (r * 0.6f));
-    tft->drawLine(cx, cy, midX, midY, COLOR_NEEDLE_TIP);
+    drawTarget->drawLine(cx, cy, midX, midY, COLOR_NEEDLE_TIP);
 
     // Centro de la aguja (círculo 3D)
-    tft->fillCircle(cx, cy, 10, TFT_DARKGREY);
-    tft->fillCircle(cx, cy, 8, COLOR_GAUGE_RING);
-    tft->fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
+    drawTarget->fillCircle(cx, cy, 10, TFT_DARKGREY);
+    drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_RING);
+    drawTarget->fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror needle drawing to shadow sprite
     SHADOW_MIRROR_fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
@@ -189,20 +202,24 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 // -----------------------
 // Fondo estático mejorado con efecto 3D
 // -----------------------
+// Phase 6: Added target parameter for compositor mode
 static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
-                                const char *unit) {
+                                const char *unit, TFT_eSPI *target = nullptr) {
+  TFT_eSPI *drawTarget = target ? target : tft;
+  if (!drawTarget) return;
+
   int outerRadius = 68;
   int innerRadius = 55;
 
   // Fondo negro profundo
-  tft->fillCircle(cx, cy, outerRadius + 5, TFT_BLACK);
+  drawTarget->fillCircle(cx, cy, outerRadius + 5, TFT_BLACK);
 
   // Anillo exterior metálico (efecto 3D con gradiente)
   for (int r = outerRadius + 4; r >= outerRadius; r--) {
     uint16_t shade = (r == outerRadius + 4) ? COLOR_GAUGE_HIGHLIGHT
                      : (r == outerRadius)   ? COLOR_GAUGE_OUTER
                                             : COLOR_GAUGE_RING;
-    tft->drawCircle(cx, cy, r, shade);
+    drawTarget->drawCircle(cx, cy, r, shade);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror gauge rings to shadow sprite
     SHADOW_MIRROR_drawCircle(cx, cy, r, shade);
@@ -210,7 +227,7 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   }
 
   // Interior negro
-  tft->fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
+  drawTarget->fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror gauge interior to shadow sprite
   SHADOW_MIRROR_fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
@@ -219,21 +236,21 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   // Arco de escala coloreado (verde-amarillo-rojo)
   // Verde (0-60%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_NORMAL, -135.0f,
-               -135.0f + 270.0f * 0.6f);
+               -135.0f + 270.0f * 0.6f, drawTarget);
   // Amarillo (60-85%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_WARN,
-               -135.0f + 270.0f * 0.6f, -135.0f + 270.0f * 0.85f);
+               -135.0f + 270.0f * 0.6f, -135.0f + 270.0f * 0.85f, drawTarget);
   // Rojo (85-100%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_DANGER,
-               -135.0f + 270.0f * 0.85f, 135.0f);
+               -135.0f + 270.0f * 0.85f, 135.0f, drawTarget);
 
   // Marcas de escala con números
-  drawScaleMarks(cx, cy, outerRadius, maxValue, step, true);
+  drawScaleMarks(cx, cy, outerRadius, maxValue, step, true, drawTarget);
 
   // Etiqueta de unidad
-  tft->setTextDatum(MC_DATUM);
-  tft->setTextColor(TFT_CYAN, TFT_BLACK);
-  tft->drawString(unit, cx, cy + 35, 1);
+  drawTarget->setTextDatum(MC_DATUM);
+  drawTarget->setTextColor(TFT_CYAN, TFT_BLACK);
+  drawTarget->drawString(unit, cx, cy + 35, 1);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror unit label to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -251,7 +268,13 @@ void Gauges::init(TFT_eSPI *display) {
   lastRpm = -1;
 }
 
-void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
+void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
+                       TFT_eSprite *sprite) {
+  // Phase 6: Support dual-mode rendering (sprite or TFT)
+  // Safe cast: TFT_eSprite inherits from TFT_eSPI
+  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  if (!drawTarget) return;
+
   // 🔒 CORRECCIÓN ALTA: Clamp speed con límite superior seguro
   kmh = constrain(kmh, 0.0f,
                   min((float)maxKmh, 999.0f)); // Prevenir overflow visual
@@ -264,18 +287,18 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
 
   // Redibujar fondo solo si es la primera vez
   if (lastSpeed < 0) {
-    drawGaugeBackground(cx, cy, maxKmh, step, "km/h");
+    drawGaugeBackground(cx, cy, maxKmh, step, "km/h", drawTarget);
   } else {
     // Borrar aguja anterior
-    drawNeedle3D(cx, cy, lastSpeed, (float)maxKmh, 50, true);
+    drawNeedle3D(cx, cy, lastSpeed, (float)maxKmh, 50, true, drawTarget);
   }
 
   // Dibujar aguja nueva con efecto 3D
-  drawNeedle3D(cx, cy, kmh, (float)maxKmh, 50, false);
+  drawNeedle3D(cx, cy, kmh, (float)maxKmh, 50, false, drawTarget);
 
   // Texto central grande con valor
-  tft->setTextDatum(MC_DATUM);
-  tft->fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
+  drawTarget->setTextDatum(MC_DATUM);
+  drawTarget->fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
 
   // Color según velocidad
   uint16_t textColor;
@@ -288,10 +311,10 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
     textColor = TFT_RED;
   }
 
-  tft->setTextColor(textColor, COLOR_GAUGE_INNER);
+  drawTarget->setTextColor(textColor, COLOR_GAUGE_INNER);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)kmh);
-  tft->drawString(buf, cx, cy + 5, 4);
+  drawTarget->drawString(buf, cx, cy + 5, 4);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror speed value text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -303,7 +326,13 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct) {
   lastSpeed = kmh;
 }
 
-void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm) {
+void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
+                     TFT_eSprite *sprite) {
+  // Phase 6: Support dual-mode rendering (sprite or TFT)
+  // Safe cast: TFT_eSprite inherits from TFT_eSPI
+  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  if (!drawTarget) return;
+
   // 🔒 CORRECCIÓN ALTA: Validar maxRpm para prevenir división por cero
   if (maxRpm <= 0) maxRpm = DEFAULT_MAX_RPM;
 
@@ -313,18 +342,18 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm) {
   int step = (maxRpm <= 500) ? 50 : 100;
 
   if (lastRpm < 0) {
-    drawGaugeBackground(cx, cy, maxRpm, step, "RPM");
+    drawGaugeBackground(cx, cy, maxRpm, step, "RPM", drawTarget);
   } else {
     // Borrar aguja anterior
-    drawNeedle3D(cx, cy, lastRpm, (float)maxRpm, 50, true);
+    drawNeedle3D(cx, cy, lastRpm, (float)maxRpm, 50, true, drawTarget);
   }
 
   // Dibujar aguja nueva con efecto 3D
-  drawNeedle3D(cx, cy, rpm, (float)maxRpm, 50, false);
+  drawNeedle3D(cx, cy, rpm, (float)maxRpm, 50, false, drawTarget);
 
   // Texto central grande con valor
-  tft->setTextDatum(MC_DATUM);
-  tft->fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
+  drawTarget->setTextDatum(MC_DATUM);
+  drawTarget->fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
 
   // Color según RPM
   uint16_t textColor;
@@ -337,10 +366,10 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm) {
     textColor = TFT_RED;
   }
 
-  tft->setTextColor(textColor, COLOR_GAUGE_INNER);
+  drawTarget->setTextColor(textColor, COLOR_GAUGE_INNER);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)rpm);
-  tft->drawString(buf, cx, cy + 5, 4);
+  drawTarget->drawString(buf, cx, cy + 5, 4);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror RPM value text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
