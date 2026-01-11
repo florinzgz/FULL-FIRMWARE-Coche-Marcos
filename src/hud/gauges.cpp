@@ -159,7 +159,8 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 
   if (erase) {
     // Borrar con negro
-    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2, TFT_BLACK);
+    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+                             TFT_BLACK);
     drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror erase to shadow sprite
@@ -169,12 +170,12 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 #endif
   } else {
     // Sombra de la aguja (desplazada 2px)
-    drawTarget->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1, baseX2 + 1,
-                      baseY2 + 1, COLOR_NEEDLE_SHADOW);
+    drawTarget->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
+                             baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
 
     // Aguja principal
     drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
-                      COLOR_NEEDLE_BASE);
+                             COLOR_NEEDLE_BASE);
 
     // Línea central blanca (efecto brillo)
     int midX = cx + (int)(cosf(rad) * (r * 0.6f));
