@@ -33,7 +33,7 @@ static float lastPercent = 0.0f;
 // 🔒 EMA
 static constexpr float EMA_ALPHA = 0.15f;
 static float rawFiltered = 0.0f;
-static bool emaInitialized = false;   // ← FIX CRÍTICO
+static bool emaInitialized = false; // ← FIX CRÍTICO
 
 static bool initialized = false;
 
