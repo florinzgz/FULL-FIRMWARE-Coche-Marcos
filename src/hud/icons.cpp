@@ -1,8 +1,9 @@
 #include "icons.h"
 #include "display_types.h" // para CACHE_UNINITIALIZED
 #include "logger.h"
-#include "system.h"  // para consultar errores persistentes
-#include <Arduino.h> // para constrain()
+#include "shadow_render.h" // Phase 3: Shadow mirroring support
+#include "system.h"        // para consultar errores persistentes
+#include <Arduino.h>       // para constrain()
 #include <TFT_eSPI.h>
 #include <math.h> // para fabs()
 
@@ -84,6 +85,13 @@ void Icons::drawSystemState(System::State st) {
   tft->setTextDatum(TL_DATUM);
   tft->setTextColor(col, TFT_BLACK);
   tft->drawString(txt, 10, 10, 2);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror system state to shadow sprite
+  SHADOW_MIRROR_fillRect(5, 5, 80, 20, TFT_BLACK);
+  SHADOW_MIRROR_setTextDatum(TL_DATUM);
+  SHADOW_MIRROR_setTextColor(col, TFT_BLACK);
+  SHADOW_MIRROR_drawString(txt, 10, 10, 2);
+#endif
 }
 
 // 🔒 v2.9.0: Indicador de marcha REUBICADO Y MEJORADO
@@ -147,6 +155,19 @@ void Icons::drawGear(Shifter::Gear g) {
                      COLOR_PANEL_HIGHLIGHT);
   tft->drawFastHLine(GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3, GEAR_PANEL_W - 20,
                      COLOR_PANEL_HIGHLIGHT);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror gear panel to shadow sprite
+  SHADOW_MIRROR_fillRoundRect(GEAR_PANEL_X + 3, GEAR_PANEL_Y + 3, GEAR_PANEL_W,
+                              GEAR_PANEL_H, 6, COLOR_PANEL_SHADOW);
+  SHADOW_MIRROR_fillRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
+                              GEAR_PANEL_H, 6, COLOR_PANEL_BG);
+  SHADOW_MIRROR_drawRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
+                              GEAR_PANEL_H, 6, COLOR_PANEL_BORDER);
+  SHADOW_MIRROR_drawFastHLine(GEAR_PANEL_X + 8, GEAR_PANEL_Y + 2,
+                              GEAR_PANEL_W - 16, COLOR_PANEL_HIGHLIGHT);
+  SHADOW_MIRROR_drawFastHLine(GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3,
+                              GEAR_PANEL_W - 20, COLOR_PANEL_HIGHLIGHT);
+#endif
 
   // ========================================
   // Dibujar las 5 marchas: P R N D1 D2
@@ -183,6 +204,11 @@ void Icons::drawGear(Shifter::Gear g) {
       tft->drawRoundRect(
           cellX - 1, cellY - 1, GEAR_ITEM_W + 2, GEAR_ITEM_H + 2, 5,
           (g == Shifter::R) ? COLOR_REVERSE_GLOW : COLOR_ACTIVE_GLOW);
+#ifdef RENDER_SHADOW_MODE
+      SHADOW_MIRROR_drawRoundRect(
+          cellX - 1, cellY - 1, GEAR_ITEM_W + 2, GEAR_ITEM_H + 2, 5,
+          (g == Shifter::R) ? COLOR_REVERSE_GLOW : COLOR_ACTIVE_GLOW);
+#endif
     } else {
       bgColor = COLOR_INACTIVE_BG;
       textColor = COLOR_INACTIVE_TEXT;
@@ -208,6 +234,19 @@ void Icons::drawGear(Shifter::Gear g) {
     tft->setTextColor(textColor, bgColor);
     tft->drawString(gears[i], textX, textY,
                     2); // Font 2 para celdas más pequeñas
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3.5: Mirror gear cell to shadow sprite
+    SHADOW_MIRROR_fillRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
+                                bgColor);
+    SHADOW_MIRROR_drawRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
+                                borderColor);
+    if (isActive) {
+      SHADOW_MIRROR_drawFastHLine(cellX + 4, cellY + 2, GEAR_ITEM_W - 8,
+                                  (g == Shifter::R) ? 0xFC10 : 0x07FF);
+    }
+    SHADOW_MIRROR_setTextColor(textColor, bgColor);
+    SHADOW_MIRROR_drawString(gears[i], textX, textY, 2);
+#endif
   }
 }
 
@@ -267,6 +306,22 @@ void Icons::drawFeatures(bool mode4x4, bool regenOn) {
     tft->setTextColor(textColor, bgColor);
     tft->drawString(text, cx, cy, 2);
     tft->setTextDatum(TL_DATUM);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3.5: Mirror 3D box to shadow sprite
+    SHADOW_MIRROR_fillRoundRect(x1 + 2, y1 + 2, w, h, 5, COLOR_BOX_SHADOW);
+    SHADOW_MIRROR_fillRoundRect(x1, y1, w, h, 5, bgColor);
+    SHADOW_MIRROR_drawRoundRect(x1, y1, w, h, 5, COLOR_BOX_BORDER);
+    SHADOW_MIRROR_drawFastHLine(x1 + 5, y1 + 2, w - 10, COLOR_BOX_HIGHLIGHT);
+    SHADOW_MIRROR_drawFastHLine(x1 + 5, y1 + 3, w - 10, COLOR_BOX_HIGHLIGHT);
+    SHADOW_MIRROR_drawFastHLine(x1 + 5, y2 - 3, w - 10, COLOR_BOX_SHADOW);
+    SHADOW_MIRROR_drawFastHLine(x1 + 5, y2 - 2, w - 10, COLOR_BOX_SHADOW);
+    SHADOW_MIRROR_setTextDatum(MC_DATUM);
+    SHADOW_MIRROR_setTextColor(TFT_BLACK, bgColor);
+    SHADOW_MIRROR_drawString(text, cx + 1, cy + 1, 2);
+    SHADOW_MIRROR_setTextColor(textColor, bgColor);
+    SHADOW_MIRROR_drawString(text, cx, cy, 2);
+    SHADOW_MIRROR_setTextDatum(TL_DATUM);
+#endif
   };
 
   // 4x4 / 4x2 - Siempre muestra el estado activo con color diferente
@@ -284,6 +339,9 @@ void Icons::drawFeatures(bool mode4x4, bool regenOn) {
   if (iRegen != lastRegen) {
     // Limpiar área primero
     tft->fillRect(400, 250, 75, 45, TFT_BLACK);
+#ifdef RENDER_SHADOW_MODE
+    SHADOW_MIRROR_fillRect(400, 250, 75, 45, TFT_BLACK);
+#endif
     // Usar helper con posiciones fijas para REGEN
     draw3DBox(400, 250, 471, 291, "REGEN", regenOn, COLOR_REGEN_ACTIVE);
     lastRegen = iRegen;
@@ -345,6 +403,22 @@ void Icons::drawBattery(float volts) {
   char buf[10];
   snprintf(buf, sizeof(buf), "%.1fV", volts);
   tft->drawString(buf, battX, battY + battH + 3, 1);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror battery indicator to shadow sprite
+  SHADOW_MIRROR_fillRect(x, y, w, h, TFT_BLACK);
+  SHADOW_MIRROR_fillRoundRect(battX, battY, battW, battH, 3, 0x2104);
+  SHADOW_MIRROR_drawRoundRect(battX, battY, battW, battH, 3, 0x6B6D);
+  SHADOW_MIRROR_fillRect(battX + battW, battY + (battH - capH) / 2, capW, capH,
+                         0x6B6D);
+  if (fillW > 0) {
+    SHADOW_MIRROR_fillRoundRect(battX + 3, battY + 3, fillW, battH - 6, 1,
+                                fillColor);
+    SHADOW_MIRROR_drawFastHLine(battX + 3, battY + 3, fillW, 0xFFFF);
+  }
+  SHADOW_MIRROR_setTextDatum(TL_DATUM);
+  SHADOW_MIRROR_setTextColor(fillColor, TFT_BLACK);
+  SHADOW_MIRROR_drawString(buf, battX, battY + battH + 3, 1);
+#endif
 }
 
 void Icons::drawErrorWarning() {
@@ -376,9 +450,27 @@ void Icons::drawErrorWarning() {
     char buf[8];
     snprintf(buf, sizeof(buf), "%d", count);
     tft->drawString(buf, WARNING_X2 + 5, WARNING_Y1 + 15, 2);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3.5: Mirror error warning to shadow sprite
+    SHADOW_MIRROR_fillTriangle(WARNING_X1 + 2, botY + 2, WARNING_X2 + 2,
+                               botY + 2, midX + 2, topY + 2, 0x8400);
+    SHADOW_MIRROR_fillTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY,
+                               TFT_YELLOW);
+    SHADOW_MIRROR_drawTriangle(WARNING_X1, botY, WARNING_X2, botY, midX, topY,
+                               0x8400);
+    SHADOW_MIRROR_fillRect(midX - 1, topY + 8, 3, 10, TFT_BLACK);
+    SHADOW_MIRROR_fillCircle(midX, botY - 5, 2, TFT_BLACK);
+    SHADOW_MIRROR_setTextColor(TFT_YELLOW, TFT_BLACK);
+    SHADOW_MIRROR_drawString(buf, WARNING_X2 + 5, WARNING_Y1 + 15, 2);
+#endif
   } else {
     tft->fillRect(WARNING_X1, WARNING_Y1, (WARNING_X2 - WARNING_X1) + 40,
                   WARNING_Y2 - WARNING_Y1, TFT_BLACK);
+#ifdef RENDER_SHADOW_MODE
+    SHADOW_MIRROR_fillRect(WARNING_X1, WARNING_Y1,
+                           (WARNING_X2 - WARNING_X1) + 40,
+                           WARNING_Y2 - WARNING_Y1, TFT_BLACK);
+#endif
   }
 }
 
@@ -462,6 +554,39 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
 
   tft->setTextColor(colorWheel, TFT_BLACK);
   tft->drawString("W", startX + 2 * spacing, textY, 1);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror sensor status to shadow sprite
+  SHADOW_MIRROR_fillRect(SENSOR_STATUS_X1, SENSOR_STATUS_Y1,
+                         SENSOR_STATUS_X2 - SENSOR_STATUS_X1,
+                         SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1, TFT_BLACK);
+  // Current LED
+  SHADOW_MIRROR_fillCircle(startX + 1, ledY + 1, ledRadius,
+                           getDarkColor(colorCurrent));
+  SHADOW_MIRROR_fillCircle(startX, ledY, ledRadius, colorCurrent);
+  SHADOW_MIRROR_fillCircle(startX - 2, ledY - 2, 2, 0xFFFF);
+  SHADOW_MIRROR_drawCircle(startX, ledY, ledRadius, getDarkColor(colorCurrent));
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  SHADOW_MIRROR_setTextColor(colorCurrent, TFT_BLACK);
+  SHADOW_MIRROR_drawString("I", startX, textY, 1);
+  // Temp LED
+  SHADOW_MIRROR_fillCircle(startX + spacing + 1, ledY + 1, ledRadius,
+                           getDarkColor(colorTemp));
+  SHADOW_MIRROR_fillCircle(startX + spacing, ledY, ledRadius, colorTemp);
+  SHADOW_MIRROR_fillCircle(startX + spacing - 2, ledY - 2, 2, 0xFFFF);
+  SHADOW_MIRROR_drawCircle(startX + spacing, ledY, ledRadius,
+                           getDarkColor(colorTemp));
+  SHADOW_MIRROR_setTextColor(colorTemp, TFT_BLACK);
+  SHADOW_MIRROR_drawString("T", startX + spacing, textY, 1);
+  // Wheel LED
+  SHADOW_MIRROR_fillCircle(startX + 2 * spacing + 1, ledY + 1, ledRadius,
+                           getDarkColor(colorWheel));
+  SHADOW_MIRROR_fillCircle(startX + 2 * spacing, ledY, ledRadius, colorWheel);
+  SHADOW_MIRROR_fillCircle(startX + 2 * spacing - 2, ledY - 2, 2, 0xFFFF);
+  SHADOW_MIRROR_drawCircle(startX + 2 * spacing, ledY, ledRadius,
+                           getDarkColor(colorWheel));
+  SHADOW_MIRROR_setTextColor(colorWheel, TFT_BLACK);
+  SHADOW_MIRROR_drawString("W", startX + 2 * spacing, textY, 1);
+#endif
 }
 
 void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
@@ -485,6 +610,20 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp) {
     snprintf(buf, sizeof(buf), "%.0fC!", maxTemp);
     tft->drawString(buf, TEMP_WARNING_X + 5,
                     TEMP_WARNING_Y + TEMP_WARNING_H / 2, 2);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3.5: Mirror temp warning to shadow sprite
+    SHADOW_MIRROR_fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W,
+                           TEMP_WARNING_H, TFT_BLACK);
+    SHADOW_MIRROR_setTextDatum(ML_DATUM);
+    SHADOW_MIRROR_setTextColor(TFT_RED, TFT_BLACK);
+    SHADOW_MIRROR_drawString(buf, TEMP_WARNING_X + 5,
+                             TEMP_WARNING_Y + TEMP_WARNING_H / 2, 2);
+#endif
+  } else {
+#ifdef RENDER_SHADOW_MODE
+    SHADOW_MIRROR_fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W,
+                           TEMP_WARNING_H, TFT_BLACK);
+#endif
   }
 }
 
@@ -535,4 +674,18 @@ void Icons::drawAmbientTemp(float ambientTemp) {
   tft->drawString(buf, AMBIENT_TEMP_X + 14, AMBIENT_TEMP_Y + AMBIENT_TEMP_H / 2,
                   2);
   tft->setTextDatum(TL_DATUM);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3.5: Mirror ambient temp to shadow sprite
+  SHADOW_MIRROR_fillRect(AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W,
+                         AMBIENT_TEMP_H, TFT_BLACK);
+  SHADOW_MIRROR_fillRoundRect(iconX, iconY, 6, 12, 2, TFT_CYAN);
+  SHADOW_MIRROR_drawRoundRect(iconX, iconY, 6, 12, 2, TFT_DARKGREY);
+  SHADOW_MIRROR_fillCircle(iconX + 3, iconY + 13, 4, TFT_CYAN);
+  SHADOW_MIRROR_drawCircle(iconX + 3, iconY + 13, 4, TFT_DARKGREY);
+  SHADOW_MIRROR_setTextDatum(ML_DATUM);
+  SHADOW_MIRROR_setTextColor(tempColor, TFT_BLACK);
+  SHADOW_MIRROR_drawString(buf, AMBIENT_TEMP_X + 14,
+                           AMBIENT_TEMP_Y + AMBIENT_TEMP_H / 2, 2);
+  SHADOW_MIRROR_setTextDatum(TL_DATUM);
+#endif
 }

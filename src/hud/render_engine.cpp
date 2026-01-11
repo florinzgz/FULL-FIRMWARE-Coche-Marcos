@@ -103,9 +103,14 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 
   sprites[id]->fillSprite(TFT_BLACK);
 
-  // Note: TFT_eSprite does not support setTransparentColor()
-  // Transparency must be handled via drawing logic (e.g., conditional pixel
-  // writes)
+  // Steering layers must be transparent (both real and shadow)
+#ifdef RENDER_SHADOW_MODE
+  if (id == STEERING || id == STEERING_SHADOW) {
+    sprites[id]->setTransparentColor(TFT_BLACK);
+  }
+#else
+  if (id == STEERING) { sprites[id]->setTransparentColor(TFT_BLACK); }
+#endif
 
   isDirty[id] = true;
   dirtyX[id] = 0;
@@ -145,6 +150,9 @@ TFT_eSprite *RenderEngine::getSprite(SpriteID id) {
 // ====== DIRTY TRACKING ======
 void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
   // Phase 5: Bounds clamping to prevent memory corruption
+  // Sprite dimensions are 480×320
+  const int SPRITE_WIDTH = 480;
+  const int SPRITE_HEIGHT = 320;
 
   // Clamp rectangle to sprite bounds
   int originalX = x, originalY = y, originalW = w, originalH = h;
@@ -226,6 +234,10 @@ void RenderEngine::updateDirtyBounds(SpriteID id, int x, int y, int w, int h) {
 void RenderEngine::render() {
   if (!initialized) return;
 
+  // Phase 5: DMA transfer safety checks
+  const int SPRITE_WIDTH = 480;
+  const int SPRITE_HEIGHT = 320;
+
   // Bottom layer (car body)
   if (isDirty[CAR_BODY]) {
     // Phase 5: Validate DMA bounds before transfer
@@ -258,10 +270,11 @@ void RenderEngine::render() {
     }
 
     if (safeToTransfer) {
-      sprites[CAR_BODY]->pushImageDMA(
-          dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY],
-          dirtyH[CAR_BODY], (uint16_t *)sprites[CAR_BODY]->getPointer(),
-          SPRITE_WIDTH);
+      sprites[CAR_BODY]->pushImageDMA(dirtyX[CAR_BODY], dirtyY[CAR_BODY],
+                                      dirtyW[CAR_BODY], dirtyH[CAR_BODY],
+                                      (uint16_t *)sprites[CAR_BODY]->getPointer(
+                                          dirtyX[CAR_BODY], dirtyY[CAR_BODY]),
+                                      480);
     }
 
     isDirty[CAR_BODY] = false;
@@ -299,10 +312,11 @@ void RenderEngine::render() {
     }
 
     if (safeToTransfer) {
-      sprites[STEERING]->pushImageDMA(
-          dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING],
-          dirtyH[STEERING], (uint16_t *)sprites[STEERING]->getPointer(),
-          SPRITE_WIDTH);
+      sprites[STEERING]->pushImageDMA(dirtyX[STEERING], dirtyY[STEERING],
+                                      dirtyW[STEERING], dirtyH[STEERING],
+                                      (uint16_t *)sprites[STEERING]->getPointer(
+                                          dirtyX[STEERING], dirtyY[STEERING]),
+                                      480);
     }
 
     isDirty[STEERING] = false;
@@ -378,6 +392,63 @@ uint32_t RenderEngine::compareShadowSprites() {
   return mismatchCount;
 }
 
+bool RenderEngine::isInitialized() { return initialized; }
+
+#ifdef RENDER_SHADOW_MODE
+// ====== SHADOW SPRITE COMPARISON ======
+uint32_t RenderEngine::compareShadowSprites() {
+  if (!initialized) return 0;
+  if (!sprites[STEERING] || !sprites[STEERING_SHADOW]) {
+    Logger::warn("RenderEngine: Cannot compare - sprites not allocated");
+    return 0;
+  }
+
+  shadowComparisonCount++;
+  uint32_t mismatchCount = 0;
+  uint32_t ignoredPixels = 0; // Phase 3.6: Track skipped pixels
+
+  // Get sprite dimensions
+  int width = 480;
+  int height = 320;
+
+  // Compare pixel by pixel
+  // Phase 3.6: Skip pixels in ignore regions
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      // Phase 3.6: Check if this pixel should be ignored
+      if (isShadowIgnored(x, y)) {
+        ignoredPixels++;
+        continue;
+      }
+
+      uint16_t pixelReal = sprites[STEERING]->readPixel(x, y);
+      uint16_t pixelShadow = sprites[STEERING_SHADOW]->readPixel(x, y);
+
+      if (pixelReal != pixelShadow) { mismatchCount++; }
+    }
+  }
+
+  shadowLastMismatch = mismatchCount;
+
+  // Phase 4: Update enhanced statistics
+  shadowTotalMismatch += mismatchCount;
+  if (mismatchCount > shadowMaxMismatch) { shadowMaxMismatch = mismatchCount; }
+
+  if (mismatchCount > 0) {
+    shadowMismatchCount++;
+
+    // Log only if mismatch count is significant (>100 pixels)
+    // to avoid spam from minor antialiasing differences
+    if (mismatchCount > 100) {
+      Logger::warnf("RenderEngine: Shadow mismatch detected: %u pixels differ "
+                    "(%u ignored)",
+                    mismatchCount, ignoredPixels);
+    }
+  }
+
+  return mismatchCount;
+}
+
 void RenderEngine::getShadowStats(uint32_t &outTotalComparisons,
                                   uint32_t &outTotalMismatches,
                                   uint32_t &outLastMismatchCount) {
@@ -390,11 +461,12 @@ void RenderEngine::getShadowStats(uint32_t &outTotalComparisons,
 void RenderEngine::getShadowMetrics(float &outMatchPercentage,
                                     uint32_t &outMaxMismatch,
                                     float &outAvgMismatch) {
+  const uint32_t totalPixels = 480 * 320; // 153,600 pixels
+
   // Calculate match percentage based on last comparison
-  if (SPRITE_TOTAL_PIXELS > 0) {
-    uint32_t matchingPixels = SPRITE_TOTAL_PIXELS - shadowLastMismatch;
-    outMatchPercentage =
-        (float)matchingPixels * 100.0f / (float)SPRITE_TOTAL_PIXELS;
+  if (totalPixels > 0) {
+    uint32_t matchingPixels = totalPixels - shadowLastMismatch;
+    outMatchPercentage = (float)matchingPixels * 100.0f / (float)totalPixels;
   } else {
     outMatchPercentage = 0.0f;
   }

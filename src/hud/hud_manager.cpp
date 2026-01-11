@@ -199,6 +199,19 @@ void HUDManager::init() {
   if (!RenderEngine::createSprite(RenderEngine::STEERING, 480, 320)) {
     Logger::error("HUD: Failed to create STEERING sprite");
   }
+
+#ifdef RENDER_SHADOW_MODE
+  // Create shadow sprite for validation (PHASE 2)
+  // This sprite receives the same drawing commands as STEERING for comparison
+  // It is NEVER rendered to the display
+  if (!RenderEngine::createSprite(RenderEngine::STEERING_SHADOW, 480, 320)) {
+    Logger::error(
+        "HUD: Failed to create STEERING_SHADOW sprite (validation only)");
+  } else {
+    Logger::info("HUD: Shadow rendering enabled - validation mode active");
+  }
+#endif
+
   Serial.println("[HUD] RenderEngine initialized");
 
   // Inicializar HUD básico (will show color test and initialize components)

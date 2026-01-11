@@ -1,5 +1,6 @@
 #include "hud.h"
-#include <Arduino.h> // Para DEG_TO_RAD, millis, constrain
+#include "shadow_render.h" // Phase 3: Shadow mirroring support
+#include <Arduino.h>       // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
 // 🔒 v2.8.8: Eliminada librería XPT2046_Touchscreen separada
 // Ahora usamos el touch integrado de TFT_eSPI para evitar conflictos SPI
@@ -867,6 +868,14 @@ void HUD::drawPedalBar(float pedalPercent) {
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
     tft.drawString("-- PEDAL --", 240, y + height / 2, 2);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror invalid pedal bar to shadow sprite
+    SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+    SHADOW_MIRROR_drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
+    SHADOW_MIRROR_setTextDatum(MC_DATUM);
+    SHADOW_MIRROR_setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
+    SHADOW_MIRROR_drawString("-- PEDAL --", 240, y + height / 2, 2);
+#endif
     return;
   }
 
@@ -893,6 +902,11 @@ void HUD::drawPedalBar(float pedalPercent) {
   // Fondo de barra con efecto 3D (hundido)
   tft.fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
   tft.drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror pedal bar background to shadow sprite
+  SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+#endif
 
   // Barra de progreso principal
   if (barWidth > 0) {
@@ -908,6 +922,15 @@ void HUD::drawPedalBar(float pedalPercent) {
 
     // Borde de la barra activa
     tft.drawRoundRect(0, y, barWidth, height, radius, colorDark);
+#ifdef RENDER_SHADOW_MODE
+    // Phase 3: Mirror pedal bar fill to shadow sprite
+    SHADOW_MIRROR_fillRoundRect(0, y, barWidth, height, radius, colorMain);
+    SHADOW_MIRROR_drawFastHLine(2, y + 2, barWidth - 4, colorLight);
+    SHADOW_MIRROR_drawFastHLine(2, y + 3, barWidth - 4, colorLight);
+    SHADOW_MIRROR_drawFastHLine(2, y + height - 3, barWidth - 4, colorDark);
+    SHADOW_MIRROR_drawFastHLine(2, y + height - 2, barWidth - 4, colorDark);
+    SHADOW_MIRROR_drawRoundRect(0, y, barWidth, height, radius, colorDark);
+#endif
   }
 
   // Texto con porcentaje en el centro (con sombra)
@@ -920,11 +943,26 @@ void HUD::drawPedalBar(float pedalPercent) {
   // Texto principal
   tft.setTextColor(TFT_WHITE);
   tft.drawString(txt, 240, y + height / 2, 2);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror pedal bar text to shadow sprite
+  SHADOW_MIRROR_setTextDatum(MC_DATUM);
+  SHADOW_MIRROR_setTextColor(0x0000, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawString(txt, 241, y + height / 2 + 1, 2);
+  SHADOW_MIRROR_setTextColor(TFT_WHITE, COLOR_BAR_BG);
+  SHADOW_MIRROR_drawString(txt, 240, y + height / 2, 2);
+#endif
 
   // Marcas de referencia (25%, 50%, 75%)
   tft.drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
   tft.drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
   tft.drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+#ifdef RENDER_SHADOW_MODE
+  // Phase 3: Mirror reference marks to shadow sprite
+  SHADOW_MIRROR_drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SHADOW_MIRROR_drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
+  SHADOW_MIRROR_drawFastVLine(width * 3 / 4, y + 2, height - 4,
+                              COLOR_REF_MARKS);
+#endif
 }
 
 void HUD::update() {
@@ -1396,6 +1434,57 @@ void HUD::update() {
 #else
   // Menú oculto: botón físico o toque en batería
   MenuHidden::update(batteryTouch);
+#endif
+
+#ifdef RENDER_SHADOW_MODE
+  // Phase 4: Automatic pixel comparison (measurement only)
+  // Compare STEERING vs STEERING_SHADOW to measure sprite bypass
+  // This runs BEFORE sprite push to capture the complete frame state
+  static uint32_t comparisonFrameCount = 0;
+  comparisonFrameCount++;
+
+  // Run comparison every frame for accurate statistics
+  uint32_t mismatchPixels = RenderEngine::compareShadowSprites();
+
+  // Get detailed metrics
+  float matchPercentage = 0.0f;
+  uint32_t maxMismatch = 0;
+  float avgMismatch = 0.0f;
+  RenderEngine::getShadowMetrics(matchPercentage, maxMismatch, avgMismatch);
+
+  // Draw debug overlay every 30 frames (once per second at 30 FPS)
+  // This avoids excessive TFT drawing overhead
+  if (comparisonFrameCount % 30 == 0) {
+    // Draw small debug overlay in top-right corner (below battery icon)
+    // Using direct TFT to avoid affecting sprite comparison
+    const int overlayX = 360;
+    const int overlayY = 50;
+    const int overlayW = 115;
+    const int overlayH = 40;
+
+    // Semi-transparent background
+    tft.fillRect(overlayX, overlayY, overlayW, overlayH, 0x18E3); // Dark gray
+    tft.drawRect(overlayX, overlayY, overlayW, overlayH, TFT_CYAN);
+
+    // Display match percentage
+    tft.setTextDatum(TL_DATUM);
+    tft.setTextColor(TFT_WHITE, 0x18E3);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "MATCH: %.1f%%", matchPercentage);
+    tft.drawString(buf, overlayX + 3, overlayY + 3, 1);
+
+    // Display mismatch pixel count
+    tft.setTextColor(mismatchPixels > 10000 ? TFT_RED : TFT_GREEN, 0x18E3);
+    snprintf(buf, sizeof(buf), "DIFF: %u px", mismatchPixels);
+    tft.drawString(buf, overlayX + 3, overlayY + 13, 1);
+
+    // Display max and avg
+    tft.setTextColor(TFT_YELLOW, 0x18E3);
+    snprintf(buf, sizeof(buf), "MAX: %u", maxMismatch);
+    tft.drawString(buf, overlayX + 3, overlayY + 23, 1);
+    snprintf(buf, sizeof(buf), "AVG: %.0f", avgMismatch);
+    tft.drawString(buf, overlayX + 60, overlayY + 23, 1);
+  }
 #endif
 
   // Render all sprite layers to display
