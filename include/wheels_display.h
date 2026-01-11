@@ -1,6 +1,6 @@
 #pragma once
-#include <TFT_eSPI.h>
 #include "hud_layer.h" // Phase 10: RenderContext support
+#include <TFT_eSPI.h>
 // Opcional: incluir Arduino.h si se usan utilidades de Arduino en el futuro
 // #include <Arduino.h>
 

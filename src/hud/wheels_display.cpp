@@ -366,7 +366,7 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
 void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
                               float effortPct, HudLayer::RenderContext &ctx) {
   if (!ctx.isValid()) return;
-  
+
   // Get wheel index for cache
   int wheelIdx = getWheelIndex(cx, cy);
   if (wheelIdx < 0) {
@@ -374,24 +374,24 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     drawWheel(cx, cy, angleDeg, tempC, effortPct, ctx.sprite);
     return;
   }
-  
+
   WheelCache &cache = wheelCaches[wheelIdx];
-  
+
   // Check if anything changed
   bool angleChanged = fabs(angleDeg - cache.lastAngle) > 0.5f;
   bool tempChanged = fabs(tempC - cache.lastTemp) > 0.5f;
   bool effortChanged = fabs(effortPct - cache.lastEffort) > 0.5f;
   bool changed = angleChanged || tempChanged || effortChanged;
-  
+
   // Call sprite version
   drawWheel(cx, cy, angleDeg, tempC, effortPct, ctx.sprite);
-  
+
   // Mark dirty if changed
   if (changed) {
     // Wheel bounding box: approx 60x80 pixels
     // Temperature is above wheel, effort bar below
     const int wheelW = 60;
     const int wheelH = 80;
-    ctx.markDirty(cx - wheelW/2, cy - 40, wheelW, wheelH);
+    ctx.markDirty(cx - wheelW / 2, cy - 40, wheelW, wheelH);
   }
 }

@@ -1,8 +1,8 @@
 #pragma once
+#include "hud_layer.h" // Phase 10: RenderContext support
 #include "shifter.h"
 #include "system.h"
 #include <TFT_eSPI.h>
-#include "hud_layer.h" // Phase 10: RenderContext support
 // Opcional: para constrain() si se usa fuera de icons.cpp
 #include <Arduino.h>
 

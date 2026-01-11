@@ -1,6 +1,6 @@
 #pragma once
-#include <TFT_eSPI.h>
 #include "hud_layer.h" // Phase 10: RenderContext support
+#include <TFT_eSPI.h>
 
 namespace HUD {
 void init();

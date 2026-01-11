@@ -184,7 +184,7 @@ void HudCompositor::render() {
   static bool firstFrame = true;
   bool anyLayerDirty = false;
   bool baseLayerDirty = false;
-  
+
   for (int i = 0; i < LAYER_COUNT; i++) {
     if (layerDirty[i] && layerRenderers[i] && layerRenderers[i]->isActive()) {
       anyLayerDirty = true;
