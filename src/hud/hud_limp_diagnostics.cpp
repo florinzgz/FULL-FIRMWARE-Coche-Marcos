@@ -11,10 +11,10 @@ static constexpr int16_t DIAG_Y = 60;       // Fixed Y position
 static constexpr int16_t DIAG_WIDTH = 210;  // Fixed width
 static constexpr int16_t DIAG_HEIGHT = 180; // Fixed height
 
-static constexpr int16_t LINE_HEIGHT = 18;  // Height per line
-static constexpr int16_t TEXT_SIZE = 1;     // Text size (small font)
-static constexpr int16_t MARGIN_X = 8;      // Left margin inside box
-static constexpr int16_t MARGIN_Y = 8;      // Top margin inside box
+static constexpr int16_t LINE_HEIGHT = 18; // Height per line
+static constexpr int16_t TEXT_SIZE = 1;    // Text size (small font)
+static constexpr int16_t MARGIN_X = 8;     // Left margin inside box
+static constexpr int16_t MARGIN_Y = 8;     // Top margin inside box
 
 // ========================================
 // Colors
@@ -44,7 +44,7 @@ static LimpMode::Diagnostics lastDiagnostics;
  * @brief Compare two diagnostics structures for equality
  */
 static bool diagnosticsEqual(const LimpMode::Diagnostics &a,
-                              const LimpMode::Diagnostics &b) {
+                             const LimpMode::Diagnostics &b) {
   return (a.state == b.state && a.pedalValid == b.pedalValid &&
           a.steeringValid == b.steeringValid &&
           a.systemErrorCount == b.systemErrorCount &&
