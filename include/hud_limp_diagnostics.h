@@ -1,4 +1,5 @@
 #pragma once
+#include "hud_layer.h"
 #include "limp_mode.h"
 #include <TFT_eSPI.h>
 
@@ -7,6 +8,7 @@
  * @brief Diagnostic HUD overlay for limp mode details
  *
  * PHASE 4.3 — LIMP MODE DIAGNOSTICS HUD
+ * PHASE 5 — COMPOSITOR INTEGRATION
  *
  * Shows the driver WHY the car is limited when LimpMode is not NORMAL.
  * Phase 4.1 decides the limits.
@@ -21,6 +23,7 @@
  * - Efficient: Only redraws when diagnostics change (not every frame)
  * - Read-only: Does not modify limp mode logic
  * - Shows detailed breakdown of system health and active limits
+ * - Compositor compatible: Can render to sprite via HudCompositor
  */
 
 namespace HudLimpDiagnostics {
@@ -59,5 +62,16 @@ void forceRedraw();
  * Erases the diagnostics display. Useful before entering menu screens.
  */
 void clear();
+
+/**
+ * @brief Get the layer renderer for compositor registration
+ *
+ * PHASE 5 COMPOSITOR INTEGRATION
+ * This function returns a LayerRenderer that can be registered
+ * with HudCompositor for the DIAGNOSTICS layer.
+ *
+ * @return Pointer to the layer renderer instance
+ */
+HudLayer::LayerRenderer *getRenderer();
 
 } // namespace HudLimpDiagnostics

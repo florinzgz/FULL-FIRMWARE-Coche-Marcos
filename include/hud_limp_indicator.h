@@ -1,4 +1,5 @@
 #pragma once
+#include "hud_layer.h"
 #include "limp_mode.h"
 #include <TFT_eSPI.h>
 
@@ -7,6 +8,7 @@
  * @brief Non-intrusive HUD overlay for limp mode status
  *
  * PHASE 4.2 — LIMP MODE HUD OVERLAY
+ * PHASE 5 — COMPOSITOR INTEGRATION
  *
  * Exposes the Limp-Mode state machine (Phase 4.1) to the driver via a small
  * visual indicator in the top-right corner of the HUD.
@@ -19,6 +21,7 @@
  * - Efficient: Only redraws when state changes (not every frame)
  * - Read-only: Does not modify limp mode logic
  * - Safe: Survives sprite migration (Phase 7)
+ * - Compositor compatible: Can render to sprite via HudCompositor
  */
 
 namespace HudLimpIndicator {
@@ -56,5 +59,16 @@ void forceRedraw();
  * Erases the indicator box. Useful before entering menu screens.
  */
 void clear();
+
+/**
+ * @brief Get the layer renderer for compositor registration
+ *
+ * PHASE 5 COMPOSITOR INTEGRATION
+ * This function returns a LayerRenderer that can be registered
+ * with HudCompositor for the STATUS layer.
+ *
+ * @return Pointer to the layer renderer instance
+ */
+HudLayer::LayerRenderer *getRenderer();
 
 } // namespace HudLimpIndicator
