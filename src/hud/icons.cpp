@@ -721,3 +721,148 @@ void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
   SHADOW_MIRROR_setTextDatum(TL_DATUM);
 #endif
 }
+
+// ============================================================================
+// PHASE 10: RenderContext versions for granular dirty tracking
+// ============================================================================
+
+void Icons::drawSystemState(System::State st, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if changed
+  bool changed = (st != lastSysState);
+  
+  // Call sprite version
+  drawSystemState(st, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    // System state icon is centered at top - approximate 80x50 area
+    ctx.markDirty(200, 0, 80, 50);
+  }
+}
+
+void Icons::drawGear(Shifter::Gear g, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if changed
+  bool changed = (g != lastGear);
+  
+  // Call sprite version
+  drawGear(g, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    // Gear display is at top center - approximate 100x60 area
+    ctx.markDirty(190, 45, 100, 60);
+  }
+}
+
+void Icons::drawFeatures(bool mode4x4, bool regenOn, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Convert to int for comparison with cache
+  int m4x4 = mode4x4 ? 1 : 0;
+  int regen = regenOn ? 1 : 0;
+  
+  // Check if changed
+  bool changed = (m4x4 != lastMode4x4) || (regen != lastRegen);
+  
+  // Call sprite version
+  drawFeatures(mode4x4, regenOn, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    // Mode4x4 icon area
+    ctx.markDirty(MODE4X4_X1, MODE4X4_Y1, 
+                  MODE4X4_X2 - MODE4X4_X1, MODE4X4_Y2 - MODE4X4_Y1);
+    // Regen icon is next to it - mark wider area
+    ctx.markDirty(MODE4X4_X1, MODE4X4_Y1, 
+                  240 - MODE4X4_X1, MODE4X4_Y2 - MODE4X4_Y1);
+  }
+}
+
+void Icons::drawBattery(float volts, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if changed significantly
+  bool changed = fabs(volts - lastBattery) >= 0.1f;
+  
+  // Call sprite version
+  drawBattery(volts, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    ctx.markDirty(BATTERY_X1, BATTERY_Y1, 
+                  BATTERY_X2 - BATTERY_X1, BATTERY_Y2 - BATTERY_Y1);
+  }
+}
+
+void Icons::drawErrorWarning(HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Error warning changes when error count changes
+  // We'll always mark it dirty since we don't have direct access to error count here
+  // The sprite version already checks if it changed
+  drawErrorWarning(ctx.sprite);
+  
+  // Mark warning area dirty (it internally checks if changed)
+  ctx.markDirty(WARNING_X1, WARNING_Y1,
+                WARNING_X2 - WARNING_X1, WARNING_Y2 - WARNING_Y1);
+}
+
+void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
+                              uint8_t currentTotal, uint8_t tempTotal,
+                              uint8_t wheelTotal, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if changed
+  bool changed = (currentOK != lastCurrentOK) || 
+                 (tempOK != lastTempOK) || 
+                 (wheelOK != lastWheelOK);
+  
+  // Call sprite version
+  drawSensorStatus(currentOK, tempOK, wheelOK, 
+                   currentTotal, tempTotal, wheelTotal, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    ctx.markDirty(SENSOR_STATUS_X1, SENSOR_STATUS_Y1,
+                  SENSOR_STATUS_X2 - SENSOR_STATUS_X1, 
+                  SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1);
+  }
+}
+
+void Icons::drawTempWarning(bool tempWarning, float maxTemp,
+                            HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if changed
+  bool changed = (tempWarning != lastTempWarning) || 
+                 (fabs(maxTemp - lastMaxTemp) >= 1.0f);
+  
+  // Call sprite version
+  drawTempWarning(tempWarning, maxTemp, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    ctx.markDirty(TEMP_WARNING_X, TEMP_WARNING_Y,
+                  TEMP_WARNING_W, TEMP_WARNING_H);
+  }
+}
+
+void Icons::drawAmbientTemp(float ambientTemp, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if changed significantly
+  bool changed = fabs(ambientTemp - lastAmbientTemp) >= 0.5f;
+  
+  // Call sprite version
+  drawAmbientTemp(ambientTemp, ctx.sprite);
+  
+  // Mark dirty if changed
+  if (changed) {
+    ctx.markDirty(AMBIENT_TEMP_X, AMBIENT_TEMP_Y,
+                  AMBIENT_TEMP_W, AMBIENT_TEMP_H);
+  }
+}
