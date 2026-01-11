@@ -1,7 +1,7 @@
 # PHASE 11 — GRAPHICS AUDIT & RENDER HEALTH VALIDATION REPORT
 
 **Status:** PENDING HARDWARE VALIDATION  
-**Date:** 2026-01-11  
+**Date:** [To be filled in during testing]  
 **Firmware Version:** v2.17.x  
 **Build Target:** esp32-s3-n32r16v (32MB Flash + 16MB PSRAM)
 
@@ -62,20 +62,25 @@ The following settings must be enabled for testing:
 **Option 1: Via Configuration File (Requires Rebuild)**
 ```cpp
 // File: include/config_storage.h
-// Line ~99: Change default from false to true
+// Line ~99: TEMPORARILY change default from false to true (for testing only)
 const Config DEFAULT_CONFIG = {
     // ... other settings ...
-    true, // shadowHudEnabled (changed from false)
+    true, // shadowHudEnabled (TEMPORARY - revert to false for production)
     // ... other settings ...
 };
 ```
 
-**Option 2: Via Hidden Menu (Runtime, No Rebuild)**
+**⚠️ IMPORTANT:** Revert to `false` after testing completes for production builds.
+
+**Option 2: Via Hidden Menu (Runtime, No Rebuild) — RECOMMENDED**
 ```
 During testing, shadow mode can be toggled on/off via the Hidden Menu:
 1. Long press button for 3 seconds to open Hidden Menu
 2. Navigate to Diagnostics → Shadow Mode
 3. Toggle shadow mode ON
+
+This option is preferred as it doesn't require code changes and
+automatically uses production-safe defaults after device reset.
 ```
 
 To enable graphics telemetry overlay:

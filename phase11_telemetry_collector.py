@@ -116,7 +116,7 @@ class TelemetryCollector:
                 frame_time_ms=int(match.group(2)),
                 dirty_rects=int(match.group(3)),
                 bytes_kb=float(match.group(4)),
-                shadow_enabled=(match.group(5) == 'ON'),
+                shadow_enabled=(match.group(5).upper() == 'ON'),
                 shadow_errors=int(match.group(6))
             )
         return None

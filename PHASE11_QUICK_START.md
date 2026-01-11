@@ -32,15 +32,17 @@ Edit the configuration to enable shadow mode validation:
 
 **File:** `include/config_storage.h`
 
-Find the `DEFAULT_CONFIG` constant (around line 64-102) and change:
+Find the `DEFAULT_CONFIG` constant (around line 64-102) and **temporarily** change:
 
 ```cpp
 const Config DEFAULT_CONFIG = {
     // ... (many other settings) ...
-    true, // shadowHudEnabled (Line ~99: CHANGE from false to true)
+    true, // shadowHudEnabled (Line ~99: TEMPORARY CHANGE from false to true for testing)
     // ... other settings ...
 };
 ```
+
+**IMPORTANT:** This is for testing only. Revert to `false` for production builds.
 
 Then rebuild and reflash firmware.
 
@@ -55,7 +57,8 @@ If the firmware supports runtime configuration:
 5. Toggle shadow mode to ON
 6. Telemetry will show "Shadow: ON"
 
-**Note:** Option B is preferred as it doesn't require rebuilding firmware.
+**RECOMMENDED:** This option is preferred as it doesn't require rebuilding firmware
+and automatically reverts to production settings after testing.
 
 ---
 
@@ -384,5 +387,5 @@ The goal is to certify the system as **automotive-grade stable**.
 ---
 
 **Document Version:** 1.0  
-**Created:** 2026-01-11  
-**Last Updated:** 2026-01-11
+**Created:** [To be filled]  
+**Last Updated:** [To be filled]
