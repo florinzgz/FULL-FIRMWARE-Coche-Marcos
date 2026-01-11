@@ -2,6 +2,7 @@
 #include "shifter.h"
 #include "system.h"
 #include <TFT_eSPI.h>
+#include "hud_layer.h" // Phase 10: RenderContext support
 // Opcional: para constrain() si se usa fuera de icons.cpp
 #include <Arduino.h>
 
@@ -55,6 +56,19 @@ void drawTempWarning(bool tempWarning, float maxTemp,
  * @param sprite Optional sprite for compositor mode
  */
 void drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite = nullptr);
+
+// Phase 10: RenderContext versions for dirty tracking
+void drawSystemState(System::State st, HudLayer::RenderContext &ctx);
+void drawGear(Shifter::Gear g, HudLayer::RenderContext &ctx);
+void drawFeatures(bool mode4x4, bool regenOn, HudLayer::RenderContext &ctx);
+void drawBattery(float volts, HudLayer::RenderContext &ctx);
+void drawErrorWarning(HudLayer::RenderContext &ctx);
+void drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
+                      uint8_t currentTotal, uint8_t tempTotal,
+                      uint8_t wheelTotal, HudLayer::RenderContext &ctx);
+void drawTempWarning(bool tempWarning, float maxTemp,
+                     HudLayer::RenderContext &ctx);
+void drawAmbientTemp(float ambientTemp, HudLayer::RenderContext &ctx);
 
 // ============================================================
 // Constantes de layout (480x320, rotación 1)

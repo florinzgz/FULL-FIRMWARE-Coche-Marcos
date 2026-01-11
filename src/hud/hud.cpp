@@ -6,6 +6,7 @@
 // Ahora usamos el touch integrado de TFT_eSPI para evitar conflictos SPI
 #include <SPI.h>  // Para SPIClass HSPI
 #include <math.h> // Para cosf, sinf
+#include <cmath>  // Phase 10: for fabs()
 
 #include "display_types.h" // For GearPosition enum
 #include "gauges.h"
@@ -125,6 +126,7 @@ static const int WHEEL_PLACEHOLDER_RADIUS = 10;
 
 static bool carBodyDrawn = false;         // Track if car body needs redraw
 static float lastSteeringAngle = -999.0f; // Cache para ángulo del volante
+static float lastPedalPercent = -999.0f;  // Phase 10: Cache for pedal value
 
 extern Storage::Config cfg; // acceso a flags
 
@@ -969,6 +971,30 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 #endif
 }
 
+// Phase 10: RenderContext version for dirty tracking
+void HUD::drawPedalBar(float pedalPercent, HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) return;
+  
+  // Check if pedal value changed significantly (> 1%)
+  bool changed = (lastPedalPercent < -900.0f) || 
+                 (fabs(pedalPercent - lastPedalPercent) > 1.0f) ||
+                 ((pedalPercent < 0.0f) != (lastPedalPercent < 0.0f)); // Invalid state changed
+  
+  // Call sprite version
+  drawPedalBar(pedalPercent, ctx.sprite);
+  
+  // Mark dirty region if changed
+  if (changed) {
+    // Pedal bar position and size
+    const int y = 300;
+    const int height = 18;
+    const int width = 480;
+    ctx.markDirty(0, y, width, height);
+    
+    lastPedalPercent = pedalPercent;
+  }
+}
+
 void HUD::update(TFT_eSprite *sprite) {
   // 🔒 v2.8.4: Diagnóstico visual - píxeles rojos para localizar bloqueos de
   // render
@@ -1499,4 +1525,23 @@ void HUD::update(TFT_eSprite *sprite) {
 
   // Render all sprite layers to display
   RenderEngine::render();
+}
+
+// ============================================================================
+// PHASE 10: RenderContext-based update for granular dirty tracking
+// ============================================================================
+void HUD::update(HudLayer::RenderContext &ctx) {
+  if (!ctx.isValid()) {
+    // Fallback to sprite-only version
+    update(ctx.sprite);
+    return;
+  }
+
+  // Delegate to the existing sprite-based update function
+  // Individual components will mark their dirty regions
+  update(ctx.sprite);
+  
+  // Note: Individual component functions (gauges, icons, wheels, pedal bar)
+  // will be updated to accept RenderContext and mark dirty regions
+  // This is the transition function that will be enhanced incrementally
 }
