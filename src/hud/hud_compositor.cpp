@@ -65,6 +65,15 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
     layerSprites[idx] = nullptr;
   }
 
+  // Check PSRAM availability before allocation
+  // Each sprite needs SCREEN_WIDTH * SCREEN_HEIGHT * 2 bytes (16-bit color)
+  size_t spriteSize = SCREEN_WIDTH * SCREEN_HEIGHT * 2;
+  if (ESP.getFreePsram() < spriteSize) {
+    Logger::errorf("HudCompositor: Insufficient PSRAM for layer %d (need %u bytes, have %u bytes)",
+                   idx, spriteSize, ESP.getFreePsram());
+    return false;
+  }
+
   // Create new sprite
   layerSprites[idx] = new (std::nothrow) TFT_eSprite(tft);
   if (!layerSprites[idx]) {
@@ -86,6 +95,8 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   // Initialize sprite to transparent/black
   layerSprites[idx]->fillSprite(TFT_BLACK);
 
+  Logger::infof("HudCompositor: Created sprite for layer %d (PSRAM remaining: %u bytes)",
+                idx, ESP.getFreePsram());
   return true;
 }
 
@@ -192,7 +203,17 @@ void HudCompositor::compositeLayers() {
     }
   } else {
     // Composite BASE → STATUS → DIAGNOSTICS → OVERLAY
-    // We'll composite onto BASE sprite and push that
+    // 
+    // KNOWN LIMITATION: TFT_eSprite doesn't support true alpha blending.
+    // We push each layer opaque, which works because:
+    // 1. BASE layer is rendered directly to TFT (not via compositor yet)
+    // 2. Overlay layers (STATUS, DIAGNOSTICS) clear their backgrounds to BLACK
+    // 3. BLACK pixels in overlays don't cover important BASE content
+    //
+    // For true transparency, future enhancement could:
+    // - Use pushSprite(x, y, transColor) with color key
+    // - Implement custom pixel-by-pixel compositing
+    // - Use DMA2D hardware acceleration on supported chips
     
     // Push BASE layer first (it's the background)
     int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
@@ -209,8 +230,7 @@ void HudCompositor::compositeLayers() {
 
       if (layerSprites[i] && layerRenderers[i] &&
           layerRenderers[i]->isActive()) {
-        // Push with transparency (we'll use black as transparent for now)
-        // Note: TFT_eSprite doesn't support true alpha, so we push opaque
+        // Push sprite opaque (see KNOWN LIMITATION above)
         layerSprites[i]->pushSprite(0, 0);
       }
     }

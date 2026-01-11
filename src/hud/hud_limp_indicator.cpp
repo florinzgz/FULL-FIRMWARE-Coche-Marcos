@@ -72,9 +72,13 @@ static const char *getTextForState(LimpMode::LimpState state) {
 /**
  * @brief Draw the indicator box
  * @param target Target to draw to (sprite if available, otherwise tft)
+ *
+ * Note: TFT_eSprite inherits from TFT_eSPI, so casting TFT_eSprite* to
+ * TFT_eSPI* is safe and allows using the same drawing API for both.
  */
 static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
+  // Safe cast: TFT_eSprite inherits from TFT_eSPI
   TFT_eSPI *drawTarget = target ? (TFT_eSPI*)target : tft;
   if (!drawTarget) return;
 
