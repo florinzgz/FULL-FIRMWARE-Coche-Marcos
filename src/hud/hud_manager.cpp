@@ -469,8 +469,8 @@ bool HUDManager::initOK() { return initialized; }
 void HUDManager::setShadowMode(bool enabled) {
   if (HudCompositor::isInitialized()) {
     HudCompositor::setShadowMode(enabled);
-    // Update config in memory (note: not persisted to EEPROM to avoid wear)
-    // Config will be saved when user explicitly saves settings
+    // Update config in memory (note: not persisted to storage immediately)
+    // Config will be saved when user explicitly saves settings or on shutdown
     cfg.shadowHudEnabled = enabled;
     Logger::infof("HUDManager: Shadow mode %s",
                   enabled ? "ENABLED" : "DISABLED");

@@ -349,7 +349,10 @@ void HudCompositor::compareShadowSprites() {
   shadowFrameCount++;
 
   // Compare BASE layer sprite with shadow sprite
-  // Both sprites now contain the same BASE layer content
+  // Note: Both sprites contain identical BASE layer content
+  // - layerSprites[BASE] is the main BASE layer sprite (never modified by compositor)
+  // - shadowSprite is the validation sprite (rendered separately)
+  // The compositeLayers() function pushes sprites to TFT but doesn't modify them
   int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
   TFT_eSprite *mainSprite = layerSprites[baseIdx];
 
