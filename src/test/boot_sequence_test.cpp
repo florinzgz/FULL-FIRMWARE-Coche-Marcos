@@ -35,8 +35,14 @@ static const char* STAGE_NAMES[] = {
   "HUD_INIT",
   "COMPOSITOR_INIT",
   "MANAGERS_INIT",
-  "BOOT_COMPLETE"
+  "BOOT_COMPLETE",
+  "MAX_STAGES"  // Sentinel value to match enum size
 };
+
+// Compile-time assertion to ensure array size matches enum
+static_assert(sizeof(STAGE_NAMES) / sizeof(STAGE_NAMES[0]) == 
+              static_cast<size_t>(BootSequenceTest::BootStage::MAX_STAGES) + 1,
+              "STAGE_NAMES array size must match BootStage enum size");
 
 // ============================================================================
 // Public API Implementation

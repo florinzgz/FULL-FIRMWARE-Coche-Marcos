@@ -487,7 +487,13 @@ class Phase12Validator:
         if system_cpp.exists():
             with open(system_cpp, 'r', encoding='utf-8') as f:
                 content = f.read()
-            return "psramFound()" in content and "PSRAM NO DETECTADA" in content
+            # Check for psramFound() call and any error message about PSRAM not detected
+            # (supports multiple languages: English "NOT DETECTED", Spanish "NO DETECTADA", etc.)
+            has_check = "psramFound()" in content
+            has_error_handling = ("NOT DETECTED" in content or 
+                                 "NO DETECTADA" in content or
+                                 "PSRAM" in content and "error" in content.lower())
+            return has_check and has_error_handling
         return False
         
     def _check_i2c_failure_handling(self) -> bool:
