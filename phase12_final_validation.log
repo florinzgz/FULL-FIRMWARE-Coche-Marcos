@@ -1,0 +1,236 @@
+
+[1m[95m======================================================================[0m
+[1m[95m      PHASE 12 — FULL VIRTUAL BOOT & SYSTEM INTEGRITY VALIDATION      [0m
+[1m[95m======================================================================[0m
+
+[1mProject: /home/runner/work/FULL-FIRMWARE-Coche-Marcos/FULL-FIRMWARE-Coche-Marcos[0m
+[1mTimestamp: 2026-01-11T21:59:00.488264[0m
+
+
+[1m[95m======================================================================[0m
+[1m[95m                   PART 1 — BUILD MATRIX VALIDATION                   [0m
+[1m[95m======================================================================[0m
+
+
+[1m[94mBuilding esp32-s3-n32r16v[0m
+[94m-------------------------[0m
+[92m✓ esp32-s3-n32r16v built successfully in 46.30s[0m
+[93m⚠   4 warnings detected[0m
+
+[1m[94mBuilding esp32-s3-n32r16v-release[0m
+[94m---------------------------------[0m
+[92m✓ esp32-s3-n32r16v-release built successfully in 46.17s[0m
+[93m⚠   264 warnings detected[0m
+
+[1m[94mBuilding esp32-s3-n32r16v-standalone[0m
+[94m------------------------------------[0m
+[92m✓ esp32-s3-n32r16v-standalone built successfully in 46.23s[0m
+[93m⚠   4 warnings detected[0m
+
+[1m[95m======================================================================[0m
+[1m[95m                 PART 2 — STATIC BOOT CHAIN ANALYSIS                  [0m
+[1m[95m======================================================================[0m
+
+
+[1m[94mDiscovered Init Functions[0m
+[94m-------------------------[0m
+[96mℹ System::init @ src/i2c.cpp:7[0m
+[96mℹ System::init @ src/main.cpp:65[0m
+[96mℹ Storage::init @ src/main.cpp:66[0m
+[96mℹ Watchdog::init @ src/main.cpp:67[0m
+[96mℹ Logger::init @ src/main.cpp:70[0m
+[96mℹ HUDManager::init @ src/main.cpp:143[0m
+[96mℹ PowerManager::init @ src/main.cpp:163[0m
+[96mℹ SensorManager::init @ src/main.cpp:170[0m
+[96mℹ SafetyManager::init @ src/main.cpp:177[0m
+[96mℹ HUDManager::init @ src/main.cpp:185[0m
+[96mℹ ControlManager::init @ src/main.cpp:199[0m
+[96mℹ TelemetryManager::init @ src/main.cpp:212[0m
+[96mℹ ModeManager::init @ src/main.cpp:219[0m
+[96mℹ I2CRecovery::init @ src/sensors/current.cpp:100[0m
+[96mℹ ObstacleDetection::init @ src/sensors/sensors.cpp:22[0m
+[96mℹ CarSensors::init @ src/sensors/car_sensors.cpp:22[0m
+[96mℹ Pedal::init @ src/sensors/car_sensors.cpp:32[0m
+[96mℹ Steering::init @ src/sensors/car_sensors.cpp:33[0m
+[96mℹ AudioQueue::init @ src/audio/queue.cpp:13[0m
+[96mℹ Alerts::init @ src/audio/alerts.cpp:11[0m
+[96mℹ Audio::DFPlayer::init @ src/audio/dfplayer.cpp:26[0m
+[96mℹ ConfigStorage::init @ src/menu/menu_obstacle_config.cpp:89[0m
+[96mℹ ConfigStorage::init @ src/menu/menu_obstacle_config.cpp:111[0m
+[96mℹ MenuAutoExit::init @ src/menu/menu_auto_exit.cpp:13[0m
+[96mℹ Shifter::init @ src/core/mcp_shared.cpp:38[0m
+[96mℹ System::init @ src/core/system.cpp:48[0m
+[96mℹ System::init @ src/core/system.cpp:71[0m
+[96mℹ System::init @ src/core/system.cpp:91[0m
+[96mℹ SystemMode::init @ src/core/system.cpp:115[0m
+[96mℹ EEPROMPersistence::init @ src/core/system.cpp:203[0m
+[96mℹ System::init @ src/core/system.cpp:317[0m
+[96mℹ System::init @ src/core/system.cpp:320[0m
+[96mℹ MCP23017Manager::init @ src/core/mcp23017_manager.cpp:20[0m
+[96mℹ Storage::init @ src/core/storage.cpp:19[0m
+[96mℹ EEPROMPersistence::init @ src/core/eeprom_persistence.cpp:24[0m
+[96mℹ MenuINA226Monitor::init @ src/core/menu_ina226_monitor.cpp:12[0m
+[96mℹ Traction::init @ src/control/traction.cpp:199[0m
+[96mℹ I2CRecovery::init @ src/control/traction.cpp:215[0m
+[96mℹ Relays::init @ src/control/relays.cpp:52[0m
+[96mℹ SteeringMotor::init @ src/control/steering_motor.cpp:43[0m
+[96mℹ I2CRecovery::init @ src/control/steering_motor.cpp:44[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:75[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:84[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:95[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:112[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:127[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:139[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:144[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:157[0m
+[96mℹ Audio::AudioQueue::init @ src/test/audio_validation_tests.cpp:162[0m
+[96mℹ Alerts::init @ src/test/audio_validation_tests.cpp:175[0m
+[96mℹ Shifter::init @ src/test/memory_stress_test.cpp:117[0m
+[96mℹ AudioValidationTests::init @ src/test/test_runner.cpp:70[0m
+[96mℹ FunctionalTests::init @ src/test/test_runner.cpp:105[0m
+[96mℹ MemoryStressTest::init @ src/test/test_runner.cpp:129[0m
+[96mℹ HardwareFailureTests::init @ src/test/test_runner.cpp:153[0m
+[96mℹ WatchdogTests::init @ src/test/test_runner.cpp:177[0m
+[96mℹ TouchCalibration::init @ src/hud/menu_hidden.cpp:184[0m
+[96mℹ MenuHidden::init @ src/hud/menu_hidden.cpp:1090[0m
+[96mℹ HUDManager::init @ src/hud/hud_manager.cpp:114[0m
+[96mℹ RenderEngine::init @ src/hud/hud_manager.cpp:258[0m
+[96mℹ HudCompositor::init @ src/hud/hud_manager.cpp:285[0m
+[96mℹ HudLimpIndicator::init @ src/hud/hud_manager.cpp:316[0m
+[96mℹ HudLimpDiagnostics::init @ src/hud/hud_manager.cpp:317[0m
+[96mℹ HudGraphicsTelemetry::init @ src/hud/hud_manager.cpp:322[0m
+[96mℹ HUD::init @ src/hud/hud_manager.cpp:328[0m
+[96mℹ MenuSensorConfig::init @ src/hud/menu_sensor_config.cpp:52[0m
+[96mℹ WheelsDisplay::init @ src/hud/wheels_display.cpp:230[0m
+[96mℹ Gauges::init @ src/hud/gauges.cpp:267[0m
+[96mℹ MenuLEDControl::init @ src/hud/menu_led_control.cpp:76[0m
+[96mℹ MenuPowerConfig::init @ src/hud/menu_power_config.cpp:40[0m
+[96mℹ HUDManager::init @ src/hud/menu_power_config.cpp:66[0m
+[96mℹ LEDControlMenu::init @ src/hud/led_control_menu.cpp:63[0m
+[96mℹ MenuEncoderCalibration::init @ src/hud/menu_encoder_calibration.cpp:48[0m
+[96mℹ Icons::init @ src/hud/icons.cpp:44[0m
+[96mℹ HudCompositor::init @ src/hud/hud_compositor.cpp:39[0m
+[96mℹ RenderEngine::init @ src/hud/render_engine.cpp:54[0m
+[96mℹ HUD::init @ src/hud/hud.cpp:169[0m
+[96mℹ HUDManager::init @ src/hud/hud.cpp:170[0m
+[96mℹ Gauges::init @ src/hud/hud.cpp:178[0m
+[96mℹ WheelsDisplay::init @ src/hud/hud.cpp:179[0m
+[96mℹ Icons::init @ src/hud/hud.cpp:180[0m
+[96mℹ MenuHidden::init @ src/hud/hud.cpp:181[0m
+[96mℹ Buttons::init @ src/input/buttons.cpp:57[0m
+[96mℹ Shifter::init @ src/input/shifter.cpp:53[0m
+[96mℹ Pedal::init @ src/input/pedal.cpp:52[0m
+[96mℹ Steering::init @ src/input/steering.cpp:94[0m
+[92m✓ No circular dependencies found[0m
+[92m✓ No double initialization risks found[0m
+[92m✓ No null-before-init issues found[0m
+
+[1m[95m======================================================================[0m
+[1m[95m                   PART 3 — RUNTIME BOOT SIMULATION                   [0m
+[1m[95m======================================================================[0m
+
+[96mℹ Analyzing loop() execution pattern...[0m
+[92m✓ Watchdog::feed() found in loop[0m
+[92m✓ HUDManager::update() found in loop[0m
+[92m✓ Standalone display mode properly handled[0m
+
+[1m[95m======================================================================[0m
+[1m[95m                   PART 4 — FAILURE MODE SIMULATION                   [0m
+[1m[95m======================================================================[0m
+
+
+[1m[94mTesting: No PSRAM[0m
+[94m-----------------[0m
+[92m✓ No PSRAM handling OK[0m
+
+[1m[94mTesting: I2C Bus Failure[0m
+[94m------------------------[0m
+[92m✓ I2C Bus Failure handling OK[0m
+
+[1m[94mTesting: Missing Sensors[0m
+[94m------------------------[0m
+[92m✓ Missing Sensors handling OK[0m
+
+[1m[94mTesting: Invalid Inputs[0m
+[94m-----------------------[0m
+[92m✓ Invalid Inputs handling OK[0m
+
+[1m[94mTesting: Battery Low[0m
+[94m--------------------[0m
+[92m✓ Battery Low handling OK[0m
+
+[1m[95m======================================================================[0m
+[1m[95m                   PART 5 — GRAPHICS STARTUP SAFETY                   [0m
+[1m[95m======================================================================[0m
+
+
+[1m[94mChecking: Compositor sprite allocation[0m
+[94m--------------------------------------[0m
+[92m✓ Compositor sprite allocation OK[0m
+
+[1m[94mChecking: DirtyRect engine init[0m
+[94m-------------------------------[0m
+[92m✓ DirtyRect engine init OK[0m
+
+[1m[94mChecking: Shadow mode safety[0m
+[94m----------------------------[0m
+[92m✓ Shadow mode safety OK[0m
+
+[1m[94mChecking: Telemetry overlay safety[0m
+[94m----------------------------------[0m
+[92m✓ Telemetry overlay safety OK[0m
+
+[1m[94mChecking: Hidden menu safety[0m
+[94m----------------------------[0m
+[92m✓ Hidden menu safety OK[0m
+
+[1m[95m======================================================================[0m
+[1m[95m                   PART 6 — MEMORY & RESOURCE AUDIT                   [0m
+[1m[95m======================================================================[0m
+
+
+[1m[94mAnalyzing memory configuration[0m
+[94m------------------------------[0m
+[92m✓ PSRAM enabled in build configuration[0m
+[92m✓ Loop stack size: 32768 bytes (32KB)[0m
+[92m✓ Loop stack size is adequate (>=16KB)[0m
+
+[1m[95m======================================================================[0m
+[1m[95m                  PART 7 — BOOT CERTIFICATION REPORT                  [0m
+[1m[95m======================================================================[0m
+
+[92m✓ Report saved to /home/runner/work/FULL-FIRMWARE-Coche-Marcos/FULL-FIRMWARE-Coche-Marcos/PHASE12_BOOT_CERTIFICATION_REPORT.md[0m
+================================================================================
+MARCOSDASHBOARD FIRMWARE BOOT CERTIFICATION REPORT
+================================================================================
+Generated: 2026-01-11T21:59:00.488264
+Project: /home/runner/work/FULL-FIRMWARE-Coche-Marcos/FULL-FIRMWARE-Coche-Marcos
+
+BUILD MATRIX VALIDATION
+--------------------------------------------------------------------------------
+  esp32-s3-n32r16v                         [PASS]  46.30s
+    Warnings: 4
+  esp32-s3-n32r16v-release                 [PASS]  46.17s
+    Warnings: 264
+  esp32-s3-n32r16v-standalone              [PASS]  46.23s
+    Warnings: 4
+
+BOOT CHAIN ANALYSIS
+--------------------------------------------------------------------------------
+  Init functions found: 87
+  Circular dependencies: 0
+  Double init risks: 0
+  Null-before-init risks: 0
+
+CERTIFICATION VERDICT
+--------------------------------------------------------------------------------
+  ✓ CERTIFIED - Firmware is ready for hardware deployment
+
+================================================================================
+
+[1m[95m======================================================================[0m
+[1m[95m                            FINAL VERDICT                             [0m
+[1m[95m======================================================================[0m
+
+[92m✓ ✓ PHASE 12 VALIDATION PASSED[0m
+[92m✓ ✓ Firmware is certified for hardware deployment[0m
