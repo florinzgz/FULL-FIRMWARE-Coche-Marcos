@@ -283,7 +283,7 @@ public:
         ctx.sprite->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
                              COLOR_BACKGROUND);
         lastState = LimpMode::LimpState::NORMAL;
-        
+
         // PHASE 8: Mark diagnostics area as dirty
         ctx.markDirty(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT);
       }
@@ -298,7 +298,7 @@ public:
       // Update cache
       lastState = currentDiag.state;
       lastDiagnostics = currentDiag;
-      
+
       // PHASE 8: Mark diagnostics area as dirty
       ctx.markDirty(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT);
     }

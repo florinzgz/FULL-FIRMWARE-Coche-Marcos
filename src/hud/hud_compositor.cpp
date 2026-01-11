@@ -9,7 +9,7 @@ void RenderContext::markDirty(int16_t x, int16_t y, int16_t w, int16_t h) {
   if (!dirtyRects || !dirtyCount) {
     return; // No dirty tracking available
   }
-  
+
   // Call compositor to add dirty rect
   HudCompositor::addDirtyRect(x, y, w, h);
 }
@@ -181,7 +181,7 @@ void HudCompositor::render() {
       break;
     }
   }
-  
+
   if (anyLayerDirty) {
     // Mark full screen as dirty for layer redraw
     addDirtyRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -202,7 +202,8 @@ void HudCompositor::render() {
     if (fullscreenActive && layer != HudLayer::Layer::FULLSCREEN) { continue; }
 
     // PHASE 8: Create render context with dirty rect tracking
-    HudLayer::RenderContext ctx(layerSprites[i], layerDirty[i], dirtyRects, &dirtyRectCount);
+    HudLayer::RenderContext ctx(layerSprites[i], layerDirty[i], dirtyRects,
+                                &dirtyRectCount);
 
     // PHASE 8: Clear only dirty regions in sprite (optimization)
     if (dirtyRectCount > 0 && layerSprites[i]) {
@@ -239,7 +240,8 @@ void HudCompositor::render() {
       }
 
       // Create render context for shadow sprite
-      HudLayer::RenderContext ctxShadow(shadowSprite, true, dirtyRects, &dirtyRectCount);
+      HudLayer::RenderContext ctxShadow(shadowSprite, true, dirtyRects,
+                                        &dirtyRectCount);
 
       // Render BASE layer to shadow sprite
       layerRenderers[baseIdx]->render(ctxShadow);
@@ -279,12 +281,14 @@ void HudCompositor::compositeLayers() {
           // x, y = destination on TFT
           // sx, sy = source position in sprite
           // sw, sh = width/height to copy
-          layerSprites[fullscreenIdx]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w, rect.h);
+          layerSprites[fullscreenIdx]->pushSprite(rect.x, rect.y, rect.x,
+                                                  rect.y, rect.w, rect.h);
         }
       }
     }
   } else {
-    // PHASE 8: Composite BASE → STATUS → DIAGNOSTICS → OVERLAY (dirty rects only)
+    // PHASE 8: Composite BASE → STATUS → DIAGNOSTICS → OVERLAY (dirty rects
+    // only)
     //
     // For each dirty rectangle:
     // 1. Push BASE layer first (background)
@@ -308,7 +312,8 @@ void HudCompositor::compositeLayers() {
       int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
       if (layerSprites[baseIdx] && layerRenderers[baseIdx] &&
           layerRenderers[baseIdx]->isActive()) {
-        layerSprites[baseIdx]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w, rect.h);
+        layerSprites[baseIdx]->pushSprite(rect.x, rect.y, rect.x, rect.y,
+                                          rect.w, rect.h);
       }
 
       // Push overlays on top
@@ -320,7 +325,8 @@ void HudCompositor::compositeLayers() {
         if (layerSprites[i] && layerRenderers[i] &&
             layerRenderers[i]->isActive()) {
           // Push sprite opaque (see KNOWN LIMITATION above)
-          layerSprites[i]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w, rect.h);
+          layerSprites[i]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w,
+                                      rect.h);
         }
       }
     }
@@ -450,7 +456,7 @@ void HudCompositor::compareShadowSprites() {
       int blockPixelY = by * SHADOW_BLOCK_SIZE;
       int blockPixelW = SHADOW_BLOCK_SIZE;
       int blockPixelH = SHADOW_BLOCK_SIZE;
-      
+
       // PHASE 8: Check if this block intersects any dirty rectangle
       bool blockIsDirty = false;
       for (int r = 0; r < dirtyRectCount; r++) {
@@ -464,12 +470,10 @@ void HudCompositor::compareShadowSprites() {
           break;
         }
       }
-      
+
       // Only compare blocks that were rendered (dirty)
-      if (!blockIsDirty) {
-        continue;
-      }
-      
+      if (!blockIsDirty) { continue; }
+
       uint16_t checksumMain = computeBlockChecksum(mainSprite, bx, by);
       uint16_t checksumShadow = computeBlockChecksum(shadowSprite, bx, by);
 
@@ -489,12 +493,11 @@ void HudCompositor::compareShadowSprites() {
   // Log mismatches
   if (mismatchBlocks > 0) {
     shadowMismatchCount++;
-    Logger::errorf(
-        "HUD SHADOW MISMATCH: Frame %u, %u blocks differ, first at "
-        "block(%d,%d) px(%d,%d)",
-        shadowFrameCount, mismatchBlocks,
-        firstMismatchX, firstMismatchY, firstMismatchX * SHADOW_BLOCK_SIZE,
-        firstMismatchY * SHADOW_BLOCK_SIZE);
+    Logger::errorf("HUD SHADOW MISMATCH: Frame %u, %u blocks differ, first at "
+                   "block(%d,%d) px(%d,%d)",
+                   shadowFrameCount, mismatchBlocks, firstMismatchX,
+                   firstMismatchY, firstMismatchX * SHADOW_BLOCK_SIZE,
+                   firstMismatchY * SHADOW_BLOCK_SIZE);
 
     // Note: Visual indicator removed to avoid interfering with BASE layer
     // Corruption is visible in hidden menu statistics (red color when M > 0)
@@ -543,25 +546,24 @@ void HudCompositor::getShadowStats(uint32_t &outTotalComparisons,
 void HudCompositor::addDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h) {
   // Create dirty rect
   HudLayer::DirtyRect rect(x, y, w, h);
-  
+
   // Skip empty rectangles
-  if (rect.isEmpty()) {
-    return;
-  }
-  
+  if (rect.isEmpty()) { return; }
+
   // Clip to screen bounds
   rect = clipRect(rect);
   if (rect.isEmpty()) {
     return; // Completely outside screen
   }
-  
-  // If we've reached the limit, merge all existing rects into a full-screen rect
+
+  // If we've reached the limit, merge all existing rects into a full-screen
+  // rect
   if (dirtyRectCount >= MAX_DIRTY_RECTS) {
     dirtyRects[0] = HudLayer::DirtyRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     dirtyRectCount = 1;
     return;
   }
-  
+
   // Check if new rect overlaps with any existing rect
   bool merged = false;
   for (int i = 0; i < dirtyRectCount; i++) {
@@ -572,12 +574,12 @@ void HudCompositor::addDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h) {
       break;
     }
   }
-  
+
   if (!merged) {
     // Add as new rect
     dirtyRects[dirtyRectCount++] = rect;
   }
-  
+
   // After adding/merging, try to merge overlapping rects to keep count low
   mergeDirtyRects();
 }
@@ -592,7 +594,7 @@ void HudCompositor::mergeDirtyRects() {
         if (dirtyRects[i].overlaps(dirtyRects[j])) {
           // Merge j into i
           dirtyRects[i] = dirtyRects[i].merge(dirtyRects[j]);
-          
+
           // Remove j by shifting remaining rects
           for (int k = j; k < dirtyRectCount - 1; k++) {
             dirtyRects[k] = dirtyRects[k + 1];
@@ -611,21 +613,17 @@ HudLayer::DirtyRect HudCompositor::clipRect(const HudLayer::DirtyRect &rect) {
   int16_t y1 = rect.y;
   int16_t x2 = rect.x + rect.w;
   int16_t y2 = rect.y + rect.h;
-  
+
   // Clip to screen bounds
   if (x1 < 0) x1 = 0;
   if (y1 < 0) y1 = 0;
   if (x2 > SCREEN_WIDTH) x2 = SCREEN_WIDTH;
   if (y2 > SCREEN_HEIGHT) y2 = SCREEN_HEIGHT;
-  
+
   // Check if completely clipped
-  if (x1 >= x2 || y1 >= y2) {
-    return HudLayer::DirtyRect(0, 0, 0, 0);
-  }
-  
+  if (x1 >= x2 || y1 >= y2) { return HudLayer::DirtyRect(0, 0, 0, 0); }
+
   return HudLayer::DirtyRect(x1, y1, x2 - x1, y2 - y1);
 }
 
-void HudCompositor::clearDirtyRects() {
-  dirtyRectCount = 0;
-}
+void HudCompositor::clearDirtyRects() { dirtyRectCount = 0; }

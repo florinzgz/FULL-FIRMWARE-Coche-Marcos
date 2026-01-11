@@ -62,8 +62,7 @@ struct DirtyRect {
    * @brief Check if this rectangle overlaps with another
    */
   bool overlaps(const DirtyRect &other) const {
-    if (isEmpty() || other.isEmpty())
-      return false;
+    if (isEmpty() || other.isEmpty()) return false;
     return !(x >= other.x + other.w || x + w <= other.x ||
              y >= other.y + other.h || y + h <= other.y);
   }
@@ -72,10 +71,8 @@ struct DirtyRect {
    * @brief Merge this rectangle with another (returns bounding box)
    */
   DirtyRect merge(const DirtyRect &other) const {
-    if (isEmpty())
-      return other;
-    if (other.isEmpty())
-      return *this;
+    if (isEmpty()) return other;
+    if (other.isEmpty()) return *this;
 
     int16_t x1 = x < other.x ? x : other.x;
     int16_t y1 = y < other.y ? y : other.y;
@@ -101,13 +98,16 @@ struct DirtyRect {
  * 4. Never access TFT directly
  */
 struct RenderContext {
-  TFT_eSprite *sprite;  // Sprite to render into
-  bool dirty;           // Layer needs full redraw
+  TFT_eSprite *sprite;   // Sprite to render into
+  bool dirty;            // Layer needs full redraw
   DirtyRect *dirtyRects; // Array of dirty rectangles (PHASE 8)
   int *dirtyCount;       // Pointer to dirty rectangle count (PHASE 8)
 
-  RenderContext() : sprite(nullptr), dirty(true), dirtyRects(nullptr), dirtyCount(nullptr) {}
-  RenderContext(TFT_eSprite *spr, bool d) : sprite(spr), dirty(d), dirtyRects(nullptr), dirtyCount(nullptr) {}
+  RenderContext()
+      : sprite(nullptr), dirty(true), dirtyRects(nullptr), dirtyCount(nullptr) {
+  }
+  RenderContext(TFT_eSprite *spr, bool d)
+      : sprite(spr), dirty(d), dirtyRects(nullptr), dirtyCount(nullptr) {}
   RenderContext(TFT_eSprite *spr, bool d, DirtyRect *rects, int *count)
       : sprite(spr), dirty(d), dirtyRects(rects), dirtyCount(count) {}
 

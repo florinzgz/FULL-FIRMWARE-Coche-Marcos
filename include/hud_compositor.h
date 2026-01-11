@@ -134,7 +134,8 @@ public:
    * @param h Height of dirty region
    *
    * This is called by RenderContext::markDirty() to track which screen regions
-   * need to be pushed to the TFT. Rectangles are automatically merged and clipped.
+   * need to be pushed to the TFT. Rectangles are automatically merged and
+   * clipped.
    */
   static void addDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h);
 
@@ -150,7 +151,8 @@ private:
       SCREEN_HEIGHT / SHADOW_BLOCK_SIZE; // 20
 
   // PHASE 8: Dirty rectangle tracking
-  static constexpr int MAX_DIRTY_RECTS = 16; // Maximum dirty rectangles per frame
+  static constexpr int MAX_DIRTY_RECTS =
+      16; // Maximum dirty rectangles per frame
 
   static TFT_eSPI *tft;
   static TFT_eSprite *layerSprites[LAYER_COUNT];
@@ -166,8 +168,9 @@ private:
   static uint32_t shadowLastMismatchBlocks; // Blocks mismatched in last frame
 
   // PHASE 8: Dirty rectangle tracking
-  static HudLayer::DirtyRect dirtyRects[MAX_DIRTY_RECTS]; // Dirty rectangles for current frame
-  static int dirtyRectCount;              // Number of dirty rectangles
+  static HudLayer::DirtyRect
+      dirtyRects[MAX_DIRTY_RECTS]; // Dirty rectangles for current frame
+  static int dirtyRectCount;       // Number of dirty rectangles
 
   // Helper to create a layer sprite
   static bool createLayerSprite(HudLayer::Layer layer);
