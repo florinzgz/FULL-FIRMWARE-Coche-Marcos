@@ -196,8 +196,8 @@ static void transitionToState(LimpState newState) {
 
   // Log state change
   const char *stateNames[] = {"NORMAL", "DEGRADED", "LIMP", "CRITICAL"};
-  Logger::warn("[LimpMode] State transition: %s -> %s",
-               stateNames[(int)currentState], stateNames[(int)newState]);
+  Logger::warnf("[LimpMode] State transition: %s -> %s",
+                stateNames[(int)currentState], stateNames[(int)newState]);
 
   currentState = newState;
   timeEnteredState = millis();
@@ -362,7 +362,7 @@ void forceState(LimpState state) {
   forcedState = state;
   stateForced = true;
   transitionToState(state);
-  Logger::info("[LimpMode] State forced to %d for testing", (int)state);
+  Logger::infof("[LimpMode] State forced to %d for testing", (int)state);
 }
 
 void reset() {

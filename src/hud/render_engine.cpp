@@ -145,17 +145,23 @@ void RenderEngine::markDirtyRect(int x, int y, int w, int h) {
 void RenderEngine::render() {
   if (!initialized) return;
 
+  // Push dirty regions to display
+  // Note: Sprites are full-screen (480x320), so source and target coordinates
+  // are identical - we copy region (sx,sy,sw,sh) from sprite to (tx,ty) on
+  // display
   if (isDirty[CAR_BODY] && sprites[CAR_BODY]) {
-    sprites[CAR_BODY]->pushImageDMA(
-        dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY], dirtyH[CAR_BODY],
-        (uint16_t *)sprites[CAR_BODY]->getPointer(), SPRITE_WIDTH);
+    sprites[CAR_BODY]->pushSprite(
+        dirtyX[CAR_BODY], dirtyY[CAR_BODY],  // target position on display
+        dirtyX[CAR_BODY], dirtyY[CAR_BODY],  // source position in sprite
+        dirtyW[CAR_BODY], dirtyH[CAR_BODY]); // region size
     isDirty[CAR_BODY] = false;
   }
 
   if (isDirty[STEERING] && sprites[STEERING]) {
-    sprites[STEERING]->pushImageDMA(
-        dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING], dirtyH[STEERING],
-        (uint16_t *)sprites[STEERING]->getPointer(), SPRITE_WIDTH);
+    sprites[STEERING]->pushSprite(
+        dirtyX[STEERING], dirtyY[STEERING],  // target position on display
+        dirtyX[STEERING], dirtyY[STEERING],  // source position in sprite
+        dirtyW[STEERING], dirtyH[STEERING]); // region size
     isDirty[STEERING] = false;
   }
 }
