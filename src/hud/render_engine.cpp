@@ -146,16 +146,18 @@ void RenderEngine::render() {
   if (!initialized) return;
 
   if (isDirty[CAR_BODY] && sprites[CAR_BODY]) {
-    sprites[CAR_BODY]->pushImageDMA(
-        dirtyX[CAR_BODY], dirtyY[CAR_BODY], dirtyW[CAR_BODY], dirtyH[CAR_BODY],
-        (uint16_t *)sprites[CAR_BODY]->getPointer(), SPRITE_WIDTH);
+    sprites[CAR_BODY]->pushSprite(
+        dirtyX[CAR_BODY], dirtyY[CAR_BODY], 
+        dirtyX[CAR_BODY], dirtyY[CAR_BODY], 
+        dirtyW[CAR_BODY], dirtyH[CAR_BODY]);
     isDirty[CAR_BODY] = false;
   }
 
   if (isDirty[STEERING] && sprites[STEERING]) {
-    sprites[STEERING]->pushImageDMA(
-        dirtyX[STEERING], dirtyY[STEERING], dirtyW[STEERING], dirtyH[STEERING],
-        (uint16_t *)sprites[STEERING]->getPointer(), SPRITE_WIDTH);
+    sprites[STEERING]->pushSprite(
+        dirtyX[STEERING], dirtyY[STEERING],
+        dirtyX[STEERING], dirtyY[STEERING],
+        dirtyW[STEERING], dirtyH[STEERING]);
     isDirty[STEERING] = false;
   }
 }
