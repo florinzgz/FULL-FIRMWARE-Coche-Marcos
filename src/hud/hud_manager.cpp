@@ -475,7 +475,8 @@ void HUDManager::setShadowMode(bool enabled) {
     Logger::infof("HUDManager: Shadow mode %s",
                   enabled ? "ENABLED" : "DISABLED");
   } else {
-    Logger::warn("HUDManager: Cannot set shadow mode - compositor not initialized");
+    Logger::warn(
+        "HUDManager: Cannot set shadow mode - compositor not initialized");
   }
 }
 

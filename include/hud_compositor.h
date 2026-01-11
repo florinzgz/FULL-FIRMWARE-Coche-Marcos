@@ -133,8 +133,9 @@ private:
 
   // PHASE 7: Shadow mode block comparison configuration
   static constexpr int SHADOW_BLOCK_SIZE = 16; // 16x16 pixel blocks
-  static constexpr int SHADOW_BLOCKS_X = SCREEN_WIDTH / SHADOW_BLOCK_SIZE;   // 30
-  static constexpr int SHADOW_BLOCKS_Y = SCREEN_HEIGHT / SHADOW_BLOCK_SIZE; // 20
+  static constexpr int SHADOW_BLOCKS_X = SCREEN_WIDTH / SHADOW_BLOCK_SIZE; // 30
+  static constexpr int SHADOW_BLOCKS_Y =
+      SCREEN_HEIGHT / SHADOW_BLOCK_SIZE; // 20
 
   static TFT_eSPI *tft;
   static TFT_eSprite *layerSprites[LAYER_COUNT];
@@ -143,10 +144,10 @@ private:
   static bool initialized;
 
   // PHASE 7: Shadow mode validation
-  static TFT_eSprite *shadowSprite;      // Shadow validation sprite
-  static bool shadowEnabled;              // Shadow mode active flag
-  static uint32_t shadowFrameCount;       // Total frames compared
-  static uint32_t shadowMismatchCount;    // Frames with mismatches
+  static TFT_eSprite *shadowSprite;         // Shadow validation sprite
+  static bool shadowEnabled;                // Shadow mode active flag
+  static uint32_t shadowFrameCount;         // Total frames compared
+  static uint32_t shadowMismatchCount;      // Frames with mismatches
   static uint32_t shadowLastMismatchBlocks; // Blocks mismatched in last frame
 
   // Helper to create a layer sprite

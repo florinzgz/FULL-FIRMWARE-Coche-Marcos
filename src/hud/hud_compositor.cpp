@@ -180,7 +180,7 @@ void HudCompositor::render() {
   // Shadow sprite validates BASE layer only (primary HUD content)
   if (shadowEnabled && shadowSprite) {
     int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
-    
+
     // Only validate BASE layer if it's active
     if (layerRenderers[baseIdx] && layerRenderers[baseIdx]->isActive()) {
       // Clear shadow sprite before rendering
@@ -300,8 +300,7 @@ bool HudCompositor::createShadowSprite() {
   // Create sprite buffer (16-bit color)
   void *spriteBuffer = shadowSprite->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
-    Logger::error(
-        "HudCompositor: Failed to create shadow sprite buffer");
+    Logger::error("HudCompositor: Failed to create shadow sprite buffer");
     delete shadowSprite;
     shadowSprite = nullptr;
     return false;
@@ -317,7 +316,7 @@ bool HudCompositor::createShadowSprite() {
 }
 
 uint16_t HudCompositor::computeBlockChecksum(TFT_eSprite *sprite, int blockX,
-                                              int blockY) {
+                                             int blockY) {
   if (!sprite) return 0;
 
   uint16_t checksum = 0;
@@ -350,14 +349,17 @@ void HudCompositor::compareShadowSprites() {
 
   // Compare BASE layer sprite with shadow sprite
   // Note: Both sprites contain identical BASE layer content
-  // - layerSprites[BASE] is the main BASE layer sprite (never modified by compositor)
+  // - layerSprites[BASE] is the main BASE layer sprite (never modified by
+  // compositor)
   // - shadowSprite is the validation sprite (rendered separately)
-  // The compositeLayers() function pushes sprites to TFT but doesn't modify them
+  // The compositeLayers() function pushes sprites to TFT but doesn't modify
+  // them
   int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
   TFT_eSprite *mainSprite = layerSprites[baseIdx];
 
   if (!mainSprite) {
-    Logger::warn("HudCompositor: No BASE sprite available for shadow comparison");
+    Logger::warn(
+        "HudCompositor: No BASE sprite available for shadow comparison");
     return;
   }
 
@@ -394,7 +396,7 @@ void HudCompositor::compareShadowSprites() {
         shadowFrameCount, mismatchBlocks, SHADOW_BLOCKS_X * SHADOW_BLOCKS_Y,
         firstMismatchX, firstMismatchY, firstMismatchX * SHADOW_BLOCK_SIZE,
         firstMismatchY * SHADOW_BLOCK_SIZE);
-    
+
     // Note: Visual indicator removed to avoid interfering with BASE layer
     // Corruption is visible in hidden menu statistics (red color when M > 0)
   }
