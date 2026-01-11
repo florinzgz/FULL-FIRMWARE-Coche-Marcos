@@ -177,35 +177,24 @@ void HudCompositor::render() {
   }
 
   // PHASE 7: Second pass for shadow mode validation
+  // Shadow sprite validates BASE layer only (primary HUD content)
   if (shadowEnabled && shadowSprite) {
-    // Clear shadow sprite before rendering
-    shadowSprite->fillSprite(TFT_BLACK);
-
-    // Render all active layers to shadow sprite
-    // Note: For BASE layer comparison, we render the same content to shadow
-    for (int i = 0; i < LAYER_COUNT; i++) {
-      HudLayer::Layer layer = static_cast<HudLayer::Layer>(i);
-
-      // Skip if no renderer registered
-      if (!layerRenderers[i]) { continue; }
-
-      // Skip if renderer not active
-      if (!layerRenderers[i]->isActive()) { continue; }
-
-      // If fullscreen is active, skip all other layers
-      if (fullscreenActive && layer != HudLayer::Layer::FULLSCREEN) {
-        continue;
-      }
+    int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
+    
+    // Only validate BASE layer if it's active
+    if (layerRenderers[baseIdx] && layerRenderers[baseIdx]->isActive()) {
+      // Clear shadow sprite before rendering
+      shadowSprite->fillSprite(TFT_BLACK);
 
       // Create render context for shadow sprite
       HudLayer::RenderContext ctxShadow(shadowSprite, true);
 
-      // Call renderer again with shadow sprite
-      layerRenderers[i]->render(ctxShadow);
-    }
+      // Render BASE layer to shadow sprite
+      layerRenderers[baseIdx]->render(ctxShadow);
 
-    // Compare sprites after rendering
-    compareShadowSprites();
+      // Compare BASE layer sprite with shadow sprite
+      compareShadowSprites();
+    }
   }
 
   // Composite layers to TFT
@@ -359,14 +348,13 @@ void HudCompositor::compareShadowSprites() {
 
   shadowFrameCount++;
 
-  // Get the composite sprite (we'll compare BASE layer as it's the main HUD)
-  // In a full implementation, we'd composite all layers and compare
-  // For now, we compare the BASE layer which is the primary rendering target
+  // Compare BASE layer sprite with shadow sprite
+  // Both sprites now contain the same BASE layer content
   int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
   TFT_eSprite *mainSprite = layerSprites[baseIdx];
 
   if (!mainSprite) {
-    Logger::warn("HudCompositor: No main sprite available for shadow comparison");
+    Logger::warn("HudCompositor: No BASE sprite available for shadow comparison");
     return;
   }
 
@@ -403,13 +391,9 @@ void HudCompositor::compareShadowSprites() {
         shadowFrameCount, mismatchBlocks, SHADOW_BLOCKS_X * SHADOW_BLOCKS_Y,
         firstMismatchX, firstMismatchY, firstMismatchX * SHADOW_BLOCK_SIZE,
         firstMismatchY * SHADOW_BLOCK_SIZE);
-
-    // Optional: Draw red indicator on main sprite to show corruption
-    // This is visible on the HUD as a small diagnostic marker
-    if (mainSprite) {
-      // Draw small red square in top-right corner
-      mainSprite->fillRect(SCREEN_WIDTH - 10, 0, 10, 10, TFT_RED);
-    }
+    
+    // Note: Visual indicator removed to avoid interfering with BASE layer
+    // Corruption is visible in hidden menu statistics (red color when M > 0)
   }
 }
 

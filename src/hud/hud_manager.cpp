@@ -469,9 +469,9 @@ bool HUDManager::initOK() { return initialized; }
 void HUDManager::setShadowMode(bool enabled) {
   if (HudCompositor::isInitialized()) {
     HudCompositor::setShadowMode(enabled);
-    // Update config
+    // Update config in memory (note: not persisted to EEPROM to avoid wear)
+    // Config will be saved when user explicitly saves settings
     cfg.shadowHudEnabled = enabled;
-    // Note: Config is saved elsewhere, not here to avoid wear on EEPROM
     Logger::infof("HUDManager: Shadow mode %s",
                   enabled ? "ENABLED" : "DISABLED");
   } else {
@@ -929,12 +929,12 @@ void HUDManager::renderHiddenMenu() {
                        (currentShadowEnabled != lastShadowEnabled) ||
                        (currentShadowMismatch != lastShadowMismatch);
 
-  // Si nada cambió, no redibujar (elimina el parpadeo a 30 FPS)
+  // If nothing changed, don't redraw (eliminates flicker at 30 FPS)
   if (!dataChanged && !sensorChanged && !inputChanged && !shadowChanged) {
     return;
   }
 
-  // Actualizar cache
+  // Update cache
   lastCarData = carData;
   lastSensorStatus = sensorStatus;
   lastInputStatus = inputStatus;
