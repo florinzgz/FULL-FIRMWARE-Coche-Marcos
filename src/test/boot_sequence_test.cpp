@@ -40,8 +40,10 @@ static const char* STAGE_NAMES[] = {
 };
 
 // Compile-time assertion to ensure array size matches enum count
-// Array has 14 elements (0-12 are stages, 13 is MAX_STAGES sentinel)
-// Enum has 14 values (PRE_INIT through BOOT_COMPLETE = 13, plus MAX_STAGES = 14)
+// Array has 14 elements: indices 0-12 are actual stages (PRE_INIT to BOOT_COMPLETE),
+// plus index 13 for MAX_STAGES sentinel
+// Enum values: PRE_INIT=0, SYSTEM_INIT=1, ..., BOOT_COMPLETE=12, MAX_STAGES=13
+// So array needs 14 elements (MAX_STAGES value + 1)
 static_assert(sizeof(STAGE_NAMES) / sizeof(STAGE_NAMES[0]) == 
               static_cast<size_t>(BootSequenceTest::BootStage::MAX_STAGES) + 1,
               "STAGE_NAMES array must have MAX_STAGES + 1 elements");

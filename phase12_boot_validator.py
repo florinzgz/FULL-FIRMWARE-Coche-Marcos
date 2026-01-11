@@ -369,11 +369,10 @@ class Phase12Validator:
                         if call in seen:
                             # Found duplicate in this block
                             # Only flag if it's in the default (unconditional) block
-                            # or if it's a critical initialization that should never be called twice
+                            # Duplicates in conditional blocks are acceptable
+                            # (e.g., HUDManager::init appears in both #ifdef STANDALONE and #else blocks)
                             if block == "default":
                                 issues.append(f"{call} (in {block} block)")
-                            # Otherwise, duplicates in conditional blocks are OK 
-                            # (e.g., HUDManager::init in #ifdef STANDALONE vs #else)
                         seen.add(call)
                     
             except Exception as e:
@@ -385,26 +384,40 @@ class Phase12Validator:
         """Check for potential null pointer usage before initialization"""
         issues = []
         
-        # This would require complex static analysis
-        # For now, we'll do basic pattern matching
+        # NOTE: This is a basic heuristic check for null pointer usage.
+        # True static analysis would require a proper AST parser.
+        # This simplified check looks for obvious patterns but may have false positives/negatives.
+        # The check is conservative and reports potential issues for manual review.
         
         src_files = list((self.project_root / "src").rglob("*.cpp"))
         
         for file_path in src_files:
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                    lines = f.readlines()
                     
-                # Look for common patterns of null usage
-                # This is a simplified check
-                if "->init()" in content or "->update()" in content:
-                    # Check if there's a null check before
-                    if "if" not in content[:content.find("->init()" if "->init()" in content else "->update()")]:
-                        issues.append(f"{file_path.name}: Potential null deref")
+                # Look for pointer dereference patterns
+                for i, line in enumerate(lines):
+                    # Check for obvious null dereferences (simplified heuristic)
+                    if "->" in line:
+                        # Check if there's a null check in nearby lines (within 10 lines before)
+                        has_null_check = False
+                        for j in range(max(0, i-10), i):
+                            if "if" in lines[j] and ("nullptr" in lines[j] or "NULL" in lines[j] or "!=" in lines[j]):
+                                has_null_check = True
+                                break
                         
+                        # Only report if it looks suspicious (no obvious null check nearby)
+                        # This is a heuristic and may have false positives
+                        if not has_null_check and i > 0:
+                            # Skip common safe patterns
+                            if "this->" not in line and "std::" not in line:
+                                issues.append(f"{file_path.name}:{i+1} Potential unchecked pointer deref")
+                         
             except Exception as e:
                 pass
                 
+        # Return limited set for reporting (this is a heuristic check)
         return issues[:10]  # Limit to 10 issues
     
     # ============================================================================
