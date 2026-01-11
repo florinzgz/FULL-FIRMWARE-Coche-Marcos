@@ -1,14 +1,14 @@
 ================================================================================
 MARCOSDASHBOARD FIRMWARE BOOT CERTIFICATION REPORT
 ================================================================================
-Generated: 2026-01-11T22:04:11.790917
+Generated: 2026-01-11T22:06:40.583069
 Project: /home/runner/work/FULL-FIRMWARE-Coche-Marcos/FULL-FIRMWARE-Coche-Marcos
 
 BUILD MATRIX VALIDATION
 --------------------------------------------------------------------------------
-  esp32-s3-n32r16v                         [PASS]   5.45s
-  esp32-s3-n32r16v-release                 [PASS]   5.44s
-  esp32-s3-n32r16v-standalone              [PASS]   5.50s
+  esp32-s3-n32r16v                         [PASS]   5.47s
+  esp32-s3-n32r16v-release                 [PASS]   5.50s
+  esp32-s3-n32r16v-standalone              [PASS]   5.48s
 
 BOOT CHAIN ANALYSIS
 --------------------------------------------------------------------------------

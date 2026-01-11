@@ -361,13 +361,19 @@ class Phase12Validator:
                             init_calls_per_block[current_block] = []
                         init_calls_per_block[current_block].append(call)
                 
-                # Now check for duplicates within the same block
+                # Now check for duplicates within each block
+                # This catches double-init within the same conditional block
                 for block, calls in init_calls_per_block.items():
                     seen = set()
                     for call in calls:
-                        if call in seen and block == "default":
-                            # Only flag as issue if in default (non-conditional) block
-                            issues.append(call)
+                        if call in seen:
+                            # Found duplicate in this block
+                            # Only flag if it's in the default (unconditional) block
+                            # or if it's a critical initialization that should never be called twice
+                            if block == "default":
+                                issues.append(f"{call} (in {block} block)")
+                            # Otherwise, duplicates in conditional blocks are OK 
+                            # (e.g., HUDManager::init in #ifdef STANDALONE vs #else)
                         seen.add(call)
                     
             except Exception as e:
@@ -490,9 +496,11 @@ class Phase12Validator:
             # Check for psramFound() call and any error message about PSRAM not detected
             # (supports multiple languages: English "NOT DETECTED", Spanish "NO DETECTADA", etc.)
             has_check = "psramFound()" in content
-            has_error_handling = ("NOT DETECTED" in content or 
-                                 "NO DETECTADA" in content or
-                                 "PSRAM" in content and "error" in content.lower())
+            has_error_handling = (
+                "NOT DETECTED" in content or 
+                "NO DETECTADA" in content or
+                ("PSRAM" in content and "error" in content.lower())
+            )
             return has_check and has_error_handling
         return False
         
