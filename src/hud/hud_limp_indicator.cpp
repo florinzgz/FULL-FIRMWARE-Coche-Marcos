@@ -197,6 +197,9 @@ public:
     if (currentState != lastState || ctx.dirty) {
       drawIndicator(currentState, ctx.sprite);
       lastState = currentState;
+      
+      // PHASE 8: Mark indicator area as dirty
+      ctx.markDirty(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH, INDICATOR_HEIGHT);
     }
   }
 

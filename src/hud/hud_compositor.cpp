@@ -2,6 +2,19 @@
 #include "logger.h"
 #include <cstring>
 
+// Forward declaration for RenderContext::markDirty()
+namespace HudLayer {
+void RenderContext::markDirty(int16_t x, int16_t y, int16_t w, int16_t h) {
+  // Only add dirty rect if we have the tracking arrays
+  if (!dirtyRects || !dirtyCount) {
+    return; // No dirty tracking available
+  }
+  
+  // Call compositor to add dirty rect
+  HudCompositor::addDirtyRect(x, y, w, h);
+}
+} // namespace HudLayer
+
 // Static member initialization
 TFT_eSPI *HudCompositor::tft = nullptr;
 TFT_eSprite *HudCompositor::layerSprites[LAYER_COUNT] = {nullptr};
@@ -15,6 +28,10 @@ bool HudCompositor::shadowEnabled = false;
 uint32_t HudCompositor::shadowFrameCount = 0;
 uint32_t HudCompositor::shadowMismatchCount = 0;
 uint32_t HudCompositor::shadowLastMismatchBlocks = 0;
+
+// PHASE 8: Dirty rectangle tracking static members
+HudLayer::DirtyRect HudCompositor::dirtyRects[MAX_DIRTY_RECTS];
+int HudCompositor::dirtyRectCount = 0;
 
 bool HudCompositor::init(TFT_eSPI *tftDisplay) {
   if (initialized) {
@@ -144,6 +161,9 @@ void HudCompositor::markAllDirty() {
 void HudCompositor::render() {
   if (!initialized) { return; }
 
+  // PHASE 8: Clear dirty rectangles from previous frame
+  clearDirtyRects();
+
   // Determine which layers to render
   bool fullscreenActive = false;
   if (layerRenderers[static_cast<int>(HudLayer::Layer::FULLSCREEN)]) {
@@ -152,8 +172,23 @@ void HudCompositor::render() {
             ->isActive();
   }
 
-  // PHASE 7: Dual render pass for shadow mode
-  // First pass: Render to main sprites
+  // PHASE 8: If any layer is dirty, start with full screen dirty rect
+  // This ensures first frame and forced redraws work correctly
+  bool anyLayerDirty = false;
+  for (int i = 0; i < LAYER_COUNT; i++) {
+    if (layerDirty[i] && layerRenderers[i] && layerRenderers[i]->isActive()) {
+      anyLayerDirty = true;
+      break;
+    }
+  }
+  
+  if (anyLayerDirty) {
+    // Mark full screen as dirty for layer redraw
+    addDirtyRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  }
+
+  // PHASE 8: Dual render pass for main and shadow
+  // First pass: Render to main sprites with dirty rect tracking
   for (int i = 0; i < LAYER_COUNT; i++) {
     HudLayer::Layer layer = static_cast<HudLayer::Layer>(i);
 
@@ -166,8 +201,18 @@ void HudCompositor::render() {
     // If fullscreen is active, skip all other layers
     if (fullscreenActive && layer != HudLayer::Layer::FULLSCREEN) { continue; }
 
-    // Create render context for main sprite
-    HudLayer::RenderContext ctx(layerSprites[i], layerDirty[i]);
+    // PHASE 8: Create render context with dirty rect tracking
+    HudLayer::RenderContext ctx(layerSprites[i], layerDirty[i], dirtyRects, &dirtyRectCount);
+
+    // PHASE 8: Clear only dirty regions in sprite (optimization)
+    if (dirtyRectCount > 0 && layerSprites[i]) {
+      for (int r = 0; r < dirtyRectCount; r++) {
+        const HudLayer::DirtyRect &rect = dirtyRects[r];
+        if (!rect.isEmpty()) {
+          layerSprites[i]->fillRect(rect.x, rect.y, rect.w, rect.h, TFT_BLACK);
+        }
+      }
+    }
 
     // Call renderer
     layerRenderers[i]->render(ctx);
@@ -176,28 +221,35 @@ void HudCompositor::render() {
     layerDirty[i] = false;
   }
 
-  // PHASE 7: Second pass for shadow mode validation
+  // PHASE 8: Second pass for shadow mode validation (only dirty rects)
   // Shadow sprite validates BASE layer only (primary HUD content)
   if (shadowEnabled && shadowSprite) {
     int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
 
     // Only validate BASE layer if it's active
     if (layerRenderers[baseIdx] && layerRenderers[baseIdx]->isActive()) {
-      // Clear shadow sprite before rendering
-      shadowSprite->fillSprite(TFT_BLACK);
+      // PHASE 8: Clear only dirty regions in shadow sprite
+      if (dirtyRectCount > 0) {
+        for (int r = 0; r < dirtyRectCount; r++) {
+          const HudLayer::DirtyRect &rect = dirtyRects[r];
+          if (!rect.isEmpty()) {
+            shadowSprite->fillRect(rect.x, rect.y, rect.w, rect.h, TFT_BLACK);
+          }
+        }
+      }
 
       // Create render context for shadow sprite
-      HudLayer::RenderContext ctxShadow(shadowSprite, true);
+      HudLayer::RenderContext ctxShadow(shadowSprite, true, dirtyRects, &dirtyRectCount);
 
       // Render BASE layer to shadow sprite
       layerRenderers[baseIdx]->render(ctxShadow);
 
-      // Compare BASE layer sprite with shadow sprite
+      // PHASE 8: Compare only dirty regions
       compareShadowSprites();
     }
   }
 
-  // Composite layers to TFT
+  // Composite layers to TFT (only dirty rectangles)
   compositeLayers();
 }
 
@@ -212,42 +264,64 @@ void HudCompositor::compositeLayers() {
     fullscreenActive = true;
   }
 
+  // PHASE 8: Push only dirty rectangles to TFT
+  if (dirtyRectCount == 0) {
+    return; // Nothing to update
+  }
+
   if (fullscreenActive) {
-    // Only push fullscreen layer
+    // Only push fullscreen layer (dirty rects)
     if (layerSprites[fullscreenIdx]) {
-      layerSprites[fullscreenIdx]->pushSprite(0, 0);
+      for (int r = 0; r < dirtyRectCount; r++) {
+        const HudLayer::DirtyRect &rect = dirtyRects[r];
+        if (!rect.isEmpty()) {
+          // pushSprite(x, y, sx, sy, sw, sh)
+          // x, y = destination on TFT
+          // sx, sy = source position in sprite
+          // sw, sh = width/height to copy
+          layerSprites[fullscreenIdx]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w, rect.h);
+        }
+      }
     }
   } else {
-    // Composite BASE → STATUS → DIAGNOSTICS → OVERLAY
+    // PHASE 8: Composite BASE → STATUS → DIAGNOSTICS → OVERLAY (dirty rects only)
+    //
+    // For each dirty rectangle:
+    // 1. Push BASE layer first (background)
+    // 2. Push overlay layers on top
     //
     // KNOWN LIMITATION: TFT_eSprite doesn't support true alpha blending.
     // We push each layer opaque, which works because:
-    // 1. BASE layer is rendered directly to TFT (not via compositor yet)
-    // 2. Overlay layers (STATUS, DIAGNOSTICS) clear their backgrounds to BLACK
-    // 3. BLACK pixels in overlays don't cover important BASE content
+    // 1. Overlay layers (STATUS, DIAGNOSTICS) clear their backgrounds to BLACK
+    // 2. BLACK pixels in overlays don't cover important BASE content
     //
     // For true transparency, future enhancement could:
     // - Use pushSprite(x, y, transColor) with color key
     // - Implement custom pixel-by-pixel compositing
     // - Use DMA2D hardware acceleration on supported chips
 
-    // Push BASE layer first (it's the background)
-    int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
-    if (layerSprites[baseIdx] && layerRenderers[baseIdx] &&
-        layerRenderers[baseIdx]->isActive()) {
-      layerSprites[baseIdx]->pushSprite(0, 0);
-    }
+    for (int r = 0; r < dirtyRectCount; r++) {
+      const HudLayer::DirtyRect &rect = dirtyRects[r];
+      if (rect.isEmpty()) continue;
 
-    // Push overlays on top
-    for (int i = 1; i < LAYER_COUNT; i++) {
-      if (i == fullscreenIdx) {
-        continue; // Skip fullscreen when compositing normal layers
+      // Push BASE layer first (it's the background)
+      int baseIdx = static_cast<int>(HudLayer::Layer::BASE);
+      if (layerSprites[baseIdx] && layerRenderers[baseIdx] &&
+          layerRenderers[baseIdx]->isActive()) {
+        layerSprites[baseIdx]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w, rect.h);
       }
 
-      if (layerSprites[i] && layerRenderers[i] &&
-          layerRenderers[i]->isActive()) {
-        // Push sprite opaque (see KNOWN LIMITATION above)
-        layerSprites[i]->pushSprite(0, 0);
+      // Push overlays on top
+      for (int i = 1; i < LAYER_COUNT; i++) {
+        if (i == fullscreenIdx) {
+          continue; // Skip fullscreen when compositing normal layers
+        }
+
+        if (layerSprites[i] && layerRenderers[i] &&
+            layerRenderers[i]->isActive()) {
+          // Push sprite opaque (see KNOWN LIMITATION above)
+          layerSprites[i]->pushSprite(rect.x, rect.y, rect.x, rect.y, rect.w, rect.h);
+        }
       }
     }
   }
@@ -368,9 +442,34 @@ void HudCompositor::compareShadowSprites() {
   int firstMismatchX = -1;
   int firstMismatchY = -1;
 
-  // Compare sprites in 16x16 blocks
+  // PHASE 8: Compare only blocks that intersect with dirty rectangles
   for (int by = 0; by < SHADOW_BLOCKS_Y; by++) {
     for (int bx = 0; bx < SHADOW_BLOCKS_X; bx++) {
+      // Calculate block bounds in pixels
+      int blockPixelX = bx * SHADOW_BLOCK_SIZE;
+      int blockPixelY = by * SHADOW_BLOCK_SIZE;
+      int blockPixelW = SHADOW_BLOCK_SIZE;
+      int blockPixelH = SHADOW_BLOCK_SIZE;
+      
+      // PHASE 8: Check if this block intersects any dirty rectangle
+      bool blockIsDirty = false;
+      for (int r = 0; r < dirtyRectCount; r++) {
+        const HudLayer::DirtyRect &rect = dirtyRects[r];
+        // Check for intersection
+        if (!(blockPixelX >= rect.x + rect.w ||
+              blockPixelX + blockPixelW <= rect.x ||
+              blockPixelY >= rect.y + rect.h ||
+              blockPixelY + blockPixelH <= rect.y)) {
+          blockIsDirty = true;
+          break;
+        }
+      }
+      
+      // Only compare blocks that were rendered (dirty)
+      if (!blockIsDirty) {
+        continue;
+      }
+      
       uint16_t checksumMain = computeBlockChecksum(mainSprite, bx, by);
       uint16_t checksumShadow = computeBlockChecksum(shadowSprite, bx, by);
 
@@ -391,9 +490,9 @@ void HudCompositor::compareShadowSprites() {
   if (mismatchBlocks > 0) {
     shadowMismatchCount++;
     Logger::errorf(
-        "HUD SHADOW MISMATCH: Frame %u, %u/%u blocks differ, first at "
+        "HUD SHADOW MISMATCH: Frame %u, %u blocks differ, first at "
         "block(%d,%d) px(%d,%d)",
-        shadowFrameCount, mismatchBlocks, SHADOW_BLOCKS_X * SHADOW_BLOCKS_Y,
+        shadowFrameCount, mismatchBlocks,
         firstMismatchX, firstMismatchY, firstMismatchX * SHADOW_BLOCK_SIZE,
         firstMismatchY * SHADOW_BLOCK_SIZE);
 
@@ -435,4 +534,98 @@ void HudCompositor::getShadowStats(uint32_t &outTotalComparisons,
   outTotalComparisons = shadowFrameCount;
   outMismatchCount = shadowMismatchCount;
   outLastMismatchBlocks = shadowLastMismatchBlocks;
+}
+
+// ============================================================================
+// PHASE 8: Dirty Rectangle Management
+// ============================================================================
+
+void HudCompositor::addDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h) {
+  // Create dirty rect
+  HudLayer::DirtyRect rect(x, y, w, h);
+  
+  // Skip empty rectangles
+  if (rect.isEmpty()) {
+    return;
+  }
+  
+  // Clip to screen bounds
+  rect = clipRect(rect);
+  if (rect.isEmpty()) {
+    return; // Completely outside screen
+  }
+  
+  // If we've reached the limit, merge all existing rects into a full-screen rect
+  if (dirtyRectCount >= MAX_DIRTY_RECTS) {
+    dirtyRects[0] = HudLayer::DirtyRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    dirtyRectCount = 1;
+    return;
+  }
+  
+  // Check if new rect overlaps with any existing rect
+  bool merged = false;
+  for (int i = 0; i < dirtyRectCount; i++) {
+    if (dirtyRects[i].overlaps(rect)) {
+      // Merge with existing rect
+      dirtyRects[i] = dirtyRects[i].merge(rect);
+      merged = true;
+      break;
+    }
+  }
+  
+  if (!merged) {
+    // Add as new rect
+    dirtyRects[dirtyRectCount++] = rect;
+  }
+  
+  // After adding/merging, try to merge overlapping rects to keep count low
+  mergeDirtyRects();
+}
+
+void HudCompositor::mergeDirtyRects() {
+  // Simple merge pass: check all pairs and merge overlapping ones
+  bool didMerge;
+  do {
+    didMerge = false;
+    for (int i = 0; i < dirtyRectCount && !didMerge; i++) {
+      for (int j = i + 1; j < dirtyRectCount; j++) {
+        if (dirtyRects[i].overlaps(dirtyRects[j])) {
+          // Merge j into i
+          dirtyRects[i] = dirtyRects[i].merge(dirtyRects[j]);
+          
+          // Remove j by shifting remaining rects
+          for (int k = j; k < dirtyRectCount - 1; k++) {
+            dirtyRects[k] = dirtyRects[k + 1];
+          }
+          dirtyRectCount--;
+          didMerge = true;
+          break;
+        }
+      }
+    }
+  } while (didMerge && dirtyRectCount > 1);
+}
+
+HudLayer::DirtyRect HudCompositor::clipRect(const HudLayer::DirtyRect &rect) {
+  int16_t x1 = rect.x;
+  int16_t y1 = rect.y;
+  int16_t x2 = rect.x + rect.w;
+  int16_t y2 = rect.y + rect.h;
+  
+  // Clip to screen bounds
+  if (x1 < 0) x1 = 0;
+  if (y1 < 0) y1 = 0;
+  if (x2 > SCREEN_WIDTH) x2 = SCREEN_WIDTH;
+  if (y2 > SCREEN_HEIGHT) y2 = SCREEN_HEIGHT;
+  
+  // Check if completely clipped
+  if (x1 >= x2 || y1 >= y2) {
+    return HudLayer::DirtyRect(0, 0, 0, 0);
+  }
+  
+  return HudLayer::DirtyRect(x1, y1, x2 - x1, y2 - y1);
+}
+
+void HudCompositor::clearDirtyRects() {
+  dirtyRectCount = 0;
 }

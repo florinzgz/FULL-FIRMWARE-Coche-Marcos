@@ -41,28 +41,93 @@ enum class Layer {
 };
 
 /**
+ * @brief Dirty rectangle for partial rendering (PHASE 8)
+ *
+ * Represents a rectangular region of the screen that needs to be re-rendered.
+ * Coordinates are in screen space (0-479 horizontal, 0-319 vertical).
+ */
+struct DirtyRect {
+  int16_t x, y, w, h;
+
+  DirtyRect() : x(0), y(0), w(0), h(0) {}
+  DirtyRect(int16_t x_, int16_t y_, int16_t w_, int16_t h_)
+      : x(x_), y(y_), w(w_), h(h_) {}
+
+  /**
+   * @brief Check if rectangle is empty or invalid
+   */
+  bool isEmpty() const { return w <= 0 || h <= 0; }
+
+  /**
+   * @brief Check if this rectangle overlaps with another
+   */
+  bool overlaps(const DirtyRect &other) const {
+    if (isEmpty() || other.isEmpty())
+      return false;
+    return !(x >= other.x + other.w || x + w <= other.x ||
+             y >= other.y + other.h || y + h <= other.y);
+  }
+
+  /**
+   * @brief Merge this rectangle with another (returns bounding box)
+   */
+  DirtyRect merge(const DirtyRect &other) const {
+    if (isEmpty())
+      return other;
+    if (other.isEmpty())
+      return *this;
+
+    int16_t x1 = x < other.x ? x : other.x;
+    int16_t y1 = y < other.y ? y : other.y;
+    int16_t x2 = (x + w) > (other.x + other.w) ? (x + w) : (other.x + other.w);
+    int16_t y2 = (y + h) > (other.y + other.h) ? (y + h) : (other.y + other.h);
+    return DirtyRect(x1, y1, x2 - x1, y2 - y1);
+  }
+};
+
+/**
  * @brief Rendering context for a layer
  *
  * Each layer receives a RenderContext that provides:
  * - sprite: The sprite to draw into
  * - dirty: Whether the layer needs redrawing
+ * - dirtyRects: Array of dirty rectangles (PHASE 8)
+ * - dirtyCount: Number of dirty rectangles
  *
  * Modules should:
  * 1. Check if dirty or if content changed
  * 2. Draw into sprite using sprite->* methods
- * 3. Never access TFT directly
+ * 3. Call markDirty() to report what regions changed
+ * 4. Never access TFT directly
  */
 struct RenderContext {
-  TFT_eSprite *sprite; // Sprite to render into
-  bool dirty;          // Layer needs full redraw
+  TFT_eSprite *sprite;  // Sprite to render into
+  bool dirty;           // Layer needs full redraw
+  DirtyRect *dirtyRects; // Array of dirty rectangles (PHASE 8)
+  int *dirtyCount;       // Pointer to dirty rectangle count (PHASE 8)
 
-  RenderContext() : sprite(nullptr), dirty(true) {}
-  RenderContext(TFT_eSprite *spr, bool d) : sprite(spr), dirty(d) {}
+  RenderContext() : sprite(nullptr), dirty(true), dirtyRects(nullptr), dirtyCount(nullptr) {}
+  RenderContext(TFT_eSprite *spr, bool d) : sprite(spr), dirty(d), dirtyRects(nullptr), dirtyCount(nullptr) {}
+  RenderContext(TFT_eSprite *spr, bool d, DirtyRect *rects, int *count)
+      : sprite(spr), dirty(d), dirtyRects(rects), dirtyCount(count) {}
 
   /**
    * @brief Check if sprite is valid for rendering
    */
   bool isValid() const { return sprite != nullptr; }
+
+  /**
+   * @brief Mark a region as dirty (PHASE 8)
+   * @param x X coordinate of dirty region
+   * @param y Y coordinate of dirty region
+   * @param w Width of dirty region
+   * @param h Height of dirty region
+   *
+   * This informs the compositor that a specific region has changed and needs
+   * to be pushed to the TFT. Dirty rectangles are automatically merged and
+   * clipped by the compositor.
+   */
+  void markDirty(int16_t x, int16_t y, int16_t w, int16_t h);
 };
 
 /**

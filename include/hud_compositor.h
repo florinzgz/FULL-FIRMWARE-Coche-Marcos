@@ -126,6 +126,18 @@ public:
                              uint32_t &outMismatchCount,
                              uint32_t &outLastMismatchBlocks);
 
+  /**
+   * @brief Add a dirty rectangle for the current frame (PHASE 8)
+   * @param x X coordinate of dirty region
+   * @param y Y coordinate of dirty region
+   * @param w Width of dirty region
+   * @param h Height of dirty region
+   *
+   * This is called by RenderContext::markDirty() to track which screen regions
+   * need to be pushed to the TFT. Rectangles are automatically merged and clipped.
+   */
+  static void addDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h);
+
 private:
   static constexpr int LAYER_COUNT = 5;
   static constexpr int SCREEN_WIDTH = 480;
@@ -136,6 +148,9 @@ private:
   static constexpr int SHADOW_BLOCKS_X = SCREEN_WIDTH / SHADOW_BLOCK_SIZE; // 30
   static constexpr int SHADOW_BLOCKS_Y =
       SCREEN_HEIGHT / SHADOW_BLOCK_SIZE; // 20
+
+  // PHASE 8: Dirty rectangle tracking
+  static constexpr int MAX_DIRTY_RECTS = 16; // Maximum dirty rectangles per frame
 
   static TFT_eSPI *tft;
   static TFT_eSprite *layerSprites[LAYER_COUNT];
@@ -150,6 +165,10 @@ private:
   static uint32_t shadowMismatchCount;      // Frames with mismatches
   static uint32_t shadowLastMismatchBlocks; // Blocks mismatched in last frame
 
+  // PHASE 8: Dirty rectangle tracking
+  static HudLayer::DirtyRect dirtyRects[MAX_DIRTY_RECTS]; // Dirty rectangles for current frame
+  static int dirtyRectCount;              // Number of dirty rectangles
+
   // Helper to create a layer sprite
   static bool createLayerSprite(HudLayer::Layer layer);
 
@@ -161,4 +180,9 @@ private:
   static void compareShadowSprites();
   static uint16_t computeBlockChecksum(TFT_eSprite *sprite, int blockX,
                                        int blockY);
+
+  // PHASE 8: Dirty rectangle helpers
+  static void mergeDirtyRects();
+  static HudLayer::DirtyRect clipRect(const HudLayer::DirtyRect &rect);
+  static void clearDirtyRects();
 };
