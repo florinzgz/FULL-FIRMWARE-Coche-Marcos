@@ -26,7 +26,8 @@ public:
     CAR_BODY = 0, // Car body layer (drawn first, static background)
     STEERING = 1, // Steering wheel layer (drawn on top, dynamic)
 #ifdef RENDER_SHADOW_MODE
-    STEERING_SHADOW = 2  // Shadow sprite for validation (RENDER_SHADOW_MODE only)
+    STEERING_SHADOW =
+        2 // Shadow sprite for validation (RENDER_SHADOW_MODE only)
 #endif
   };
 
@@ -101,8 +102,8 @@ public:
    * @param outLastMismatchCount Number of mismatched pixels in last comparison
    */
   static void getShadowStats(uint32_t &outTotalComparisons,
-                              uint32_t &outTotalMismatches,
-                              uint32_t &outLastMismatchCount);
+                             uint32_t &outTotalMismatches,
+                             uint32_t &outLastMismatchCount);
 
   /**
    * @brief Get detailed shadow comparison metrics
@@ -111,8 +112,7 @@ public:
    * @param outAvgMismatch Average mismatch count per comparison
    */
   static void getShadowMetrics(float &outMatchPercentage,
-                                uint32_t &outMaxMismatch,
-                                float &outAvgMismatch);
+                               uint32_t &outMaxMismatch, float &outAvgMismatch);
 
   /**
    * @brief Get safety protection statistics
@@ -122,9 +122,8 @@ public:
    * @param outDMABlocks Number of invalid DMA transfers blocked
    */
   static void getSafetyStats(uint32_t &outClampedRects,
-                              uint32_t &outRejectedRects,
-                              uint32_t &outNullSprites,
-                              uint32_t &outDMABlocks);
+                             uint32_t &outRejectedRects,
+                             uint32_t &outNullSprites, uint32_t &outDMABlocks);
 
   /**
    * @brief Clear all shadow ignore regions
@@ -138,7 +137,8 @@ public:
    * @param w Width of the region
    * @param h Height of the region
    */
-  static void addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+  static void addShadowIgnoreRegion(uint16_t x, uint16_t y, uint16_t w,
+                                    uint16_t h);
 
   /**
    * @brief Check if a pixel should be ignored during shadow comparison
@@ -152,7 +152,8 @@ public:
 private:
   static TFT_eSPI *tft;
 #ifdef RENDER_SHADOW_MODE
-  static TFT_eSprite *sprites[3]; // CAR_BODY, STEERING, and STEERING_SHADOW sprites
+  static TFT_eSprite
+      *sprites[3]; // CAR_BODY, STEERING, and STEERING_SHADOW sprites
 #else
   static TFT_eSprite *sprites[2]; // CAR_BODY and STEERING sprites
 #endif
