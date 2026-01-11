@@ -801,14 +801,18 @@ void Icons::drawBattery(float volts, HudLayer::RenderContext &ctx) {
 void Icons::drawErrorWarning(HudLayer::RenderContext &ctx) {
   if (!ctx.isValid()) return;
   
-  // Error warning changes when error count changes
-  // We'll always mark it dirty since we don't have direct access to error count here
-  // The sprite version already checks if it changed
+  // Check if error count changed
+  int count = System::getErrorCount();
+  bool changed = (count != lastErrorCount);
+  
+  // Call sprite version (which updates cache)
   drawErrorWarning(ctx.sprite);
   
-  // Mark warning area dirty (it internally checks if changed)
-  ctx.markDirty(WARNING_X1, WARNING_Y1,
-                WARNING_X2 - WARNING_X1, WARNING_Y2 - WARNING_Y1);
+  // Mark warning area dirty only if changed
+  if (changed) {
+    ctx.markDirty(WARNING_X1, WARNING_Y1,
+                  WARNING_X2 - WARNING_X1, WARNING_Y2 - WARNING_Y1);
+  }
 }
 
 void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
