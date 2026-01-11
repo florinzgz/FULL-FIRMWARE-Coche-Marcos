@@ -53,6 +53,9 @@ struct Config {
   bool obstacle_audio_alerts;          // Audio alerts enabled
   bool obstacle_visual_alerts;         // Visual alerts enabled
 
+  // PHASE 7: Shadow Mode validation
+  bool shadowHudEnabled; // Enable shadow sprite validation
+
   // Checksum for validation
   uint32_t checksum;
 };
@@ -92,6 +95,8 @@ const Config DEFAULT_CONFIG = {
     true, // obstacle_sensor_enabled
     true, // obstacle_audio_alerts
     true, // obstacle_visual_alerts
+
+    false, // shadowHudEnabled (PHASE 7: disabled by default for production)
 
     0 // checksum
 };

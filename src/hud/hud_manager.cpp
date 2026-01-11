@@ -263,6 +263,14 @@ void HUDManager::init() {
     Logger::info(
         "HUD: Compositor initialized with BASE, STATUS and DIAGNOSTICS layers");
     Serial.println("[HUD] HudCompositor initialized");
+
+    // PHASE 7: Initialize Shadow Mode if enabled in config
+    if (cfg.shadowHudEnabled) {
+      HudCompositor::setShadowMode(true);
+      Logger::info("HUD: Shadow Mode enabled from config");
+    } else {
+      Logger::info("HUD: Shadow Mode disabled (can be enabled in hidden menu)");
+    }
   }
 
   // Initialize limp mode overlays
@@ -456,6 +464,24 @@ void HUDManager::handleLongPress(uint8_t buttonId, uint32_t duration) {
 
 // 🔒 v2.5.0: Estado de inicialización
 bool HUDManager::initOK() { return initialized; }
+
+// PHASE 7: Shadow Mode controls
+void HUDManager::setShadowMode(bool enabled) {
+  if (HudCompositor::isInitialized()) {
+    HudCompositor::setShadowMode(enabled);
+    // Update config in memory (note: not persisted to storage immediately)
+    // Config will be saved when user explicitly saves settings or on shutdown
+    cfg.shadowHudEnabled = enabled;
+    Logger::infof("HUDManager: Shadow mode %s",
+                  enabled ? "ENABLED" : "DISABLED");
+  } else {
+    Logger::warn("HUDManager: Cannot set shadow mode - compositor not initialized");
+  }
+}
+
+bool HUDManager::isShadowModeEnabled() {
+  return HudCompositor::isShadowModeEnabled();
+}
 
 // ============================================================================
 // Helper Methods
@@ -840,6 +866,8 @@ void HUDManager::renderHiddenMenu() {
   static CarData lastCarData = {};
   static Sensors::SystemStatus lastSensorStatus = {};
   static Sensors::InputDeviceStatus lastInputStatus = {};
+  static bool lastShadowEnabled = false;  // PHASE 7: Track shadow mode state
+  static uint32_t lastShadowMismatch = 0; // PHASE 7: Track mismatch count
   static bool firstDraw = true;
   static bool cacheValid = false; // 🔒 Flag para validez del cache
 
@@ -889,13 +917,29 @@ void HUDManager::renderHiddenMenu() {
                       (inputStatus.shifterOK != lastInputStatus.shifterOK) ||
                       (inputStatus.allInputsOK != lastInputStatus.allInputsOK);
 
-  // Si nada cambió, no redibujar (elimina el parpadeo a 30 FPS)
-  if (!dataChanged && !sensorChanged && !inputChanged) { return; }
+  // PHASE 7: Check if shadow mode state changed
+  bool currentShadowEnabled = HudCompositor::isShadowModeEnabled();
+  uint32_t currentShadowMismatch = 0;
+  if (HudCompositor::isInitialized()) {
+    uint32_t totalFrames, mismatchFrames, lastMismatch;
+    HudCompositor::getShadowStats(totalFrames, mismatchFrames, lastMismatch);
+    currentShadowMismatch = mismatchFrames;
+  }
+  bool shadowChanged = !cacheValid ||
+                       (currentShadowEnabled != lastShadowEnabled) ||
+                       (currentShadowMismatch != lastShadowMismatch);
 
-  // Actualizar cache
+  // If nothing changed, don't redraw (eliminates flicker at 30 FPS)
+  if (!dataChanged && !sensorChanged && !inputChanged && !shadowChanged) {
+    return;
+  }
+
+  // Update cache
   lastCarData = carData;
   lastSensorStatus = sensorStatus;
   lastInputStatus = inputStatus;
+  lastShadowEnabled = currentShadowEnabled;
+  lastShadowMismatch = currentShadowMismatch;
   cacheValid = true;
 
   // Menú oculto con TODOS los datos de calibración y sensores
@@ -1050,6 +1094,24 @@ void HUDManager::renderHiddenMenu() {
             : (sensorStatus.criticalSensorsOK && inputStatus.pedalOK)
                 ? "SYS: WARN"
                 : "SYS: FAIL");
+
+  // PHASE 7: Shadow Mode status
+  if (HudCompositor::isInitialized()) {
+    bool shadowEnabled = HudCompositor::isShadowModeEnabled();
+    uint32_t totalFrames, mismatchFrames, lastMismatch;
+    HudCompositor::getShadowStats(totalFrames, mismatchFrames, lastMismatch);
+
+    tft.setTextColor(TFT_MAGENTA, TFT_BLACK);
+    tft.setCursor(5, 260);
+    tft.printf("Shadow: %s", shadowEnabled ? "ON" : "OFF");
+
+    if (shadowEnabled && totalFrames > 0) {
+      uint16_t shadowColor = (mismatchFrames == 0) ? TFT_GREEN : TFT_RED;
+      tft.setTextColor(shadowColor, TFT_BLACK);
+      tft.setCursor(5, 275);
+      tft.printf("F:%u M:%u L:%u", totalFrames, mismatchFrames, lastMismatch);
+    }
+  }
 
   // Instrucciones salida
   tft.setTextColor(TFT_CYAN, TFT_BLACK);

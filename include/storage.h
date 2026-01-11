@@ -63,6 +63,9 @@ struct Config {
   uint16_t touchCalibration[5]; // [min_x, max_x, min_y, max_y, rotation]
   bool touchCalibrated;         // Flag to indicate if calibration has been done
 
+  // PHASE 7: Shadow Mode validation
+  bool shadowHudEnabled; // Enable shadow sprite validation for render integrity
+
   // 🔒 v2.4.2: Odómetro y mantenimiento
   OdometerData odometer;
   uint16_t maintenanceIntervalKm; // Intervalo mantenimiento (km) - default 500
