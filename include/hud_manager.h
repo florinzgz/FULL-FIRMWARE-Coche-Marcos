@@ -107,6 +107,18 @@ public:
    */
   static bool initOK();
 
+  /**
+   * @brief Toggle shadow mode validation (PHASE 7)
+   * @param enabled true to enable, false to disable
+   */
+  static void setShadowMode(bool enabled);
+
+  /**
+   * @brief Check if shadow mode is enabled (PHASE 7)
+   * @return true if shadow mode is active
+   */
+  static bool isShadowModeEnabled();
+
 private:
   static MenuType currentMenu;
   static CarData carData;
