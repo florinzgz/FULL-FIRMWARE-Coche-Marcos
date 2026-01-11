@@ -13,6 +13,32 @@
 #include "system.h"
 #include <Arduino.h>
 
+// ============================================================================
+// PHASE 6.4: BASE HUD Layer Renderer
+// ============================================================================
+// This renderer wraps HUD::update() to make it compatible with the compositor
+// layer system. It renders the entire base HUD (gauges, wheels, icons) into
+// the BASE layer sprite.
+namespace {
+class BaseHudRenderer : public HudLayer::LayerRenderer {
+public:
+  void render(HudLayer::RenderContext &ctx) override {
+    if (!ctx.isValid()) return;
+    // Call HUD::update with the sprite from the render context
+    HUD::update(ctx.sprite);
+  }
+
+  bool isActive() const override {
+    // Base HUD is always active (except when in menu mode)
+    // Menu mode is handled by HUDManager's menu system
+    return true;
+  }
+};
+
+// Static instance of the BASE renderer
+static BaseHudRenderer baseHudRenderer;
+} // anonymous namespace
+
 // Variables estáticas
 MenuType HUDManager::currentMenu = MenuType::NONE;
 CarData HUDManager::carData = CarData{};
@@ -225,6 +251,8 @@ void HUDManager::init() {
     // Continue anyway - compositor is optional for backward compatibility
   } else {
     // Register layer renderers
+    // BASE layer: Main HUD (gauges, wheels, icons, etc.)
+    HudCompositor::registerLayer(HudLayer::Layer::BASE, &baseHudRenderer);
     // STATUS layer: Limp mode indicator
     HudCompositor::registerLayer(HudLayer::Layer::STATUS,
                                  HudLimpIndicator::getRenderer());
@@ -233,7 +261,7 @@ void HUDManager::init() {
                                  HudLimpDiagnostics::getRenderer());
 
     Logger::info(
-        "HUD: Compositor initialized with STATUS and DIAGNOSTICS layers");
+        "HUD: Compositor initialized with BASE, STATUS and DIAGNOSTICS layers");
     Serial.println("[HUD] HudCompositor initialized");
   }
 
@@ -316,12 +344,16 @@ void HUDManager::update() {
     renderHiddenMenu();
     break;
   default:
-    // Sin menú activo - usar HUD básico
-    HUD::update();
-
-    // ✅ PHASE 5: Render compositor layers on top of base HUD
-    // This allows limp indicator and diagnostics to appear over the main HUD
-    if (HudCompositor::isInitialized()) { HudCompositor::render(); }
+    // Sin menú activo - usar compositor para renderizar HUD básico
+    // ✅ PHASE 6.4: Compositor now renders BASE HUD layer via baseHudRenderer
+    // The BASE layer contains the entire HUD (gauges, wheels, icons)
+    // Compositor then composites STATUS and DIAGNOSTICS on top
+    if (HudCompositor::isInitialized()) {
+      HudCompositor::render();
+    } else {
+      // Fallback: Render HUD directly to TFT if compositor is not available
+      HUD::update(nullptr);
+    }
     break;
   }
 }
@@ -528,9 +560,14 @@ void HUDManager::renderDashboard() {
   tft.print("DB");
 #endif
 
-  // Use the rich graphics dashboard from HUD::update()
-  // This includes car visualization, wheels, gauges, icons, etc.
-  HUD::update();
+  // ✅ PHASE 6.4: Use compositor for dashboard rendering
+  // This provides the same rich graphics as before but through the compositor
+  if (HudCompositor::isInitialized()) {
+    HudCompositor::render();
+  } else {
+    // Fallback: Render HUD directly to TFT if compositor is not available
+    HUD::update(nullptr);
+  }
 }
 
 void HUDManager::renderSettings() {

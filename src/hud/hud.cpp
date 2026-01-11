@@ -855,7 +855,11 @@ static void drawSteeringWheel(float angleDeg) {
   RenderEngine::markDirtyRect(steerX, steerY, steerW, steerH);
 }
 
-void HUD::drawPedalBar(float pedalPercent) {
+void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
+  // Phase 6.4: Dual-mode rendering - sprite or TFT
+  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : &tft;
+  if (!drawTarget) return;
+
   const int y = 300;     // Posición vertical
   const int height = 18; // Altura de la barra
   const int width = 480; // Ancho total de pantalla
@@ -863,11 +867,11 @@ void HUD::drawPedalBar(float pedalPercent) {
 
   if (pedalPercent < 0.0f) {
     // Pedal inválido → barra vacía con "--"
-    tft.fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
-    tft.drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
-    tft.setTextDatum(MC_DATUM);
-    tft.setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
-    tft.drawString("-- PEDAL --", 240, y + height / 2, 2);
+    drawTarget->fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+    drawTarget->drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
+    drawTarget->setTextDatum(MC_DATUM);
+    drawTarget->setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
+    drawTarget->drawString("-- PEDAL --", 240, y + height / 2, 2);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror invalid pedal bar to shadow sprite
     SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
@@ -900,8 +904,8 @@ void HUD::drawPedalBar(float pedalPercent) {
   }
 
   // Fondo de barra con efecto 3D (hundido)
-  tft.fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
-  tft.drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+  drawTarget->fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
+  drawTarget->drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror pedal bar background to shadow sprite
   SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
@@ -910,18 +914,18 @@ void HUD::drawPedalBar(float pedalPercent) {
 
   // Barra de progreso principal
   if (barWidth > 0) {
-    tft.fillRoundRect(0, y, barWidth, height, radius, colorMain);
+    drawTarget->fillRoundRect(0, y, barWidth, height, radius, colorMain);
 
     // Efecto 3D: línea clara arriba
-    tft.drawFastHLine(2, y + 2, barWidth - 4, colorLight);
-    tft.drawFastHLine(2, y + 3, barWidth - 4, colorLight);
+    drawTarget->drawFastHLine(2, y + 2, barWidth - 4, colorLight);
+    drawTarget->drawFastHLine(2, y + 3, barWidth - 4, colorLight);
 
     // Efecto 3D: línea oscura abajo
-    tft.drawFastHLine(2, y + height - 3, barWidth - 4, colorDark);
-    tft.drawFastHLine(2, y + height - 2, barWidth - 4, colorDark);
+    drawTarget->drawFastHLine(2, y + height - 3, barWidth - 4, colorDark);
+    drawTarget->drawFastHLine(2, y + height - 2, barWidth - 4, colorDark);
 
     // Borde de la barra activa
-    tft.drawRoundRect(0, y, barWidth, height, radius, colorDark);
+    drawTarget->drawRoundRect(0, y, barWidth, height, radius, colorDark);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror pedal bar fill to shadow sprite
     SHADOW_MIRROR_fillRoundRect(0, y, barWidth, height, radius, colorMain);
@@ -934,15 +938,15 @@ void HUD::drawPedalBar(float pedalPercent) {
   }
 
   // Texto con porcentaje en el centro (con sombra)
-  tft.setTextDatum(MC_DATUM);
+  drawTarget->setTextDatum(MC_DATUM);
   // Sombra
-  tft.setTextColor(0x0000);
+  drawTarget->setTextColor(0x0000);
   char txt[16];
   snprintf(txt, sizeof(txt), "ACCEL %d%%", (int)pedalPercent);
-  tft.drawString(txt, 241, y + height / 2 + 1, 2);
+  drawTarget->drawString(txt, 241, y + height / 2 + 1, 2);
   // Texto principal
-  tft.setTextColor(TFT_WHITE);
-  tft.drawString(txt, 240, y + height / 2, 2);
+  drawTarget->setTextColor(TFT_WHITE);
+  drawTarget->drawString(txt, 240, y + height / 2, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror pedal bar text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -953,9 +957,9 @@ void HUD::drawPedalBar(float pedalPercent) {
 #endif
 
   // Marcas de referencia (25%, 50%, 75%)
-  tft.drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
-  tft.drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
-  tft.drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  drawTarget->drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  drawTarget->drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
+  drawTarget->drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror reference marks to shadow sprite
   SHADOW_MIRROR_drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
@@ -965,7 +969,7 @@ void HUD::drawPedalBar(float pedalPercent) {
 #endif
 }
 
-void HUD::update() {
+void HUD::update(TFT_eSprite *sprite) {
   // 🔒 v2.8.4: Diagnóstico visual - píxeles rojos para localizar bloqueos de
   // render
 #ifdef DEBUG_RENDER
@@ -1142,14 +1146,14 @@ void HUD::update() {
 #endif
 
   // Render gauges (ya optimizados internamente)
-  Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent);
+  Gauges::drawSpeed(X_SPEED, Y_SPEED, speedKmh, MAX_SPEED_KMH, pedalPercent, sprite);
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 4 - después de gauge velocidad
   tft.drawPixel(4, 0, TFT_RED);
 #endif
 
-  Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM);
+  Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM, sprite);
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 5 - después de gauge RPM
@@ -1159,11 +1163,11 @@ void HUD::update() {
   // Ruedas (optimizado: solo redibuja si cambian ángulo/temp/esfuerzo)
   // Usar -999.0f para temp y -1.0f para effort cuando sensores deshabilitados
   WheelsDisplay::drawWheel(X_FL, Y_FL, steerAngleFL, wheelTempFL,
-                           wheelEffortFL);
+                           wheelEffortFL, sprite);
   WheelsDisplay::drawWheel(X_FR, Y_FR, steerAngleFR, wheelTempFR,
-                           wheelEffortFR);
-  WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL);
-  WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR);
+                           wheelEffortFR, sprite);
+  WheelsDisplay::drawWheel(X_RL, Y_RL, 0.0f, wheelTempRL, wheelEffortRL, sprite);
+  WheelsDisplay::drawWheel(X_RR, Y_RR, 0.0f, wheelTempRR, wheelEffortRR, sprite);
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 6 - después de dibujar ruedas
@@ -1175,43 +1179,45 @@ void HUD::update() {
   drawSteeringWheel(avgSteerAngle);
 
   // Iconos y estados
-  Icons::drawSystemState(sys);
-  Icons::drawGear(gear);
+  Icons::drawSystemState(sys, sprite);
+  Icons::drawGear(gear, sprite);
   Icons::drawFeatures(mode4x4,
-                      eco); // v2.14.0: Simplified - only 4x4 mode and eco
+                      eco, sprite); // v2.14.0: Simplified - only 4x4 mode and eco
 #ifdef STANDALONE_DISPLAY
-  Icons::drawBattery(24.5f); // Simulated battery voltage
+  Icons::drawBattery(24.5f, sprite); // Simulated battery voltage
 #else
-  Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f);
+  Icons::drawBattery(cfg.currentSensorsEnabled ? Sensors::getVoltage(0) : 0.0f, sprite);
 #endif
 
   // Temperatura ambiente (esquina superior derecha, debajo de batería)
-  Icons::drawAmbientTemp(ambientTemp);
+  Icons::drawAmbientTemp(ambientTemp, sprite);
 
   // Icono de advertencia si hay errores almacenados
-  Icons::drawErrorWarning();
+  Icons::drawErrorWarning(sprite);
 
   // Indicador de estado de sensores (LEDs I/T/W)
   Icons::drawSensorStatus(sensorCurrentOK, sensorTempOK, sensorWheelOK,
                           Sensors::NUM_CURRENTS, Sensors::NUM_TEMPS,
-                          Sensors::NUM_WHEELS);
+                          Sensors::NUM_WHEELS, sprite);
 
   // Advertencia de temperatura crítica
-  Icons::drawTempWarning(tempWarning, maxTemp);
+  Icons::drawTempWarning(tempWarning, maxTemp, sprite);
 
 // Mostrar modo de operación si no es FULL
 #ifndef STANDALONE_DISPLAY
   OperationMode mode = SystemMode::getMode();
   if (mode != OperationMode::MODE_FULL) {
-    tft.setTextDatum(MC_DATUM);
-    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
+    // Phase 6.4: Dual-mode rendering - sprite or TFT
+    TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : &tft;
+    drawTarget->setTextDatum(MC_DATUM);
+    drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
+    drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
                    MODE_INDICATOR_Y, 2);
   }
 #endif
 
   // Barra de pedal en la parte inferior
-  drawPedalBar(pedalPercent);
+  drawPedalBar(pedalPercent, sprite);
 
   // Botón de giro sobre eje (axis rotation)
   drawAxisRotationButton();
