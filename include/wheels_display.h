@@ -11,5 +11,7 @@ void init(TFT_eSPI *display);
 // - angleDeg: ángulo de dirección en grados
 // - tempC: temperatura en °C
 // - effortPct: esfuerzo en porcentaje (0–100)
-void drawWheel(int cx, int cy, float angleDeg, float tempC, float effortPct);
+// Phase 6.3: Added sprite parameter for compositor mode (nullptr = use TFT)
+void drawWheel(int cx, int cy, float angleDeg, float tempC, float effortPct,
+               TFT_eSprite *sprite = nullptr);
 } // namespace WheelsDisplay
