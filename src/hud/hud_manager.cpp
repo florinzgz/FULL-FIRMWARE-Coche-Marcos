@@ -1,8 +1,9 @@
 #include "hud_manager.h"
 #include "hud.h"
-#include "hud_compositor.h"       // Phase 5: Layered compositor
-#include "hud_limp_diagnostics.h" // Phase 4.3: Limp diagnostics
-#include "hud_limp_indicator.h"   // Phase 4.2: Limp indicator
+#include "hud_compositor.h"          // Phase 5: Layered compositor
+#include "hud_graphics_telemetry.h"  // Phase 9: Graphics telemetry
+#include "hud_limp_diagnostics.h"    // Phase 4.3: Limp diagnostics
+#include "hud_limp_indicator.h"      // Phase 4.2: Limp indicator
 #include "logger.h"
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
@@ -35,8 +36,48 @@ public:
   }
 };
 
-// Static instance of the BASE renderer
+// ============================================================================
+// PHASE 9: Combined Diagnostics Renderer
+// ============================================================================
+// This renderer combines both limp diagnostics and graphics telemetry
+// into the DIAGNOSTICS layer. They don't overlap spatially and have
+// different visibility conditions.
+class CombinedDiagnosticsRenderer : public HudLayer::LayerRenderer {
+public:
+  void render(HudLayer::RenderContext &ctx) override {
+    if (!ctx.isValid()) return;
+
+    // Render limp diagnostics (only when limp mode active)
+    HudLayer::LayerRenderer *limpRenderer = HudLimpDiagnostics::getRenderer();
+    if (limpRenderer) {
+      limpRenderer->render(ctx);
+    }
+
+    // Render graphics telemetry (only when visible)
+    HudLayer::LayerRenderer *telemetryRenderer =
+        HudGraphicsTelemetry::getRenderer();
+    if (telemetryRenderer) {
+      telemetryRenderer->render(ctx);
+    }
+  }
+
+  bool isActive() const override {
+    // Active if either sub-renderer is active
+    HudLayer::LayerRenderer *limpRenderer = HudLimpDiagnostics::getRenderer();
+    HudLayer::LayerRenderer *telemetryRenderer =
+        HudGraphicsTelemetry::getRenderer();
+
+    bool limpActive = limpRenderer && limpRenderer->isActive();
+    bool telemetryActive =
+        telemetryRenderer && telemetryRenderer->isActive();
+
+    return limpActive || telemetryActive;
+  }
+};
+
+// Static instances
 static BaseHudRenderer baseHudRenderer;
+static CombinedDiagnosticsRenderer combinedDiagnosticsRenderer;
 } // anonymous namespace
 
 // Variables estáticas
@@ -256,12 +297,12 @@ void HUDManager::init() {
     // STATUS layer: Limp mode indicator
     HudCompositor::registerLayer(HudLayer::Layer::STATUS,
                                  HudLimpIndicator::getRenderer());
-    // DIAGNOSTICS layer: Limp mode diagnostics
+    // DIAGNOSTICS layer: Combined limp diagnostics + graphics telemetry (Phase 9)
     HudCompositor::registerLayer(HudLayer::Layer::DIAGNOSTICS,
-                                 HudLimpDiagnostics::getRenderer());
+                                 &combinedDiagnosticsRenderer);
 
-    Logger::info(
-        "HUD: Compositor initialized with BASE, STATUS and DIAGNOSTICS layers");
+    Logger::info("HUD: Compositor initialized with BASE, STATUS and DIAGNOSTICS "
+                 "layers");
     Serial.println("[HUD] HudCompositor initialized");
 
     // PHASE 7: Initialize Shadow Mode if enabled in config
@@ -278,6 +319,11 @@ void HUDManager::init() {
   HudLimpIndicator::init(&tft);
   HudLimpDiagnostics::init(&tft);
   Serial.println("[HUD] Limp mode overlays initialized");
+
+  // PHASE 9: Initialize graphics telemetry overlay
+  Serial.println("[HUD] Initializing graphics telemetry...");
+  HudGraphicsTelemetry::init(&tft);
+  Serial.println("[HUD] Graphics telemetry initialized");
 
   // Inicializar HUD básico (will show color test and initialize components)
   // Display is now ready with rotation=3 (480x320 landscape, ST7796S)
@@ -443,8 +489,12 @@ void HUDManager::activateHiddenMenu(bool activate) {
   hiddenMenuActive = activate;
   if (activate) {
     currentMenu = MenuType::HIDDEN_MENU;
+    // PHASE 9: Show graphics telemetry when hidden menu is active
+    HudGraphicsTelemetry::setVisible(true);
   } else {
     currentMenu = MenuType::DASHBOARD;
+    // PHASE 9: Hide graphics telemetry when hidden menu is closed
+    HudGraphicsTelemetry::setVisible(false);
   }
   needsRedraw = true;
 }

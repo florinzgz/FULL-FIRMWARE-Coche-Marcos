@@ -33,6 +33,9 @@ uint32_t HudCompositor::shadowLastMismatchBlocks = 0;
 HudLayer::DirtyRect HudCompositor::dirtyRects[MAX_DIRTY_RECTS];
 int HudCompositor::dirtyRectCount = 0;
 
+// PHASE 9: Render statistics static members
+HudCompositor::RenderStats HudCompositor::renderStats = {};
+
 bool HudCompositor::init(TFT_eSPI *tftDisplay) {
   if (initialized) {
     Logger::warn("HudCompositor: Already initialized");
@@ -161,6 +164,9 @@ void HudCompositor::markAllDirty() {
 void HudCompositor::render() {
   if (!initialized) { return; }
 
+  // PHASE 9: Start frame timing
+  uint32_t frameStartTime = millis();
+
   // PHASE 8: Clear dirty rectangles from previous frame
   clearDirtyRects();
 
@@ -253,6 +259,60 @@ void HudCompositor::render() {
 
   // Composite layers to TFT (only dirty rectangles)
   compositeLayers();
+
+  // PHASE 9: Update render statistics
+  uint32_t frameEndTime = millis();
+  uint32_t frameTime = frameEndTime - frameStartTime;
+
+  // Update frame count
+  renderStats.frameCount++;
+
+  // Update frame time (exponential moving average, alpha = 0.1)
+  renderStats.lastFrameTimeMs = frameTime;
+  if (renderStats.avgFrameTimeMs == 0) {
+    renderStats.avgFrameTimeMs = frameTime;
+    // Calculate FPS from average frame time
+    renderStats.fps = (frameTime > 0) ? (1000 / frameTime) : 0;
+  } else {
+    // Smoothed: avg = avg * 0.9 + new * 0.1
+    // Using integer math: avg = (avg * 9 + new) / 10
+    uint32_t newAvg = (renderStats.avgFrameTimeMs * 9 + frameTime) / 10;
+    // Only recalculate FPS if average changed
+    if (newAvg != renderStats.avgFrameTimeMs) {
+      renderStats.avgFrameTimeMs = newAvg;
+      renderStats.fps = (newAvg > 0) ? (1000 / newAvg) : 0;
+    }
+  }
+
+  // Update dirty rect statistics
+  renderStats.dirtyRectCount = dirtyRectCount;
+  
+  // Calculate dirty pixels
+  uint32_t totalDirtyPixels = 0;
+  for (int i = 0; i < dirtyRectCount; i++) {
+    totalDirtyPixels += dirtyRects[i].w * dirtyRects[i].h;
+  }
+  renderStats.dirtyPixels = totalDirtyPixels;
+  
+  // Calculate bytes pushed (16-bit color = 2 bytes per pixel)
+  renderStats.bytesPushed = totalDirtyPixels * 2;
+
+  // Update shadow mode statistics
+  renderStats.shadowEnabled = shadowEnabled;
+  renderStats.shadowBlocksCompared = shadowFrameCount;
+  renderStats.shadowMismatches = shadowMismatchCount;
+
+  // Calculate PSRAM usage
+  size_t psramUsed = 0;
+  for (int i = 0; i < LAYER_COUNT; i++) {
+    if (layerSprites[i]) {
+      psramUsed += SCREEN_WIDTH * SCREEN_HEIGHT * 2; // 16-bit per pixel
+    }
+  }
+  if (shadowSprite) {
+    psramUsed += SCREEN_WIDTH * SCREEN_HEIGHT * 2;
+  }
+  renderStats.psramUsedBytes = psramUsed;
 }
 
 void HudCompositor::compositeLayers() {
@@ -627,3 +687,11 @@ HudLayer::DirtyRect HudCompositor::clipRect(const HudLayer::DirtyRect &rect) {
 }
 
 void HudCompositor::clearDirtyRects() { dirtyRectCount = 0; }
+
+// ============================================================================
+// PHASE 9: Render Statistics
+// ============================================================================
+
+const HudCompositor::RenderStats &HudCompositor::getRenderStats() {
+  return renderStats;
+}
