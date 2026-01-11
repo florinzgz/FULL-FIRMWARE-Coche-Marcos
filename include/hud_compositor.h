@@ -139,6 +139,32 @@ public:
    */
   static void addDirtyRect(int16_t x, int16_t y, int16_t w, int16_t h);
 
+  /**
+   * @brief Render statistics structure (PHASE 9)
+   *
+   * Provides real-time telemetry about the HUD render pipeline performance.
+   * Updated once per frame during render().
+   */
+  struct RenderStats {
+    uint32_t frameCount;           // Total frames rendered
+    uint32_t lastFrameTimeMs;      // Last frame render time in ms
+    uint32_t avgFrameTimeMs;       // Average frame time in ms (smoothed)
+    uint32_t fps;                  // Frames per second (1000 / avgFrameTimeMs)
+    uint32_t dirtyRectCount;       // Number of dirty rectangles this frame
+    uint32_t dirtyPixels;          // Total pixels marked dirty this frame
+    uint32_t bytesPushed;          // Bytes pushed to TFT (dirtyPixels * 2)
+    bool shadowEnabled;            // Shadow mode active flag
+    uint32_t shadowBlocksCompared; // Blocks compared in shadow mode
+    uint32_t shadowMismatches;     // Frames with shadow mismatches
+    uint32_t psramUsedBytes;       // PSRAM used by sprites
+  };
+
+  /**
+   * @brief Get current render statistics (PHASE 9)
+   * @return Reference to current render stats
+   */
+  static const RenderStats &getRenderStats();
+
 private:
   static constexpr int LAYER_COUNT = 5;
   static constexpr int SCREEN_WIDTH = 480;
@@ -171,6 +197,11 @@ private:
   static HudLayer::DirtyRect
       dirtyRects[MAX_DIRTY_RECTS]; // Dirty rectangles for current frame
   static int dirtyRectCount;       // Number of dirty rectangles
+
+  // PHASE 9: Render statistics
+  static RenderStats renderStats;           // Current render statistics
+  static uint32_t frameTimeAccumulator;     // For smoothed frame time calculation
+  static uint32_t lastFrameStartTime;       // Timestamp of last frame start
 
   // Helper to create a layer sprite
   static bool createLayerSprite(HudLayer::Layer layer);
