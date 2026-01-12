@@ -20,12 +20,12 @@ jobs:
     strategy:
       matrix: 
         environment:
-          - esp32-s3-n32r16v
-          - esp32-s3-n32r16v-release
-          - esp32-s3-n32r16v-touch-debug
-          - esp32-s3-n32r16v-no-touch
-          - esp32-s3-n32r16v-standalone
-          - esp32-s3-n32r16v-standalone-debug
+          - esp32-s3-n16r8
+          - esp32-s3-n16r8-release
+          - esp32-s3-n16r8-touch-debug
+          - esp32-s3-n16r8-no-touch
+          - esp32-s3-n16r8-standalone
+          - esp32-s3-n16r8-standalone-debug
       fail-fast: false
     
     steps: 
@@ -133,7 +133,7 @@ jobs:
         run: |
           ./build-wrapper-linux-x86/build-wrapper-linux-x86-64 \
             --out-dir bw-output \
-            pio run -e esp32-s3-n32r16v -v
+            pio run -e esp32-s3-n16r8 -v
 
       - name: Verify build-wrapper output
         working-directory: ${{ github.workspace }}

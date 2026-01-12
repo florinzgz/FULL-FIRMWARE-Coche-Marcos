@@ -16,10 +16,10 @@ jobs:
     strategy:
       matrix:
         environment:
-          - esp32-s3-n32r16v
-          - esp32-s3-n32r16v-release
-          - esp32-s3-n32r16v-touch-debug
-          - esp32-s3-n32r16v-no-touch
+          - esp32-s3-n16r8
+          - esp32-s3-n16r8-release
+          - esp32-s3-n16r8-touch-debug
+          - esp32-s3-n16r8-no-touch
       fail-fast: false
 
     steps:
@@ -90,7 +90,7 @@ jobs:
 
     - name: Verify build outputs
       run: |
-        EXPECTED_ENVS=("esp32-s3-n32r16v" "esp32-s3-n32r16v-release" "esp32-s3-n32r16v-touch-debug" "esp32-s3-n32r16v-no-touch")
+        EXPECTED_ENVS=("esp32-s3-n16r8" "esp32-s3-n16r8-release" "esp32-s3-n16r8-touch-debug" "esp32-s3-n16r8-no-touch")
         TOTAL_ENVIRONMENTS=${#EXPECTED_ENVS[@]}
 
         BUILD_COUNT=$(find artifacts -name "firmware.bin" | wc -l)
@@ -104,7 +104,7 @@ jobs:
 
     - name: Generate verification report
       run: |
-        EXPECTED_ENVS=("esp32-s3-n32r16v" "esp32-s3-n32r16v-release" "esp32-s3-n32r16v-touch-debug" "esp32-s3-n32r16v-no-touch")
+        EXPECTED_ENVS=("esp32-s3-n16r8" "esp32-s3-n16r8-release" "esp32-s3-n16r8-touch-debug" "esp32-s3-n16r8-no-touch")
 
         echo "# 🔧 Firmware Verification Report" > VERIFICATION_REPORT.md
         echo "" >> VERIFICATION_REPORT.md
