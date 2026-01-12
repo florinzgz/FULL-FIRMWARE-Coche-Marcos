@@ -49,24 +49,24 @@ jobs:
 
     - name: Initialize PlatformIO environment
       working-directory: ${{ github.workspace }}
-      run: pio pkg install -e esp32-s3-n32r16v-touch-debug
+      run: pio pkg install -e esp32-s3-n16r8-touch-debug
 
     - name: Build test environment
       working-directory: ${{ github.workspace }}
       run: |
-        pio run -t clean -e esp32-s3-n32r16v-touch-debug
-        pio run -e esp32-s3-n32r16v-touch-debug
+        pio run -t clean -e esp32-s3-n16r8-touch-debug
+        pio run -e esp32-s3-n16r8-touch-debug
 
     - name: Verify sdkconfig was generated
       working-directory: ${{ github.workspace }}
       run: |
-        test -f ".pio/build/esp32-s3-n32r16v-touch-debug/config/sdkconfig.h"
+        test -f ".pio/build/esp32-s3-n16r8-touch-debug/config/sdkconfig.h"
 
     - name: Upload test firmware
       uses: actions/upload-artifact@v4
       with:
         name: firmware-test
-        path: .pio/build/esp32-s3-n32r16v-touch-debug/firmware.bin
+        path: .pio/build/esp32-s3-n16r8-touch-debug/firmware.bin
         if-no-files-found: error
 
     - name: Build verification summary
@@ -75,8 +75,8 @@ jobs:
         echo "# 🧪 Test Environment Build Report" > BUILD_REPORT.md
         echo "**Commit:** ${{ github.sha }}" >> BUILD_REPORT.md
         echo "**Branch:** ${{ github.ref_name }}" >> BUILD_REPORT.md
-        SIZE=$(ls -lh ".pio/build/esp32-s3-n32r16v-touch-debug/firmware.bin" | awk '{print $5}')
-        echo "| esp32-s3-n32r16v-touch-debug | OK | $SIZE |" >> BUILD_REPORT.md
+        SIZE=$(ls -lh ".pio/build/esp32-s3-n16r8-touch-debug/firmware.bin" | awk '{print $5}')
+        echo "| esp32-s3-n16r8-touch-debug | OK | $SIZE |" >> BUILD_REPORT.md
         cat BUILD_REPORT.md
 
     - name: Upload build report

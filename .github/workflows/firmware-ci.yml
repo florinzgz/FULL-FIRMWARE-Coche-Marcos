@@ -43,10 +43,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           for env in \
-            esp32-s3-n32r16v \
-            esp32-s3-n32r16v-release \
-            esp32-s3-n32r16v-touch-debug \
-            esp32-s3-n32r16v-no-touch
+            esp32-s3-n16r8 \
+            esp32-s3-n16r8-release \
+            esp32-s3-n16r8-touch-debug \
+            esp32-s3-n16r8-no-touch
           do
             echo "🔧 Building $env"
             pio run -t clean -e $env
