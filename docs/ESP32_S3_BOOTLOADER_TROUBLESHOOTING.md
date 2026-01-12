@@ -261,8 +261,8 @@ CONFIG_ESP_COREDUMP_ENABLE_TO_NONE=y
 
 **Opcional para debugging avanzado** (no incluido por defecto):
 ```csv
-# Si necesitas core dumps, añade al final:
-coredump, data, coredump, 0x1000000, 0x10000,  # 64KB para debug
+# Si necesitas core dumps, añade al final (últimos 64KB de una flash de 16MB):
+coredump, data, coredump, 0xF00000, 0x10000,  # 64KB para debug
 ```
 
 ### 3. Board Definition (boards/esp32s3_n16r8.json)
