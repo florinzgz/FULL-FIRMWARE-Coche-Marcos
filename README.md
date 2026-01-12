@@ -32,6 +32,10 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 
 **⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3 N16R8** con 16MB Flash QIO y 8MB PSRAM QSPI @ 3.3V. Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles de hardware.
 
+**🚨 PROBLEMAS DE BOOTLOOP:** Si experimentas bootloops, errores de core dump o el puerto COM desaparece, consulta:
+- **[BOOTLOADER_RECOVERY_QUICKSTART.md](BOOTLOADER_RECOVERY_QUICKSTART.md)** - Solución rápida en 3 pasos
+- **[docs/ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md](docs/ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md)** - Guía completa de troubleshooting
+
 ### Compilación
 
 ```bash
@@ -65,6 +69,8 @@ pio device monitor
 La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
+- **[BOOTLOADER_RECOVERY_QUICKSTART.md](BOOTLOADER_RECOVERY_QUICKSTART.md)** - 🚨 **Solución rápida para bootloop/core dump**
+- **[docs/ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md](docs/ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md)** - 🔧 **Troubleshooting completo de bootloader**
 - **[PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md)** - ⚠️ **NUEVO PHASE 14** - Certificación de hardware N16R8
 - **[PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md)** - Guía rápida de migración a N16R8
 - **[HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md)** - Verificación de hardware y datasheets

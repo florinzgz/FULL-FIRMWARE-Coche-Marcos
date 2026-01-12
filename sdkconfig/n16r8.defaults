@@ -11,5 +11,9 @@ CONFIG_SPIRAM_MEMTEST=y
 CONFIG_ESP32S3_DATA_CACHE_64KB=y
 CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
 
+# Core dump disabled - no coredump partition in default tables
+# To enable core dumps, add coredump partition and change to CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_ENABLE_TO_NONE=y
+
 CONFIG_USB_CDC_ENABLED=y
 CONFIG_USB_CDC_ON_BOOT=y
