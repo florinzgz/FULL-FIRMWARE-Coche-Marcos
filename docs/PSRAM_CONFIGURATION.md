@@ -1,14 +1,14 @@
 # Configuración y Uso de PSRAM en ESP32-S3
 
-**Fecha:** 2026-01-07  
-**Hardware:** ESP32-S3 (QFN56) rev 0.2 - 32MB Flash + 16MB PSRAM AP_1v8  
-**Firmware:** v2.11.5+
+**Fecha:** 2026-01-12  
+**Hardware:** ESP32-S3 N16R8 - 16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V  
+**Firmware:** v2.17.1+
 
 ---
 
 ## 📋 Resumen Ejecutivo
 
-Este documento detalla la configuración completa de PSRAM (Pseudo Static RAM) en el ESP32-S3 y cómo el firmware la utiliza para mejorar el rendimiento y capacidad del sistema.
+Este documento detalla la configuración completa de PSRAM (Pseudo Static RAM) en el ESP32-S3 N16R8 y cómo el firmware la utiliza para mejorar el rendimiento y capacidad del sistema.
 
 ---
 
@@ -16,19 +16,19 @@ Este documento detalla la configuración completa de PSRAM (Pseudo Static RAM) e
 
 ### Hardware Actual Detectado
 
-- **Modelo:** ESP32-S3 (QFN56) rev 0.2
-- **Flash:** 32 MB (Macronix, manufacturer 0xC2, device 0x8039)
-- **PSRAM:** 16 MB (AP_1v8 - Embedded, 1.8V)
-- **Tipo:** Octal SPI PSRAM (OPI)
+- **Modelo:** ESP32-S3-WROOM-2 N16R8
+- **Flash:** 16 MB (QIO mode, 4-bit, 3.3V @ 80MHz)
+- **PSRAM:** 8 MB (ESPPSRAM32, AP_3v3 - 3.3V)
+- **Tipo:** Quad SPI PSRAM (QSPI, 4-bit)
 - **Velocidad:** 80 MHz
 
 ### Especificaciones del Módulo
 
-El módulo ESP32-S3 QFN56 rev 0.2 incluye:
-- **Embedded PSRAM:** 16MB (AP_1v8)
-- **Flash externa:** 32MB Macronix
-- **Voltaje PSRAM:** 1.8V (AP_1v8)
-- **Interface PSRAM:** Octal SPI (8 pines de datos)
+El módulo ESP32-S3 N16R8 incluye:
+- **Embedded PSRAM:** 8MB (ESPPSRAM32, AP_3v3)
+- **Flash externa:** 16MB
+- **Voltaje PSRAM:** 3.3V (AP_3v3)
+- **Interface PSRAM:** Quad SPI (4 data lines)
 
 ---
 
@@ -37,61 +37,52 @@ El módulo ESP32-S3 QFN56 rev 0.2 incluye:
 ### 2.1 Configuración de Board
 
 ```ini
-[env:esp32-s3-devkitc1]
+[env:esp32-s3-n16r8]
 platform = espressif32@6.12.0
-board = esp32-s3-devkitc-1
+board = esp32s3_n16r8
 framework = arduino
 
 board_build.mcu = esp32s3
 board_build.f_cpu = 240000000L
 
 ; ---- MEMORIA ----
-board_build.flash_size = 32MB
+board_build.flash_size = 16MB
 board_build.flash_mode = qio
-board_build.psram = enabled          # ✅ Habilita PSRAM
-board_build.psram_size = 16MB        # ✅ Tamaño correcto
-board_build.partitions = partitions_32mb.csv
+board_build.arduino.memory_type = qio_qspi  # QIO Flash + QSPI PSRAM
+board_build.partitions = partitions/n16r8_ota.csv
+board_build.sdkconfig = sdkconfig/n16r8.defaults
 ```
 
-### 2.2 Build Flags de PSRAM
+### 2.2 SDK Configuration (sdkconfig/n16r8.defaults)
 
-```ini
-build_flags =
-    ; ---- PSRAM 16MB AP_1v8 (1.8V) ----
-    -DBOARD_HAS_PSRAM                           # Indica que hay PSRAM disponible
-    -DCONFIG_ESP32S3_SPIRAM_SUPPORT=1           # Soporte ESP32-S3 SPIRAM
-    -DCONFIG_SPIRAM=1                           # Habilita SPIRAM globalmente
-    -DCONFIG_SPIRAM_MODE_OCT=1                  # Modo Octal (OPI) para mejor rendimiento
-    -DCONFIG_SPIRAM_SPEED_80M=1                 # Velocidad 80MHz
-    -DCONFIG_SPIRAM_USE_MALLOC=1                # Permite malloc() usar PSRAM
-    -DCONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384 # Objetos < 16KB van a RAM interna
-    -DCONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768 # Reserva 32KB RAM interna
-    -DCONFIG_SPIRAM_SIZE=16777216               # 16MB = 16777216 bytes
-    ; AP_1v8 voltage configuration (1.8V PSRAM)
-    -DCONFIG_ESP32S3_DATA_CACHE_64KB=1
-    -DCONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=1
+The PSRAM is configured via SDK defaults:
+
+```
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_SPIRAM_MODE_QUAD=y      # Quad SPI (4-bit)
+CONFIG_SPIRAM_SIZE=8388608     # 8MB
+CONFIG_SPIRAM_SPEED_80M=y      # 80MHz
 ```
 
-### 2.3 Explicación de Flags Importantes
+### 2.3 Explicación de Configuración
 
-| Flag | Propósito | Valor Recomendado |
-|------|-----------|-------------------|
-| `CONFIG_SPIRAM_MODE_OCT` | Modo de interfaz SPI | `1` (Octal = más rápido) |
-| `CONFIG_SPIRAM_SPEED_80M` | Velocidad del bus | `1` (80MHz óptimo) |
-| `CONFIG_SPIRAM_USE_MALLOC` | malloc() automático en PSRAM | `1` (recomendado) |
-| `CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL` | Tamaño límite para RAM interna | `16384` (16KB) |
-| `CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL` | RAM interna reservada | `32768` (32KB mínimo) |
-| `CONFIG_SPIRAM_SIZE` | Tamaño PSRAM | `16777216` (16MB) |
+| Parameter | Propósito | Valor |
+|-----------|-----------|-------|
+| `memory_type` | Flash + PSRAM mode | `qio_qspi` (QIO Flash + QSPI PSRAM) |
+| `SPIRAM_MODE_QUAD` | Modo de interfaz SPI | Quad (4-bit @ 3.3V) |
+| `SPIRAM_SPEED_80M` | Velocidad del bus | 80MHz (óptimo) |
+| `SPIRAM_SIZE` | Tamaño PSRAM | 8388608 (8MB) |
 
-### 2.4 Particiones para 32MB Flash
+### 2.4 Particiones para 16MB Flash
 
 ```csv
 # Name,   Type, SubType, Offset,  Size, Flags
-nvs,      data, nvs,     0x9000,  0x5000,
-otadata,  data, ota,     0xe000,  0x2000,
-app0,     app,  ota_0,   0x10000, 0xA00000,    # 10MB por app
-app1,     app,  ota_1,   ,        0xA00000,    # 10MB por app
-spiffs,   data, spiffs,  ,        0xBF0000,    # 12.2MB para datos
+nvs,      data, nvs,     0x9000,  0x6000,
+otadata,  data, ota,     0xf000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0x7F0000,    # ~8MB por app
+app1,     app,  ota_1,   ,        0x7F0000,    # ~8MB por app
+spiffs,   data, spiffs,  ,        0x10000,     # 64KB para datos
 ```
 
 ---

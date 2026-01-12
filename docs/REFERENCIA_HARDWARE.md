@@ -1,10 +1,10 @@
 # 🚗 HARDWARE REFERENCE - ESP32-S3 Car Control System
 
-## Versión Firmware: 2.11.0
-## Fecha: 2026-01-08
-## Placa: ESP32-S3-WROOM-2 N32R16V en ESP32-S3-DevKitC-1 (44 pines)
+## Versión Firmware: 2.17.1
+## Fecha: 2026-01-12
+## Placa: ESP32-S3-WROOM-2 N16R8 en ESP32-S3-DevKitC-1 (44 pines)
 
-⚠️ **IMPORTANTE:** Este proyecto usa ESP32-S3-WROOM-2 (32MB Flash + 16MB PSRAM). Ver [HARDWARE_VERIFICATION.md](../HARDWARE_VERIFICATION.md) para verificar compatibilidad.
+⚠️ **IMPORTANTE:** Este proyecto usa ESP32-S3-WROOM-2 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V). Ver [../HARDWARE.md](../HARDWARE.md) para especificación oficial del hardware.
 
 ---
 
@@ -30,11 +30,11 @@ El **ESP32-S3 Car Control System** es un sistema de control integral para vehíc
 ### 2.1 Placa Principal
 | Componente | Especificación |
 |------------|----------------|
-| **MCU** | ESP32-S3-WROOM-2 N32R16V |
+| **MCU** | ESP32-S3-WROOM-2 N16R8 |
 | **Placa Dev** | ESP32-S3-DevKitC-1 (44 pines) |
 | **CPU** | Dual-core Xtensa LX7 @ 240 MHz |
-| **Flash** | 32 MB (QIO mode) |
-| **PSRAM** | 16 MB (OPI mode) |
+| **Flash** | 16 MB (QIO mode, 4-bit, 3.3V) @ 80MHz |
+| **PSRAM** | 8 MB (QSPI mode, 4-bit, 3.3V) @ 80MHz |
 | **Voltaje** | 3.3V lógica, 5V entrada |
 | **Datasheet** | [ESP32-S3-WROOM-2](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-2_datasheet_en.pdf) |
 

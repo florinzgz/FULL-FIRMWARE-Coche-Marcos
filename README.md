@@ -156,14 +156,16 @@ CONFIG_ESP_IPC_TASK_STACK_SIZE=3072    ; 3 KB
 
 ## 📝 Novedades PHASE 14 (v2.17.1)
 
-- 🔄 **Migración de Hardware:** De N32R16V (32MB OPI) a N16R8 (16MB QIO + 8MB QSPI @ 3.3V)
-- 🚀 **Simplificación:** Eliminación completa de OPI/OCT - Solo QIO + QSPI estándar
+- ✅ **Hardware Migrado:** Firmware ahora ejecuta exclusivamente en ESP32-S3 N16R8
+  - 16MB Flash QIO (4-bit, 3.3V)
+  - 8MB PSRAM QSPI (4-bit, 3.3V)
+- 🔄 **Configuración Unificada:** Eliminados todos los restos de N32R16V (32MB OPI)
 - ⚡ **Mayor Confiabilidad:** Dominio único de voltaje 3.3V (no más 1.8V)
 - 📦 **Nuevas Particiones:** Tablas de partición optimizadas para 16MB flash
 - 🛡️ **Boot Certificado:** Sin dependencias de eFuse, configuración probada
-- 📚 **Documentación Completa:** Certificación detallada en PHASE14_N16R8_BOOT_CERTIFICATION.md
+- 📚 **Documentación Oficial:** Ver [HARDWARE.md](HARDWARE.md) para especificación completa
 
-Ver [PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md) para guía de migración.
+Ver [PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md) para detalles técnicos.
 
 ### Novedades v2.11.0
 
