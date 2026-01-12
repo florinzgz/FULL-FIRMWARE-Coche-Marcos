@@ -1,12 +1,26 @@
 # ESP32-S3 BOOTLOOP FIX - QUICK REFERENCE
 
-## Problem
+**Status:** 📜 **HISTORICAL** - For N32R16V hardware (obsolete)  
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
+
+## Historical Problem (N32R16V)
 - ESP32-S3-WROOM-2 N32R16V (32MB OPI Flash, 16MB OPI PSRAM)
 - Infinite bootloop with `RTC_SW_SYS_RST`
 - No Serial output, setup() never reached
 
-## Root Cause
+## Historical Root Cause (N32R16V)
 Wrong ESP-IDF SDK variant: `qio_qspi` instead of `opi_opi`
+
+## Current Status
+✅ Firmware migrated to N16R8 - uses standard QIO/QSPI modes @ 3.3V  
+✅ No OPI mode required  
+✅ No bootloop issues with current hardware  
+
+See [HARDWARE.md](HARDWARE.md) for current hardware specification.
+
+---
+
+## Historical Fix (N32R16V - No Longer Applicable)
 
 ## Solution
 Custom board definition with `"memory_type": "opi_opi"`
