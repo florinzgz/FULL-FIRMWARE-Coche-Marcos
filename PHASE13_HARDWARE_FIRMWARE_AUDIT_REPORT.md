@@ -1,17 +1,34 @@
-# PHASE 13 — ESP32-S3-N32R16V Hardware & Firmware Configuration Audit
+# PHASE 13 — ESP32-S3 Hardware & Firmware Configuration Audit (Historical)
 
 **Audit Date:** 2026-01-12  
 **Auditor:** GitHub Copilot Coding Agent  
 **Audit Type:** READ-ONLY VERIFICATION  
-**Repository:** florinzgz/FULL-FIRMWARE-Coche-Marcos
+**Repository:** florinzgz/FULL-FIRMWARE-Coche-Marcos  
+**Status:** 📜 **HISTORICAL** - This audit was for N32R16V hardware (obsolete)
+
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
 
 ---
 
-## EXECUTIVE SUMMARY
+## ⚠️ IMPORTANT NOTICE
 
-This is a comprehensive READ-ONLY audit verifying that the firmware configuration exactly matches the physical ESP32-S3-N32R16V hardware specifications.
+**This document is HISTORICAL and describes an audit for the previous N32R16V hardware.**
 
-**Target Hardware Specification:**
+The firmware has been fully migrated to **ESP32-S3 N16R8** which uses:
+- 16MB QIO Flash (4-bit, 3.3V)
+- 8MB QSPI PSRAM (4-bit, 3.3V)
+- **No OPI mode** - standard QIO/QSPI only
+- **No 1.8V operation** - 3.3V only
+
+See [HARDWARE.md](HARDWARE.md) for current hardware specification.
+
+---
+
+## HISTORICAL EXECUTIVE SUMMARY (N32R16V)
+
+This is a comprehensive READ-ONLY audit verifying that the firmware configuration exactly matched the physical ESP32-S3-N32R16V hardware specifications.
+
+**Historical Target Hardware Specification (N32R16V):**
 - **Chip:** ESP32-S3 QFN56 rev v0.2
 - **Flash:** 32MB QIO 1.8V
 - **PSRAM:** 16MB OPI @ 1.8V (AP_1v8, 105°C rated)
@@ -21,26 +38,26 @@ This is a comprehensive READ-ONLY audit verifying that the firmware configuratio
 - **CAN:** TWAI (CAN) enabled
 - **Voltage:** VDD_SPI forced to 1.8V
 
-**Overall Verdict:** ✅ **PASS WITH MINOR OBSERVATIONS**
+**Overall Verdict (N32R16V):** ✅ **PASS WITH MINOR OBSERVATIONS**
 
-The firmware configuration correctly matches the hardware specifications with appropriate safety margins and fallback mechanisms.
+The firmware configuration correctly matched the N32R16V hardware specifications with appropriate safety margins and fallback mechanisms.
 
 ---
 
-## DETAILED SUBSYSTEM ANALYSIS
+## HISTORICAL SUBSYSTEM ANALYSIS (N32R16V - No Longer Applicable)
 
-### 1. FLASH CONFIGURATION — ✅ PASS
+### 1. FLASH CONFIGURATION — ✅ PASS (Historical)
 
-**Hardware Specification:**
+**Hardware Specification (N32R16V):**
 - 32MB Flash
 - QIO mode (Quad I/O, 4 data lines)
 - 80MHz operating frequency
 - 1.8V operation
 - eFuses NOT burned for OPI Flash
 
-**Configuration Verification:**
+**Configuration Verification (N32R16V):**
 
-#### 1.1 Board Definition (`boards/esp32s3_n32r16v.json`)
+#### 1.1 Board Definition (Historical - `boards/esp32s3_n32r16v.json`)
 ```json
 {
   "flash_mode": "qio",           ✅ CORRECT (not "opi" or "dio")
@@ -50,14 +67,13 @@ The firmware configuration correctly matches the hardware specifications with ap
 }
 ```
 
-**Analysis:**
-- ✅ Flash mode is QIO (matches eFuse configuration - OPI Flash eFuses NOT burned)
-- ✅ Flash size is 32MB (maximum for WROOM-2 module)
-- ✅ Flash frequency is 80MHz (safe and optimal)
-- ✅ memory_type is `qio_opi` (correctly uses QIO for Flash, OPI for PSRAM)
+**Analysis (Historical):**
+- ✅ Flash mode was QIO (matched eFuse configuration - OPI Flash eFuses NOT burned)
+- ✅ Flash size was 32MB (maximum for WROOM-2 module)
+- ✅ Flash frequency was 80MHz (safe and optimal)
+- ✅ memory_type was `qio_opi` (correctly used QIO for Flash, OPI for PSRAM)
 
-#### 1.2 SDK Configuration (`sdkconfig/n32r16v.defaults`)
-```
+#### 1.2 SDK Configuration (Historical - `sdkconfig/n32r16v.defaults`)
 CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y    ✅ CORRECT
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y     ✅ CORRECT
 ```

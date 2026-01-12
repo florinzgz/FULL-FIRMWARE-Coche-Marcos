@@ -1,8 +1,8 @@
 # Lista Completa de Asignación de GPIOs - ESP32-S3
 
-**Fecha**: 2026-01-09  
-**Versión**: v2.17.2  
-**Hardware**: ESP32-S3-WROOM-2 N32R16V (32MB Flash + 16MB PSRAM)
+**Fecha**: 2026-01-12  
+**Versión**: v2.17.1  
+**Hardware**: ESP32-S3-WROOM-2 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)
 
 ---
 

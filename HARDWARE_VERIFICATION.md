@@ -2,40 +2,39 @@
 
 ## Current Hardware Configuration
 
-**Module:** ESP32-S3-WROOM-2 N32R16V  
-**Date:** 2026-01-08  
-**Status:** ✅ VERIFIED
+**Module:** ESP32-S3-WROOM-2 N16R8  
+**Date:** 2026-01-12  
+**Status:** ✅ VERIFIED - Official Hardware
 
 ### Hardware Specifications
 
 | Component | Specification | Datasheet Reference |
 |-----------|--------------|---------------------|
-| **Module** | ESP32-S3-WROOM-2 N32R16V | [Official Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-2_datasheet_en.pdf) |
-| **Flash** | 32MB Octal SPI (OPI-capable, eFuses NOT burned) | Section 3.1 |
-| **PSRAM** | 16MB Octal SPI (Embedded) | Section 3.2 |
+| **Module** | ESP32-S3-WROOM-2 N16R8 | [Official Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-2_datasheet_en.pdf) |
+| **Flash** | 16MB QIO (Quad I/O, 4-bit, 3.3V) @ 80MHz | Section 3.1 |
+| **PSRAM** | 8MB QSPI (Quad SPI, 4-bit, 3.3V) @ 80MHz | Section 3.2 |
 | **CPU** | Dual-core Xtensa LX7 @ 240MHz | Section 2.1 |
-| **Package** | QFN56 |  Section 4.1 |
-| **Revision** | v0.2 | Boot log |
+| **Package** | QFN56 | Section 4.1 |
 
-### eFuse Configuration (CRITICAL)
+### Memory Configuration
 
-| Memory Type | Hardware Capability | eFuse Status | Operational Mode |
-|-------------|---------------------|--------------|------------------|
-| **Flash** | OPI-capable (32MB) | ❌ NOT burned | **QIO** (Quad I/O) |
-| **PSRAM** | OPI (16MB embedded) | ✅ Burned | **OPI** (Octal) |
+| Memory Type | Hardware Capability | Operational Mode | Voltage |
+|-------------|---------------------|------------------|---------|
+| **Flash** | 16MB QIO | **QIO** (Quad I/O, 4-bit) | 3.3V |
+| **PSRAM** | 8MB QSPI | **QSPI** (Quad SPI, 4-bit) | 3.3V |
 
-**Important:** The flash eFuses are ONE-TIME programmable and were NOT burned by the manufacturer. Therefore, the flash MUST operate in QIO mode, not OPI mode.
+**Important:** This module uses standard QIO/QSPI modes at 3.3V. No OPI (Octal) mode or 1.8V operation.
 
 ### Correct Configuration
 
 ```json
 {
-  "memory_type": "qio_opi",  // QIO Flash + OPI PSRAM
-  "flash_mode": "qio",       // Quad I/O for Flash
-  "psram_type": "opi",       // Octal for PSRAM
-  "flash_size": "32MB",
-  "f_flash": "80000000L",    // 80MHz
-  "f_cpu": "240000000L"      // 240MHz
+  "memory_type": "qio_qspi",  // QIO Flash + QSPI PSRAM
+  "flash_mode": "qio",        // Quad I/O for Flash
+  "psram_type": "qspi",       // Quad SPI for PSRAM
+  "flash_size": "16MB",
+  "f_flash": "80000000L",     // 80MHz
+  "f_cpu": "240000000L"       // 240MHz
 }
 ```
 
@@ -43,32 +42,32 @@
 
 ### ESP32-S3-WROOM-1/1U
 - **Maximum Flash:** 16MB (typically Quad SPI)
-- **Maximum PSRAM:** 16MB (Quad or Octal SPI)
+- **Maximum PSRAM:** 8MB (Quad SPI)
 - **Datasheet:** [ESP32-S3-WROOM-1 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf)
-- **Configuration:** N16R16V (16MB Flash + 16MB PSRAM) is maximum
+- **Configuration:** N16R8 variants available
 
 ### ESP32-S3-WROOM-2/2U
-- **Maximum Flash:** 32MB (Octal SPI capable)
-- **Maximum PSRAM:** 16MB (Octal SPI)
+- **Maximum Flash:** 32MB (supports various modes)
+- **Maximum PSRAM:** 16MB (supports various modes)
 - **Datasheet:** [ESP32-S3-WROOM-2 Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-2_datasheet_en.pdf)
-- **Configuration:** N32R16V (32MB Flash + 16MB PSRAM) ✅ **THIS IS OUR HARDWARE**
+- **Configuration:** N16R8 (16MB Flash + 8MB PSRAM) ✅ **THIS IS OUR HARDWARE**
 
 ### Why This Matters
 
-⚠️ **CRITICAL:** The N32R16V configuration (32MB Flash + 16MB PSRAM) is ONLY available on WROOM-2, NOT on WROOM-1.
+⚠️ **CRITICAL:** Always reference the correct WROOM-2 datasheet for this hardware.
 
-If you reference the WROOM-1 datasheet for WROOM-2 hardware, you will get:
+If you use the wrong datasheet, you may encounter:
 - ❌ Incorrect pin mappings
 - ❌ Incorrect memory specifications
 - ❌ Incorrect electrical characteristics
-- ❌ Potential configuration errors
+- ❌ Configuration errors leading to boot failures
 
 ## Datasheet References
 
 ### Official Espressif Documentation
 1. **ESP32-S3-WROOM-2 Datasheet (CORRECT for this project)**
    - URL: https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-2_datasheet_en.pdf
-   - Covers: N32R16V, N16R16V, N16R8V variants
+   - Covers: N32R16V, N16R16V, N16R8 variants
 
 2. **ESP32-S3 Technical Reference Manual**
    - URL: https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_en.pdf
