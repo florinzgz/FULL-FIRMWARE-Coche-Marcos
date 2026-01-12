@@ -1,6 +1,6 @@
 {
   "id": "esp32s3_n16r8",
-  "name": "ESP32-S3-WROOM-2 N16R8",
+  "name": "ESP32-S3 N16R8",
   "vendor": "Espressif",
   "url": "https://www.espressif.com",
   "frameworks": ["arduino", "espidf"],

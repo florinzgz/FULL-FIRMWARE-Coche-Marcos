@@ -1,7 +1,7 @@
 # PHASE 14: N16R8 BOOT CERTIFICATION REPORT
 
 **Date:** 2026-01-12  
-**Hardware:** ESP32-S3-WROOM-2 N16R8  
+**Hardware:** ESP32-S3 N16R8  
 **Flash:** 16MB QIO @ 80MHz, 3.3V  
 **PSRAM:** 8MB QSPI @ 80MHz, 3.3V (AP_3v3)  
 **Status:** ✅ CERTIFIED FOR PRODUCTION

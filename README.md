@@ -1,7 +1,7 @@
 # ESP32-S3 Car Control System - FULL FIRMWARE
 
 **Versión:** 2.17.1 (PHASE 14)  
-**Hardware:** ESP32-S3-WROOM-2 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)  
+**Hardware:** ESP32-S3 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)  
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
 **Última actualización:** 2026-01-12
 
@@ -26,11 +26,11 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 ### Requisitos
 
 - [PlatformIO](https://platformio.org/) instalado
-- ESP32-S3-WROOM-2 N16R8 (16MB Flash + 8MB PSRAM @ 3.3V)
+- ESP32-S3 N16R8 (16MB Flash + 8MB PSRAM @ 3.3V)
   - Compatible con placa de desarrollo ESP32-S3-DevKitC-1 (44 pines)
 - Cable USB para programación
 
-**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3-WROOM-2 N16R8** con 16MB Flash QIO y 8MB PSRAM QSPI @ 3.3V. Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles de hardware.
+**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3 N16R8** con 16MB Flash QIO y 8MB PSRAM QSPI @ 3.3V. Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles de hardware.
 
 ### Compilación
 
@@ -84,11 +84,11 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 ### Hardware ESP32-S3
 
-**Módulo:** ESP32-S3-WROOM-2 N16R8  
+**Módulo:** ESP32-S3 N16R8  
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
 **Memoria:**
 - Flash: 16MB (QIO mode, 4-bit, 3.3V)
-- PSRAM: 8MB (QSPI mode, 4-bit, 3.3V)
+- PSRAM: 8MB (QSPI mode, 4-bit, 3.3V, AP_3v3)
 
 ⚠️ **IMPORTANTE:** Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles completos de hardware y certificación de boot.
 
