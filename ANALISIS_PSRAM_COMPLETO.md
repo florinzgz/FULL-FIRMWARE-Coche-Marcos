@@ -2,42 +2,61 @@
 
 **Fecha:** 2026-01-07  
 **Proyecto:** FULL-FIRMWARE-Coche-Marcos  
-**Hardware:** ESP32-S3 (QFN56) rev 0.2 - 32MB Flash + 16MB PSRAM AP_1v8
+**Status:** 📜 **HISTORICAL** - This document describes previous N32R16V hardware  
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
 
 ---
 
-## 🎯 RESUMEN EJECUTIVO
+## ⚠️ IMPORTANT NOTICE
 
-Se ha completado la migración completa del proyecto al hardware REAL ESP32-S3.
+**This document is HISTORICAL and describes the previous N32R16V hardware configuration.**
 
-### Estado: ✅ COMPLETADO
+The firmware has been fully migrated to **ESP32-S3 N16R8** which uses:
+- 16MB QIO Flash (4-bit, 3.3V)
+- 8MB QSPI PSRAM (4-bit, 3.3V)
+- **No OPI mode** - standard QIO/QSPI only
+- **No 1.8V operation** - 3.3V only
 
-La configuración ahora refleja el hardware real:
-- ✅ 32MB Flash (Macronix 0xC2/0x8039) correctamente configurada
-- ✅ 16MB PSRAM (AP_1v8 - 1.8V) correctamente configurada
-- ✅ Particiones optimizadas para 32MB flash
-- ✅ Flags ESP-IDF configurados para AP_1v8
-- ✅ Diagnóstico completo en el arranque del sistema
-- ✅ Optimizada para máximo rendimiento (Octal 80MHz)
-- ✅ Documentación actualizada
+See [HARDWARE.md](HARDWARE.md) for current hardware specification and [docs/PSRAM_CONFIGURATION.md](docs/PSRAM_CONFIGURATION.md) for current PSRAM configuration.
 
 ---
 
-## 📊 ESPECIFICACIONES DEL HARDWARE REAL
+## 🎯 HISTORICAL EXECUTIVE SUMMARY (N32R16V)
 
-### 1. Hardware Detectado
+This document described the migration to the N32R16V hardware (now obsolete).
 
-**ANTES (configuración incorrecta):**
-- Modelo: N16R8
+### Historical Status: ✅ COMPLETED (N32R16V)
+
+The N32R16V configuration (now obsolete) used:
+- ✅ 32MB Flash (Macronix 0xC2/0x8039)
+- ✅ 16MB PSRAM (AP_1v8 - 1.8V)
+- ✅ Partitions optimized for 32MB flash
+- ✅ ESP-IDF flags configured for AP_1v8
+- ✅ Octal mode (OPI) @ 80MHz
+
+---
+
+## 📊 HISTORICAL HARDWARE SPECIFICATIONS (N32R16V)
+
+### 1. Hardware Detected (N32R16V - Obsolete)
+
+**BEFORE N32R16V (incorrect configuration):**
+- Model: N16R8
 - Flash: 16MB ❌
 - PSRAM: 8MB ❌
-- Voltaje: 3.3V ❌
+- Voltage: 3.3V ❌
 
-**AHORA (hardware real):**
-- **Modelo:** ESP32-S3 (QFN56) rev 0.2
+**DURING N32R16V (now obsolete):**
+- **Model:** ESP32-S3 (QFN56) rev 0.2
 - **Flash:** 32MB (Macronix, manufacturer 0xC2, device 0x8039) ✅
 - **PSRAM:** 16MB Embedded (AP_1v8 - 1.8V) ✅
-- **Cristal:** 40MHz ✅
+- **Crystal:** 40MHz ✅
+
+**CURRENT N16R8 (official):**
+- **Model:** ESP32-S3-WROOM-2 N16R8
+- **Flash:** 16MB QIO (4-bit, 3.3V) @ 80MHz ✅
+- **PSRAM:** 8MB QSPI (4-bit, 3.3V) @ 80MHz ✅
+- **Crystal:** 40MHz ✅
 
 ### 2. Configuración Implementada
 

@@ -1,17 +1,17 @@
-# MIGRACIÓN COMPLETA AL HARDWARE REAL ESP32-S3
+# MIGRACIÓN COMPLETA AL HARDWARE ESP32-S3 N16R8
 
-**Fecha:** 2026-01-07  
+**Fecha:** 2026-01-12  
 **Estado:** ✅ COMPLETADO  
-**Versión:** 2.11.5+
+**Versión:** 2.17.1+
 
 ---
 
 ## 🎯 OBJETIVO
 
-Reconfigurar TODO el proyecto para el hardware ESP32-S3 REAL detectado:
-- **ESP32-S3 (QFN56) rev 0.2**
-- **Flash:** 32MB (Macronix, manufacturer 0xC2, device 0x8039)
-- **PSRAM:** 16MB Embedded (AP_1v8 - 1.8V)
+Reconfigurar TODO el proyecto para el hardware ESP32-S3 N16R8 oficial:
+- **ESP32-S3-WROOM-2 N16R8**
+- **Flash:** 16MB QIO (4-bit, 3.3V) @ 80MHz
+- **PSRAM:** 8MB QSPI (4-bit, 3.3V) @ 80MHz
 - **Cristal:** 40MHz
 
 ---
@@ -20,63 +20,44 @@ Reconfigurar TODO el proyecto para el hardware ESP32-S3 REAL detectado:
 
 ### 1. platformio.ini
 
-#### Cambios en configuración de memoria:
+#### Configuración de memoria:
 ```ini
-# ANTES (INCORRECTO)
-; Hardware actual: ESP32-S3-WROOM-2 N16R8 (16MB Flash, 8MB PSRAM)
-board_build.flash_size = 16MB
-board_build.psram = enabled
-board_build.psram_size = 8MB
-board_build.partitions = huge_app.csv
-
-# AHORA (CORRECTO)
-; Hardware actual: ESP32-S3 (QFN56) rev 0.2 - 32MB Flash + 16MB PSRAM AP_1v8
-board_build.flash_size = 32MB
-board_build.flash_mode = qio
-board_build.psram = enabled
-board_build.psram_size = 16MB
-board_build.partitions = partitions_32mb.csv
+# CONFIGURACIÓN ACTUAL (CORRECTA)
+; Hardware: ESP32-S3-WROOM-2 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)
+board = esp32s3_n16r8
+board_build.partitions = partitions/n16r8_ota.csv
+board_build.sdkconfig = sdkconfig/n16r8.defaults
+board_build.arduino.memory_type = qio_qspi
 ```
 
-#### Nuevos flags ESP-IDF para PSRAM AP_1v8:
-```ini
-build_flags =
-    ; ---- PSRAM 16MB AP_1v8 (1.8V) ----
-    -DBOARD_HAS_PSRAM
-    -DCONFIG_ESP32S3_SPIRAM_SUPPORT=1
-    -DCONFIG_SPIRAM=1
-    -DCONFIG_SPIRAM_MODE_OCT=1
-    -DCONFIG_SPIRAM_SPEED_80M=1
-    -DCONFIG_SPIRAM_USE_MALLOC=1
-    -DCONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
-    -DCONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
-    -DCONFIG_SPIRAM_SIZE=16777216              # NUEVO: 16MB explícito
-    ; AP_1v8 voltage configuration (1.8V PSRAM)
-    -DCONFIG_ESP32S3_DATA_CACHE_64KB=1         # NUEVO
-    -DCONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=1  # NUEVO
-```
+#### Configuración SDK:
+El proyecto usa SDK defaults en lugar de build flags:
+- Configuración gestionada por `sdkconfig/n16r8.defaults`
+- Modo `qio_qspi` para Flash QIO + PSRAM QSPI
+- Todo a 3.3V, sin necesidad de configuraciones especiales
 
-**Razón:** El hardware real tiene el doble de flash y PSRAM que la configuración anterior.
+**Razón:** Configuración estándar, estable y bien soportada.
 
 ---
 
-### 2. sdkconfig.defaults
+### 2. sdkconfig/n16r8.defaults
 
 ```ini
-# ANTES
+# Configuración actual
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_SPIRAM_MODE_QUAD=y
 CONFIG_SPIRAM_SIZE=8388608  # 8MB
-
-# AHORA
-CONFIG_SPIRAM_SIZE=16777216  # 16MB
+CONFIG_SPIRAM_SPEED_80M=y
 ```
 
-**Razón:** Reflejar el tamaño real de PSRAM (16MB).
+**Razón:** Reflejar el tamaño real de Flash (16MB) y PSRAM (8MB).
 
 ---
 
-### 3. partitions_32mb.csv (NUEVO ARCHIVO)
+### 3. partitions/n16r8_ota.csv
 
-Creado esquema de particiones optimizado para 32MB flash:
+Esquema de particiones optimizado para 16MB flash:
 
 ```csv
 # Name,   Type, SubType, Offset,  Size, Flags

@@ -1,12 +1,21 @@
 # Bootloop Fix Summary - Quick Reference
 
-## Problem
-ESP32-S3 N32R16V bootloop in `esp32-s3-n32r16v-standalone` environment.
+**Status:** 📜 **HISTORICAL** - For N32R16V hardware (obsolete)  
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
 
-## Root Cause
+## Historical Problem (N32R16V)
+ESP32-S3 N32R16V bootloop in previous configuration.
+
+## Historical Root Cause (N32R16V)
 Global `TFT_eSPI` constructor running before OPI PSRAM initialization.
 
-## Solution (3 changes)
+## Current Status
+✅ Firmware migrated to N16R8 - no OPI mode, no bootloop issues.  
+See [HARDWARE.md](HARDWARE.md) for current hardware specification.
+
+---
+
+## Historical Solution (N32R16V - No Longer Applicable)
 
 ### 1. Fix Global Constructor ✅
 **File:** `src/hud/hud_manager.cpp:26`

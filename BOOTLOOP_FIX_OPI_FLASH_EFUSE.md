@@ -1,23 +1,38 @@
-# ESP32-S3 Boot Crash Fix - OPI Flash eFuse Configuration Issue
+# ESP32-S3 Boot Fix - Historical OPI Flash eFuse Issue (N32R16V)
 
 **Date:** 2026-01-08  
-**Status:** ✅ **FIXED**
+**Status:** 📜 **HISTORICAL** - This document describes a fix for previous N32R16V hardware  
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
 
 ---
 
-## CRITICAL ERROR RESOLVED
+## ⚠️ IMPORTANT NOTICE
+
+**This document is HISTORICAL and describes an issue that affected the previous N32R16V hardware.**
+
+The firmware has been fully migrated to **ESP32-S3 N16R8** which uses:
+- 16MB QIO Flash (4-bit, 3.3V)
+- 8MB QSPI PSRAM (4-bit, 3.3V)
+- **No OPI mode** - standard QIO/QSPI only
+- **No eFuse issues** - uses standard configuration
+
+See [HARDWARE.md](HARDWARE.md) for current hardware specification.
+
+---
+
+## HISTORICAL ERROR RESOLVED (N32R16V Only)
 
 **Error Message:**
 ```
 Octal Flash option selected, but EFUSE not configured!
 ```
 
-**Root Cause:**
-The board JSON was configured with `memory_type: "opi_opi"`, which instructs ESP-IDF to use OPI (Octal SPI) mode for BOTH Flash and PSRAM. However, the ESP32-S3-WROOM-2 N32R16V hardware has **OPI Flash eFuses NOT burned**, making OPI Flash mode impossible.
+**Root Cause (N32R16V):**
+The board JSON was configured with `memory_type: "opi_opi"`, which instructs ESP-IDF to use OPI (Octal SPI) mode for BOTH Flash and PSRAM. However, the ESP32-S3-WROOM-2 N32R16V hardware had **OPI Flash eFuses NOT burned**, making OPI Flash mode impossible.
 
 ---
 
-## HARDWARE CONFIGURATION
+## HISTORICAL HARDWARE CONFIGURATION (N32R16V)
 
 | Component | Capability | eFuse Status | Working Mode |
 |-----------|-----------|--------------|--------------|

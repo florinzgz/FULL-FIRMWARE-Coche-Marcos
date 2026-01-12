@@ -1,63 +1,65 @@
-# ✅ MIGRACIÓN COMPLETADA - Hardware ESP32-S3 Real
+# ✅ MIGRACIÓN COMPLETADA - Hardware ESP32-S3 N16R8
 
-**Fecha:** 2026-01-07  
+**Fecha:** 2026-01-12  
 **Estado:** ✅ COMPLETADO  
 
 ---
 
 ## 🎯 OBJETIVO CUMPLIDO
 
-Se ha completado exitosamente la migración del proyecto al hardware ESP32-S3 REAL:
+Se ha completado exitosamente la migración del proyecto al hardware ESP32-S3 N16R8:
 
-### Hardware Real Detectado
+### Hardware Oficial
 ```
-ESP32-S3 (QFN56) rev 0.2
-├── Flash: 32MB (Macronix, manufacturer 0xC2, device 0x8039)
-├── PSRAM: 16MB Embedded (AP_1v8 - 1.8V)
+ESP32-S3-WROOM-2 N16R8
+├── Flash: 16MB QIO (Quad I/O, 4-bit, 3.3V) @ 80MHz
+├── PSRAM: 8MB QSPI (Quad SPI, 4-bit, 3.3V) @ 80MHz
 └── Cristal: 40MHz
 ```
 
 ### ¿Qué se hizo?
 
 ✅ **Reconfigurado COMPLETAMENTE el proyecto**  
-✅ **Eliminadas TODAS las referencias antiguas** (N16R8, 8MB PSRAM, 16MB Flash)  
+✅ **Eliminadas TODAS las referencias antiguas** (N32R16V, 32MB Flash, 16MB PSRAM, OPI, 1.8V)  
 ✅ **Actualizado TODO el código y documentación**  
-✅ **Creado particiones optimizadas para 32MB**  
-✅ **Configurado flags correctos para AP_1v8 (1.8V)**  
+✅ **Creado particiones optimizadas para 16MB**  
+✅ **Configurado para QIO/QSPI @ 3.3V**  
 
 ---
 
 ## 📊 RESULTADOS
 
-### Memoria Ahora Disponible
+### Configuración de Memoria
 
-| Recurso | Antes | Ahora | Ganancia |
-|---------|-------|-------|----------|
-| **Flash Total** | 16MB | 32MB | +100% |
-| **PSRAM Total** | 8MB | 16MB | +100% |
-| **App OTA 0** | ~3MB | 10MB | +233% |
-| **App OTA 1** | ~3MB | 10MB | +233% |
-| **Almacenamiento** | ~5MB | 12.2MB | +144% |
+| Recurso | Especificación | Modo |
+|---------|----------------|------|
+| **Flash Total** | 16MB | QIO (4-bit, 3.3V) |
+| **PSRAM Total** | 8MB | QSPI (4-bit, 3.3V) |
+| **App OTA 0** | ~8MB | Suficiente para firmware |
+| **App OTA 1** | ~8MB | Suficiente para firmware |
+| **Almacenamiento** | 64KB | SPIFFS para datos |
 
 ### Archivos Modificados
 
 **Configuración Principal:**
-1. ✅ `platformio.ini` - Flash 32MB, PSRAM 16MB, flags AP_1v8
-2. ✅ `sdkconfig.defaults` - CONFIG_SPIRAM_SIZE=16777216
-3. ✅ `partitions_32mb.csv` - **NUEVO** layout optimizado
+1. ✅ `platformio.ini` - Flash 16MB, PSRAM 8MB, qio_qspi
+2. ✅ `sdkconfig/n16r8.defaults` - CONFIG_SPIRAM_SIZE=8388608
+3. ✅ `partitions/n16r8_ota.csv` - Layout optimizado para 16MB
 
-**Código Fuente:**
-4. ✅ `src/core/system.cpp` - Validación 16MB PSRAM
+**Board Definition:**
+4. ✅ `boards/esp32s3_n16r8.json` - Definición oficial N16R8
 
 **Documentación:**
-5. ✅ `project_config.ini` - Hardware real documentado
-6. ✅ `docs/PSRAM_CONFIGURATION.md` - Guía técnica actualizada
-7. ✅ `ANALISIS_PSRAM_COMPLETO.md` - Análisis completo
-8. ✅ `PSRAM_QUICKSTART.md` - Guía rápida
+5. ✅ `HARDWARE.md` - **NUEVO** - Especificación oficial del hardware
+6. ✅ `README.md` - Actualizado para N16R8
+7. ✅ `docs/REFERENCIA_HARDWARE.md` - Hardware reference actualizado
+8. ✅ `docs/PSRAM_CONFIGURATION.md` - Configuración PSRAM para N16R8
+9. ✅ `GPIO_ASSIGNMENT_LIST.md` - Lista de GPIOs actualizada
+10. ✅ `HARDWARE_VERIFICATION.md` - Verificación de hardware N16R8
 
-**Documentación de Migración (NUEVOS):**
-9. ✅ `MIGRACION_HARDWARE_REAL.md` - Resumen ejecutivo
-10. ✅ `EXPLICACION_MODIFICACIONES.md` - Explicación detallada
+**Documentación Eliminada:**
+11. ✅ Eliminado `docs/ESP32-S3-DEVKITC-1-N32R16V-CONFIG.md` (obsoleto)
+12. ✅ Eliminado `VERIFICATION_SUMMARY_N32R16V.md` (obsoleto)
 
 ---
 

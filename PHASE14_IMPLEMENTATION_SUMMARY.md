@@ -1,16 +1,18 @@
 # PHASE 14 IMPLEMENTATION SUMMARY
 
 **Date:** 2026-01-12  
-**Phase:** PHASE 14 - Complete Hardware Migration  
-**Status:** ✅ COMPLETE  
+**Phase:** PHASE 14 - Complete Hardware Migration to N16R8  
+**Status:** ✅ COMPLETE - N16R8 is now the ONLY hardware  
 
 ---
 
 ## Executive Summary
 
-Successfully migrated the FULL-FIRMWARE-Coche-Marcos repository from ESP32-S3-N32R16V (32MB OPI Flash + 16MB OPI PSRAM @ 1.8V) to ESP32-S3-N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V).
+Successfully migrated the FULL-FIRMWARE-Coche-Marcos repository from ESP32-S3-N32R16V (32MB OPI Flash + 16MB OPI PSRAM @ 1.8V) to **ESP32-S3-N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)**.
 
-This is a **permanent, surgical migration** that eliminates all OPI/OCT complexity while maintaining 100% functionality.
+This is a **permanent, complete migration**. The firmware now operates **exclusively** on N16R8 hardware. All references to N32R16V, OPI mode, and 1.8V operation have been removed.
+
+See [HARDWARE.md](HARDWARE.md) for the official hardware specification.
 
 ---
 

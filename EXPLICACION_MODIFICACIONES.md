@@ -1,43 +1,75 @@
-# EXPLICACIÓN DETALLADA DE CADA MODIFICACIÓN
+# EXPLICACIÓN DETALLADA DE MODIFICACIONES
 
 **Fecha:** 2026-01-07  
-**Objetivo:** Documentar TODOS los cambios realizados para adaptar el proyecto al hardware ESP32-S3 REAL
+**Status:** 📜 **HISTORICAL** - This document describes N32R16V modifications (obsolete)  
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
 
 ---
 
-## 📋 ÍNDICE DE MODIFICACIONES
+## ⚠️ IMPORTANT NOTICE
 
-1. [platformio.ini - Configuración Principal](#1-platformioini)
-2. [sdkconfig.defaults - Configuración ESP-IDF](#2-sdkconfigdefaults)
-3. [partitions_32mb.csv - Nuevo Layout de Particiones](#3-partitions_32mbcsv)
-4. [system.cpp - Diagnóstico de Memoria](#4-systemcpp)
-5. [project_config.ini - Documentación de Hardware](#5-project_configini)
-6. [PSRAM_CONFIGURATION.md - Guía Técnica](#6-psram_configurationmd)
-7. [ANALISIS_PSRAM_COMPLETO.md - Análisis Completo](#7-analisis_psram_completomd)
-8. [PSRAM_QUICKSTART.md - Guía Rápida](#8-psram_quickstartmd)
+**This document is HISTORICAL and describes modifications made for the previous N32R16V hardware.**
+
+The firmware has been fully migrated to **ESP32-S3 N16R8** which uses:
+- 16MB QIO Flash (4-bit, 3.3V)
+- 8MB QSPI PSRAM (4-bit, 3.3V)
+- **No OPI mode** - standard QIO/QSPI only
+- **No 1.8V operation** - 3.3V only
+
+See [HARDWARE.md](HARDWARE.md) for current hardware specification.
 
 ---
 
-## 1. platformio.ini
+## 📋 HISTORICAL MODIFICATIONS INDEX (N32R16V)
 
-### 📝 Cambio 1.1: Comentario de Hardware
+This document described changes made for the N32R16V hardware (now obsolete):
 
-**ANTES:**
+1. platformio.ini - Flash 32MB, PSRAM 16MB, OPI mode
+2. sdkconfig.defaults - SPIRAM_SIZE=16777216, OPI configuration
+3. partitions_32mb.csv - 32MB flash layout
+4. system.cpp - 16MB PSRAM diagnostics
+5. project_config.ini - N32R16V hardware documentation
+6. PSRAM_CONFIGURATION.md - OPI PSRAM @ 1.8V
+7. ANALISIS_PSRAM_COMPLETO.md - N32R16V analysis
+8. PSRAM_QUICKSTART.md - N32R16V quick guide
+
+---
+
+## CURRENT CONFIGURATION (N16R8)
+
+The firmware now uses:
+
+1. **platformio.ini** - Flash 16MB, PSRAM 8MB, qio_qspi mode
+2. **sdkconfig/n16r8.defaults** - SPIRAM_SIZE=8388608, QSPI configuration
+3. **partitions/n16r8_ota.csv** - 16MB flash layout
+4. **boards/esp32s3_n16r8.json** - N16R8 board definition
+
+See [LEEME_MIGRACION.md](LEEME_MIGRACION.md) for migration summary.
+
+---
+
+## 1. HISTORICAL: platformio.ini (N32R16V)
+
+### 📝 Historical Change 1.1: Hardware Comment (N32R16V)
+
+**BEFORE N32R16V:**
 ```ini
 ; Hardware actual: ESP32-S3-WROOM-2 N16R8 (16MB Flash, 8MB PSRAM)
 ```
 
-**AHORA:**
+**DURING N32R16V (now obsolete):**
 ```ini
 ; Hardware actual: ESP32-S3 (QFN56) rev 0.2 - 32MB Flash + 16MB PSRAM AP_1v8
 ; Flash: 32MB (Macronix, manufacturer 0xC2, device 0x8039)
 ; PSRAM: 16MB Embedded (AP_1v8 - 1.8V)
 ```
 
-**Por qué:**
-- El módulo NO es un WROOM-2 N16R8
-- Es un ESP32-S3 en package QFN56 con chip embebido
-- Tiene el DOBLE de flash y PSRAM que lo configurado
+**CURRENT N16R8:**
+```ini
+; Hardware: ESP32-S3-WROOM-2 N16R8 (16MB Flash + 8MB PSRAM)
+; Flash: 16MB QIO mode (4-bit, 3.3V)
+; PSRAM: 8MB QSPI mode (4-bit, 3.3V)
+```
 - El flash es Macronix (importante para velocidad/compatibilidad)
 - La PSRAM es de 1.8V, no 3.3V
 
