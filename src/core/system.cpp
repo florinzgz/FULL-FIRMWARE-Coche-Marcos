@@ -177,13 +177,14 @@ void System::init() {
                   (usedPsram * 100.0f) / psramSize);
 
     // Validar tamaño esperado
-    constexpr uint32_t EXPECTED_PSRAM_SIZE = 16 * 1024 * 1024; // 16MB
+    // 🔒 v2.11.4: Updated for N16R8 hardware (8MB PSRAM, not 16MB)
+    constexpr uint32_t EXPECTED_PSRAM_SIZE = 8 * 1024 * 1024; // 8MB for N16R8
     if (psramSize >= EXPECTED_PSRAM_SIZE) {
       Logger::info(
-          "System init: ✅ Tamaño de PSRAM coincide con hardware (16MB)");
+          "System init: ✅ Tamaño de PSRAM coincide con hardware (8MB N16R8)");
     } else {
       Logger::warnf(
-          "System init: ⚠️ Tamaño de PSRAM menor al esperado: %.2f MB < 16 MB",
+          "System init: ⚠️ Tamaño de PSRAM menor al esperado: %.2f MB < 8 MB",
           psramSize / BYTES_PER_MB);
     }
   } else {
