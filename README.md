@@ -1,9 +1,9 @@
 # ESP32-S3 Car Control System - FULL FIRMWARE
 
-**Versión:** 2.11.0  
-**Hardware:** ESP32-S3-WROOM-2 N32R16V (32MB Flash QIO + 16MB PSRAM OPI)  
+**Versión:** 2.17.1 (PHASE 14)  
+**Hardware:** ESP32-S3 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)  
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2026-01-08
+**Última actualización:** 2026-01-12
 
 ---
 
@@ -26,11 +26,11 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 ### Requisitos
 
 - [PlatformIO](https://platformio.org/) instalado
-- ESP32-S3-WROOM-2 N32R16V (32MB Flash + 16MB PSRAM)
+- ESP32-S3 N16R8 (16MB Flash + 8MB PSRAM @ 3.3V)
   - Compatible con placa de desarrollo ESP32-S3-DevKitC-1 (44 pines)
 - Cable USB para programación
 
-**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3-WROOM-2** con 32MB Flash y 16MB PSRAM. NO es compatible con ESP32-S3-WROOM-1 (máximo 16MB Flash). Ver [HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md) para detalles.
+**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3 N16R8** con 16MB Flash QIO y 8MB PSRAM QSPI @ 3.3V. Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles de hardware.
 
 ### Compilación
 
@@ -40,10 +40,10 @@ git clone https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos.git
 cd FULL-FIRMWARE-Coche-Marcos
 
 # Compilar (entorno de desarrollo)
-pio run -e esp32-s3-n32r16v
+pio run -e esp32-s3-n16r8
 
 # Compilar y flashear (producción)
-pio run -e esp32-s3-n32r16v-release -t upload
+pio run -e esp32-s3-n16r8-release -t upload
 
 # Monitor serial
 pio device monitor
@@ -53,19 +53,21 @@ pio device monitor
 
 | Entorno | Descripción |
 |---------|-------------|
-| `esp32-s3-n32r16v` | Desarrollo con debug (CORE_DEBUG_LEVEL=3) |
-| `esp32-s3-n32r16v-release` | **Producción** - Optimizado (-O3, sin debug) |
-| `esp32-s3-n32r16v-touch-debug` | Debug de touch (logs verbosos) |
-| `esp32-s3-n32r16v-no-touch` | Sin touch (diagnóstico SPI) |
-| `esp32-s3-n32r16v-standalone` | Display standalone sin sensores |
-| `esp32-s3-n32r16v-standalone-debug` | Standalone con debug verboso |
+| `esp32-s3-n16r8` | Desarrollo con debug (CORE_DEBUG_LEVEL=3) |
+| `esp32-s3-n16r8-release` | **Producción** - Optimizado (-O3, sin debug) |
+| `esp32-s3-n16r8-touch-debug` | Debug de touch (logs verbosos) |
+| `esp32-s3-n16r8-no-touch` | Sin touch (diagnóstico SPI) |
+| `esp32-s3-n16r8-standalone` | Display standalone sin sensores |
+| `esp32-s3-n16r8-standalone-debug` | Standalone con debug verboso |
 
 ## 📚 Documentación
 
 La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
-- **[HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md)** - ⚠️ **NUEVO** - Verificación de hardware y datasheets
+- **[PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md)** - ⚠️ **NUEVO PHASE 14** - Certificación de hardware N16R8
+- **[PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md)** - Guía rápida de migración a N16R8
+- **[HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md)** - Verificación de hardware y datasheets
 - **[BUILD_INSTRUCTIONS_v2.11.0.md](BUILD_INSTRUCTIONS_v2.11.0.md)** - Instrucciones de compilación detalladas
 - **[CHANGELOG_v2.11.0.md](CHANGELOG_v2.11.0.md)** - Historial de cambios
 - **[GUIA_RAPIDA.md](GUIA_RAPIDA.md)** - Guía rápida de calibración de touch
@@ -82,13 +84,13 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 ### Hardware ESP32-S3
 
-**Módulo:** ESP32-S3-WROOM-2 N32R16V  
+**Módulo:** ESP32-S3 N16R8  
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
 **Memoria:**
-- Flash: 32MB (QIO mode - eFuses not burned)
-- PSRAM: 16MB (OPI mode)
+- Flash: 16MB (QIO mode, 4-bit, 3.3V)
+- PSRAM: 8MB (QSPI mode, 4-bit, 3.3V, AP_3v3)
 
-⚠️ **IMPORTANTE:** Ver [HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md) para confirmar compatibilidad de hardware.
+⚠️ **IMPORTANTE:** Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles completos de hardware y certificación de boot.
 
 ### Pines Principales (ESP32-S3)
 
@@ -139,11 +141,12 @@ CONFIG_ESP_IPC_TASK_STACK_SIZE=3072    ; 3 KB
 
 ## 📊 Estado del Proyecto
 
-- ✅ **Firmware:** v2.11.0 - 100% operativo
-- ✅ **Hardware:** Completamente testeado en ESP32-S3-DevKitC-1
+- ✅ **Firmware:** v2.17.1 PHASE 14 - 100% operativo con N16R8
+- ✅ **Hardware:** Migrado a ESP32-S3-N16R8 (16MB Flash + 8MB PSRAM @ 3.3V)
 - ✅ **Producción:** Listo para uso
 - ✅ **Seguridad:** Standalone (sin WiFi/OTA)
 - ✅ **Estabilidad:** Stack sizes optimizados, watchdog implementado
+- ✅ **Boot:** Certificado para boot sin fallos en hardware N16R8
 
 ## 🔗 Enlaces Útiles
 
@@ -151,11 +154,22 @@ CONFIG_ESP_IPC_TASK_STACK_SIZE=3072    ; 3 KB
 - **GitHub Actions:** [Builds automatizados](https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos/actions)
 - **Documentación completa:** [docs/README.md](docs/README.md)
 
-## 📝 Novedades v2.11.0
+## 📝 Novedades PHASE 14 (v2.17.1)
+
+- 🔄 **Migración de Hardware:** De N32R16V (32MB OPI) a N16R8 (16MB QIO + 8MB QSPI @ 3.3V)
+- 🚀 **Simplificación:** Eliminación completa de OPI/OCT - Solo QIO + QSPI estándar
+- ⚡ **Mayor Confiabilidad:** Dominio único de voltaje 3.3V (no más 1.8V)
+- 📦 **Nuevas Particiones:** Tablas de partición optimizadas para 16MB flash
+- 🛡️ **Boot Certificado:** Sin dependencias de eFuse, configuración probada
+- 📚 **Documentación Completa:** Certificación detallada en PHASE14_N16R8_BOOT_CERTIFICATION.md
+
+Ver [PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md) para guía de migración.
+
+### Novedades v2.11.0
 
 - 🔒 **Eliminación de WiFi/OTA** por seguridad (firmware 100% standalone)
 - 📦 **Librerías pinned** a versiones exactas para builds reproducibles
-- 🧹 **Limpieza de entornos** - Solo 4 entornos esenciales
+- 🧹 **Limpieza de entornos** - Solo entornos esenciales
 - 📚 **Documentación actualizada** y reorganizada
 - ⚡ **Stack sizes optimizados** para máxima estabilidad
 
@@ -171,4 +185,4 @@ Este proyecto es de código abierto. Ver el archivo LICENSE para más detalles.
 
 **Desarrollado con ❤️ para control de vehículos eléctricos inteligentes**
 
-*Última actualización: 2025-12-19*
+*Última actualización: 2026-01-12 (PHASE 14 - Hardware Migration to N16R8)*

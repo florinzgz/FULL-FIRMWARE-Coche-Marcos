@@ -1,0 +1,12 @@
+# Name,   Type, SubType, Offset,   Size,     Flags
+# ESP32-S3 16MB Flash Partition Table - N16R8 STANDALONE
+# No OTA - Single factory partition
+# Flash: 16MB QIO, PSRAM: 8MB QSPI @ 3.3V
+
+nvs,      data, nvs,     0x9000,   0x5000,
+
+# Single application partition (10MB)
+app0,     app,  factory, 0x10000,  0xA00000,
+
+# SPIFFS (~6MB for data storage)
+spiffs,   data, spiffs,  0xA10000, 0x5F0000,

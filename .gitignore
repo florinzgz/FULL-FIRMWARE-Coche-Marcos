@@ -27,3 +27,6 @@ Thumbs.db
 *.bak
 *.swp
 *~
+
+# Deprecated hardware configurations
+*.deprecated
