@@ -22,30 +22,22 @@ static uint32_t bootStartMs = 0;
 // Stage Names
 // ============================================================================
 
-static const char* STAGE_NAMES[] = {
-  "PRE_INIT",
-  "SYSTEM_INIT",
-  "STORAGE_INIT",
-  "WATCHDOG_INIT",
-  "LOGGER_INIT",
-  "I2C_RECOVERY_INIT",
-  "PSRAM_CHECK",
-  "SENSOR_INIT",
-  "LIMP_MODE_INIT",
-  "HUD_INIT",
-  "COMPOSITOR_INIT",
-  "MANAGERS_INIT",
-  "BOOT_COMPLETE",
-  "MAX_STAGES"  // Not used as a stage, but included to match enum count
+static const char *STAGE_NAMES[] = {
+    "PRE_INIT",       "SYSTEM_INIT",       "STORAGE_INIT",    "WATCHDOG_INIT",
+    "LOGGER_INIT",    "I2C_RECOVERY_INIT", "PSRAM_CHECK",     "SENSOR_INIT",
+    "LIMP_MODE_INIT", "HUD_INIT",          "COMPOSITOR_INIT", "MANAGERS_INIT",
+    "BOOT_COMPLETE",
+    "MAX_STAGES" // Not used as a stage, but included to match enum count
 };
 
 // Compile-time assertion to ensure array size matches enum count
-// Array has 14 elements: indices 0-12 are actual stages (PRE_INIT to BOOT_COMPLETE),
-// plus index 13 for MAX_STAGES sentinel
-// Enum values: PRE_INIT=0, SYSTEM_INIT=1, ..., BOOT_COMPLETE=12, MAX_STAGES=13
-// So array needs 14 elements (MAX_STAGES value + 1)
-static_assert(sizeof(STAGE_NAMES) / sizeof(STAGE_NAMES[0]) == 
-              static_cast<size_t>(BootSequenceTest::BootStage::MAX_STAGES) + 1,
+// Array has 14 elements: indices 0-12 are actual stages (PRE_INIT to
+// BOOT_COMPLETE), plus index 13 for MAX_STAGES sentinel Enum values:
+// PRE_INIT=0, SYSTEM_INIT=1, ..., BOOT_COMPLETE=12, MAX_STAGES=13 So array
+// needs 14 elements (MAX_STAGES value + 1)
+static_assert(sizeof(STAGE_NAMES) / sizeof(STAGE_NAMES[0]) ==
+                  static_cast<size_t>(BootSequenceTest::BootStage::MAX_STAGES) +
+                      1,
               "STAGE_NAMES array must have MAX_STAGES + 1 elements");
 
 // ============================================================================
@@ -56,14 +48,14 @@ void init() {
   if (initialized) {
     return; // Already initialized
   }
-  
+
   bootStartMs = millis();
-  
+
   // Initialize result structure
   results.allStagesPassed = true;
   results.totalBootTimeMs = 0;
   results.failedStageCount = 0;
-  
+
   // Initialize all stage results
   for (uint8_t i = 0; i < static_cast<uint8_t>(BootStage::MAX_STAGES); i++) {
     results.stages[i].stage = static_cast<BootStage>(i);
@@ -72,49 +64,41 @@ void init() {
     results.stages[i].durationMs = 0;
     results.stages[i].errorMsg = nullptr;
   }
-  
+
   currentStage = BootStage::PRE_INIT;
   initialized = true;
-  
+
   Serial.println("[BootTest] Boot sequence validation initialized");
 }
 
 void markStageStart(BootStage stage) {
-  if (!initialized) {
-    init();
-  }
-  
+  if (!initialized) { init(); }
+
   uint8_t stageIdx = static_cast<uint8_t>(stage);
-  if (stageIdx >= static_cast<uint8_t>(BootStage::MAX_STAGES)) {
-    return;
-  }
-  
+  if (stageIdx >= static_cast<uint8_t>(BootStage::MAX_STAGES)) { return; }
+
   currentStage = stage;
   results.stages[stageIdx].startMs = millis();
-  
+
   Serial.print("[BootTest] Stage started: ");
   Serial.println(STAGE_NAMES[stageIdx]);
 }
 
-void markStageComplete(BootStage stage, bool success, const char* errorMsg) {
-  if (!initialized) {
-    return;
-  }
-  
+void markStageComplete(BootStage stage, bool success, const char *errorMsg) {
+  if (!initialized) { return; }
+
   uint8_t stageIdx = static_cast<uint8_t>(stage);
-  if (stageIdx >= static_cast<uint8_t>(BootStage::MAX_STAGES)) {
-    return;
-  }
-  
+  if (stageIdx >= static_cast<uint8_t>(BootStage::MAX_STAGES)) { return; }
+
   uint32_t now = millis();
   results.stages[stageIdx].success = success;
   results.stages[stageIdx].durationMs = now - results.stages[stageIdx].startMs;
   results.stages[stageIdx].errorMsg = errorMsg;
-  
+
   if (!success) {
     results.allStagesPassed = false;
     results.failedStageCount++;
-    
+
     Serial.print("[BootTest] Stage FAILED: ");
     Serial.print(STAGE_NAMES[stageIdx]);
     if (errorMsg) {
@@ -130,22 +114,18 @@ void markStageComplete(BootStage stage, bool success, const char* errorMsg) {
     Serial.print(results.stages[stageIdx].durationMs);
     Serial.println("ms)");
   }
-  
+
   // Update total boot time if this is the final stage
   if (stage == BootStage::BOOT_COMPLETE) {
     results.totalBootTimeMs = millis() - bootStartMs;
   }
 }
 
-BootStage getCurrentStage() {
-  return currentStage;
-}
+BootStage getCurrentStage() { return currentStage; }
 
-const ValidationResult& getResults() {
-  return results;
-}
+const ValidationResult &getResults() { return results; }
 
-const char* getStageName(BootStage stage) {
+const char *getStageName(BootStage stage) {
   uint8_t stageIdx = static_cast<uint8_t>(stage);
   if (stageIdx >= static_cast<uint8_t>(BootStage::MAX_STAGES)) {
     return "UNKNOWN";
@@ -161,16 +141,16 @@ bool validateBootTime(uint32_t maxBootTimeMs) {
   if (results.totalBootTimeMs == 0) {
     results.totalBootTimeMs = millis() - bootStartMs;
   }
-  
+
   bool timeOk = results.totalBootTimeMs <= maxBootTimeMs;
-  
+
   Serial.print("[BootTest] Boot time: ");
   Serial.print(results.totalBootTimeMs);
   Serial.print("ms (max: ");
   Serial.print(maxBootTimeMs);
   Serial.print("ms) - ");
   Serial.println(timeOk ? "OK" : "TOO SLOW");
-  
+
   return timeOk;
 }
 
@@ -178,11 +158,11 @@ void printResults() {
   Serial.println("\n========================================");
   Serial.println("  BOOT SEQUENCE VALIDATION REPORT");
   Serial.println("========================================\n");
-  
+
   Serial.print("Total Boot Time: ");
   Serial.print(results.totalBootTimeMs);
   Serial.println("ms");
-  
+
   Serial.print("Overall Status: ");
   if (results.allStagesPassed) {
     Serial.println("✓ ALL STAGES PASSED");
@@ -191,42 +171,42 @@ void printResults() {
     Serial.print(results.failedStageCount);
     Serial.println(" STAGE(S) FAILED");
   }
-  
+
   Serial.println("\nStage Breakdown:");
   Serial.println("----------------------------------------");
-  
+
   for (uint8_t i = 0; i < static_cast<uint8_t>(BootStage::MAX_STAGES); i++) {
     if (results.stages[i].startMs > 0) {
       Serial.print("  ");
       Serial.print(STAGE_NAMES[i]);
       Serial.print(": ");
-      
+
       if (results.stages[i].success) {
         Serial.print("✓ ");
       } else {
         Serial.print("✗ ");
       }
-      
+
       Serial.print(results.stages[i].durationMs);
       Serial.print("ms");
-      
+
       if (results.stages[i].errorMsg) {
         Serial.print(" - ");
         Serial.print(results.stages[i].errorMsg);
       }
-      
+
       Serial.println();
     }
   }
-  
+
   Serial.println("========================================\n");
 }
 
 bool runComprehensiveCheck() {
   Serial.println("[BootTest] Running comprehensive boot health check...");
-  
+
   bool allPassed = true;
-  
+
   // Check 1: All stages completed successfully
   if (!results.allStagesPassed) {
     Serial.println("[BootTest] ✗ Some stages failed");
@@ -234,7 +214,7 @@ bool runComprehensiveCheck() {
   } else {
     Serial.println("[BootTest] ✓ All stages passed");
   }
-  
+
   // Check 2: Boot time is reasonable (max 10 seconds)
   if (!validateBootTime(10000)) {
     Serial.println("[BootTest] ✗ Boot time too long");
@@ -242,15 +222,12 @@ bool runComprehensiveCheck() {
   } else {
     Serial.println("[BootTest] ✓ Boot time acceptable");
   }
-  
+
   // Check 3: Check for skipped critical stages
   bool criticalStagesOk = true;
   BootStage criticalStages[] = {
-    BootStage::SYSTEM_INIT,
-    BootStage::WATCHDOG_INIT,
-    BootStage::LOGGER_INIT
-  };
-  
+      BootStage::SYSTEM_INIT, BootStage::WATCHDOG_INIT, BootStage::LOGGER_INIT};
+
   for (BootStage stage : criticalStages) {
     uint8_t idx = static_cast<uint8_t>(stage);
     if (results.stages[idx].startMs == 0) {
@@ -260,11 +237,11 @@ bool runComprehensiveCheck() {
       allPassed = false;
     }
   }
-  
+
   if (criticalStagesOk) {
     Serial.println("[BootTest] ✓ All critical stages executed");
   }
-  
+
   // Check 4: Verify proper ordering
   bool orderingOk = true;
   uint32_t lastStartTime = 0;
@@ -279,14 +256,12 @@ bool runComprehensiveCheck() {
       lastStartTime = results.stages[i].startMs;
     }
   }
-  
-  if (orderingOk) {
-    Serial.println("[BootTest] ✓ Stage ordering correct");
-  }
-  
+
+  if (orderingOk) { Serial.println("[BootTest] ✓ Stage ordering correct"); }
+
   // Print detailed results
   printResults();
-  
+
   // Final verdict
   Serial.println("[BootTest] ========================================");
   if (allPassed) {
@@ -297,7 +272,7 @@ bool runComprehensiveCheck() {
     Serial.println("[BootTest] Issues must be resolved");
   }
   Serial.println("[BootTest] ========================================");
-  
+
   return allPassed;
 }
 

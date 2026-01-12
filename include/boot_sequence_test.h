@@ -2,11 +2,11 @@
 /**
  * @file boot_sequence_test.h
  * @brief Phase 12 - Boot Sequence Validation Test
- * 
+ *
  * Comprehensive boot sequence validator that can run on actual hardware
  * to verify that the firmware boots correctly and all subsystems initialize
  * in the proper order without crashes or hangs.
- * 
+ *
  * This test is designed to be run as part of pre-deployment validation.
  */
 
@@ -43,7 +43,7 @@ struct StageResult {
   bool success;
   uint32_t startMs;
   uint32_t durationMs;
-  const char* errorMsg;
+  const char *errorMsg;
 };
 
 /**
@@ -58,7 +58,7 @@ struct ValidationResult {
 
 /**
  * @brief Initialize the boot sequence test
- * 
+ *
  * Must be called very early in setup(), before any other initialization.
  */
 void init();
@@ -75,7 +75,8 @@ void markStageStart(BootStage stage);
  * @param success Whether the stage completed successfully
  * @param errorMsg Optional error message if stage failed
  */
-void markStageComplete(BootStage stage, bool success, const char* errorMsg = nullptr);
+void markStageComplete(BootStage stage, bool success,
+                       const char *errorMsg = nullptr);
 
 /**
  * @brief Get the current boot stage
@@ -87,7 +88,7 @@ BootStage getCurrentStage();
  * @brief Get validation results
  * @return Reference to validation results
  */
-const ValidationResult& getResults();
+const ValidationResult &getResults();
 
 /**
  * @brief Print validation results to Serial
@@ -105,7 +106,7 @@ bool isBootHealthy();
  * @param stage Boot stage
  * @return Stage name as string
  */
-const char* getStageName(BootStage stage);
+const char *getStageName(BootStage stage);
 
 /**
  * @brief Validate that the boot sequence completed in a reasonable time
@@ -116,14 +117,14 @@ bool validateBootTime(uint32_t maxBootTimeMs = 10000);
 
 /**
  * @brief Run comprehensive boot health check
- * 
+ *
  * This should be called after all initialization is complete.
  * It validates:
  * - All stages completed successfully
  * - Boot time is reasonable
  * - No stages skipped
  * - Proper ordering
- * 
+ *
  * @return true if all checks pass
  */
 bool runComprehensiveCheck();
