@@ -1,6 +1,6 @@
 {
-  "id": "esp32s3_n32r16v",
-  "name": "ESP32-S3-WROOM-2 N32R16V",
+  "id": "esp32s3_n16r8",
+  "name": "ESP32-S3-WROOM-2 N16R8",
   "vendor": "Espressif",
   "url": "https://www.espressif.com",
   "frameworks": ["arduino", "espidf"],
@@ -14,10 +14,10 @@
     "f_flash": "80000000L",
 
     "flash_mode": "qio",
-    "flash_size": "32MB",
+    "flash_size": "16MB",
 
-    "psram_type": "opi",
-    "memory_type": "qio_opi",
+    "psram_type": "qspi",
+    "memory_type": "qio_qspi",
 
     "extra_flags": [
       "-DBOARD_HAS_PSRAM",
@@ -27,9 +27,9 @@
   },
 
   "upload": {
-    "flash_size": "32MB",
-    "maximum_size": 33554432,
-    "maximum_ram_size": 16777216,
+    "flash_size": "16MB",
+    "maximum_size": 16777216,
+    "maximum_ram_size": 8388608,
     "speed": 921600
   },
 
