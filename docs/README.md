@@ -33,7 +33,6 @@ Guía completa y actualizada de todas las conexiones hardware:
 
 ### 🔧 Hardware y Sensores
 - [**PIN_MAPPING_DEVKITC1.md**](PIN_MAPPING_DEVKITC1.md) - Mapeo detallado pines ESP32-S3
-- [**ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md**](ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md) - 🚨 **Troubleshooting bootloader/flash**
 - [**TOFSENSE_INTEGRATION.md**](TOFSENSE_INTEGRATION.md) - Protocolo TOFSense-M S 8x8 Matrix
 - [**OBSTACLE_SAFETY_FEATURES.md**](OBSTACLE_SAFETY_FEATURES.md) - Sistema seguridad anticolisión
 - [**SENSORES_TEMPERATURA_DS18B20.md**](SENSORES_TEMPERATURA_DS18B20.md) - Temp DS18B20
@@ -85,11 +84,10 @@ Ver carpeta [archive/](archive/) para historial completo.
 ## ⚡ ACCESO RÁPIDO
 
 ### Solución de Problemas
-1. **🚨 Bootloop / Core Dump**: Ver [ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md](ESP32_S3_BOOTLOADER_TROUBLESHOOTING.md) + [../BOOTLOADER_RECOVERY_QUICKSTART.md](../BOOTLOADER_RECOVERY_QUICKSTART.md)
-2. **Touch no funciona**: Ver [TOUCH_CALIBRATION_QUICK_GUIDE.md](TOUCH_CALIBRATION_QUICK_GUIDE.md)
-3. **Errores en menú**: Ver [CODIGOS_ERROR.md](CODIGOS_ERROR.md)
-4. **Sensor de obstáculos**: Ver [OBSTACLE_SAFETY_FEATURES.md](OBSTACLE_SAFETY_FEATURES.md)
-5. **Conexión incorrecta**: Ver [CONEXIONES_HARDWARE_v2.15.0.md](CONEXIONES_HARDWARE_v2.15.0.md)
+1. **Touch no funciona**: Ver [TOUCH_CALIBRATION_QUICK_GUIDE.md](TOUCH_CALIBRATION_QUICK_GUIDE.md)
+2. **Errores en menú**: Ver [CODIGOS_ERROR.md](CODIGOS_ERROR.md)
+3. **Sensor de obstáculos**: Ver [OBSTACLE_SAFETY_FEATURES.md](OBSTACLE_SAFETY_FEATURES.md)
+4. **Conexión incorrecta**: Ver [CONEXIONES_HARDWARE_v2.15.0.md](CONEXIONES_HARDWARE_v2.15.0.md)
 
 ### Cambios Importantes v2.15.0
 - ✅ VL53L5X I²C → TOFSense-M S UART (8x8 matrix, 64 puntos)
