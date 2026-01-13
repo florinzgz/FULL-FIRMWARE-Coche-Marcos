@@ -100,12 +100,35 @@ class HardwareValidator:
         return self.file_cache[file_path]
 
     def _extract_function_name(self, line: str) -> Optional[str]:
-        """Extract function name from a line of code"""
-        # Match function definitions: ReturnType FunctionName(
-        func_pattern = r'\b([a-zA-Z_][a-zA-Z0-9_:]*)\s*\('
-        match = re.search(func_pattern, line)
+        """Extract function name from a line of code (function definition only, not calls)"""
+        line_stripped = line.strip()
+        
+        # Skip lines that are obviously not function definitions
+        if line_stripped.startswith('//') or line_stripped.startswith('/*'):
+            return None
+        if line_stripped.startswith('#'):
+            return None
+        if not '(' in line_stripped:
+            return None
+            
+        # Function definitions typically have return type before the name
+        # Look for patterns like: void func(), int func(), static void func()
+        # Match: [return_type] function_name(
+        func_def_pattern = r'\b(void|int|uint8_t|uint16_t|uint32_t|bool|float|double|char|static\s+\w+|inline\s+\w+)\s+([a-zA-Z_][a-zA-Z0-9_:]*)\s*\('
+        match = re.search(func_def_pattern, line_stripped)
         if match:
-            return match.group(1)
+            return match.group(2)
+        
+        # Also match constructors/destructors and simple function definitions
+        # Pattern: FunctionName( at start of line (after whitespace)
+        simple_pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
+        match = re.match(simple_pattern, line_stripped)
+        if match:
+            func_name = match.group(1)
+            # Filter out common non-function keywords
+            if func_name not in ['if', 'while', 'for', 'switch', 'return']:
+                return func_name
+        
         return None
 
     def _is_in_comment(self, line: str, position: int) -> bool:
@@ -237,30 +260,38 @@ class HardwareValidator:
             if func_name:
                 current_function = func_name
                 in_init_function = self._is_initialization_context(func_name)
+                # Reset initialization state when entering a new function
+                # This ensures we check order within each function independently
+                for state in states.values():
+                    state.initialized = False
+                    state.init_location = None
 
             # Only check violations in initialization contexts
             # This reduces false positives in runtime code
             if not in_init_function and current_function != "global_scope":
+                # Even in non-init functions, track if hardware gets initialized
+                for rule in self.rules.get('rules', []):
+                    resource = rule['resource']
+                    state = states[resource]
+                    for init_func in rule.get('init_functions', []):
+                        if init_func in line and not self._is_in_comment(line, line.find(init_func)):
+                            if not self._is_false_positive(line, init_func):
+                                state.initialized = True
+                                state.init_location = CodeLocation(
+                                    file=str(file_path),
+                                    line=line_num,
+                                    function=current_function,
+                                    code=line.strip()
+                                )
                 continue
 
-            # Check each rule
+            # Check each rule - FIRST check for violations, THEN update init state
+            # This ensures we catch usage before init in the same function
             for rule in self.rules.get('rules', []):
                 resource = rule['resource']
                 state = states[resource]
 
-                # Check for initialization
-                for init_func in rule.get('init_functions', []):
-                    if init_func in line and not self._is_in_comment(line, line.find(init_func)):
-                        if not self._is_false_positive(line, init_func):
-                            state.initialized = True
-                            state.init_location = CodeLocation(
-                                file=str(file_path),
-                                line=line_num,
-                                function=current_function,
-                                code=line.strip()
-                            )
-
-                # Check for forbidden usage before init
+                # Check for forbidden usage before init (do this FIRST)
                 if not state.initialized:
                     for forbidden in rule.get('forbidden_before_init', []):
                         # Skip false positives
@@ -291,6 +322,22 @@ class HardwareValidator:
                                         code=line.strip()
                                     )
                                     state.violations.append((location, forbidden))
+
+            # NOW check for initialization (do this AFTER checking violations)
+            for rule in self.rules.get('rules', []):
+                resource = rule['resource']
+                state = states[resource]
+                
+                for init_func in rule.get('init_functions', []):
+                    if init_func in line and not self._is_in_comment(line, line.find(init_func)):
+                        if not self._is_false_positive(line, init_func):
+                            state.initialized = True
+                            state.init_location = CodeLocation(
+                                file=str(file_path),
+                                line=line_num,
+                                function=current_function,
+                                code=line.strip()
+                            )
 
         return states
 
