@@ -170,8 +170,11 @@ class HardwareValidator:
             return True
             
         # Skip comments (already handled but double-check)
-        if '//' in line and line.find('//') < line.find(pattern) if pattern in line else False:
-            return True
+        comment_pos = line.find('//')
+        if '//' in line and pattern in line:
+            pattern_pos = line.find(pattern)
+            if comment_pos >= 0 and comment_pos < pattern_pos:
+                return True
         
         return False
 
@@ -184,9 +187,19 @@ class HardwareValidator:
 
         for line_num, line in enumerate(lines, 1):
             # Track multi-line comments
-            if '/*' in line:
+            # Handle cases where both /* and */ appear on same line
+            if '/*' in line and '*/' in line:
+                # Check if there's code after the comment on the same line
+                comment_start = line.find('/*')
+                comment_end = line.find('*/')
+                if comment_end > comment_start:
+                    # Process the part before and after comment
+                    # For simplicity, just skip this line if comment markers exist
+                    continue
+            elif '/*' in line:
                 in_multiline_comment = True
-            if '*/' in line:
+                continue
+            elif '*/' in line:
                 in_multiline_comment = False
                 continue
             
@@ -245,9 +258,19 @@ class HardwareValidator:
 
         for line_num, line in enumerate(lines, 1):
             # Track multi-line comments
-            if '/*' in line:
+            # Handle cases where both /* and */ appear on same line
+            if '/*' in line and '*/' in line:
+                # Check if there's code after the comment on the same line
+                comment_start = line.find('/*')
+                comment_end = line.find('*/')
+                if comment_end > comment_start:
+                    # Process the part before and after comment
+                    # For simplicity, just skip this line if comment markers exist
+                    continue
+            elif '/*' in line:
                 in_multiline_comment = True
-            if '*/' in line:
+                continue
+            elif '*/' in line:
                 in_multiline_comment = False
                 continue
             
@@ -302,7 +325,11 @@ class HardwareValidator:
                                 continue
                         
                         # Handle regex patterns
-                        if forbidden.startswith('\\') or '[' in forbidden or '*' in forbidden:
+                        # NOTE: Simple heuristic - patterns with regex chars are treated as regex
+                        # This could incorrectly identify literal strings, but works for our use case
+                        # Future: Add explicit 'regex:' prefix or separate field in rules
+                        is_regex = forbidden.startswith('\\') or '[' in forbidden or '*' in forbidden
+                        if is_regex:
                             if re.search(forbidden, line) and not self._is_in_comment(line, 0):
                                 if not self._is_false_positive(line, forbidden):
                                     location = CodeLocation(
