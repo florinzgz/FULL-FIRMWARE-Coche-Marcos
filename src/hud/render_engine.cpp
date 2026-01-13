@@ -92,11 +92,51 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   sprites[id]->setColorDepth(16);
   sprites[id]->setSwapBytes(true);
 
+  // 🔍 VERIFICATION: Log memory state before sprite allocation
+  uint32_t heapBefore = ESP.getFreeHeap();
+  uint32_t psramBefore = ESP.getFreePsram();
+  uint32_t expectedSize = w * h * 2; // 16-bit color = 2 bytes per pixel
+  
+  Logger::infof("RenderEngine: Creating sprite %d (%dx%d, ~%u KB)", 
+                id, w, h, expectedSize / 1024);
+  Logger::infof("  Before: Heap=%u KB, PSRAM=%u KB", 
+                heapBefore / 1024, psramBefore / 1024);
+
   if (!sprites[id]->createSprite(w, h)) {
     Logger::errorf("RenderEngine: Sprite %d allocation failed", id);
     delete sprites[id];
     sprites[id] = nullptr;
     return false;
+  }
+
+  // 🔍 VERIFICATION: Log memory state after sprite allocation
+  uint32_t heapAfter = ESP.getFreeHeap();
+  uint32_t psramAfter = ESP.getFreePsram();
+  int32_t heapDelta = (int32_t)heapBefore - (int32_t)heapAfter;
+  int32_t psramDelta = (int32_t)psramBefore - (int32_t)psramAfter;
+  
+  Logger::infof("  After:  Heap=%u KB, PSRAM=%u KB", 
+                heapAfter / 1024, psramAfter / 1024);
+  Logger::infof("  Delta:  Heap=%d KB, PSRAM=%d KB", 
+                heapDelta / 1024, psramDelta / 1024);
+  
+  // 🔍 VERIFICATION: Check sprite attributes
+  uint8_t psramAttr = sprites[id]->getAttribute(PSRAM_ENABLE);
+  Logger::infof("  PSRAM_ENABLE attribute: %u", psramAttr);
+  
+  // 🔍 VERIFICATION: Validate allocation location
+  if (psramDelta < (int32_t)(expectedSize * 0.9)) {
+    Logger::errorf("  ⚠️  WARNING: Sprite %d may NOT be in PSRAM!", id);
+    Logger::errorf("  Expected PSRAM delta ~%u KB, got %d KB", 
+                   expectedSize / 1024, psramDelta / 1024);
+  } else {
+    Logger::infof("  ✅ Sprite %d confirmed in PSRAM (%d KB allocated)", 
+                  id, psramDelta / 1024);
+  }
+  
+  if (heapDelta > (int32_t)(expectedSize / 10)) {
+    Logger::warnf("  ⚠️  Unexpected heap usage: %d KB (expected < %u KB)", 
+                  heapDelta / 1024, expectedSize / 10240);
   }
 
   sprites[id]->fillSprite(TFT_BLACK);
@@ -107,7 +147,6 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   dirtyW[id] = w;
   dirtyH[id] = h;
 
-  Logger::infof("RenderEngine: Sprite %d ready (%dx%d)", id, w, h);
   return true;
 }
 
