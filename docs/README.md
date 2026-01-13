@@ -38,6 +38,12 @@ Guía completa y actualizada de todas las conexiones hardware:
 - [**SENSORES_TEMPERATURA_DS18B20.md**](SENSORES_TEMPERATURA_DS18B20.md) - Temp DS18B20
 - [**REFERENCIA_HARDWARE.md**](REFERENCIA_HARDWARE.md) - Especificaciones hardware
 
+### 🔬 Análisis de Plataformas Alternativas
+- [**STM32G474CB_ANALYSIS.md**](STM32G474CB_ANALYSIS.md) - Análisis técnico completo STM32G474CB
+- [**STM32G474CB_VS_ESP32S3_COMPARISON.md**](STM32G474CB_VS_ESP32S3_COMPARISON.md) - Comparación ESP32-S3 vs STM32G474CB
+- [**STM32G474CB_QUICK_REFERENCE.md**](STM32G474CB_QUICK_REFERENCE.md) - Guía rápida STM32G474CB
+- Ver también: [**../STM32G474CB_DATASHEET_REVIEW.md**](../STM32G474CB_DATASHEET_REVIEW.md) - Resumen ejecutivo
+
 ### 🖥️ Display y Táctil
 - [**CONFIGURACION_TFT_ESPI.md**](CONFIGURACION_TFT_ESPI.md) - Config TFT_eSPI library
 - [**DISPLAY_TOUCH_VERIFICATION.md**](DISPLAY_TOUCH_VERIFICATION.md) - Verificación display/touch
@@ -102,5 +108,9 @@ Ver [CAMBIOS_RECIENTES.md](CAMBIOS_RECIENTES.md) para detalles completos.
 ---
 
 **Documentación mantenida por:** Sistema de control automático  
-**Última revisión:** 2026-01-05  
-**Versión firmware:** v2.15.0
+**Última revisión:** 2026-01-13  
+**Versión firmware:** v2.17.1
+
+### 📌 Notas
+- Documentación STM32G474CB añadida 2026-01-13 para análisis comparativo de plataformas
+- ESP32-S3 N16R8 validado como plataforma óptima para este proyecto
