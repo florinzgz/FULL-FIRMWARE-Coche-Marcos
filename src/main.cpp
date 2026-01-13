@@ -95,8 +95,8 @@ void loop() {
   if (now - lastMemoryLog >= 30000) {
     uint32_t freeHeap = ESP.getFreeHeap();
     uint32_t freePsram = ESP.getFreePsram();
-    Logger::infof("Memory: Heap=%u KB, PSRAM=%u KB", 
-                  freeHeap / 1024, freePsram / 1024);
+    Logger::infof("Memory: Heap=%u KB, PSRAM=%u KB", freeHeap / 1024,
+                  freePsram / 1024);
     lastMemoryLog = now;
   }
 
