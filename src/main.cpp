@@ -89,6 +89,17 @@ void loop() {
     firstLoop = false;
   }
 
+  // 🔍 VERIFICATION: Periodic memory monitoring (every 30 seconds)
+  static uint32_t lastMemoryLog = 0;
+  uint32_t now = millis();
+  if (now - lastMemoryLog >= 30000) {
+    uint32_t freeHeap = ESP.getFreeHeap();
+    uint32_t freePsram = ESP.getFreePsram();
+    Logger::infof("Memory: Heap=%u KB, PSRAM=%u KB", 
+                  freeHeap / 1024, freePsram / 1024);
+    lastMemoryLog = now;
+  }
+
 #ifdef STANDALONE_DISPLAY
   // ===========================
   // STANDALONE DISPLAY MODE
