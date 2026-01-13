@@ -1,10 +1,10 @@
-# STM32G474CB - Guía Rápida de Referencia
+# STM32G474RE - Guía Rápida de Referencia
 
 **Microcontrolador especializado en control de motores**
 
 ---
 
-## 🎯 ¿Cuándo usar STM32G474CB?
+## 🎯 ¿Cuándo usar STM32G474RE?
 
 ### ✅ Ideal Para:
 
@@ -28,7 +28,7 @@
 
 ```
 CPU:        ARM Cortex-M4 @ 170 MHz (213 DMIPS)
-Flash:      128 KB (con ECC)
+Flash:      512 KB (con ECC)
 RAM:        128 KB SRAM (con parity check)
 FPU:        Sí (Single precision)
 DSP:        Sí (DSP instructions)
@@ -113,7 +113,7 @@ Aceleradores: CORDIC + FMAC
         ──┤...   ..├──
          └─────────┘
          
-7×7 mm, 42 I/Os útiles
+10×10 mm, 54 I/Os útiles
 ```
 
 ---
@@ -313,7 +313,7 @@ DMA: Transferencia automática
 
 ### Documentación ST
 
-- [STM32G474CB Product Page](https://www.st.com/en/microcontrollers-microprocessors/stm32g474cb.html)
+- [STM32G474RE Product Page](https://www.st.com/en/microcontrollers-microprocessors/stm32g474cb.html)
 - [Datasheet PDF](https://www.st.com/resource/en/datasheet/stm32g474cb.pdf)
 - [Reference Manual RM0440](https://www.st.com/resource/en/reference_manual/rm0440-stm32g4-series-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)
 - [STM32G4 Series Documentation](https://www.st.com/en/microcontrollers-microprocessors/stm32g4-series/documentation.html)
@@ -335,7 +335,7 @@ DMA: Transferencia automática
 
 ## ⚠️ Limitaciones Importantes
 
-### NO usar STM32G474CB si necesitas:
+### NO usar STM32G474RE si necesitas:
 
 - ❌ Display gráfico grande (>128×64)
 - ❌ Más de 128 KB de código
@@ -355,7 +355,7 @@ DMA: Transferencia automática
 
 ## 🎯 Conclusión
 
-El **STM32G474CB** es un microcontrolador **altamente especializado** y **extremadamente capaz** para:
+El **STM32G474RE** es un microcontrolador **altamente especializado** y **extremadamente capaz** para:
 
 ✅ Control de motores de alto rendimiento
 ✅ Electrónica de potencia
@@ -368,7 +368,7 @@ Pero requiere **experiencia en control de motores** y **diseño de sistemas embe
 
 ---
 
-**Documento:** Guía Rápida STM32G474CB  
+**Documento:** Guía Rápida STM32G474RE  
 **Versión:** 1.0  
 **Fecha:** 2026-01-13  
 **Autor:** Análisis técnico basado en documentación oficial

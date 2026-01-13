@@ -1,4 +1,4 @@
-# Automotive Dual-MCU Architecture: ESP32-S3 + STM32G474CB
+# Automotive Dual-MCU Architecture: ESP32-S3 + STM32G474RE
 ## Safety-Based Partitioning for Electric Vehicle Control System
 
 **Document Version:** 1.0  
@@ -13,9 +13,9 @@
 This document defines a **2-node automotive architecture** (NOT multi-ECU) for migrating the current ESP32-S3 based electric vehicle control system to a dual-MCU topology:
 
 - **Node 1: ESP32-S3** — Brain, UI, perception, logic, gateway
-- **Node 2: ONE STM32G474CB** — Powertrain + real-time safety ECU
+- **Node 2: ONE STM32G474RE** — Powertrain + real-time safety ECU
 
-**Critical Principle:** There is NO need for multiple STM32s. One STM32G474CB ECU is sufficient and optimal for all real-time safety-critical control.
+**Critical Principle:** There is NO need for multiple STM32s. One STM32G474RE ECU is sufficient and optimal for all real-time safety-critical control.
 
 ---
 
@@ -43,12 +43,12 @@ THEN → ESP32-S3 (user experience domain)
 
 ### Why NOT Multi-ECU?
 
-**One STM32G474CB is sufficient because:**
+**One STM32G474RE is sufficient because:**
 1. **17 timers** (including HRTIM) handle all motors + encoders simultaneously
 2. **5 ADCs** with DMA can sample all currents and temperatures in parallel
 3. **3 CAN FD** interfaces (only need 1 for ESP32 communication)
 4. **16-channel DMA** handles sensor data without CPU intervention
-5. **107 I/O pins** (48 in UFQFPN48 package) sufficient for all real-time signals
+5. **107 I/O pins** (64 in LQFP64 package) sufficient for all real-time signals
 
 Adding more STM32s would:
 - ❌ Increase cost unnecessarily
@@ -58,7 +58,7 @@ Adding more STM32s would:
 
 ---
 
-## 🔬 STM32G474CB Hardware Capabilities Analysis
+## 🔬 STM32G474RE Hardware Capabilities Analysis
 
 ### From Official Datasheet Review
 
@@ -70,7 +70,7 @@ Adding more STM32s would:
 - **Execution:** 0-wait-state from Flash at 170 MHz
 
 #### Memory
-- **Flash:** 128 KB (dual-bank, ECC)
+- **Flash:** 512 KB (dual-bank, ECC)
 - **SRAM:** 128 KB (with CCM, parity check)
 - **OTP:** 1 KB
 
@@ -135,7 +135,7 @@ Adding more STM32s would:
 - **Zero CPU load** for repetitive transfers
 
 #### GPIO
-- **Available:** 42 I/O in UFQFPN48 package
+- **Available:** 54 I/O in UFQFPN48 package
 - **Speed:** Up to 80 MHz toggle rate
 - **Interrupt:** All pins can trigger EXTI
 - **5V tolerant:** Many pins
@@ -171,7 +171,7 @@ Adding more STM32s would:
 
 ```
 ┌──────────────────────────────────┐       CAN FD        ┌─────────────────────────────────┐
-│         ESP32-S3 N16R8           │◄═══════════════════►│      STM32G474CB ECU            │
+│         ESP32-S3 N16R8           │◄═══════════════════►│      STM32G474RE ECU            │
 │     (Brain + UI + Perception)    │     500 kbps        │  (Powertrain + Real-Time Safety)│
 │                                  │                     │                                 │
 │  ┌────────────────────────────┐  │                     │  ┌────────────────────────────┐ │
@@ -284,12 +284,12 @@ For each component, ask:
 
 ---
 
-## 🔌 STM32G474CB Pin Assignment
+## 🔌 STM32G474RE Pin Assignment
 
 ### Hardware Interface Map
 
 ```
-STM32G474CB UFQFPN48 Package (42 I/O available)
+STM32G474RE LQFP64 Package (54 I/O available)
 ═══════════════════════════════════════════════════════════
 
 MOTORS (HRTIM - 10 pins)
@@ -357,7 +357,7 @@ DEBUG (Optional - 2 pins)
 └─ PA14 (SWCLK) → SWD clock
 
 ═══════════════════════════════════════════════════════════
-Total Pins Used: 42/42 (100% utilization, perfect fit)
+Total Pins Used: 42/54 (78% utilization, with 12 pins spare for expansion)
 ═══════════════════════════════════════════════════════════
 ```
 
@@ -664,7 +664,7 @@ If ESP32 freezes: STM32 continues motor control safely
   - 2 CAN pins
   - 1 OneWire pin
   - = **34 pins**
-- Available: 42 I/O → ✅ **Sufficient**
+- Available: 54 I/O → ✅ **Sufficient**
 
 **DMA:**
 - Need: ADC streaming, PWM updates
@@ -850,7 +850,7 @@ HMI (Human-Machine Interface) = ESP32 role
 **Why NOT on STM32:**
 - 400-byte UART parsing → Wasted CPU on STM32
 - Obstacle logic → Complex, not real-time-critical
-- 128 KB Flash on STM32 → Too small for perception algorithms
+- 512 KB Flash on STM32 → Limited but workable for perception algorithms
 
 **ESP32 advantages:**
 - 16 MB Flash → Room for obstacle algorithms
@@ -913,7 +913,7 @@ Same as current: ~35 ms ✅
 
 1. **Safety-driven partitioning:** Real-time + safety on STM32, perception + UI on ESP32
 2. **One STM32 is sufficient:** All motors, sensors, relays fit comfortably
-3. **Hardware-matched:** STM32G474CB designed for motor control, ESP32-S3 for UI/connectivity
+3. **Hardware-matched:** STM32G474RE designed for motor control, ESP32-S3 for UI/connectivity
 4. **Automotive-grade:** Follows proven ECU + HMI pattern from real vehicles
 5. **Failure isolation:** ESP32 crash doesn't affect motors, STM32 crash is detectable
 6. **Latency improved:** 6.5× faster pedal-to-motor response

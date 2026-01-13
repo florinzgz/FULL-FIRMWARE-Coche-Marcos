@@ -1,21 +1,21 @@
-# Comparación: STM32G474CB vs ESP32-S3 N16R8
+# Comparación: STM32G474RE vs ESP32-S3 N16R8
 
 **Fecha:** 2026-01-13  
 **Propósito:** Análisis comparativo para proyecto de control de vehículo eléctrico  
 **Hardware Actual:** ESP32-S3 N16R8 (16MB Flash + 8MB PSRAM)  
-**Hardware Analizado:** STM32G474CB (128KB Flash + 128KB SRAM)
+**Hardware Analizado:** STM32G474RE (512KB Flash + 128KB SRAM)
 
 ---
 
 ## 📊 Tabla Comparativa General
 
-| Característica | ESP32-S3 N16R8 | STM32G474CB |
+| Característica | ESP32-S3 N16R8 | STM32G474RE |
 |----------------|----------------|-------------|
 | **Arquitectura** | Dual-core Xtensa LX7 | ARM Cortex-M4 |
 | **Frecuencia** | 240 MHz | 170 MHz |
 | **Cores** | 2 | 1 |
 | **FPU** | Sí | Sí |
-| **Flash** | 16 MB | 128 KB |
+| **Flash** | 16 MB | 512 KB |
 | **RAM** | 8 MB PSRAM + 512KB SRAM | 128 KB SRAM |
 | **Voltaje** | 3.3V | 1.71V - 3.6V |
 | **Conectividad** | WiFi, BLE | Ninguna |
@@ -37,22 +37,23 @@
 - Mayor consumo energético en operación
 - Arquitectura Xtensa menos estándar
 
-#### STM32G474CB ⚠️
+#### STM32G474RE ⚠️
 **Ventajas:**
 - **ARM Estándar:** Cortex-M4 ampliamente soportado
 - **Aceleradores:** CORDIC, FMAC para matemáticas específicas
 - **Eficiencia:** Bajo consumo en modos sleep
+- **Memoria Razonable:** 512 KB Flash, 128 KB RAM
 
 **Desventajas:**
-- **Memoria Muy Limitada:** 128 KB Flash, 128 KB RAM
-- **No viable para:** UI gráfica con TFT 480×320
-- **Almacenamiento:** Requiere memoria externa para datos
+- **Memoria Limitada vs ESP32:** 512 KB Flash vs 16 MB
+- **No viable para:** UI gráfica compleja con TFT 480×320
+- **Almacenamiento:** Requiere memoria externa para datos grandes
 
 ---
 
 ### 2. Control de Motores
 
-#### STM32G474CB ⭐ GANADOR
+#### STM32G474RE ⭐ GANADOR
 **Hardware Especializado:**
 - ✅ **HRTIM:** 184 ps de resolución PWM
 - ✅ **5 ADCs:** 12-bit, 4 Msps, conversión sincronizada
@@ -104,9 +105,9 @@
 - HSPI @ 40 MHz
 - Fuentes múltiples, gráficos, iconos
 
-#### STM32G474CB ❌ NO VIABLE
+#### STM32G474RE ❌ NO VIABLE
 **Problemas Fundamentales:**
-- ❌ **128 KB Flash:** Insuficiente para framebuffer + código
+- ⚠️ **512 KB Flash:** Limitado comparado con ESP32, pero para framebuffer + código
   - Framebuffer 480×320×16-bit = 307 KB (2.4× la Flash total!)
 - ❌ **128 KB RAM:** No puede alojar framebuffer completo
 - ❌ **Sin controlador de display:** Requiere bit-banging o controlador externo
@@ -133,7 +134,7 @@
 - Firmware 100% standalone
 - Solo USB para programación/debug
 
-#### STM32G474CB
+#### STM32G474RE
 **Integrado:**
 - ✅ USB Device (Full-speed 2.0)
 - ✅ USB Type-C / Power Delivery (UCPD)
@@ -151,7 +152,7 @@
 
 #### Análisis de Compatibilidad
 
-| Periférico | ESP32-S3 | STM32G474CB | Notas |
+| Periférico | ESP32-S3 | STM32G474RE | Notas |
 |------------|----------|-------------|-------|
 | **Display ST7796S** | ✅ Nativo SPI | ⚠️ Posible con SPI | Requiere memoria externa |
 | **Touch XPT2046** | ✅ Compartido SPI | ✅ Compatible SPI | OK |
@@ -164,7 +165,7 @@
 | **Encoder Magnético** | ✅ GPIO + Interrupts | ✅ GPIO + Interrupts | OK |
 | **MCP23017 (I2C)** | ✅ I2C | ✅ I2C | OK |
 
-**Problemas Críticos con STM32G474CB:**
+**Problemas Críticos con STM32G474RE:**
 1. ❌ **Display 480×320:** No viable sin memoria externa
 2. ⚠️ **WS2812B (44 LEDs):** Más complejo sin periférico RMT
 3. ⚠️ **Memoria:** Código actual no cabe en 128 KB
@@ -185,7 +186,7 @@
 - Documentación en español disponible
 - Debugging via JTAG/USB
 
-#### STM32G474CB
+#### STM32G474RE
 **Framework:** STM32Cube (HAL/LL) + Arduino
 - ✅ **STM32CubeIDE:** IDE gráfico profesional
 - ✅ **STM32CubeMX:** Configuración visual
@@ -201,7 +202,7 @@
 
 ### 7. Consumo de Energía
 
-#### STM32G474CB ⭐ GANADOR
+#### STM32G474RE ⭐ GANADOR
 **Modos de Bajo Consumo:**
 - **Run:** ~100 µA/MHz
 - **Sleep:** ~50 µA/MHz
@@ -230,7 +231,7 @@
 - **Disponibilidad:** Excelente
 - **Proveedores:** Múltiples (Espressif, third-party)
 
-#### STM32G474CB
+#### STM32G474RE
 - **Precio chip:** $4-6 USD
 - **Núcleo mínimo:** Requiere cristal, caps, regulador
 - **Disponibilidad:** Buena (2026)
@@ -270,10 +271,10 @@
 - ⚠️ PWM de resolución estándar (suficiente para DC)
 - ⚠️ Mayor consumo (no crítico con batería grande)
 
-#### STM32G474CB: ❌ **NO VIABLE**
+#### STM32G474RE: ❌ **NO VIABLE**
 
 **Problemas bloqueantes:**
-1. ❌ **Memoria insuficiente:** 128 KB Flash << código actual
+1. ⚠️ **Memoria limitada vs ESP32:** 512 KB Flash << 16 MB Flash actual
 2. ❌ **Display imposible:** Sin espacio para framebuffer
 3. ❌ **Requiere rediseño completo** con memoria externa
 4. ❌ **Mayor complejidad** y costo final
@@ -299,7 +300,7 @@
 4. ✅ **Periféricos:** RMT para LEDs, SPI rápido para TFT
 5. ✅ **Futuro:** Espacio para nuevas features
 
-### Casos donde STM32G474CB sería Superior
+### Casos donde STM32G474RE sería Superior
 
 #### Proyecto de Control Puro de Motor (sin UI)
 **Requerimientos:**
@@ -325,7 +326,7 @@
 
 ## 📋 Tabla de Decisión
 
-| Criterio | Peso | ESP32-S3 | STM32G474CB |
+| Criterio | Peso | ESP32-S3 | STM32G474RE |
 |----------|------|----------|-------------|
 | **Memoria para UI** | 30% | 10/10 ✅ | 1/10 ❌ |
 | **Control de Motores** | 15% | 6/10 ⚠️ | 10/10 ✅ |
@@ -338,7 +339,7 @@
 ### Puntuación Ponderada
 
 - **ESP32-S3 N16R8:** 8.4/10 ✅
-- **STM32G474CB:** 5.7/10 ⚠️
+- **STM32G474RE:** 5.7/10 ⚠️
 
 ---
 
@@ -348,13 +349,13 @@
 
 El ESP32-S3 N16R8 es la plataforma correcta para este sistema de control de vehículo con interfaz gráfica. La memoria abundante, dual-core, y periféricos versátiles lo hacen ideal para la aplicación actual.
 
-### STM32G474CB: Excelente, pero para Otro Proyecto
+### STM32G474RE: Excelente, pero para Otro Proyecto
 
-El STM32G474CB es un microcontrolador excepcional para **control especializado de motores** y **electrónica de potencia**, pero no es adecuado para sistemas con interfaces gráficas complejas debido a sus limitaciones de memoria.
+El STM32G474RE es un microcontrolador excepcional para **control especializado de motores** y **electrónica de potencia**, pero no es adecuado para sistemas con interfaces gráficas complejas debido a sus limitaciones de memoria.
 
 ### Uso Potencial Futuro
 
-Si en el futuro se requiere un **controlador dedicado de motores de alto rendimiento** (separado del sistema principal), el STM32G474CB sería una excelente opción para ese sub-sistema específico, comunicándose con el ESP32-S3 principal vía CAN, I2C, o UART.
+Si en el futuro se requiere un **controlador dedicado de motores de alto rendimiento** (separado del sistema principal), el STM32G474RE sería una excelente opción para ese sub-sistema específico, comunicándose con el ESP32-S3 principal vía CAN, I2C, o UART.
 
 **Arquitectura sugerida (solo si se requiere FOC):**
 ```
@@ -368,7 +369,7 @@ Si en el futuro se requiere un **controlador dedicado de motores de alto rendimi
            │ CAN/UART
            ▼
 ┌─────────────────────┐
-│  STM32G474CB        │ ← Motor controller
+│  STM32G474RE        │ ← Motor controller
 │   - FOC algorithm   │
 │   - Current sensing │
 │   - PWM generation  │

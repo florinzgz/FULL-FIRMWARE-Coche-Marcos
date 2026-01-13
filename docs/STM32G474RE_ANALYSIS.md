@@ -1,14 +1,14 @@
-# STM32G474CB Microcontroller - Análisis Técnico
+# STM32G474RE Microcontroller - Análisis Técnico
 
 **Fecha de Análisis:** 2026-01-13  
-**Referencia:** [STM32G474CB Datasheet](https://www.st.com/resource/en/datasheet/stm32g474cb.pdf)  
-**Propósito:** Comprensión del funcionamiento del STM32G474CB según datasheet oficial
+**Referencia:** [STM32G474RE Datasheet](https://www.st.com/resource/en/datasheet/stm32g474cb.pdf)  
+**Propósito:** Comprensión del funcionamiento del STM32G474RE según datasheet oficial
 
 ---
 
 ## 📋 Resumen Ejecutivo
 
-El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STMicroelectronics, diseñado específicamente para aplicaciones que requieren funciones analógicas avanzadas y aceleración matemática, como control de motores, conversión de energía y control industrial.
+El STM32G474RE es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STMicroelectronics, diseñado específicamente para aplicaciones que requieren funciones analógicas avanzadas y aceleración matemática, como control de motores, conversión de energía y control industrial.
 
 ---
 
@@ -29,7 +29,7 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 
 | Tipo | Capacidad | Características |
 |------|-----------|----------------|
-| **Flash** | 128 KB | ECC, dual-bank read-while-write, protección ROP |
+| **Flash** | 512 KB | ECC, dual-bank read-while-write, protección ROP |
 | **SRAM** | 128 KB | Incluye CCM SRAM, parity check |
 | **OTP** | 1 KB | One-Time Programmable |
 
@@ -148,7 +148,7 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 ## 🎛️ GPIO y E/S
 
 - **Total I/O:** Hasta 107 pines (depende del package)
-- **Package del STM32G474CB:** UFQFPN48 (7×7 mm, 42 I/Os)
+- **Package del STM32G474RE:** LQFP64 (10×10 mm, 54 I/Os)
 - **Características:**
   - Muchos I/O tolerantes a 5V
   - Todos mapeables a interrupciones externas
@@ -206,24 +206,24 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 
 ## 📦 Package y Variantes
 
-### STM32G474CB (Variante Específica)
+### STM32G474RE (Variante Específica)
 
-- **Flash:** 128 KB (sufijo 'C')
-- **Package Principal:** UFQFPN48
-- **Dimensiones:** 7 × 7 mm
+- **Flash:** 128 KB (sufijo 'E')
+- **Package Principal:** LQFP64
+- **Dimensiones:** 10 × 10 mm
 - **I/O Disponibles:** 42
 - **Pitch:** 0.5 mm
 
 ### Otras Variantes de la Familia STM32G474
 
-- **STM32G474xB:** 128 KB Flash
+- **STM32G474xB:** 512 KB Flash
 - **STM32G474xC:** 256 KB Flash
 - **STM32G474xE:** 512 KB Flash
 
 ### Packages Disponibles
 
 - LQFP64, LQFP100, LQFP128
-- UFQFPN48, UFBGA100, UFBGA121
+- LQFP64, UFBGA100, UFBGA121
 
 ---
 
@@ -290,7 +290,7 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 
 ## 🔍 Diferencias Clave vs. Microcontroladores Genéricos
 
-| Característica | STM32G474CB | MCUs Genéricos |
+| Característica | STM32G474RE | MCUs Genéricos |
 |----------------|-------------|----------------|
 | **Enfoque** | Motor Control / Power | Propósito general |
 | **HRTIM** | Sí (184 ps) | No (típicamente) |
@@ -321,8 +321,8 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 
 ### Distribuidores
 
-- [Mouser - STM32G474CBU6](https://www.mouser.com/ProductDetail/STMicroelectronics/STM32G474CBU6)
-- [Farnell - STM32G474CB](https://www.farnell.com/)
+- [Mouser - STM32G474REU6](https://www.mouser.com/ProductDetail/STMicroelectronics/STM32G474REU6)
+- [Farnell - STM32G474RE](https://www.farnell.com/)
 
 ---
 
@@ -353,7 +353,7 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 
 ### Limitaciones Consideradas
 
-1. **Memoria Limitada:** 128 KB Flash, 128 KB RAM
+1. **Memoria Limitada:** 512 KB Flash, 128 KB RAM
    - Suficiente para control de motores
    - Limitado para aplicaciones con UI gráfica compleja
 
@@ -363,7 +363,7 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
    - Requiere módulos externos
 
 3. **Package Pequeño (en variante CB):**
-   - UFQFPN48: Solo 42 I/Os
+   - LQFP64: Solo 54 I/Os
    - Puede limitar diseños con muchos periféricos
    - Variantes más grandes disponibles
 
@@ -411,5 +411,5 @@ El STM32G474CB es un microcontrolador ARM Cortex-M4 de 32 bits fabricado por STM
 ---
 
 **Documento creado:** 2026-01-13  
-**Autor:** Análisis técnico basado en datasheet oficial STM32G474CB  
+**Autor:** Análisis técnico basado en datasheet oficial STM32G474RE  
 **Versión:** 1.0
