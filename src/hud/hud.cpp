@@ -22,6 +22,8 @@
 #include "buttons.h"
 #include "current.h"
 #include "dfplayer.h"
+#include "hud_compositor.h" // Phase 5: Layered compositor
+#include "hud_manager.h"     // 🔒 THREAD SAFETY: For queue-based showError
 #include "logger.h"
 #include "pedal.h"
 #include "pins.h"
@@ -389,11 +391,9 @@ void HUD::showReady() {
 }
 
 void HUD::showError() {
-  tft.fillScreen(TFT_BLACK);
-  carBodyDrawn = false; // Reset flag so car body will be redrawn
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_RED, TFT_BLACK);
-  tft.drawString("ERROR", 240, 40, 4);
+  // 🔒 THREAD SAFETY: Forward to HUDManager's queue-based showError
+  // This ensures thread-safe access to TFT_eSPI
+  ::HUDManager::showError("System error");
 }
 
 #ifdef STANDALONE_DISPLAY
