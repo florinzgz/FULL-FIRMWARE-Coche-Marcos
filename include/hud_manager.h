@@ -146,8 +146,10 @@ private:
   static uint8_t brightness;
 
   // 🔒 THREAD SAFETY: Render event queue
-  // FreeRTOS queue handle for thread-safe render requests
-  static void *renderEventQueue; // QueueHandle_t (void* to avoid freertos include)
+  // Stored as void* to avoid including FreeRTOS headers in this header file,
+  // which would pollute the global namespace and increase compile times.
+  // Internally cast to QueueHandle_t when needed.
+  static void *renderEventQueue; // Actually QueueHandle_t
 
   // Current error state
   static bool errorActive;

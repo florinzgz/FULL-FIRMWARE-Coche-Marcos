@@ -490,9 +490,8 @@ void HUDManager::showError(const char *message) {
   RenderEvent::Event event;
   event.type = RenderEvent::Type::SHOW_ERROR;
   
-  // Copy error message safely
-  strncpy(event.errorMessage, message, RenderEvent::MAX_ERROR_MSG_LEN - 1);
-  event.errorMessage[RenderEvent::MAX_ERROR_MSG_LEN - 1] = '\0';
+  // Copy error message safely using helper function
+  safeStringCopy(event.errorMessage, message, RenderEvent::MAX_ERROR_MSG_LEN);
 
   // Queue the event for processing in update()
   if (!queueRenderEvent(event)) {
@@ -1220,6 +1219,26 @@ void HUDManager::renderHiddenMenu() {
 // Thread-Safe Render Event System
 // ============================================================================
 
+namespace {
+/**
+ * @brief Safely copy a string to a fixed-size buffer with null termination
+ * @param dest Destination buffer
+ * @param src Source string (may be null)
+ * @param maxLen Maximum buffer size (including null terminator)
+ */
+inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
+  if (src == nullptr || maxLen == 0) {
+    if (maxLen > 0) {
+      dest[0] = '\0';
+    }
+    return;
+  }
+  
+  strncpy(dest, src, maxLen - 1);
+  dest[maxLen - 1] = '\0'; // Ensure null termination
+}
+} // anonymous namespace
+
 bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
   if (renderEventQueue == nullptr) {
     Logger::error("HUD: Cannot queue event - queue not initialized");
@@ -1231,7 +1250,32 @@ bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
   BaseType_t result = xQueueSend(static_cast<QueueHandle_t>(renderEventQueue),
                                   &event, 0);
   
-  return (result == pdTRUE);
+  if (result != pdTRUE) {
+    // Queue is full - log detailed warning
+    const char *eventTypeName = "UNKNOWN";
+    switch (event.type) {
+    case RenderEvent::Type::SHOW_ERROR:
+      eventTypeName = "SHOW_ERROR";
+      break;
+    case RenderEvent::Type::CLEAR_ERROR:
+      eventTypeName = "CLEAR_ERROR";
+      break;
+    case RenderEvent::Type::FORCE_REDRAW:
+      eventTypeName = "FORCE_REDRAW";
+      break;
+    case RenderEvent::Type::UPDATE_BRIGHTNESS:
+      eventTypeName = "UPDATE_BRIGHTNESS";
+      break;
+    default:
+      break;
+    }
+    
+    Logger::warnf("HUD: Render queue full! Dropped %s event", eventTypeName);
+    Serial.printf("[HUD] WARNING: Queue full, dropped %s event\n", eventTypeName);
+    return false;
+  }
+  
+  return true;
 }
 
 void HUDManager::processRenderEvents() {
@@ -1245,10 +1289,9 @@ void HUDManager::processRenderEvents() {
                        0) == pdTRUE) {
     switch (event.type) {
     case RenderEvent::Type::SHOW_ERROR:
-      // Copy error message to static buffer
-      strncpy(errorMessage, event.errorMessage,
-              RenderEvent::MAX_ERROR_MSG_LEN - 1);
-      errorMessage[RenderEvent::MAX_ERROR_MSG_LEN - 1] = '\0';
+      // Copy error message to static buffer using helper function
+      safeStringCopy(errorMessage, event.errorMessage,
+                     RenderEvent::MAX_ERROR_MSG_LEN);
       errorActive = true;
       needsRedraw = true; // Force screen clear for error
       currentMenu = MenuType::NONE; // Exit any menu

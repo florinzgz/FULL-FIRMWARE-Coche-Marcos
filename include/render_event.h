@@ -1,6 +1,7 @@
 #ifndef RENDER_EVENT_H
 #define RENDER_EVENT_H
 
+#include <cstring> // for memset
 #include <stdint.h>
 
 /**
@@ -44,7 +45,11 @@ struct Event {
   char errorMessage[MAX_ERROR_MSG_LEN]; ///< Error message (for SHOW_ERROR)
   uint8_t brightness;                 ///< Brightness value (for UPDATE_BRIGHTNESS)
 
-  Event() : type(Type::NONE), errorMessage{0}, brightness(0) {}
+  // Constructor: Initialize all fields to safe defaults
+  Event() : type(Type::NONE), brightness(0) {
+    // Explicitly zero out error message array
+    memset(errorMessage, 0, MAX_ERROR_MSG_LEN);
+  }
 };
 
 } // namespace RenderEvent
