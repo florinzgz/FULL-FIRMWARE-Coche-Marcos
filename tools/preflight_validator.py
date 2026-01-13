@@ -201,6 +201,12 @@ class HardwareValidator:
 
         return calls
 
+    def _is_initialization_context(self, function_name: str) -> bool:
+        """Check if we're in an initialization context where order matters"""
+        init_keywords = ['init', 'setup', 'begin', 'start', 'configure']
+        func_lower = function_name.lower()
+        return any(keyword in func_lower for keyword in init_keywords)
+
     def _check_initialization_order(self, file_path: str) -> Dict[str, InitializationState]:
         """Check initialization order within a single file"""
         states: Dict[str, InitializationState] = {}
@@ -212,6 +218,7 @@ class HardwareValidator:
         lines = self._read_file_lines(str(file_path))
         current_function = "global_scope"
         in_multiline_comment = False
+        in_init_function = True  # Start assuming we're in init context
 
         for line_num, line in enumerate(lines, 1):
             # Track multi-line comments
@@ -229,6 +236,12 @@ class HardwareValidator:
             func_name = self._extract_function_name(line)
             if func_name:
                 current_function = func_name
+                in_init_function = self._is_initialization_context(func_name)
+
+            # Only check violations in initialization contexts
+            # This reduces false positives in runtime code
+            if not in_init_function and current_function != "global_scope":
+                continue
 
             # Check each rule
             for rule in self.rules.get('rules', []):

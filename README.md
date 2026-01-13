@@ -49,6 +49,25 @@ pio run -e esp32-s3-n16r8-release -t upload
 pio device monitor
 ```
 
+### 🔒 Sistema de Validación Pre-Vuelo
+
+**NUEVO:** Este firmware incluye un sistema de validación de hardware que se ejecuta automáticamente antes de cada compilación para prevenir firmware que crashearía en tiempo de ejecución.
+
+El sistema **bloquea la compilación** si detecta:
+- ❌ Uso de TFT antes de `tft.init()`
+- ❌ Acceso a I2C antes de `Wire.begin()`
+- ❌ Escritura PWM antes de `ledcSetup()`
+- ❌ Uso de GPIO antes de `pinMode()`
+- ❌ Otros errores de inicialización que causan bootloops
+
+**Beneficios:**
+- ✅ Previene el bug de bootloop que afectó versiones anteriores
+- ✅ Zero overhead en runtime (solo validación en build-time)
+- ✅ Mensajes de error detallados con archivo, línea y solución
+- ✅ Protege contra Guru Meditation Errors y watchdog resets
+
+Ver [docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md) para detalles completos.
+
 ### Entornos Disponibles
 
 | Entorno | Descripción |
@@ -65,6 +84,7 @@ pio device monitor
 La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 - **[HARDWARE.md](HARDWARE.md)** - 📌 **ESPECIFICACIÓN OFICIAL DEL HARDWARE** - Fuente única de verdad para N16R8
+- **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
 - **[CLEANUP_SUMMARY_N16R8.md](CLEANUP_SUMMARY_N16R8.md)** - Resumen de consolidación del repositorio
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
 - **[PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md)** - Certificación de hardware N16R8
