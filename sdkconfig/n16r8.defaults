@@ -1,15 +1,95 @@
+# ============================================================================
+# ESP32-S3 N16R8 SDK Configuration
+# Hardware:
+#   Flash: 16MB QIO @ 80MHz (3.3V)
+#   PSRAM: 8MB QSPI (ESPPSRAM32 AP_3v3) @ 80MHz
+# ============================================================================
+
+# -------------------------------
+# FLASH
+# -------------------------------
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 
+# -------------------------------
+# PSRAM (External RAM)
+# -------------------------------
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_QUAD=y
 CONFIG_SPIRAM_TYPE_ESPPSRAM32=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_MEMTEST=y
 
+# Make PSRAM usable as normal heap
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=n
+
+# Prefer PSRAM for large allocations
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=64
+
+# -------------------------------
+# CACHE (ESP32-S3)
+# -------------------------------
 CONFIG_ESP32S3_DATA_CACHE_64KB=y
 CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
 
+# -------------------------------
+# USB-CDC (stable serial)
+# -------------------------------
 CONFIG_USB_CDC_ENABLED=y
 CONFIG_USB_CDC_ON_BOOT=y
+
+# -------------------------------
+# CORE DUMP (DISABLED — CRITICAL)
+# Prevents:
+#   "No core dump partition found"
+#   "Core dump flash config is corrupted"
+#   Bootloops & USB disappearing
+# -------------------------------
+CONFIG_ESP_COREDUMP_ENABLE_TO_NONE=y
+
+# -------------------------------
+# PANIC / CRASH BEHAVIOR
+# Halt instead of rebooting into bootloader
+# Keeps USB port alive for diagnostics
+# -------------------------------
+CONFIG_ESP_SYSTEM_PANIC_PRINT_HALT=y
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=n
+
+# -------------------------------
+# WATCHDOG SAFETY
+# -------------------------------
+CONFIG_ESP_TASK_WDT=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=8
+
+# -------------------------------
+# HEAP DEBUGGING (SAFE)
+# -------------------------------
+CONFIG_HEAP_POISONING_LIGHT=y
+CONFIG_HEAP_TRACING_OFF=y
+
+# -------------------------------
+# RTOS
+# -------------------------------
+CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+
+# -------------------------------
+# LOGGING
+# -------------------------------
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_DEFAULT_LEVEL=3
+
+# -------------------------------
+# WIFI / BT — HARD DISABLED
+# No radio, no RAM waste, no crashes
+# -------------------------------
+CONFIG_ESP_WIFI_ENABLED=n
+CONFIG_BT_ENABLED=n
+CONFIG_ESP32_WIFI_ENABLED=n
+CONFIG_ESP32_WIFI_SW_COEXIST_ENABLE=n
+
+# ============================================================================
+# END OF FILE
+# ============================================================================
