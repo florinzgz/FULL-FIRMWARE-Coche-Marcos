@@ -86,10 +86,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   // 🔒 CRITICAL FIX: Force sprite buffers to PSRAM to prevent heap corruption
   // Large full-screen sprites (480×320×16bit = ~300KB each) MUST be in PSRAM
   // to avoid heap fragmentation causing "Stack canary watchpoint triggered (ipc0)"
-  // PSRAM_ENABLE (3) ensures sprites use PSRAM if available
-  #ifndef PSRAM_ENABLE
-  #define PSRAM_ENABLE 3
-  #endif
+  // PSRAM_ENABLE (defined in TFT_eSPI.h as 3) ensures sprites use PSRAM if available
   sprites[id]->setAttribute(PSRAM_ENABLE, 1);
   
   sprites[id]->setColorDepth(16);
