@@ -1,0 +1,112 @@
+{
+  "rules": [
+    {
+      "resource": "TFT",
+      "description": "TFT display must be initialized before any drawing operations",
+      "init_functions": [
+        "tft.init()"
+      ],
+      "forbidden_before_init": [
+        "tft.fillScreen(",
+        "tft.drawPixel(",
+        "tft.drawLine(",
+        "tft.drawRect(",
+        "tft.fillRect(",
+        "tft.drawCircle(",
+        "tft.fillCircle(",
+        "tft.drawTriangle(",
+        "tft.fillTriangle(",
+        "tft.setRotation(",
+        "tft.setCursor(",
+        "tft.print(",
+        "tft.println(",
+        "tft.drawString(",
+        "tft.setTextColor(",
+        "tft.setTextSize(",
+        "tft.width(",
+        "tft.height("
+      ],
+      "fatal": true,
+      "impact": "Causes Guru Meditation Error and USB CDC disconnect on ESP32-S3"
+    },
+    {
+      "resource": "BACKLIGHT_PWM",
+      "description": "Backlight PWM must be configured before writing brightness values",
+      "init_functions": [
+        "ledcSetup(",
+        "ledcAttachPin("
+      ],
+      "forbidden_before_init": [
+        "ledcWrite("
+      ],
+      "fatal": true,
+      "impact": "Display remains dark or causes undefined PWM behavior"
+    },
+    {
+      "resource": "I2C",
+      "description": "I2C bus must be initialized with Wire.begin before any device access",
+      "init_functions": [
+        "Wire.begin(",
+        "Wire1.begin("
+      ],
+      "forbidden_before_init": [
+        "Wire.beginTransmission(",
+        "Wire.endTransmission(",
+        "Wire.requestFrom(",
+        "Wire.read(",
+        "Wire.write("
+      ],
+      "fatal": true,
+      "impact": "I2C bus hangs, device communication fails, watchdog timeout"
+    },
+    {
+      "resource": "GPIO",
+      "description": "GPIO pins must be configured with pinMode before use",
+      "init_functions": [
+        "pinMode("
+      ],
+      "forbidden_before_init": [
+        "digitalWrite(",
+        "digitalRead("
+      ],
+      "fatal": false,
+      "impact": "Undefined GPIO state, potential hardware damage"
+    },
+    {
+      "resource": "SPI",
+      "description": "SPI bus must be initialized before device transactions",
+      "init_functions": [
+        "SPI.begin("
+      ],
+      "forbidden_before_init": [
+        "SPI.transfer(",
+        "SPI.transfer16(",
+        "SPI.write("
+      ],
+      "fatal": true,
+      "impact": "SPI communication fails, display/SD card errors"
+    }
+  ],
+  "project_specific_rules": [
+    {
+      "name": "HUD_MANAGER_INIT_ORDER",
+      "description": "HUDManager::init must initialize TFT before calling HUD functions",
+      "enforced_order": [
+        "tft.init(",
+        "HUD::init("
+      ],
+      "fatal": true,
+      "impact": "This is the exact bug that caused the bootloop - TFT accessed before initialization"
+    },
+    {
+      "name": "BACKLIGHT_BEFORE_DISPLAY",
+      "description": "Backlight PWM must be configured before writing brightness",
+      "enforced_order": [
+        "ledcSetup(",
+        "ledcWrite("
+      ],
+      "fatal": false,
+      "impact": "Screen flicker or remains dark during boot"
+    }
+  ]
+}
