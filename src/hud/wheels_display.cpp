@@ -1,5 +1,7 @@
 #include "wheels_display.h"
+#include "hud_layer.h"      // For RenderContext
 #include "logger.h"
+#include "safe_draw.h"      // 🚨 CRITICAL FIX: Safe coordinate-translated drawing
 #include "settings.h"
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // para constrain() y DEG_TO_RAD
@@ -59,12 +61,11 @@ static uint16_t colorByEffort(float e) {
 
 // Dibujar rueda 3D con efecto de profundidad
 // 🔒 v2.8.8: Ruedas en orientación vertical con marcas de neumático realistas
-// Phase 6.3: Added target parameter for compositor mode
-static void drawWheel3D(int cx, int cy, float angleDeg,
-                        TFT_eSPI *drawTarget = nullptr) {
-  // Phase 6.3: Use provided target or fallback to global tft
-  if (!drawTarget) drawTarget = tft;
-  if (!drawTarget) return;
+// 🚨 CRITICAL FIX: Now uses RenderContext for safe coordinate translation
+static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
+                        const HudLayer::RenderContext &ctx) {
+  if (!ctx.sprite && !tft) return;
+  
   int w = 18, h = 40; // Dimensiones: rueda vertical (ancho < alto)
   float rad = angleDeg * DEG_TO_RAD;
 
@@ -74,28 +75,48 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
   int ex = (int)(-sinf(rad) * h / 2);
   int ey = (int)(cosf(rad) * h / 2);
 
-  // 4 esquinas del rectángulo
-  int x0 = cx - dx - ex, y0 = cy - dy - ey;
-  int x1 = cx + dx - ex, y1 = cy + dy - ey;
-  int x2 = cx + dx + ex, y2 = cy + dy + ey;
-  int x3 = cx - dx + ex, y3 = cy - dy + ey;
+  // 4 esquinas del rectángulo (en coordenadas de pantalla)
+  int x0 = screenCX - dx - ex, y0 = screenCY - dy - ey;
+  int x1 = screenCX + dx - ex, y1 = screenCY + dy - ey;
+  int x2 = screenCX + dx + ex, y2 = screenCY + dy + ey;
+  int x3 = screenCX - dx + ex, y3 = screenCY - dy + ey;
 
   // Fondo negro para limpiar (cuadrado que cubre la rueda rotada)
-  // Usar max(w,h) para asegurar que cubre cualquier rotación
   int clearSize = h + 8; // h es la dimensión más larga
-  drawTarget->fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
-                       clearSize, TFT_BLACK);
+  
+  // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, screenCX - clearSize / 2, screenCY - clearSize / 2, 
+                     clearSize, clearSize, TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror wheel clear area to shadow sprite
-  SHADOW_MIRROR_fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
-                         clearSize, TFT_BLACK);
+  SHADOW_MIRROR_fillRect(screenCX - clearSize / 2, screenCY - clearSize / 2, 
+                         clearSize, clearSize, TFT_BLACK);
 #endif
 
-  // Sombra de la rueda (desplazada 2px abajo-derecha)
-  drawTarget->fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
-                           COLOR_WHEEL_SHADOW);
-  drawTarget->fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
-                           COLOR_WHEEL_SHADOW);
+  // 🚨 CRITICAL FIX: For complex shapes (triangles), translate coordinates manually
+  if (ctx.sprite) {
+    // Convert all points to sprite-local coordinates
+    int16_t local_x0 = ctx.toLocalX(x0 + 2);
+    int16_t local_y0 = ctx.toLocalY(y0 + 2);
+    int16_t local_x1 = ctx.toLocalX(x1 + 2);
+    int16_t local_y1 = ctx.toLocalY(y1 + 2);
+    int16_t local_x2 = ctx.toLocalX(x2 + 2);
+    int16_t local_y2 = ctx.toLocalY(y2 + 2);
+    int16_t local_x3 = ctx.toLocalX(x3 + 2);
+    int16_t local_y3 = ctx.toLocalY(y3 + 2);
+    
+    // Shadow triangles (offset +2 for 3D effect)
+    ctx.sprite->fillTriangle(local_x0, local_y0, local_x1, local_y1, 
+                             local_x2, local_y2, COLOR_WHEEL_SHADOW);
+    ctx.sprite->fillTriangle(local_x0, local_y0, local_x2, local_y2, 
+                             local_x3, local_y3, COLOR_WHEEL_SHADOW);
+  } else {
+    // Drawing to screen - use screen coordinates directly
+    tft->fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
+                      COLOR_WHEEL_SHADOW);
+    tft->fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
+                      COLOR_WHEEL_SHADOW);
+  }
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror wheel shadow to shadow sprite
   SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
