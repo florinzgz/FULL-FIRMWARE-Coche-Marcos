@@ -153,6 +153,21 @@ Los siguientes documentos han sido creados con el análisis detallado:
    - Evaluación de viabilidad para este proyecto
    - Recomendaciones arquitecturales
 
+3. **[docs/STM32G474CB_QUICK_REFERENCE.md](docs/STM32G474CB_QUICK_REFERENCE.md)**
+   - Guía rápida de referencia STM32G474CB
+   - Ejemplos de código y casos de uso
+   - Tips y trucos de implementación
+   - Checklist de diseño hardware
+
+4. **[docs/AUTOMOTIVE_DUAL_MCU_ARCHITECTURE.md](docs/AUTOMOTIVE_DUAL_MCU_ARCHITECTURE.md)** ⭐ **NUEVO**
+   - **Arquitectura dual-MCU automotive-grade** (ESP32-S3 + STM32G474CB)
+   - Particionamiento basado en seguridad (2 nodos, NO multi-ECU)
+   - Protocolo CAN completo con latencia mejorada 6.5×
+   - Análisis de modos de fallo y mitigación
+   - Asignación completa de pines STM32 (42/42)
+   - Por qué un solo STM32 es suficiente
+   - Plan de migración en 4 fases
+
 ---
 
 ## 💡 Conclusiones
@@ -179,6 +194,8 @@ La elección de microcontrolador debe basarse en los **requerimientos específic
 - **STM32G474CB:** Ideal para control especializado de motores
 
 **Ambos son excelentes, para aplicaciones diferentes.** ✅
+
+**🆕 Arquitectura Dual-MCU:** Para aplicaciones que requieren AMBOS (UI rica + control especializado), una arquitectura de 2 nodos con comunicación CAN es la solución automotive-grade correcta. Ver [AUTOMOTIVE_DUAL_MCU_ARCHITECTURE.md](docs/AUTOMOTIVE_DUAL_MCU_ARCHITECTURE.md) para el diseño completo.
 
 ---
 
