@@ -31,8 +31,17 @@
 
 namespace SafeDraw {
 
-// Forward declarations for external TFT object
-extern TFT_eSPI tft;
+// Pointer to global TFT object - initialized by init()
+// Actual tft object defined in hud_manager.cpp
+static TFT_eSPI *tftPtr = nullptr;
+
+/**
+ * @brief Initialize SafeDraw with TFT reference
+ * Must be called before using SafeDraw functions
+ */
+inline void init(TFT_eSPI *tft) {
+  tftPtr = tft;
+}
 
 /**
  * @brief Safe fillRect with coordinate translation and clipping
@@ -75,7 +84,7 @@ inline void fillRect(const HudLayer::RenderContext &ctx, int16_t screenX,
     ctx.sprite->fillRect(localX, localY, width, height, color);
   } else {
     // Drawing to screen - use screen coordinates directly
-    tft.fillRect(screenX, screenY, w, h, color);
+    if (tftPtr) tftPtr->fillRect(screenX, screenY, w, h, color);
   }
 }
 
@@ -99,7 +108,7 @@ inline void drawCircle(const HudLayer::RenderContext &ctx, int16_t screenX,
     
     ctx.sprite->drawCircle(localX, localY, r, color);
   } else {
-    tft.drawCircle(screenX, screenY, r, color);
+    if (tftPtr) tftPtr->drawCircle(screenX, screenY, r, color);
   }
 }
 
@@ -132,7 +141,7 @@ inline void drawLine(const HudLayer::RenderContext &ctx, int16_t x0, int16_t y0,
     
     ctx.sprite->drawLine(local_x0, local_y0, local_x1, local_y1, color);
   } else {
-    tft.drawLine(x0, y0, x1, y1, color);
+    if (tftPtr) tftPtr->drawLine(x0, y0, x1, y1, color);
   }
 }
 
@@ -156,7 +165,7 @@ inline void fillCircle(const HudLayer::RenderContext &ctx, int16_t screenX,
     
     ctx.sprite->fillCircle(localX, localY, r, color);
   } else {
-    tft.fillCircle(screenX, screenY, r, color);
+    if (tftPtr) tftPtr->fillCircle(screenX, screenY, r, color);
   }
 }
 
@@ -180,7 +189,7 @@ inline void drawString(const HudLayer::RenderContext &ctx, const char *string,
     
     ctx.sprite->drawString(string, localX, localY, font);
   } else {
-    tft.drawString(string, screenX, screenY, font);
+    if (tftPtr) tftPtr->drawString(string, screenX, screenY, font);
   }
 }
 
@@ -199,7 +208,7 @@ inline void drawPixel(const HudLayer::RenderContext &ctx, int16_t screenX,
     
     ctx.sprite->drawPixel(localX, localY, color);
   } else {
-    tft.drawPixel(screenX, screenY, color);
+    if (tftPtr) tftPtr->drawPixel(screenX, screenY, color);
   }
 }
 
@@ -210,7 +219,7 @@ inline void drawPixel(const HudLayer::RenderContext &ctx, int16_t screenX,
  * You MUST still translate coordinates manually!
  */
 inline TFT_eSPI* getDrawTarget(const HudLayer::RenderContext &ctx) {
-  return ctx.sprite ? (TFT_eSPI*)ctx.sprite : &tft;
+  return ctx.sprite ? (TFT_eSPI*)ctx.sprite : tftPtr;
 }
 
 } // namespace SafeDraw
