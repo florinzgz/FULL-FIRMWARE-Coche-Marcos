@@ -136,7 +136,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   
   if (heapDelta > (int32_t)(expectedSize / 10)) {
     Logger::warnf("  ⚠️  Unexpected heap usage: %d KB (expected < %u KB)", 
-                  heapDelta / 1024, expectedSize / 10240);
+                  heapDelta / 1024, expectedSize / 1024 / 10);
   }
 
   sprites[id]->fillSprite(TFT_BLACK);
