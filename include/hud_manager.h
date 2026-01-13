@@ -2,7 +2,8 @@
 #define HUD_MANAGER_H
 
 #include "display_types.h"
-#include "sensors.h" // For Sensors::InputDeviceStatus type
+#include "render_event.h" // Thread-safe render event system
+#include "sensors.h"      // For Sensors::InputDeviceStatus type
 #include <TFT_eSPI.h>
 
 /**
@@ -13,6 +14,11 @@
  * - HUD avanzado: Dashboard completo con widgets, gauges, ruedas
  *
  * Optimizado para 30 FPS con actualización selectiva de áreas.
+ *
+ * 🔒 THREAD SAFETY: TFT_eSPI is NOT thread-safe!
+ * - ALL TFT drawing operations MUST happen in HUDManager::update()
+ * - Other contexts must use queueRenderEvent() to request rendering
+ * - Direct tft.* calls from outside update() will cause crashes (ipc0 stack canary)
  */
 class HUDManager {
 public:
@@ -64,8 +70,21 @@ public:
   /**
    * @brief Muestra error
    * @param message Mensaje de error
+   *
+   * 🔒 THREAD-SAFE: This method queues the error display request.
+   * The actual drawing happens in update() to avoid TFT_eSPI race conditions.
    */
   static void showError(const char *message);
+
+  /**
+   * @brief Queue a render event for thread-safe processing
+   * @param event The render event to queue
+   * @return true if event was queued successfully, false if queue is full
+   *
+   * 🔒 THREAD-SAFE: Safe to call from any context (ISR, task, callback)
+   * Events are processed in HUDManager::update() on the main render thread.
+   */
+  static bool queueRenderEvent(const RenderEvent::Event &event);
 
   /**
    * @brief Procesa evento táctil
@@ -126,8 +145,17 @@ private:
   static bool needsRedraw;
   static uint8_t brightness;
 
+  // 🔒 THREAD SAFETY: Render event queue
+  // FreeRTOS queue handle for thread-safe render requests
+  static void *renderEventQueue; // QueueHandle_t (void* to avoid freertos include)
+
+  // Current error state
+  static bool errorActive;
+  static char errorMessage[RenderEvent::MAX_ERROR_MSG_LEN];
+
   // Helper methods
   static void clearScreenIfNeeded();
+  static void processRenderEvents(); // 🔒 NEW: Process queued render events
 
   // Color calculation helpers for status display
   static uint16_t getSensorStatusColor(uint8_t okCount, uint8_t totalCount);
@@ -146,6 +174,7 @@ private:
   static void renderStatistics();
   static void renderQuickMenu();
   static void renderHiddenMenu();
+  static void renderErrorScreen(); // 🔒 NEW: Render error screen (called only from update)
 
   // Helpers optimización
   static void updateOnlyChanged();

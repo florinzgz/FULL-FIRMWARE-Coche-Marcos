@@ -13,6 +13,8 @@
 #include "storage.h"
 #include "system.h"
 #include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 // ============================================================================
 // PHASE 10: BASE HUD Layer Renderer
@@ -85,6 +87,11 @@ bool HUDManager::hiddenMenuActive = false;
 uint32_t HUDManager::longPressStartMs = 0;
 uint8_t HUDManager::longPressButtonId = 0;
 
+// 🔒 THREAD SAFETY: Render event queue
+void *HUDManager::renderEventQueue = nullptr;
+bool HUDManager::errorActive = false;
+char HUDManager::errorMessage[RenderEvent::MAX_ERROR_MSG_LEN] = {0};
+
 // 🔒 v2.5.0: Flag de inicialización
 static bool initialized = false;
 
@@ -119,6 +126,20 @@ void HUDManager::init() {
   Serial.println("[HUD] Starting HUDManager initialization...");
   Serial.flush();
   delay(50); // 🔒 v2.11.6: Ensure UART output is sent before potential crash
+
+  // 🔒 THREAD SAFETY: Create render event queue
+  // Queue size: 10 events (enough for error bursts without blocking)
+  constexpr size_t RENDER_QUEUE_SIZE = 10;
+  renderEventQueue = xQueueCreate(RENDER_QUEUE_SIZE, sizeof(RenderEvent::Event));
+  if (renderEventQueue == nullptr) {
+    Serial.println("[HUD] CRITICAL: Failed to create render event queue!");
+    Logger::error("HUD: Render queue creation failed");
+    System::logError(603);
+    // Continue anyway - will log errors but won't queue events
+  } else {
+    Serial.println("[HUD] Render event queue created (size=10)");
+    Logger::info("HUD: Render event queue initialized");
+  }
 
   // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en
   // main.cpp) La configuración de OUTPUT/HIGH se realiza únicamente en
@@ -347,6 +368,10 @@ void HUDManager::update() {
     return; // No bloquear el sistema si el display falló
   }
 
+  // 🔒 THREAD SAFETY: Process render events FIRST
+  // This ensures error screens are shown immediately
+  processRenderEvents();
+
   // 🔒 CORRECCIÓN: Control de frame rate con constante
   // 🔒 v2.8.4: No saltar el primer frame para permitir el primer dibujo
   static constexpr uint32_t FRAME_INTERVAL_MS = 33; // 30 FPS
@@ -365,6 +390,13 @@ void HUDManager::update() {
   // 🔒 v2.11.5: FLICKER FIX - Solo limpiar pantalla una vez al cambiar de menú
   // El flag needsRedraw se maneja dentro de cada función de renderizado
   // para evitar borrados innecesarios que causan parpadeo
+
+  // 🔒 THREAD SAFETY: If error is active, render error screen and return
+  // This takes priority over all other menus
+  if (errorActive) {
+    renderErrorScreen();
+    return;
+  }
 
   switch (currentMenu) {
   case MenuType::DASHBOARD:
@@ -446,13 +478,30 @@ void HUDManager::showReady() {
 }
 
 void HUDManager::showError(const char *message) {
-  currentMenu = MenuType::NONE;
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_RED, TFT_BLACK);
-  tft.setTextSize(2);
-  tft.setCursor(20, 150);
-  tft.print("ERROR: ");
-  tft.println(message);
+  // 🔒 THREAD SAFETY: Queue error display event instead of rendering directly
+  // This prevents concurrent TFT access that causes ipc0 stack canary crashes
+  
+  if (message == nullptr) {
+    Logger::warn("HUD: showError called with null message");
+    return;
+  }
+
+  // Create render event
+  RenderEvent::Event event;
+  event.type = RenderEvent::Type::SHOW_ERROR;
+  
+  // Copy error message safely
+  strncpy(event.errorMessage, message, RenderEvent::MAX_ERROR_MSG_LEN - 1);
+  event.errorMessage[RenderEvent::MAX_ERROR_MSG_LEN - 1] = '\0';
+
+  // Queue the event for processing in update()
+  if (!queueRenderEvent(event)) {
+    // Queue full - log but don't crash
+    Logger::errorf("HUD: Render queue full, error not displayed: %s", message);
+    Serial.printf("[HUD] ERROR (queue full): %s\n", message);
+  } else {
+    Logger::infof("HUD: Error queued for display: %s", message);
+  }
 }
 
 void HUDManager::handleTouch([[maybe_unused]] int16_t x,
@@ -1166,3 +1215,98 @@ void HUDManager::renderHiddenMenu() {
   tft.setCursor(5, 300);
   tft.print("Pulse 3s bateria para salir");
 }
+
+// ============================================================================
+// Thread-Safe Render Event System
+// ============================================================================
+
+bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
+  if (renderEventQueue == nullptr) {
+    Logger::error("HUD: Cannot queue event - queue not initialized");
+    return false;
+  }
+
+  // Try to send to queue without blocking (0 ticks timeout)
+  // This is critical for thread safety - we never want to block other tasks
+  BaseType_t result = xQueueSend(static_cast<QueueHandle_t>(renderEventQueue),
+                                  &event, 0);
+  
+  return (result == pdTRUE);
+}
+
+void HUDManager::processRenderEvents() {
+  if (renderEventQueue == nullptr) {
+    return; // Queue not initialized
+  }
+
+  // Process all pending events (non-blocking)
+  RenderEvent::Event event;
+  while (xQueueReceive(static_cast<QueueHandle_t>(renderEventQueue), &event,
+                       0) == pdTRUE) {
+    switch (event.type) {
+    case RenderEvent::Type::SHOW_ERROR:
+      // Copy error message to static buffer
+      strncpy(errorMessage, event.errorMessage,
+              RenderEvent::MAX_ERROR_MSG_LEN - 1);
+      errorMessage[RenderEvent::MAX_ERROR_MSG_LEN - 1] = '\0';
+      errorActive = true;
+      needsRedraw = true; // Force screen clear for error
+      currentMenu = MenuType::NONE; // Exit any menu
+      Logger::infof("HUD: Processing SHOW_ERROR event: %s", errorMessage);
+      break;
+
+    case RenderEvent::Type::CLEAR_ERROR:
+      errorActive = false;
+      needsRedraw = true; // Force screen clear after error
+      Logger::info("HUD: Processing CLEAR_ERROR event");
+      break;
+
+    case RenderEvent::Type::FORCE_REDRAW:
+      needsRedraw = true;
+      Logger::info("HUD: Processing FORCE_REDRAW event");
+      break;
+
+    case RenderEvent::Type::UPDATE_BRIGHTNESS:
+      brightness = event.brightness;
+      if (initialized) {
+        ledcWrite(0, brightness);
+      }
+      Logger::infof("HUD: Processing UPDATE_BRIGHTNESS event: %d", brightness);
+      break;
+
+    case RenderEvent::Type::NONE:
+    default:
+      // Ignore unknown events
+      break;
+    }
+  }
+}
+
+void HUDManager::renderErrorScreen() {
+  // 🔒 THREAD SAFETY: This function is ONLY called from update()
+  // It performs the actual TFT drawing for error screens
+  
+  // Clear screen on first draw
+  if (needsRedraw) {
+    tft.fillScreen(TFT_BLACK);
+    needsRedraw = false;
+  }
+
+  // Draw error message
+  tft.setTextColor(TFT_RED, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(20, 140);
+  tft.print("ERROR: ");
+  
+  // Print error message (may wrap if too long)
+  tft.setCursor(20, 165);
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.print(errorMessage);
+  
+  // Instructions
+  tft.setCursor(20, 200);
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft.print("Sistema intentara recuperarse...");
+}
+
