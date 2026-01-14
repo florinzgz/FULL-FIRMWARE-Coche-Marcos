@@ -91,23 +91,23 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
 
   // NORMAL state: Don't show anything
   if (text == nullptr || state == LimpMode::LimpState::NORMAL) {
-    // Clear the area
-    drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
-                         INDICATOR_HEIGHT, COLOR_BACKGROUND);
+    // Clear the area - Use SafeDraw for coordinate translation
+    SafeDraw::fillRect(ctx, INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                       INDICATOR_HEIGHT, COLOR_BACKGROUND);
     return;
   }
 
   uint16_t color = getColorForState(state);
 
-  // Draw background
-  drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
-                       INDICATOR_HEIGHT, COLOR_BACKGROUND);
+  // Draw background - Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                     INDICATOR_HEIGHT, COLOR_BACKGROUND);
 
-  // Draw border
-  drawTarget->drawRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
-                       INDICATOR_HEIGHT, color);
-  drawTarget->drawRect(INDICATOR_X + 1, INDICATOR_Y + 1, INDICATOR_WIDTH - 2,
-                       INDICATOR_HEIGHT - 2, color);
+  // Draw border - Use SafeDraw for coordinate translation
+  SafeDraw::drawRect(ctx, INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                     INDICATOR_HEIGHT, color);
+  SafeDraw::drawRect(ctx, INDICATOR_X + 1, INDICATOR_Y + 1, INDICATOR_WIDTH - 2,
+                     INDICATOR_HEIGHT - 2, color);
 
   // Draw text centered
   drawTarget->setTextColor(color, COLOR_BACKGROUND);
@@ -177,9 +177,9 @@ void clear() {
                               sprite ? sprite->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
-  // Clear indicator area
-  drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
-                       INDICATOR_HEIGHT, COLOR_BACKGROUND);
+  // Clear indicator area - Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,
+                     INDICATOR_HEIGHT, COLOR_BACKGROUND);
 
   // Reset cached state so next draw() will redraw
   lastState = LimpMode::LimpState::NORMAL;

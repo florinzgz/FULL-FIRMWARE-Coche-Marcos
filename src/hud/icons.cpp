@@ -238,8 +238,8 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
       }
       textColor = COLOR_ACTIVE_TEXT;
 
-      // Efecto glow exterior para marcha activa
-      drawTarget->drawRoundRect(
+      // Efecto glow exterior para marcha activa - Use SafeDraw
+      SafeDraw::drawRoundRect(ctx,
           cellX - 1, cellY - 1, GEAR_ITEM_W + 2, GEAR_ITEM_H + 2, 5,
           (g == Shifter::R) ? COLOR_REVERSE_GLOW : COLOR_ACTIVE_GLOW);
 #ifdef RENDER_SHADOW_MODE
@@ -427,9 +427,9 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   SafeDraw::fillRoundRect(ctx, battX, battY, battW, battH, 3, 0x2104);
   SafeDraw::drawRoundRect(ctx, battX, battY, battW, battH, 3, 0x6B6D);
 
-  // Terminal positivo
-  drawTarget->fillRect(battX + battW, battY + (battH - capH) / 2, capW, capH,
-                       0x6B6D);
+  // Terminal positivo - Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, battX + battW, battY + (battH - capH) / 2, capW, capH,
+                     0x6B6D);
 
   // Relleno según nivel
   int fillW = (int)((battW - 6) * percent / 100.0f);
@@ -522,8 +522,9 @@ void Icons::drawErrorWarning(TFT_eSprite *sprite) {
     SHADOW_MIRROR_drawString(buf, WARNING_X2 + 5, WARNING_Y1 + 15, 2);
 #endif
   } else {
-    drawTarget->fillRect(WARNING_X1, WARNING_Y1, (WARNING_X2 - WARNING_X1) + 40,
-                         WARNING_Y2 - WARNING_Y1, TFT_BLACK);
+    // Use SafeDraw for coordinate translation
+    SafeDraw::fillRect(ctx, WARNING_X1, WARNING_Y1, (WARNING_X2 - WARNING_X1) + 40,
+                       WARNING_Y2 - WARNING_Y1, TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
     SHADOW_MIRROR_fillRect(WARNING_X1, WARNING_Y1,
                            (WARNING_X2 - WARNING_X1) + 40,
@@ -552,10 +553,10 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
   lastWheelOK = wheelOK;
   sensorsCacheInitialized = true;
 
-  // Limpiar área
-  drawTarget->fillRect(SENSOR_STATUS_X1, SENSOR_STATUS_Y1,
-                       SENSOR_STATUS_X2 - SENSOR_STATUS_X1,
-                       SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1, TFT_BLACK);
+  // Limpiar área - Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, SENSOR_STATUS_X1, SENSOR_STATUS_Y1,
+                     SENSOR_STATUS_X2 - SENSOR_STATUS_X1,
+                     SENSOR_STATUS_Y2 - SENSOR_STATUS_Y1, TFT_BLACK);
 
   // Helper para determinar color basado en proporción OK/Total
   auto getStatusColor = [](uint8_t ok, uint8_t total) -> uint16_t {
@@ -671,8 +672,9 @@ void Icons::drawTempWarning(bool tempWarning, float maxTemp,
   lastTempWarning = tempWarning;
   lastMaxTemp = maxTemp;
 
-  drawTarget->fillRect(TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W,
-                       TEMP_WARNING_H, TFT_BLACK);
+  // Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, TEMP_WARNING_X, TEMP_WARNING_Y, TEMP_WARNING_W,
+                     TEMP_WARNING_H, TFT_BLACK);
 
   if (tempWarning) {
     // Mostrar advertencia de temperatura crítica
@@ -714,9 +716,9 @@ void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
   if (fabs(ambientTemp - lastAmbientTemp) < 0.5f) return;
   lastAmbientTemp = ambientTemp;
 
-  // Limpiar área
-  drawTarget->fillRect(AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W,
-                       AMBIENT_TEMP_H, TFT_BLACK);
+  // Limpiar área - Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, AMBIENT_TEMP_X, AMBIENT_TEMP_Y, AMBIENT_TEMP_W,
+                     AMBIENT_TEMP_H, TFT_BLACK);
 
   // Dibujar icono de termómetro pequeño
   int iconX = AMBIENT_TEMP_X + 2;
