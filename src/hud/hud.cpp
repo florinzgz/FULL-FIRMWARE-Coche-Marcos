@@ -875,8 +875,8 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 
   if (pedalPercent < 0.0f) {
     // Pedal inválido → barra vacía con "--"
-    drawTarget->fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
-    drawTarget->drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
+    SafeDraw::fillRoundRect(ctx, 0, y, width, height, radius, COLOR_BAR_BG);
+    SafeDraw::drawRoundRect(ctx, 0, y, width, height, radius, TFT_DARKGREY);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
     drawTarget->drawString("-- PEDAL --", 240, y + height / 2, 2);
@@ -912,8 +912,8 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   }
 
   // Fondo de barra con efecto 3D (hundido)
-  drawTarget->fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
-  drawTarget->drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+  SafeDraw::fillRoundRect(ctx, 0, y, width, height, radius, COLOR_BAR_BG);
+  SafeDraw::drawRoundRect(ctx, 0, y, width, height, radius, COLOR_BAR_BORDER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror pedal bar background to shadow sprite
   SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
@@ -922,18 +922,18 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 
   // Barra de progreso principal
   if (barWidth > 0) {
-    drawTarget->fillRoundRect(0, y, barWidth, height, radius, colorMain);
+    SafeDraw::fillRoundRect(ctx, 0, y, barWidth, height, radius, colorMain);
 
     // Efecto 3D: línea clara arriba
-    drawTarget->drawFastHLine(2, y + 2, barWidth - 4, colorLight);
-    drawTarget->drawFastHLine(2, y + 3, barWidth - 4, colorLight);
+    SafeDraw::drawFastHLine(ctx, 2, y + 2, barWidth - 4, colorLight);
+    SafeDraw::drawFastHLine(ctx, 2, y + 3, barWidth - 4, colorLight);
 
     // Efecto 3D: línea oscura abajo
-    drawTarget->drawFastHLine(2, y + height - 3, barWidth - 4, colorDark);
-    drawTarget->drawFastHLine(2, y + height - 2, barWidth - 4, colorDark);
+    SafeDraw::drawFastHLine(ctx, 2, y + height - 3, barWidth - 4, colorDark);
+    SafeDraw::drawFastHLine(ctx, 2, y + height - 2, barWidth - 4, colorDark);
 
     // Borde de la barra activa
-    drawTarget->drawRoundRect(0, y, barWidth, height, radius, colorDark);
+    SafeDraw::drawRoundRect(ctx, 0, y, barWidth, height, radius, colorDark);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror pedal bar fill to shadow sprite
     SHADOW_MIRROR_fillRoundRect(0, y, barWidth, height, radius, colorMain);
@@ -965,9 +965,9 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 #endif
 
   // Marcas de referencia (25%, 50%, 75%)
-  drawTarget->drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
-  drawTarget->drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
-  drawTarget->drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SafeDraw::drawFastVLine(ctx, width / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SafeDraw::drawFastVLine(ctx, width / 2, y + 2, height - 4, COLOR_REF_MARKS);
+  SafeDraw::drawFastVLine(ctx, width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror reference marks to shadow sprite
   SHADOW_MIRROR_drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);

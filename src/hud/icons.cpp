@@ -174,21 +174,21 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
   // ========================================
 
   // Sombra exterior (efecto profundidad)
-  drawTarget->fillRoundRect(GEAR_PANEL_X + 3, GEAR_PANEL_Y + 3, GEAR_PANEL_W,
+  SafeDraw::fillRoundRect(ctx, GEAR_PANEL_X + 3, GEAR_PANEL_Y + 3, GEAR_PANEL_W,
                             GEAR_PANEL_H, 6, COLOR_PANEL_SHADOW);
 
   // Fondo principal del panel
-  drawTarget->fillRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
+  SafeDraw::fillRoundRect(ctx, GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
                             GEAR_PANEL_H, 6, COLOR_PANEL_BG);
 
   // Borde del panel
-  drawTarget->drawRoundRect(GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
+  SafeDraw::drawRoundRect(ctx, GEAR_PANEL_X, GEAR_PANEL_Y, GEAR_PANEL_W,
                             GEAR_PANEL_H, 6, COLOR_PANEL_BORDER);
 
   // Highlight superior (efecto 3D)
-  drawTarget->drawFastHLine(GEAR_PANEL_X + 8, GEAR_PANEL_Y + 2,
+  SafeDraw::drawFastHLine(ctx, GEAR_PANEL_X + 8, GEAR_PANEL_Y + 2,
                             GEAR_PANEL_W - 16, COLOR_PANEL_HIGHLIGHT);
-  drawTarget->drawFastHLine(GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3,
+  SafeDraw::drawFastHLine(ctx, GEAR_PANEL_X + 10, GEAR_PANEL_Y + 3,
                             GEAR_PANEL_W - 20, COLOR_PANEL_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror gear panel to shadow sprite
@@ -251,11 +251,11 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
     }
 
     // Fondo de la celda con esquinas redondeadas
-    drawTarget->fillRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
+    SafeDraw::fillRoundRect(ctx, cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
                               bgColor);
 
     // Borde de la celda
-    drawTarget->drawRoundRect(cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
+    SafeDraw::drawRoundRect(ctx, cellX, cellY, GEAR_ITEM_W, GEAR_ITEM_H, 4,
                               borderColor);
 
     // Efecto 3D interno: highlight superior
@@ -328,7 +328,7 @@ void Icons::drawFeatures(bool mode4x4, bool regenOn, TFT_eSprite *sprite) {
     SafeDraw::fillRoundRect(ctx, x1, y1, w, h, 5, bgColor);
 
     // Borde exterior
-    drawTarget->drawRoundRect(x1, y1, w, h, 5, COLOR_BOX_BORDER);
+    SafeDraw::drawRoundRect(ctx, x1, y1, w, h, 5, COLOR_BOX_BORDER);
 
     // Efecto 3D: highlight superior
     SafeDraw::drawFastHLine(ctx, x1 + 5, y1 + 2, w - 10, COLOR_BOX_HIGHLIGHT);
@@ -422,7 +422,7 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
 
   // Cuerpo de la batería con efecto 3D
   SafeDraw::fillRoundRect(ctx, battX, battY, battW, battH, 3, 0x2104);
-  drawTarget->drawRoundRect(battX, battY, battW, battH, 3, 0x6B6D);
+  SafeDraw::drawRoundRect(ctx, battX, battY, battW, battH, 3, 0x6B6D);
 
   // Terminal positivo
   drawTarget->fillRect(battX + battW, battY + (battH - capH) / 2, capW, capH,
@@ -440,7 +440,7 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   }
 
   if (fillW > 0) {
-    drawTarget->fillRoundRect(battX + 3, battY + 3, fillW, battH - 6, 1,
+    SafeDraw::fillRoundRect(ctx, battX + 3, battY + 3, fillW, battH - 6, 1,
                               fillColor);
     // Highlight 3D
     SafeDraw::drawFastHLine(ctx, battX + 3, battY + 3, fillW, 0xFFFF);
@@ -720,7 +720,7 @@ void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
 
   // Cuerpo del termómetro (vertical)
   SafeDraw::fillRoundRect(ctx, iconX, iconY, 6, 12, 2, TFT_CYAN);
-  drawTarget->drawRoundRect(iconX, iconY, 6, 12, 2, TFT_DARKGREY);
+  SafeDraw::drawRoundRect(ctx, iconX, iconY, 6, 12, 2, TFT_DARKGREY);
 
   // Bulbo del termómetro
   SafeDraw::fillCircle(ctx, iconX + 3, iconY + 13, 4, TFT_CYAN);

@@ -1,7 +1,6 @@
 #include "hud_limp_diagnostics.h"
 #include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
 #include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
-#include "hud_layer.h"
 #include "limp_mode.h"
 
 namespace HudLimpDiagnostics {

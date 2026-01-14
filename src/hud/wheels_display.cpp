@@ -301,8 +301,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
   drawWheel3D(cx, cy, angleDeg, drawTarget);
 
   // Temperatura encima con fondo semitransparente
-  drawTarget->fillRoundRect(cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
-  drawTarget->drawRoundRect(cx - 26, cy - 36, 52, 16, 3, TFT_DARKGREY);
+  SafeDraw::fillRoundRect(ctx, cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
+  SafeDraw::drawRoundRect(ctx, cx - 26, cy - 36, 52, 16, 3, TFT_DARKGREY);
   drawTarget->setTextDatum(MC_DATUM);
   char buf[16];
 
@@ -329,8 +329,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
 #endif
 
   // Esfuerzo debajo con fondo semitransparente
-  drawTarget->fillRoundRect(cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
-  drawTarget->drawRoundRect(cx - 26, cy + 18, 52, 16, 3, TFT_DARKGREY);
+  SafeDraw::fillRoundRect(ctx, cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
+  SafeDraw::drawRoundRect(ctx, cx - 26, cy + 18, 52, 16, 3, TFT_DARKGREY);
 
   // Si esfuerzo es -1, mostrar "--" (sensor deshabilitado)
   if (effortPct < 0.0f) {
@@ -359,8 +359,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
   int barY = cy + 36;
 
   // Fondo de barra con efecto 3D
-  drawTarget->fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
-  drawTarget->drawRoundRect(barX, barY, barW, barH, 2, TFT_DARKGREY);
+  SafeDraw::fillRoundRect(ctx, barX, barY, barW, barH, 2, COLOR_BAR_BG);
+  SafeDraw::drawRoundRect(ctx, barX, barY, barW, barH, 2, TFT_DARKGREY);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror effort bar background to shadow sprite
   SHADOW_MIRROR_fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
@@ -371,10 +371,10 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     int filled = (int)((effortPct / 100.0f) * (barW - 4));
     if (filled > 0) {
       uint16_t barColor = colorByEffort(effortPct);
-      drawTarget->fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1,
+      SafeDraw::fillRoundRect(ctx, barX + 2, barY + 2, filled, barH - 4, 1,
                                 barColor);
       // Highlight superior
-      drawTarget->drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
+      SafeDraw::drawFastHLine(ctx, barX + 2, barY + 2, filled, 0xFFFF);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror effort bar fill to shadow sprite
       SHADOW_MIRROR_fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1,
