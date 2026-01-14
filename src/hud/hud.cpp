@@ -556,11 +556,18 @@ static const uint16_t COLOR_REF_MARKS = 0x4208;  // Marcas de referencia
 // Draw car body outline connecting the four wheels
 // This creates a visual representation of the vehicle in the center
 // 🔒 v2.8.8: Diseño mejorado - Vista cenital más realista de un coche
+//
+// ⚠️ FULLSCREEN SPRITE EXCEPTION:
+// This function draws directly to CAR_BODY sprite using screen coordinates.
+// This is SAFE because CAR_BODY sprite is fullscreen (480×320), so screen
+// coordinates == sprite-local coordinates. All coordinates are validated
+// to be within screen bounds (0-479 horizontal, 0-319 vertical).
+// DO NOT use this pattern with non-fullscreen sprites!
 static void drawCarBody() {
   // Only draw once (static background)
   if (carBodyDrawn) return;
 
-  // Get the CAR_BODY sprite
+  // Get the CAR_BODY sprite (FULLSCREEN 480×320)
   TFT_eSprite *sprite = RenderEngine::getSprite(RenderEngine::CAR_BODY);
   if (sprite == nullptr) {
     Logger::error("drawCarBody: CAR_BODY sprite not available");

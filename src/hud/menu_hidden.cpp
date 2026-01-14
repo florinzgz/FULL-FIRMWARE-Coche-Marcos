@@ -132,14 +132,14 @@ static void drawCalibrationScreen(const char *title, const char *instruction,
 
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
-  SafeDraw::drawString(ctx, title, 240, 50, 4);
+  tft->drawString(title, 240, 50, 4);
 
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
-  SafeDraw::drawString(ctx, instruction, 240, 130, 2);
+  tft->drawString(instruction, 240, 130, 2);
 
   tft->setTextColor(TFT_GREEN, TFT_BLACK);
-  SafeDraw::drawString(ctx, value, 240, 180, 4);
+  tft->drawString(value, 240, 180, 4);
 
   // Barra de progreso de tiempo
   uint32_t elapsed = millis() - calibStartMs;
@@ -149,7 +149,7 @@ static void drawCalibrationScreen(const char *title, const char *instruction,
 
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Toca pantalla para confirmar", 240, 260, 2);
+  tft->drawString("Toca pantalla para confirmar", 240, 260, 2);
 }
 
 static void startPedalCalibration() {
@@ -232,11 +232,11 @@ static void updatePedalCalibration(bool touched) {
       tft->drawRect(60, 40, 360, 240, TFT_GREEN);
       tft->setTextDatum(MC_DATUM);
       tft->setTextColor(TFT_GREEN, TFT_BLACK);
-      SafeDraw::drawString(ctx, "CALIBRACION OK", 240, 140, 4);
+      tft->drawString("CALIBRACION OK", 240, 140, 4);
 
       snprintf(valueStr, sizeof(valueStr), "MIN:%d MAX:%d", pedalCalibMin,
                pedalCalibMax);
-      SafeDraw::drawString(ctx, valueStr, 240, 180, 2);
+      tft->drawString(valueStr, 240, 180, 2);
 
       // Esperar un momento
       uint32_t waitStart = millis();
@@ -252,9 +252,9 @@ static void updatePedalCalibration(bool touched) {
       tft->drawRect(60, 40, 360, 240, TFT_RED);
       tft->setTextDatum(MC_DATUM);
       tft->setTextColor(TFT_RED, TFT_BLACK);
-      SafeDraw::drawString(ctx, "CALIBRACION FALLIDA", 240, 140, 4);
+      tft->drawString("CALIBRACION FALLIDA", 240, 140, 4);
       tft->setTextColor(TFT_WHITE, TFT_BLACK);
-      SafeDraw::drawString(ctx, "Rango insuficiente", 240, 180, 2);
+      tft->drawString("Rango insuficiente", 240, 180, 2);
 
       uint32_t waitStart = millis();
       while (millis() - waitStart < 2000) {
@@ -305,10 +305,10 @@ static void updateEncoderCalibration(bool touched) {
     tft->drawRect(60, 40, 360, 240, TFT_GREEN);
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_GREEN, TFT_BLACK);
-    SafeDraw::drawString(ctx, "VOLANTE CENTRADO", 240, 140, 4);
+    tft->drawString("VOLANTE CENTRADO", 240, 140, 4);
 
     snprintf(valueStr, sizeof(valueStr), "Offset: %ld", cfg.steerZeroOffset);
-    SafeDraw::drawString(ctx, valueStr, 240, 180, 2);
+    tft->drawString(valueStr, 240, 180, 2);
 
     uint32_t waitStart = millis();
     while (millis() - waitStart < FEEDBACK_DISPLAY_MS) {
@@ -361,14 +361,14 @@ static void drawRegenAdjustScreen() {
 
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
-  SafeDraw::drawString(ctx, "AJUSTE REGENERACION", 240, 50, 4);
+  tft->drawString("AJUSTE REGENERACION", 240, 50, 4);
 
   // Valor actual grande
   char valueStr[16];
   snprintf(valueStr, sizeof(valueStr), "%d%%", regenAdjustValue);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_GREEN, TFT_BLACK);
-  SafeDraw::drawString(ctx, valueStr, 240, 120, 6);
+  tft->drawString(valueStr, 240, 120, 6);
 
   // Barra visual del valor
   int barWidth = (regenAdjustValue * 280) / 100;
@@ -380,22 +380,22 @@ static void drawRegenAdjustScreen() {
   tft->fillRect(80, 200, 60, 40, TFT_RED);
   tft->drawRect(80, 200, 60, 40, TFT_WHITE);
   tft->setTextColor(TFT_WHITE, TFT_RED);
-  SafeDraw::drawString(ctx, "-10", 110, 220, 2);
+  tft->drawString("-10", 110, 220, 2);
 
   tft->fillRect(340, 200, 60, 40, TFT_GREEN);
   tft->drawRect(340, 200, 60, 40, TFT_WHITE);
   tft->setTextColor(TFT_BLACK, TFT_GREEN);
-  SafeDraw::drawString(ctx, "+10", 370, 220, 2);
+  tft->drawString("+10", 370, 220, 2);
 
   // Botón Guardar
   tft->fillRect(180, 200, 120, 40, TFT_BLUE);
   tft->drawRect(180, 200, 120, 40, TFT_WHITE);
   tft->setTextColor(TFT_WHITE, TFT_BLUE);
-  SafeDraw::drawString(ctx, "GUARDAR", 240, 220, 2);
+  tft->drawString("GUARDAR", 240, 220, 2);
 
   // Instrucciones
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Toca [-] o [+] para ajustar", 240, 260, 2);
+  tft->drawString("Toca [-] o [+] para ajustar", 240, 260, 2);
 }
 
 // ✅ v2.7.0: Actualizar ajuste de regen
@@ -436,11 +436,11 @@ static void updateRegenAdjust(int touchX, int touchY, bool touched) {
     tft->drawRect(60, 40, 360, 240, TFT_GREEN);
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_GREEN, TFT_BLACK);
-    SafeDraw::drawString(ctx, "REGEN GUARDADO", 240, 130, 4);
+    tft->drawString("REGEN GUARDADO", 240, 130, 4);
 
     char valueStr[16];
     snprintf(valueStr, sizeof(valueStr), "%d%%", regenAdjustValue);
-    SafeDraw::drawString(ctx, valueStr, 240, 170, 4);
+    tft->drawString(valueStr, 240, 170, 4);
 
     uint32_t waitStart = millis();
     while (millis() - waitStart < FEEDBACK_DISPLAY_MS) {
@@ -510,7 +510,7 @@ static void drawModulesConfigScreen() {
 
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
-  SafeDraw::drawString(ctx, "CONFIG. MÓDULOS Y SENSORES", 240, 50, 4);
+  tft->drawString("CONFIG. MÓDULOS Y SENSORES", 240, 50, 4);
 
   // Layout
   const int btnW = 140;
@@ -527,13 +527,13 @@ static void drawModulesConfigScreen() {
     tft->drawRect(x, y, w, h, TFT_WHITE);
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, color);
-    SafeDraw::drawString(ctx, label, x + w / 2, y + h / 2, 2);
+    tft->drawString(label, x + w / 2, y + h / 2, 2);
   };
 
   tft->setTextDatum(TL_DATUM);
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Módulos:", col1X, startY - 20, 2);
-  SafeDraw::drawString(ctx, "Sensores:", col2X, startY - 20, 2);
+  tft->drawString("Módulos:", col1X, startY - 20, 2);
+  tft->drawString("Sensores:", col2X, startY - 20, 2);
 
   char label[32];
   // Helper: formats label text into the provided buffer (side effect only)
@@ -566,12 +566,12 @@ static void drawModulesConfigScreen() {
   tft->drawRect(140, 230, 200, 40, TFT_WHITE);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_WHITE, TFT_BLUE);
-  SafeDraw::drawString(ctx, "GUARDAR Y VOLVER", 240, 250, 2);
+  tft->drawString("GUARDAR Y VOLVER", 240, 250, 2);
 
   // Instructions
   tft->setTextDatum(BC_DATUM);
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Toca para activar/desactivar módulos y sensores",
+  tft->drawString("Toca para activar/desactivar módulos y sensores",
                        240, 300, 1);
 }
 
@@ -704,7 +704,7 @@ static void showErrors() {
   tft->drawRect(60, 40, 360, 240, TFT_ORANGE);
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_ORANGE, TFT_BLACK);
-  SafeDraw::drawString(ctx, "ERRORES PERSISTENTES", 240, 50, 2);
+  tft->drawString("ERRORES PERSISTENTES", 240, 50, 2);
 
   tft->setTextDatum(TL_DATUM);
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
@@ -712,7 +712,7 @@ static void showErrors() {
   if (count == 0) {
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_GREEN, TFT_BLACK);
-    SafeDraw::drawString(ctx, "Sin errores", 240, 150, 4);
+    tft->drawString("Sin errores", 240, 150, 4);
   } else {
     char line[80]; // Increased buffer size to safely accommodate error code +
                    // description
@@ -726,10 +726,10 @@ static void showErrors() {
 
         // Usar fuente más pequeña si la descripción es larga
         if (strlen(line) > ERROR_LINE_LENGTH_THRESHOLD) {
-          SafeDraw::drawString(ctx, line, 70, y, 1); // Fuente 1 (más pequeña)
+          tft->drawString(line, 70, y, 1); // Fuente 1 (más pequeña)
           y += 15;
         } else {
-          SafeDraw::drawString(ctx, line, 70, y, 2); // Fuente 2 (normal)
+          tft->drawString(line, 70, y, 2); // Fuente 2 (normal)
           y += 18;
         }
         displayed++;
@@ -739,20 +739,20 @@ static void showErrors() {
     // Mostrar total
     snprintf(line, sizeof(line), "Total: %d errores", count);
     tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-    SafeDraw::drawString(ctx, line, 70, y + 5, 2);
+    tft->drawString(line, 70, y + 5, 2);
 
     // Mensaje de ayuda si hay más errores de los que se pueden mostrar
     if (count > MAX_DISPLAYED_ERRORS) {
       tft->setTextColor(TFT_CYAN, TFT_BLACK);
       tft->setTextDatum(MC_DATUM);
       snprintf(line, sizeof(line), "(Mostrando %d de %d)", displayed, count);
-      SafeDraw::drawString(ctx, line, 240, y + 25, 1);
+      tft->drawString(line, 240, y + 25, 1);
     }
   }
 
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Toca para volver", 240, 260, 2);
+  tft->drawString("Toca para volver", 240, 260, 2);
 
   Logger::infof("Mostrando %d errores persistentes", count);
 
@@ -777,9 +777,9 @@ static void startClearErrorsConfirm() {
     tft->drawRect(60, 40, 360, 240, TFT_GREEN);
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_GREEN, TFT_BLACK);
-    SafeDraw::drawString(ctx, "SIN ERRORES", 240, 130, 4);
+    tft->drawString("SIN ERRORES", 240, 130, 4);
     tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    SafeDraw::drawString(ctx, "No hay errores que borrar", 240, 170, 2);
+    tft->drawString("No hay errores que borrar", 240, 170, 2);
 
     uint32_t waitStart = millis();
     while (millis() - waitStart < FEEDBACK_DISPLAY_MS) {
@@ -804,27 +804,27 @@ static void drawClearErrorsConfirmScreen() {
 
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_RED, TFT_BLACK);
-  SafeDraw::drawString(ctx, "CONFIRMAR BORRADO", 240, 50, 4);
+  tft->drawString("CONFIRMAR BORRADO", 240, 50, 4);
 
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
 
   char msgStr[48];
   snprintf(msgStr, sizeof(msgStr), "Borrar %d errores?", count);
-  SafeDraw::drawString(ctx, msgStr, 240, 100, 2);
-  SafeDraw::drawString(ctx, "Esta accion es irreversible", 240, 125, 2);
+  tft->drawString(msgStr, 240, 100, 2);
+  tft->drawString("Esta accion es irreversible", 240, 125, 2);
 
   // Botón CANCELAR
   tft->fillRect(80, 180, 120, 50, TFT_DARKGREY);
   tft->drawRect(80, 180, 120, 50, TFT_WHITE);
   tft->setTextColor(TFT_WHITE, TFT_DARKGREY);
-  SafeDraw::drawString(ctx, "CANCELAR", 140, 205, 2);
+  tft->drawString("CANCELAR", 140, 205, 2);
 
   // Botón CONFIRMAR
   tft->fillRect(280, 180, 120, 50, TFT_RED);
   tft->drawRect(280, 180, 120, 50, TFT_WHITE);
   tft->setTextColor(TFT_WHITE, TFT_RED);
-  SafeDraw::drawString(ctx, "BORRAR", 340, 205, 2);
+  tft->drawString("BORRAR", 340, 205, 2);
 }
 
 // ✅ v2.7.0: Actualizar confirmación de borrado
@@ -854,7 +854,7 @@ static void updateClearErrorsConfirm(int touchX, int touchY, bool touched) {
     tft->drawRect(60, 40, 360, 240, TFT_GREEN);
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_GREEN, TFT_BLACK);
-    SafeDraw::drawString(ctx, "ERRORES BORRADOS", 240, 140, 4);
+    tft->drawString("ERRORES BORRADOS", 240, 140, 4);
 
     uint32_t waitStart = millis();
     while (millis() - waitStart < FEEDBACK_DISPLAY_MS) {
@@ -945,14 +945,14 @@ static void drawNumericKeypad() {
   // Title
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Código de acceso", 240, 20, 4);
+  tft->drawString("Código de acceso", 240, 20, 4);
 
   // Code display
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
   char codeStr[8];
   snprintf(codeStr, sizeof(codeStr), "%04d", codeBuffer);
-  SafeDraw::drawString(ctx, codeStr, 240, 55, 4);
+  tft->drawString(codeStr, 240, 55, 4);
 
   // Draw keypad buttons
   for (int i = 0; i < 12; i++) {
@@ -967,14 +967,14 @@ static void drawNumericKeypad() {
     // Button label
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, TFT_NAVY);
-    SafeDraw::drawString(ctx, btn.label, btn.x + KEYPAD_BTN_WIDTH / 2,
+    tft->drawString(btn.label, btn.x + KEYPAD_BTN_WIDTH / 2,
                          btn.y + KEYPAD_BTN_HEIGHT / 2, 4);
   }
 
   // Instructions
   tft->setTextDatum(BC_DATUM);
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Toca números para entrar 8989", 240, 310, 2);
+  tft->drawString("Toca números para entrar 8989", 240, 310, 2);
 }
 
 static int getTouchedKeypadButton(int x, int y) {
@@ -1014,7 +1014,7 @@ static void handleKeypadInput(int buttonIndex) {
       tft->fillRect(100, 40, 280, 35, TFT_RED);
       tft->setTextDatum(MC_DATUM);
       tft->setTextColor(TFT_WHITE, TFT_RED);
-      SafeDraw::drawString(ctx, "CÓDIGO INCORRECTO", 240, 55, 2);
+      tft->drawString("CÓDIGO INCORRECTO", 240, 55, 2);
       Alerts::play({Audio::AUDIO_ERROR_GENERAL, Audio::Priority::PRIO_HIGH});
       // Set timestamp for non-blocking error display
       wrongCodeDisplayStart = millis();
@@ -1049,12 +1049,12 @@ static void drawMenuFull() {
   tft->setTextDatum(TL_DATUM);
 
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
-  SafeDraw::drawString(ctx, "MENU OCULTO", 80, 50, 2);
+  tft->drawString("MENU OCULTO", 80, 50, 2);
 
   for (int i = 0; i < NUM_MENU_ITEMS; i++) {
     uint16_t col = (i + 1 == selectedOption) ? TFT_YELLOW : TFT_WHITE;
     tft->setTextColor(col, TFT_BLACK);
-    SafeDraw::drawString(ctx, MENU_ITEMS[i], 80, 80 + i * 20, 2);
+    tft->drawString(MENU_ITEMS[i], 80, 80 + i * 20, 2);
   }
 
   // No need to show code anymore - entered via keypad
@@ -1064,11 +1064,11 @@ static void updateOptionHighlight() {
   // Redibujar solo la línea anterior y la nueva
   if (lastSelectedOption != -1 && lastSelectedOption != selectedOption) {
     tft->setTextColor(TFT_WHITE, TFT_BLACK);
-    SafeDraw::drawString(ctx, MENU_ITEMS[lastSelectedOption - 1], 80,
+    tft->drawString(MENU_ITEMS[lastSelectedOption - 1], 80,
                          80 + (lastSelectedOption - 1) * 20, 2);
   }
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, MENU_ITEMS[selectedOption - 1], 80,
+  tft->drawString(MENU_ITEMS[selectedOption - 1], 80,
                        80 + (selectedOption - 1) * 20, 2);
 }
 
@@ -1081,7 +1081,7 @@ static void updateCodeDisplay() {
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
   char codeStr[8];
   snprintf(codeStr, sizeof(codeStr), "%04d", codeBuffer);
-  SafeDraw::drawString(ctx, codeStr, 240, 55, 4);
+  tft->drawString(codeStr, 240, 55, 4);
 }
 
 // -----------------------
