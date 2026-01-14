@@ -85,8 +85,7 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
                              ? COLOR_BORDER_CRITICAL
                              : COLOR_BORDER_NORMAL;
   // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
-  SafeDraw::drawRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                     borderColor);
+  SafeDraw::drawRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT, borderColor);
 
   // Set text properties
   drawTarget->setTextSize(TEXT_SIZE);
@@ -308,7 +307,7 @@ public:
         // Direct ctx.sprite->fillRect() with screen coordinates causes
         // out-of-bounds writes that corrupt heap and trigger IPC0 crashes
         SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                          COLOR_BACKGROUND);
+                           COLOR_BACKGROUND);
         lastState = LimpMode::LimpState::NORMAL;
 
         // PHASE 8: Mark diagnostics area as dirty

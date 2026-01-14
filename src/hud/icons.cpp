@@ -239,8 +239,8 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
       textColor = COLOR_ACTIVE_TEXT;
 
       // Efecto glow exterior para marcha activa - Use SafeDraw
-      SafeDraw::drawRoundRect(ctx,
-          cellX - 1, cellY - 1, GEAR_ITEM_W + 2, GEAR_ITEM_H + 2, 5,
+      SafeDraw::drawRoundRect(
+          ctx, cellX - 1, cellY - 1, GEAR_ITEM_W + 2, GEAR_ITEM_H + 2, 5,
           (g == Shifter::R) ? COLOR_REVERSE_GLOW : COLOR_ACTIVE_GLOW);
 #ifdef RENDER_SHADOW_MODE
       SHADOW_MIRROR_drawRoundRect(
@@ -523,8 +523,9 @@ void Icons::drawErrorWarning(TFT_eSprite *sprite) {
 #endif
   } else {
     // Use SafeDraw for coordinate translation
-    SafeDraw::fillRect(ctx, WARNING_X1, WARNING_Y1, (WARNING_X2 - WARNING_X1) + 40,
-                       WARNING_Y2 - WARNING_Y1, TFT_BLACK);
+    SafeDraw::fillRect(ctx, WARNING_X1, WARNING_Y1,
+                       (WARNING_X2 - WARNING_X1) + 40, WARNING_Y2 - WARNING_Y1,
+                       TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
     SHADOW_MIRROR_fillRect(WARNING_X1, WARNING_Y1,
                            (WARNING_X2 - WARNING_X1) + 40,

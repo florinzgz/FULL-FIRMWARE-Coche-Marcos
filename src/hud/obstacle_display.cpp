@@ -53,8 +53,8 @@ void drawProximityIndicators() {
   if (!sprite) return;
 
   // Create RenderContext for SafeDraw
-  HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                              sprite->width(), sprite->height());
+  HudLayer::RenderContext ctx(sprite, true, 0, 0, sprite->width(),
+                              sprite->height());
 
   auto level =
       ObstacleDetection::getProximityLevel(ObstacleDetection::SENSOR_FRONT);
@@ -89,8 +89,8 @@ void drawDistanceBars() {
   if (!sprite) return;
 
   // Create RenderContext for SafeDraw
-  HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                              sprite->width(), sprite->height());
+  HudLayer::RenderContext ctx(sprite, true, 0, 0, sprite->width(),
+                              sprite->height());
 
   uint16_t dist =
       ObstacleDetection::getMinDistance(ObstacleDetection::SENSOR_FRONT);
