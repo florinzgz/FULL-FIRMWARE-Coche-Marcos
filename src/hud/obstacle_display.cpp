@@ -2,10 +2,12 @@
 // v2.12.0: Updated for single TOFSense-M S sensor (front only)
 // v2.20.0: RenderEngine sprite layer integration (STEERING layer)
 #include "obstacle_display.h"
+#include "hud_layer.h"
 #include "logger.h"
 #include "obstacle_config.h"
 #include "obstacle_detection.h"
 #include "render_engine.h"
+#include "safe_draw.h"
 #include <TFT_eSPI.h>
 
 namespace ObstacleDisplay {
@@ -50,6 +52,10 @@ void drawProximityIndicators() {
   auto sprite = getSprite();
   if (!sprite) return;
 
+  // Create RenderContext for SafeDraw
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                              sprite->width(), sprite->height());
+
   auto level =
       ObstacleDetection::getProximityLevel(ObstacleDetection::SENSOR_FRONT);
   bool healthy = ObstacleDetection::isHealthy(ObstacleDetection::SENSOR_FRONT);
@@ -68,10 +74,12 @@ void drawProximityIndicators() {
   int x = 240;
   int y = 100;
 
-  sprite->fillCircle(x, y, 15, color);
-  sprite->setTextDatum(TC_DATUM);
-  sprite->setTextColor(TFT_WHITE, TFT_BLACK);
-  sprite->drawString("FRONT", x, y + 25, 2);
+  // Use SafeDraw for coordinate translation
+  SafeDraw::fillCircle(ctx, x, y, 15, color);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
+  drawTarget->setTextDatum(TC_DATUM);
+  drawTarget->setTextColor(TFT_WHITE, TFT_BLACK);
+  SafeDraw::drawString(ctx, "FRONT", x, y + 25, 2);
 
   RenderEngine::markDirtyRect(x - 20, y - 20, 40, 60);
 }
@@ -79,6 +87,10 @@ void drawProximityIndicators() {
 void drawDistanceBars() {
   auto sprite = getSprite();
   if (!sprite) return;
+
+  // Create RenderContext for SafeDraw
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                              sprite->width(), sprite->height());
 
   uint16_t dist =
       ObstacleDetection::getMinDistance(ObstacleDetection::SENSOR_FRONT);
@@ -89,21 +101,23 @@ void drawDistanceBars() {
   const int barW = 200;
   const int barH = 15;
 
-  // Clear text+bar area first
-  sprite->fillRect(0, barY - 40, 480, 60, TFT_BLACK);
+  // Clear text+bar area first - Use SafeDraw
+  SafeDraw::fillRect(ctx, 0, barY - 40, 480, 60, TFT_BLACK);
+
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   if (!healthy) {
-    sprite->setTextDatum(MC_DATUM);
-    sprite->setTextColor(TFT_RED, TFT_BLACK);
-    sprite->drawString("SENSOR ERROR", 240, barY + 5, 4);
+    drawTarget->setTextDatum(MC_DATUM);
+    drawTarget->setTextColor(TFT_RED, TFT_BLACK);
+    SafeDraw::drawString(ctx, "SENSOR ERROR", 240, barY + 5, 4);
     RenderEngine::markDirtyRect(0, barY - 40, 480, 60);
     return;
   }
 
   if (dist >= ObstacleConfig::DISTANCE_INVALID) {
-    sprite->setTextDatum(MC_DATUM);
-    sprite->setTextColor(TFT_GREEN, TFT_BLACK);
-    sprite->drawString("CLEAR", 240, barY + 5, 4);
+    drawTarget->setTextDatum(MC_DATUM);
+    drawTarget->setTextColor(TFT_GREEN, TFT_BLACK);
+    SafeDraw::drawString(ctx, "CLEAR", 240, barY + 5, 4);
     RenderEngine::markDirtyRect(0, barY - 40, 480, 60);
     return;
   }
@@ -118,9 +132,10 @@ void drawDistanceBars() {
   else if (dist < ObstacleConfig::DISTANCE_CAUTION)
     barColor = TFT_YELLOW;
 
-  sprite->fillRect(barX, barY, barW, barH, TFT_DARKGREY);
-  sprite->fillRect(barX, barY, barLen, barH, barColor);
-  sprite->drawRect(barX, barY, barW, barH, TFT_WHITE);
+  // Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, barX, barY, barW, barH, TFT_DARKGREY);
+  SafeDraw::fillRect(ctx, barX, barY, barLen, barH, barColor);
+  SafeDraw::drawRect(ctx, barX, barY, barW, barH, TFT_WHITE);
 
   char distStr[32];
   if (dist < 1000) {
@@ -129,9 +144,9 @@ void drawDistanceBars() {
     snprintf(distStr, sizeof(distStr), "%.2fm (8x8)", dist / 1000.0f);
   }
 
-  sprite->setTextDatum(TC_DATUM);
-  sprite->setTextColor(TFT_WHITE, TFT_BLACK);
-  sprite->drawString(distStr, 240, barY - 20, 4);
+  drawTarget->setTextDatum(TC_DATUM);
+  drawTarget->setTextColor(TFT_WHITE, TFT_BLACK);
+  SafeDraw::drawString(ctx, distStr, 240, barY - 20, 4);
 
   RenderEngine::markDirtyRect(0, barY - 40, 480, 60);
 }

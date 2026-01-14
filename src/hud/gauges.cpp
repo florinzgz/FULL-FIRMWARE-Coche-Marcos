@@ -306,7 +306,8 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
 
   // Texto central grande con valor
   drawTarget->setTextDatum(MC_DATUM);
-  drawTarget->fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
+  // Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
 
   // Color según velocidad
   uint16_t textColor;
@@ -365,7 +366,8 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
 
   // Texto central grande con valor
   drawTarget->setTextDatum(MC_DATUM);
-  drawTarget->fillRect(cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
+  // Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, cx - 25, cy - 5, 50, 22, COLOR_GAUGE_INNER);
 
   // Color según RPM
   uint16_t textColor;

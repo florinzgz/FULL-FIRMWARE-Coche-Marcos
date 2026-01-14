@@ -72,15 +72,16 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
-  // Clear the area
-  drawTarget->fillRect(TELEMETRY_X, TELEMETRY_Y, TELEMETRY_WIDTH,
-                       TELEMETRY_HEIGHT, COLOR_BACKGROUND);
+  // Clear the area - Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, TELEMETRY_X, TELEMETRY_Y, TELEMETRY_WIDTH,
+                     TELEMETRY_HEIGHT, COLOR_BACKGROUND);
 
   // Draw border (red if shadow errors, white otherwise)
   uint16_t borderColor =
       (stats.shadowMismatches > 0) ? COLOR_BORDER_ERROR : COLOR_BORDER_NORMAL;
-  drawTarget->drawRect(TELEMETRY_X, TELEMETRY_Y, TELEMETRY_WIDTH,
-                       TELEMETRY_HEIGHT, borderColor);
+  // Use SafeDraw for coordinate translation
+  SafeDraw::drawRect(ctx, TELEMETRY_X, TELEMETRY_Y, TELEMETRY_WIDTH,
+                     TELEMETRY_HEIGHT, borderColor);
 
   // Set text properties
   drawTarget->setTextSize(TEXT_SIZE);

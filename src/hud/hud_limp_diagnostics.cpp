@@ -76,14 +76,17 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   if (!drawTarget) return;
 
   // Clear the area
-  drawTarget->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                       COLOR_BACKGROUND);
+  // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                     COLOR_BACKGROUND);
 
   // Draw border (red if CRITICAL, white otherwise)
   uint16_t borderColor = (diag.state == LimpMode::LimpState::CRITICAL)
                              ? COLOR_BORDER_CRITICAL
                              : COLOR_BORDER_NORMAL;
-  drawTarget->drawRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT, borderColor);
+  // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+  SafeDraw::drawRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                     borderColor);
 
   // Set text properties
   drawTarget->setTextSize(TEXT_SIZE);
@@ -206,8 +209,9 @@ void draw() {
   if (currentDiag.state == LimpMode::LimpState::NORMAL) {
     // If we were showing diagnostics before, clear the area
     if (lastState != LimpMode::LimpState::NORMAL) {
-      drawTarget->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                           COLOR_BACKGROUND);
+      // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+      SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                         COLOR_BACKGROUND);
       lastState = LimpMode::LimpState::NORMAL;
     }
     return;
@@ -242,8 +246,9 @@ void forceRedraw() {
 
   // If in NORMAL state, just clear
   if (currentDiag.state == LimpMode::LimpState::NORMAL) {
-    drawTarget->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                         COLOR_BACKGROUND);
+    // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+    SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                       COLOR_BACKGROUND);
   } else {
     // Force redraw diagnostics
     drawDiagnostics(currentDiag, sprite);
@@ -265,8 +270,9 @@ void clear() {
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Clear diagnostics area
-  drawTarget->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                       COLOR_BACKGROUND);
+  // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                     COLOR_BACKGROUND);
 
   // Reset cached state to force redraw on next draw()
   lastState = LimpMode::LimpState::NORMAL;
@@ -298,8 +304,11 @@ public:
     if (currentDiag.state == LimpMode::LimpState::NORMAL) {
       // If we were showing diagnostics before, clear the area
       if (lastState != LimpMode::LimpState::NORMAL || ctx.dirty) {
-        ctx.sprite->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                             COLOR_BACKGROUND);
+        // 🚨 CRITICAL FIX: Use SafeDraw to safely clear rectangle
+        // Direct ctx.sprite->fillRect() with screen coordinates causes
+        // out-of-bounds writes that corrupt heap and trigger IPC0 crashes
+        SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                          COLOR_BACKGROUND);
         lastState = LimpMode::LimpState::NORMAL;
 
         // PHASE 8: Mark diagnostics area as dirty

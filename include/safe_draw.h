@@ -94,6 +94,40 @@ inline void fillRect(const HudLayer::RenderContext &ctx, int16_t screenX,
 }
 
 /**
+ * @brief Safe drawRect with coordinate translation and clipping
+ * @param ctx Render context (contains sprite, origin, bounds)
+ * @param screenX Rectangle X in screen coordinates
+ * @param screenY Rectangle Y in screen coordinates
+ * @param w Rectangle width
+ * @param h Rectangle height
+ * @param color Border color
+ */
+inline void drawRect(const HudLayer::RenderContext &ctx, int16_t screenX,
+                     int16_t screenY, int16_t w, int16_t h, uint16_t color) {
+  if (ctx.sprite) {
+    // Drawing to sprite - translate and clip
+    int16_t x = screenX;
+    int16_t y = screenY;
+    int16_t width = w;
+    int16_t height = h;
+
+    if (!ctx.clipRect(x, y, width, height)) {
+      // Rectangle completely outside sprite bounds - skip draw
+      return;
+    }
+
+    // Convert to local coordinates
+    int16_t localX = ctx.toLocalX(x);
+    int16_t localY = ctx.toLocalY(y);
+
+    ctx.sprite->drawRect(localX, localY, width, height, color);
+  } else {
+    // Drawing to screen - use screen coordinates directly
+    if (tftPtr) tftPtr->drawRect(screenX, screenY, w, h, color);
+  }
+}
+
+/**
  * @brief Safe drawCircle with coordinate translation and bounds check
  */
 inline void drawCircle(const HudLayer::RenderContext &ctx, int16_t screenX,
