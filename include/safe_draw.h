@@ -309,6 +309,72 @@ inline void drawFastVLine(const HudLayer::RenderContext &ctx, int16_t screenX,
 }
 
 /**
+ * @brief Safe fillTriangle with coordinate translation
+ * Triangles require all vertices to be translated
+ */
+inline void fillTriangle(const HudLayer::RenderContext &ctx,
+                        int16_t x0, int16_t y0,
+                        int16_t x1, int16_t y1,
+                        int16_t x2, int16_t y2,
+                        uint16_t color) {
+  if (ctx.sprite) {
+    // Translate all vertices to sprite-local coordinates
+    int16_t local_x0 = ctx.toLocalX(x0);
+    int16_t local_y0 = ctx.toLocalY(y0);
+    int16_t local_x1 = ctx.toLocalX(x1);
+    int16_t local_y1 = ctx.toLocalY(y1);
+    int16_t local_x2 = ctx.toLocalX(x2);
+    int16_t local_y2 = ctx.toLocalY(y2);
+    
+    // Simple bounds check - if all vertices are far outside, skip
+    if ((local_x0 < -50 && local_x1 < -50 && local_x2 < -50) ||
+        (local_x0 > ctx.width + 50 && local_x1 > ctx.width + 50 && local_x2 > ctx.width + 50) ||
+        (local_y0 < -50 && local_y1 < -50 && local_y2 < -50) ||
+        (local_y0 > ctx.height + 50 && local_y1 > ctx.height + 50 && local_y2 > ctx.height + 50)) {
+#ifdef DEBUG_SAFE_DRAW
+      Serial.printf("[SafeDraw] fillTriangle completely out of bounds\n");
+#endif
+      return;
+    }
+    
+    ctx.sprite->fillTriangle(local_x0, local_y0, local_x1, local_y1, local_x2, local_y2, color);
+  } else {
+    if (tftPtr) tftPtr->fillTriangle(x0, y0, x1, y1, x2, y2, color);
+  }
+}
+
+/**
+ * @brief Safe drawTriangle with coordinate translation
+ */
+inline void drawTriangle(const HudLayer::RenderContext &ctx,
+                        int16_t x0, int16_t y0,
+                        int16_t x1, int16_t y1,
+                        int16_t x2, int16_t y2,
+                        uint16_t color) {
+  if (ctx.sprite) {
+    // Translate all vertices to sprite-local coordinates
+    int16_t local_x0 = ctx.toLocalX(x0);
+    int16_t local_y0 = ctx.toLocalY(y0);
+    int16_t local_x1 = ctx.toLocalX(x1);
+    int16_t local_y1 = ctx.toLocalY(y1);
+    int16_t local_x2 = ctx.toLocalX(x2);
+    int16_t local_y2 = ctx.toLocalY(y2);
+    
+    // Simple bounds check
+    if ((local_x0 < -50 && local_x1 < -50 && local_x2 < -50) ||
+        (local_x0 > ctx.width + 50 && local_x1 > ctx.width + 50 && local_x2 > ctx.width + 50) ||
+        (local_y0 < -50 && local_y1 < -50 && local_y2 < -50) ||
+        (local_y0 > ctx.height + 50 && local_y1 > ctx.height + 50 && local_y2 > ctx.height + 50)) {
+      return;
+    }
+    
+    ctx.sprite->drawTriangle(local_x0, local_y0, local_x1, local_y1, local_x2, local_y2, color);
+  } else {
+    if (tftPtr) tftPtr->drawTriangle(x0, y0, x1, y1, x2, y2, color);
+  }
+}
+
+/**
  * @brief Get drawTarget pointer for functions that need raw access
  * WARNING: Use with extreme caution! Prefer SafeDraw methods.
  * Only use this when you need setTextColor, setTextDatum, etc.

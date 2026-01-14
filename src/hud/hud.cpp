@@ -879,7 +879,7 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
     SafeDraw::drawRoundRect(ctx, 0, y, width, height, radius, TFT_DARKGREY);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
-    drawTarget->drawString("-- PEDAL --", 240, y + height / 2, 2);
+    SafeDraw::drawString(ctx, "-- PEDAL --", 240, y + height / 2, 2);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror invalid pedal bar to shadow sprite
     SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
@@ -951,10 +951,10 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   drawTarget->setTextColor(0x0000);
   char txt[16];
   snprintf(txt, sizeof(txt), "ACCEL %d%%", (int)pedalPercent);
-  drawTarget->drawString(txt, 241, y + height / 2 + 1, 2);
+  SafeDraw::drawString(ctx, txt, 241, y + height / 2 + 1, 2);
   // Texto principal
   drawTarget->setTextColor(TFT_WHITE);
-  drawTarget->drawString(txt, 240, y + height / 2, 2);
+  SafeDraw::drawString(ctx, txt, 240, y + height / 2, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror pedal bar text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -1252,7 +1252,7 @@ void HUD::update(TFT_eSprite *sprite) {
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
-    drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
+    SafeDraw::drawString(ctx, SystemMode::getModeName(), MODE_INDICATOR_X,
                            MODE_INDICATOR_Y, 2);
   }
 #endif
@@ -1688,7 +1688,7 @@ void HUD::update(HudLayer::RenderContext &ctx) {
     TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
-    drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
+    SafeDraw::drawString(ctx, SystemMode::getModeName(), MODE_INDICATOR_X,
                            MODE_INDICATOR_Y, 2);
     // Mark mode indicator dirty
     ctx.markDirty(MODE_INDICATOR_X - 60, MODE_INDICATOR_Y - 10, 120, 20);

@@ -91,8 +91,8 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
     int y1 = cy + (int)(sinf(rad) * (r - 5));
     int x2 = cx + (int)(cosf(rad) * (r - 15));
     int y2 = cy + (int)(sinf(rad) * (r - 15));
-    drawTarget->drawLine(x1, y1, x2, y2, color);
-    drawTarget->drawLine(x1 + 1, y1, x2 + 1, y2, color);
+    SafeDraw::drawLine(ctx, x1, y1, x2, y2, color);
+    SafeDraw::drawLine(ctx, x1 + 1, y1, x2 + 1, y2, color);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite
     SHADOW_MIRROR_drawLine(x1, y1, x2, y2, color);
@@ -107,7 +107,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       drawTarget->setTextColor(TFT_WHITE, TFT_BLACK);
       char buf[8];
       snprintf(buf, sizeof(buf), "%d", (int)value);
-      drawTarget->drawString(buf, xNum, yNum, 1);
+      SafeDraw::drawString(ctx, buf, xNum, yNum, 1);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror text to shadow sprite
       SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -128,7 +128,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       int y1 = cy + (int)(sinf(rad) * (r - 5));
       int x2 = cx + (int)(cosf(rad) * (r - 10));
       int y2 = cy + (int)(sinf(rad) * (r - 10));
-      drawTarget->drawLine(x1, y1, x2, y2, TFT_DARKGREY);
+      SafeDraw::drawLine(ctx, x1, y1, x2, y2, TFT_DARKGREY);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror minor marks to shadow sprite
       SHADOW_MIRROR_drawLine(x1, y1, x2, y2, TFT_DARKGREY);
@@ -168,9 +168,9 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 
   if (erase) {
     // Borrar con negro
-    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+    SafeDraw::fillTriangle(ctx, tipX, tipY, baseX1, baseY1, baseX2, baseY2,
                              TFT_BLACK);
-    drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
+    SafeDraw::fillCircle(ctx, cx, cy, 8, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror erase to shadow sprite
     SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
@@ -179,22 +179,22 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 #endif
   } else {
     // Sombra de la aguja (desplazada 2px)
-    drawTarget->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
+    SafeDraw::fillTriangle(ctx, tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
                              baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
 
     // Aguja principal
-    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+    SafeDraw::fillTriangle(ctx, tipX, tipY, baseX1, baseY1, baseX2, baseY2,
                              COLOR_NEEDLE_BASE);
 
     // Línea central blanca (efecto brillo)
     int midX = cx + (int)(cosf(rad) * (r * 0.6f));
     int midY = cy + (int)(sinf(rad) * (r * 0.6f));
-    drawTarget->drawLine(cx, cy, midX, midY, COLOR_NEEDLE_TIP);
+    SafeDraw::drawLine(ctx, cx, cy, midX, midY, COLOR_NEEDLE_TIP);
 
     // Centro de la aguja (círculo 3D)
-    drawTarget->fillCircle(cx, cy, 10, TFT_DARKGREY);
-    drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_RING);
-    drawTarget->fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
+    SafeDraw::fillCircle(ctx, cx, cy, 10, TFT_DARKGREY);
+    SafeDraw::fillCircle(ctx, cx, cy, 8, COLOR_GAUGE_RING);
+    SafeDraw::fillCircle(ctx, cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror needle drawing to shadow sprite
     SHADOW_MIRROR_fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
@@ -224,14 +224,14 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   int innerRadius = 55;
 
   // Fondo negro profundo
-  drawTarget->fillCircle(cx, cy, outerRadius + 5, TFT_BLACK);
+  SafeDraw::fillCircle(ctx, cx, cy, outerRadius + 5, TFT_BLACK);
 
   // Anillo exterior metálico (efecto 3D con gradiente)
   for (int r = outerRadius + 4; r >= outerRadius; r--) {
     uint16_t shade = (r == outerRadius + 4) ? COLOR_GAUGE_HIGHLIGHT
                      : (r == outerRadius)   ? COLOR_GAUGE_OUTER
                                             : COLOR_GAUGE_RING;
-    drawTarget->drawCircle(cx, cy, r, shade);
+    SafeDraw::drawCircle(ctx, cx, cy, r, shade);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror gauge rings to shadow sprite
     SHADOW_MIRROR_drawCircle(cx, cy, r, shade);
@@ -239,7 +239,7 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   }
 
   // Interior negro
-  drawTarget->fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
+  SafeDraw::fillCircle(ctx, cx, cy, innerRadius, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror gauge interior to shadow sprite
   SHADOW_MIRROR_fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
@@ -262,7 +262,7 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   // Etiqueta de unidad
   drawTarget->setTextDatum(MC_DATUM);
   drawTarget->setTextColor(TFT_CYAN, TFT_BLACK);
-  drawTarget->drawString(unit, cx, cy + 35, 1);
+  SafeDraw::drawString(ctx, unit, cx, cy + 35, 1);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror unit label to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -332,7 +332,7 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
   drawTarget->setTextColor(textColor, COLOR_GAUGE_INNER);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)kmh);
-  drawTarget->drawString(buf, cx, cy + 5, 4);
+  SafeDraw::drawString(ctx, buf, cx, cy + 5, 4);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror speed value text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -391,7 +391,7 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
   drawTarget->setTextColor(textColor, COLOR_GAUGE_INNER);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)rpm);
-  drawTarget->drawString(buf, cx, cy + 5, 4);
+  SafeDraw::drawString(ctx, buf, cx, cy + 5, 4);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror RPM value text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);

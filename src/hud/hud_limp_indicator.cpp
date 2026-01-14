@@ -119,7 +119,7 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   int16_t textX = INDICATOR_X + INDICATOR_WIDTH / 2;
   int16_t textY = INDICATOR_Y + INDICATOR_HEIGHT / 2;
 
-  drawTarget->drawString(text, textX, textY);
+  SafeDraw::drawString(ctx, text, textX, textY);
 
   // Reset text datum
   drawTarget->setTextDatum(TL_DATUM);
