@@ -86,7 +86,7 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   // 🔒 CRITICAL FIX: Force sprite buffers to PSRAM to prevent heap corruption
   // Large full-screen sprites (480×320×16bit = ~300KB each) MUST be in PSRAM
   // to avoid heap fragmentation causing "Stack canary watchpoint triggered
-  // (ipc0)" PSRAM_ENABLE (defined in TFT_eSPI.h as 3) ensures sprites use PSRAM
+  // (ipc0)" PSRAM_ENABLE (defined in TFT_eSPI.h) ensures sprites use PSRAM
   // if available
   sprites[id]->setAttribute(PSRAM_ENABLE, 1);
 
@@ -126,7 +126,8 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   Logger::infof("  PSRAM_ENABLE attribute: %u", psramAttr);
 
   // 🔍 VERIFICATION: Validate allocation location
-  if (psramDelta < (int32_t)(expectedSize * 0.9)) {
+  // Use integer arithmetic for efficiency: 90% threshold = (expectedSize * 9) / 10
+  if (psramDelta < (int32_t)((expectedSize * 9) / 10)) {
     Logger::errorf("  ⚠️  WARNING: Sprite %d may NOT be in PSRAM!", id);
     Logger::errorf("  Expected PSRAM delta ~%u KB, got %d KB",
                    expectedSize / 1024, psramDelta / 1024);
@@ -135,9 +136,10 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
                   psramDelta / 1024);
   }
 
+  // 10% threshold check using integer arithmetic
   if (heapDelta > (int32_t)(expectedSize / 10)) {
     Logger::warnf("  ⚠️  Unexpected heap usage: %d KB (expected < %u KB)",
-                  heapDelta / 1024, expectedSize / 1024 / 10);
+                  heapDelta / 1024, expectedSize / (1024 * 10));
   }
 
   sprites[id]->fillSprite(TFT_BLACK);

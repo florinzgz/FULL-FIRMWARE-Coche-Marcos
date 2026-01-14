@@ -140,9 +140,8 @@ bool update() {
       tft->fillScreen(TFT_BLACK);
       tft->setTextColor(TFT_WHITE, TFT_BLACK);
       tft->setTextDatum(TC_DATUM);
-      SafeDraw::drawString(ctx, "Touch the RED target", TouchConstants::SCREEN_WIDTH / 2,
-                      10, 2);
-      SafeDraw::drawString(ctx, "Point 1 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
+      tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2, 10, 2);
+      tft->drawString("Point 1 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
       drawCalibrationPoint(CALIB_MARGIN, CALIB_MARGIN, TFT_RED);
     }
 
