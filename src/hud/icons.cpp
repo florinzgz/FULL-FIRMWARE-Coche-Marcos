@@ -1,6 +1,8 @@
 #include "icons.h"
 #include "display_types.h" // para CACHE_UNINITIALIZED
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
 #include "logger.h"
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include "system.h"        // para consultar errores persistentes
 #include <Arduino.h>       // para constrain()
@@ -52,15 +54,32 @@ void Icons::init(TFT_eSPI *display) {
   lastMaxTemp = -999.0f;
   sensorsCacheInitialized = false;
   Logger::info("Icons init OK");
+  
+  // 🚨 CRITICAL FIX: Initialize SafeDraw with TFT reference
+  SafeDraw::init(tft);
+}
+
+// 🚨 CRITICAL FIX: Helper to convert sprite to RenderContext
+// This allows gradual migration while maintaining safety
+static inline HudLayer::RenderContext createContext(TFT_eSprite *sprite) {
+  if (sprite) {
+    // Create context for sprite rendering with default origin (0,0)
+    // Note: For proper sprite positioning, origin should be set by caller
+    return HudLayer::RenderContext(sprite, true, 0, 0, 
+                                    sprite->width(), sprite->height());
+  } else {
+    // Create context for screen rendering
+    return HudLayer::RenderContext(nullptr, true, 0, 0, 480, 320);
+  }
 }
 
 void Icons::drawSystemState(System::State st, TFT_eSprite *sprite) {
-  // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
-  if (!drawTarget) return;
   if (!isValidForDrawing()) return;
   if (st == lastSysState) return; // no cambio → no redibujar
   lastSysState = st;
+
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
 
   const char *txt = "OFF";
   uint16_t col = TFT_WHITE;
@@ -84,10 +103,18 @@ void Icons::drawSystemState(System::State st, TFT_eSprite *sprite) {
   default:
     break;
   }
-  drawTarget->fillRect(5, 5, 80, 20, TFT_BLACK);
-  drawTarget->setTextDatum(TL_DATUM);
-  drawTarget->setTextColor(col, TFT_BLACK);
-  drawTarget->drawString(txt, 10, 10, 2);
+  
+  // 🚨 CRITICAL FIX: Use SafeDraw for coordinate-safe rendering
+  SafeDraw::fillRect(ctx, 5, 5, 80, 20, TFT_BLACK);
+  
+  // For text drawing, we need the draw target for setTextDatum/setTextColor
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
+  if (drawTarget) {
+    drawTarget->setTextDatum(TL_DATUM);
+    drawTarget->setTextColor(col, TFT_BLACK);
+  }
+  
+  SafeDraw::drawString(ctx, txt, 10, 10, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror system state to shadow sprite
   SHADOW_MIRROR_fillRect(5, 5, 80, 20, TFT_BLACK);
@@ -101,10 +128,12 @@ void Icons::drawSystemState(System::State st, TFT_eSprite *sprite) {
 // Posición: Centro de pantalla, debajo del triángulo warning (entre warning y
 // coche) Diseño: 3D con efecto de profundidad y tamaño más grande
 void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
-  // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
-  if (!drawTarget) return;
   if (!isValidForDrawing()) return;
+  
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
+  if (!drawTarget) return;
   if (g == lastGear) return;
   lastGear = g;
 
