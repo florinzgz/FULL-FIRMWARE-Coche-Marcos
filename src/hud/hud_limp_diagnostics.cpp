@@ -298,8 +298,11 @@ public:
     if (currentDiag.state == LimpMode::LimpState::NORMAL) {
       // If we were showing diagnostics before, clear the area
       if (lastState != LimpMode::LimpState::NORMAL || ctx.dirty) {
-        ctx.sprite->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
-                             COLOR_BACKGROUND);
+        // 🚨 CRITICAL FIX: Use SafeDraw to safely clear rectangle
+        // Direct ctx.sprite->fillRect() with screen coordinates causes
+        // out-of-bounds writes that corrupt heap and trigger IPC0 crashes
+        SafeDraw::fillRect(ctx, DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,
+                          COLOR_BACKGROUND);
         lastState = LimpMode::LimpState::NORMAL;
 
         // PHASE 8: Mark diagnostics area as dirty
