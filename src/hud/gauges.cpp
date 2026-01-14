@@ -1,4 +1,6 @@
 #include "gauges.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "settings.h"
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // para constrain(), snprintf, etc.
@@ -38,15 +40,14 @@ static const uint16_t COLOR_SCALE_DANGER = 0xF800;    // Rojo
 // Phase 6: Added target parameter for compositor mode
 static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
                          float startAngle, float endAngle,
-                         TFT_eSPI *target = nullptr) {
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
+                         const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   // Use TFT_eSPI's optimized drawArc() method for better performance
   for (int i = 0; i < thickness; i++) {
     // drawArc expects angles in degrees, and draws a ring segment with given
     // thickness
-    drawTarget->drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
+    SafeDraw::drawArc(ctx, cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
                         color, color, true);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite for validation
@@ -59,9 +60,8 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
 // Dibujar marcas de escala con números
 // Phase 6: Added target parameter for compositor mode
 static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
-                           bool showNumbers, TFT_eSPI *target = nullptr) {
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
+                           bool showNumbers, const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   int numMarks = maxValue / step;
   for (int i = 0; i <= numMarks; i++) {
@@ -85,8 +85,8 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
     int y1 = cy + (int)(sinf(rad) * (r - 5));
     int x2 = cx + (int)(cosf(rad) * (r - 15));
     int y2 = cy + (int)(sinf(rad) * (r - 15));
-    drawTarget->drawLine(x1, y1, x2, y2, color);
-    drawTarget->drawLine(x1 + 1, y1, x2 + 1, y2, color);
+    SafeDraw::drawLine(ctx, x1, y1, x2, y2, color);
+    SafeDraw::drawLine(ctx, x1 + 1, y1, x2 + 1, y2, color);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite
     SHADOW_MIRROR_drawLine(x1, y1, x2, y2, color);
@@ -101,7 +101,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       drawTarget->setTextColor(TFT_WHITE, TFT_BLACK);
       char buf[8];
       snprintf(buf, sizeof(buf), "%d", (int)value);
-      drawTarget->drawString(buf, xNum, yNum, 1);
+      SafeDraw::drawString(ctx, buf, xNum, yNum, 1);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror text to shadow sprite
       SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -122,7 +122,7 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
       int y1 = cy + (int)(sinf(rad) * (r - 5));
       int x2 = cx + (int)(cosf(rad) * (r - 10));
       int y2 = cy + (int)(sinf(rad) * (r - 10));
-      drawTarget->drawLine(x1, y1, x2, y2, TFT_DARKGREY);
+      SafeDraw::drawLine(ctx, x1, y1, x2, y2, TFT_DARKGREY);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror minor marks to shadow sprite
       SHADOW_MIRROR_drawLine(x1, y1, x2, y2, TFT_DARKGREY);
@@ -134,9 +134,8 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
 // Aguja 3D con efecto de profundidad
 // Phase 6: Added target parameter for compositor mode
 static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
-                         bool erase, TFT_eSPI *target = nullptr) {
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
+                         bool erase, const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   // 🔒 CORRECCIÓN ALTA: Proteger contra división por cero
   if (maxValue <= 0.0f) {
@@ -160,9 +159,9 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 
   if (erase) {
     // Borrar con negro
-    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+    SafeDraw::fillTriangle(ctx, tipX, tipY, baseX1, baseY1, baseX2, baseY2,
                              TFT_BLACK);
-    drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_INNER);
+    SafeDraw::fillCircle(ctx, cx, cy, 8, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror erase to shadow sprite
     SHADOW_MIRROR_fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
@@ -171,22 +170,22 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 #endif
   } else {
     // Sombra de la aguja (desplazada 2px)
-    drawTarget->fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
+    SafeDraw::fillTriangle(ctx, tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
                              baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
 
     // Aguja principal
-    drawTarget->fillTriangle(tipX, tipY, baseX1, baseY1, baseX2, baseY2,
+    SafeDraw::fillTriangle(ctx, tipX, tipY, baseX1, baseY1, baseX2, baseY2,
                              COLOR_NEEDLE_BASE);
 
     // Línea central blanca (efecto brillo)
     int midX = cx + (int)(cosf(rad) * (r * 0.6f));
     int midY = cy + (int)(sinf(rad) * (r * 0.6f));
-    drawTarget->drawLine(cx, cy, midX, midY, COLOR_NEEDLE_TIP);
+    SafeDraw::drawLine(ctx, cx, cy, midX, midY, COLOR_NEEDLE_TIP);
 
     // Centro de la aguja (círculo 3D)
-    drawTarget->fillCircle(cx, cy, 10, TFT_DARKGREY);
-    drawTarget->fillCircle(cx, cy, 8, COLOR_GAUGE_RING);
-    drawTarget->fillCircle(cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
+    SafeDraw::fillCircle(ctx, cx, cy, 10, TFT_DARKGREY);
+    SafeDraw::fillCircle(ctx, cx, cy, 8, COLOR_GAUGE_RING);
+    SafeDraw::fillCircle(ctx, cx - 2, cy - 2, 3, COLOR_GAUGE_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror needle drawing to shadow sprite
     SHADOW_MIRROR_fillTriangle(tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
@@ -206,22 +205,22 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 // -----------------------
 // Phase 6: Added target parameter for compositor mode
 static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
-                                const char *unit, TFT_eSPI *target = nullptr) {
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
+                                const char *unit,
+                                const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   int outerRadius = 68;
   int innerRadius = 55;
 
   // Fondo negro profundo
-  drawTarget->fillCircle(cx, cy, outerRadius + 5, TFT_BLACK);
+  SafeDraw::fillCircle(ctx, cx, cy, outerRadius + 5, TFT_BLACK);
 
   // Anillo exterior metálico (efecto 3D con gradiente)
   for (int r = outerRadius + 4; r >= outerRadius; r--) {
     uint16_t shade = (r == outerRadius + 4) ? COLOR_GAUGE_HIGHLIGHT
                      : (r == outerRadius)   ? COLOR_GAUGE_OUTER
                                             : COLOR_GAUGE_RING;
-    drawTarget->drawCircle(cx, cy, r, shade);
+    SafeDraw::drawCircle(ctx, cx, cy, r, shade);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror gauge rings to shadow sprite
     SHADOW_MIRROR_drawCircle(cx, cy, r, shade);
@@ -229,7 +228,7 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   }
 
   // Interior negro
-  drawTarget->fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
+  SafeDraw::fillCircle(ctx, cx, cy, innerRadius, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror gauge interior to shadow sprite
   SHADOW_MIRROR_fillCircle(cx, cy, innerRadius, COLOR_GAUGE_INNER);
@@ -238,21 +237,21 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   // Arco de escala coloreado (verde-amarillo-rojo)
   // Verde (0-60%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_NORMAL, -135.0f,
-               -135.0f + 270.0f * 0.6f, drawTarget);
+               -135.0f + 270.0f * 0.6f, ctx);
   // Amarillo (60-85%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_WARN,
-               -135.0f + 270.0f * 0.6f, -135.0f + 270.0f * 0.85f, drawTarget);
+               -135.0f + 270.0f * 0.6f, -135.0f + 270.0f * 0.85f, ctx);
   // Rojo (85-100%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_DANGER,
-               -135.0f + 270.0f * 0.85f, 135.0f, drawTarget);
+               -135.0f + 270.0f * 0.85f, 135.0f, ctx);
 
   // Marcas de escala con números
-  drawScaleMarks(cx, cy, outerRadius, maxValue, step, true, drawTarget);
+  drawScaleMarks(cx, cy, outerRadius, maxValue, step, true, ctx);
 
   // Etiqueta de unidad
   drawTarget->setTextDatum(MC_DATUM);
   drawTarget->setTextColor(TFT_CYAN, TFT_BLACK);
-  drawTarget->drawString(unit, cx, cy + 35, 1);
+  SafeDraw::drawString(ctx, unit, cx, cy + 35, 1);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror unit label to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -266,6 +265,8 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
 // -----------------------
 void Gauges::init(TFT_eSPI *display) {
   tft = display;
+  // 🚨 CRITICAL FIX: Initialize SafeDraw
+  SafeDraw::init(display);
   lastSpeed = -1;
   lastRpm = -1;
 }
@@ -274,7 +275,11 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
                        TFT_eSprite *sprite) {
   // Phase 6: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0, 
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // 🔒 CORRECCIÓN ALTA: Clamp speed con límite superior seguro
@@ -289,14 +294,14 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
 
   // Redibujar fondo solo si es la primera vez
   if (lastSpeed < 0) {
-    drawGaugeBackground(cx, cy, maxKmh, step, "km/h", drawTarget);
+    drawGaugeBackground(cx, cy, maxKmh, step, "km/h", ctx);
   } else {
     // Borrar aguja anterior
-    drawNeedle3D(cx, cy, lastSpeed, (float)maxKmh, 50, true, drawTarget);
+    drawNeedle3D(cx, cy, lastSpeed, (float)maxKmh, 50, true, ctx);
   }
 
   // Dibujar aguja nueva con efecto 3D
-  drawNeedle3D(cx, cy, kmh, (float)maxKmh, 50, false, drawTarget);
+  drawNeedle3D(cx, cy, kmh, (float)maxKmh, 50, false, ctx);
 
   // Texto central grande con valor
   drawTarget->setTextDatum(MC_DATUM);
@@ -316,7 +321,7 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
   drawTarget->setTextColor(textColor, COLOR_GAUGE_INNER);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)kmh);
-  drawTarget->drawString(buf, cx, cy + 5, 4);
+  SafeDraw::drawString(ctx, buf, cx, cy + 5, 4);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror speed value text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -332,7 +337,11 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
                      TFT_eSprite *sprite) {
   // Phase 6: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0, 
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // 🔒 CORRECCIÓN ALTA: Validar maxRpm para prevenir división por cero
@@ -344,14 +353,14 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
   int step = (maxRpm <= 500) ? 50 : 100;
 
   if (lastRpm < 0) {
-    drawGaugeBackground(cx, cy, maxRpm, step, "RPM", drawTarget);
+    drawGaugeBackground(cx, cy, maxRpm, step, "RPM", ctx);
   } else {
     // Borrar aguja anterior
-    drawNeedle3D(cx, cy, lastRpm, (float)maxRpm, 50, true, drawTarget);
+    drawNeedle3D(cx, cy, lastRpm, (float)maxRpm, 50, true, ctx);
   }
 
   // Dibujar aguja nueva con efecto 3D
-  drawNeedle3D(cx, cy, rpm, (float)maxRpm, 50, false, drawTarget);
+  drawNeedle3D(cx, cy, rpm, (float)maxRpm, 50, false, ctx);
 
   // Texto central grande con valor
   drawTarget->setTextDatum(MC_DATUM);
@@ -371,7 +380,7 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
   drawTarget->setTextColor(textColor, COLOR_GAUGE_INNER);
   char buf[8];
   snprintf(buf, sizeof(buf), "%d", (int)rpm);
-  drawTarget->drawString(buf, cx, cy + 5, 4);
+  SafeDraw::drawString(ctx, buf, cx, cy + 5, 4);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror RPM value text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);

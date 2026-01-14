@@ -1,4 +1,6 @@
 #include "hud.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
@@ -22,6 +24,8 @@
 #include "buttons.h"
 #include "current.h"
 #include "dfplayer.h"
+#include "hud_compositor.h" // Phase 5: Layered compositor
+#include "hud_manager.h"     // 🔒 THREAD SAFETY: For queue-based showError
 #include "logger.h"
 #include "pedal.h"
 #include "pins.h"
@@ -389,11 +393,9 @@ void HUD::showReady() {
 }
 
 void HUD::showError() {
-  tft.fillScreen(TFT_BLACK);
-  carBodyDrawn = false; // Reset flag so car body will be redrawn
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_RED, TFT_BLACK);
-  tft.drawString("ERROR", 240, 40, 4);
+  // 🔒 THREAD SAFETY: Forward to HUDManager's queue-based showError
+  // This ensures thread-safe access to TFT_eSPI
+  ::HUDManager::showError("System error");
 }
 
 #ifdef STANDALONE_DISPLAY
@@ -859,7 +861,11 @@ static void drawSteeringWheel(float angleDeg) {
 
 void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   // Phase 6.4: Dual-mode rendering - sprite or TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : &tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   const int y = 300;     // Posición vertical
@@ -869,11 +875,11 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 
   if (pedalPercent < 0.0f) {
     // Pedal inválido → barra vacía con "--"
-    drawTarget->fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
-    drawTarget->drawRoundRect(0, y, width, height, radius, TFT_DARKGREY);
+    SafeDraw::fillRoundRect(ctx, 0, y, width, height, radius, COLOR_BAR_BG);
+    SafeDraw::drawRoundRect(ctx, 0, y, width, height, radius, TFT_DARKGREY);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_DARKGREY, COLOR_BAR_BG);
-    drawTarget->drawString("-- PEDAL --", 240, y + height / 2, 2);
+    SafeDraw::drawString(ctx, "-- PEDAL --", 240, y + height / 2, 2);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror invalid pedal bar to shadow sprite
     SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
@@ -906,8 +912,8 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   }
 
   // Fondo de barra con efecto 3D (hundido)
-  drawTarget->fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
-  drawTarget->drawRoundRect(0, y, width, height, radius, COLOR_BAR_BORDER);
+  SafeDraw::fillRoundRect(ctx, 0, y, width, height, radius, COLOR_BAR_BG);
+  SafeDraw::drawRoundRect(ctx, 0, y, width, height, radius, COLOR_BAR_BORDER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror pedal bar background to shadow sprite
   SHADOW_MIRROR_fillRoundRect(0, y, width, height, radius, COLOR_BAR_BG);
@@ -916,18 +922,18 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 
   // Barra de progreso principal
   if (barWidth > 0) {
-    drawTarget->fillRoundRect(0, y, barWidth, height, radius, colorMain);
+    SafeDraw::fillRoundRect(ctx, 0, y, barWidth, height, radius, colorMain);
 
     // Efecto 3D: línea clara arriba
-    drawTarget->drawFastHLine(2, y + 2, barWidth - 4, colorLight);
-    drawTarget->drawFastHLine(2, y + 3, barWidth - 4, colorLight);
+    SafeDraw::drawFastHLine(ctx, 2, y + 2, barWidth - 4, colorLight);
+    SafeDraw::drawFastHLine(ctx, 2, y + 3, barWidth - 4, colorLight);
 
     // Efecto 3D: línea oscura abajo
-    drawTarget->drawFastHLine(2, y + height - 3, barWidth - 4, colorDark);
-    drawTarget->drawFastHLine(2, y + height - 2, barWidth - 4, colorDark);
+    SafeDraw::drawFastHLine(ctx, 2, y + height - 3, barWidth - 4, colorDark);
+    SafeDraw::drawFastHLine(ctx, 2, y + height - 2, barWidth - 4, colorDark);
 
     // Borde de la barra activa
-    drawTarget->drawRoundRect(0, y, barWidth, height, radius, colorDark);
+    SafeDraw::drawRoundRect(ctx, 0, y, barWidth, height, radius, colorDark);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror pedal bar fill to shadow sprite
     SHADOW_MIRROR_fillRoundRect(0, y, barWidth, height, radius, colorMain);
@@ -945,10 +951,10 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   drawTarget->setTextColor(0x0000);
   char txt[16];
   snprintf(txt, sizeof(txt), "ACCEL %d%%", (int)pedalPercent);
-  drawTarget->drawString(txt, 241, y + height / 2 + 1, 2);
+  SafeDraw::drawString(ctx, txt, 241, y + height / 2 + 1, 2);
   // Texto principal
   drawTarget->setTextColor(TFT_WHITE);
-  drawTarget->drawString(txt, 240, y + height / 2, 2);
+  SafeDraw::drawString(ctx, txt, 240, y + height / 2, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror pedal bar text to shadow sprite
   SHADOW_MIRROR_setTextDatum(MC_DATUM);
@@ -959,9 +965,9 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
 #endif
 
   // Marcas de referencia (25%, 50%, 75%)
-  drawTarget->drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
-  drawTarget->drawFastVLine(width / 2, y + 2, height - 4, COLOR_REF_MARKS);
-  drawTarget->drawFastVLine(width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SafeDraw::drawFastVLine(ctx, width / 4, y + 2, height - 4, COLOR_REF_MARKS);
+  SafeDraw::drawFastVLine(ctx, width / 2, y + 2, height - 4, COLOR_REF_MARKS);
+  SafeDraw::drawFastVLine(ctx, width * 3 / 4, y + 2, height - 4, COLOR_REF_MARKS);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror reference marks to shadow sprite
   SHADOW_MIRROR_drawFastVLine(width / 4, y + 2, height - 4, COLOR_REF_MARKS);
@@ -1239,10 +1245,14 @@ void HUD::update(TFT_eSprite *sprite) {
   OperationMode mode = SystemMode::getMode();
   if (mode != OperationMode::MODE_FULL) {
     // Phase 6.4: Dual-mode rendering - sprite or TFT
-    TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : &tft;
+    // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
-    drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
+    SafeDraw::drawString(ctx, SystemMode::getModeName(), MODE_INDICATOR_X,
                            MODE_INDICATOR_Y, 2);
   }
 #endif
@@ -1674,10 +1684,11 @@ void HUD::update(HudLayer::RenderContext &ctx) {
 #ifndef STANDALONE_DISPLAY
   OperationMode mode = SystemMode::getMode();
   if (mode != OperationMode::MODE_FULL) {
-    TFT_eSPI *drawTarget = ctx.sprite ? (TFT_eSPI *)ctx.sprite : &tft;
+    // 🚨 CRITICAL FIX: Use getDrawTarget for safe access
+    TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
-    drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
+    SafeDraw::drawString(ctx, SystemMode::getModeName(), MODE_INDICATOR_X,
                            MODE_INDICATOR_Y, 2);
     // Mark mode indicator dirty
     ctx.markDirty(MODE_INDICATOR_X - 60, MODE_INDICATOR_Y - 10, 120, 20);

@@ -1,5 +1,6 @@
 #include "hud_limp_indicator.h"
-#include "hud_layer.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "limp_mode.h"
 
 namespace HudLimpIndicator {
@@ -79,7 +80,11 @@ static const char *getTextForState(LimpMode::LimpState state) {
 static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = target ? (TFT_eSPI *)target : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(target, true, 0, 0,
+                               target ? target->width() : 480,
+                               target ? target->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   const char *text = getTextForState(state);
@@ -114,7 +119,7 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   int16_t textX = INDICATOR_X + INDICATOR_WIDTH / 2;
   int16_t textY = INDICATOR_Y + INDICATOR_HEIGHT / 2;
 
-  drawTarget->drawString(text, textX, textY);
+  SafeDraw::drawString(ctx, text, textX, textY);
 
   // Reset text datum
   drawTarget->setTextDatum(TL_DATUM);
@@ -126,6 +131,7 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   sprite = nullptr; // Will be set by compositor if used
   lastState = LimpMode::LimpState::NORMAL;
   initialized = true;
@@ -165,7 +171,11 @@ void clear() {
   if (!tft && !sprite) return;
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Clear indicator area
   drawTarget->fillRect(INDICATOR_X, INDICATOR_Y, INDICATOR_WIDTH,

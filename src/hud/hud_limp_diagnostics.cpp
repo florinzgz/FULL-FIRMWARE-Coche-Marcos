@@ -1,5 +1,6 @@
 #include "hud_limp_diagnostics.h"
-#include "hud_layer.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "limp_mode.h"
 
 namespace HudLimpDiagnostics {
@@ -67,7 +68,11 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
                             TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = target ? (TFT_eSPI *)target : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(target, true, 0, 0,
+                               target ? target->width() : 480,
+                               target ? target->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // Clear the area
@@ -89,42 +94,42 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
 
   // Title
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("LIMP MODE", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "LIMP MODE", cursorX, cursorY);
   cursorY += LINE_HEIGHT + 4; // Extra space after title
 
   // Pedal status
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Pedal:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Pedal:", cursorX, cursorY);
   drawTarget->setTextColor(diag.pedalValid ? COLOR_OK : COLOR_FAIL,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(diag.pedalValid ? "OK" : "FAIL", cursorX + 70,
+  SafeDraw::drawString(ctx, diag.pedalValid ? "OK" : "FAIL", cursorX + 70,
                          cursorY);
   cursorY += LINE_HEIGHT;
 
   // Steering status
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Steering:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Steering:", cursorX, cursorY);
   drawTarget->setTextColor(diag.steeringValid ? COLOR_OK : COLOR_FAIL,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(diag.steeringValid ? "OK" : "FAIL", cursorX + 70,
+  SafeDraw::drawString(ctx, diag.steeringValid ? "OK" : "FAIL", cursorX + 70,
                          cursorY);
   cursorY += LINE_HEIGHT;
 
   // Battery status
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Battery:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Battery:", cursorX, cursorY);
   drawTarget->setTextColor(diag.batteryUndervoltage ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(diag.batteryUndervoltage ? "LOW" : "OK", cursorX + 70,
+  SafeDraw::drawString(ctx, diag.batteryUndervoltage ? "LOW" : "OK", cursorX + 70,
                          cursorY);
   cursorY += LINE_HEIGHT;
 
   // Temperature status
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Temp:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Temp:", cursorX, cursorY);
   drawTarget->setTextColor(diag.temperatureWarning ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(diag.temperatureWarning ? "WARN" : "OK", cursorX + 70,
+  SafeDraw::drawString(ctx, diag.temperatureWarning ? "WARN" : "OK", cursorX + 70,
                          cursorY);
   cursorY += LINE_HEIGHT;
 
@@ -132,10 +137,10 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   char errorStr[16];
   snprintf(errorStr, sizeof(errorStr), "%d", diag.systemErrorCount);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Errors:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Errors:", cursorX, cursorY);
   drawTarget->setTextColor(diag.systemErrorCount > 0 ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(errorStr, cursorX + 70, cursorY);
+  SafeDraw::drawString(ctx, errorStr, cursorX + 70, cursorY);
   cursorY += LINE_HEIGHT + 4; // Extra space before limits
 
   // Power limit
@@ -143,10 +148,10 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   int powerPercent = (int)(diag.powerLimit * 100.0f);
   snprintf(powerStr, sizeof(powerStr), "%d %%", powerPercent);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Power:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Power:", cursorX, cursorY);
   drawTarget->setTextColor(powerPercent < 100 ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(powerStr, cursorX + 70, cursorY);
+  SafeDraw::drawString(ctx, powerStr, cursorX + 70, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Speed limit
@@ -154,10 +159,10 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   int speedPercent = (int)(diag.maxSpeedLimit * 100.0f);
   snprintf(speedStr, sizeof(speedStr), "%d %%", speedPercent);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString("Speed:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Speed:", cursorX, cursorY);
   drawTarget->setTextColor(speedPercent < 100 ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  drawTarget->drawString(speedStr, cursorX + 70, cursorY);
+  SafeDraw::drawString(ctx, speedStr, cursorX + 70, cursorY);
 }
 
 // ========================================
@@ -166,6 +171,7 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   sprite = nullptr; // Will be set by compositor if used
   initialized = true;
 
@@ -190,7 +196,11 @@ void draw() {
   LimpMode::Diagnostics currentDiag = LimpMode::getDiagnostics();
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Only show when NOT in NORMAL state
   if (currentDiag.state == LimpMode::LimpState::NORMAL) {
@@ -224,7 +234,11 @@ void forceRedraw() {
   LimpMode::Diagnostics currentDiag = LimpMode::getDiagnostics();
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // If in NORMAL state, just clear
   if (currentDiag.state == LimpMode::LimpState::NORMAL) {
@@ -244,7 +258,11 @@ void clear() {
   if (!tft && !sprite) return;
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Clear diagnostics area
   drawTarget->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,

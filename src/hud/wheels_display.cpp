@@ -1,5 +1,7 @@
 #include "wheels_display.h"
+#include "hud_layer.h"      // For RenderContext
 #include "logger.h"
+#include "safe_draw.h"      // 🚨 CRITICAL FIX: Safe coordinate-translated drawing
 #include "settings.h"
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // para constrain() y DEG_TO_RAD
@@ -59,12 +61,11 @@ static uint16_t colorByEffort(float e) {
 
 // Dibujar rueda 3D con efecto de profundidad
 // 🔒 v2.8.8: Ruedas en orientación vertical con marcas de neumático realistas
-// Phase 6.3: Added target parameter for compositor mode
-static void drawWheel3D(int cx, int cy, float angleDeg,
-                        TFT_eSPI *drawTarget = nullptr) {
-  // Phase 6.3: Use provided target or fallback to global tft
-  if (!drawTarget) drawTarget = tft;
-  if (!drawTarget) return;
+// 🚨 CRITICAL FIX: Now uses RenderContext for safe coordinate translation
+static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
+                        const HudLayer::RenderContext &ctx) {
+  if (!ctx.sprite && !tft) return;
+  
   int w = 18, h = 40; // Dimensiones: rueda vertical (ancho < alto)
   float rad = angleDeg * DEG_TO_RAD;
 
@@ -74,28 +75,48 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
   int ex = (int)(-sinf(rad) * h / 2);
   int ey = (int)(cosf(rad) * h / 2);
 
-  // 4 esquinas del rectángulo
-  int x0 = cx - dx - ex, y0 = cy - dy - ey;
-  int x1 = cx + dx - ex, y1 = cy + dy - ey;
-  int x2 = cx + dx + ex, y2 = cy + dy + ey;
-  int x3 = cx - dx + ex, y3 = cy - dy + ey;
+  // 4 esquinas del rectángulo (en coordenadas de pantalla)
+  int x0 = screenCX - dx - ex, y0 = screenCY - dy - ey;
+  int x1 = screenCX + dx - ex, y1 = screenCY + dy - ey;
+  int x2 = screenCX + dx + ex, y2 = screenCY + dy + ey;
+  int x3 = screenCX - dx + ex, y3 = screenCY - dy + ey;
 
   // Fondo negro para limpiar (cuadrado que cubre la rueda rotada)
-  // Usar max(w,h) para asegurar que cubre cualquier rotación
   int clearSize = h + 8; // h es la dimensión más larga
-  drawTarget->fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
-                       clearSize, TFT_BLACK);
+  
+  // 🚨 CRITICAL FIX: Use SafeDraw for coordinate translation
+  SafeDraw::fillRect(ctx, screenCX - clearSize / 2, screenCY - clearSize / 2, 
+                     clearSize, clearSize, TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror wheel clear area to shadow sprite
-  SHADOW_MIRROR_fillRect(cx - clearSize / 2, cy - clearSize / 2, clearSize,
-                         clearSize, TFT_BLACK);
+  SHADOW_MIRROR_fillRect(screenCX - clearSize / 2, screenCY - clearSize / 2, 
+                         clearSize, clearSize, TFT_BLACK);
 #endif
 
-  // Sombra de la rueda (desplazada 2px abajo-derecha)
-  drawTarget->fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
-                           COLOR_WHEEL_SHADOW);
-  drawTarget->fillTriangle(x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
-                           COLOR_WHEEL_SHADOW);
+  // 🚨 CRITICAL FIX: For complex shapes (triangles), translate coordinates manually
+  if (ctx.sprite) {
+    // Convert all points to sprite-local coordinates
+    int16_t local_x0 = ctx.toLocalX(x0 + 2);
+    int16_t local_y0 = ctx.toLocalY(y0 + 2);
+    int16_t local_x1 = ctx.toLocalX(x1 + 2);
+    int16_t local_y1 = ctx.toLocalY(y1 + 2);
+    int16_t local_x2 = ctx.toLocalX(x2 + 2);
+    int16_t local_y2 = ctx.toLocalY(y2 + 2);
+    int16_t local_x3 = ctx.toLocalX(x3 + 2);
+    int16_t local_y3 = ctx.toLocalY(y3 + 2);
+    
+    // Shadow triangles (offset +2 for 3D effect)
+    ctx.sprite->fillTriangle(local_x0, local_y0, local_x1, local_y1, 
+                             local_x2, local_y2, COLOR_WHEEL_SHADOW);
+    ctx.sprite->fillTriangle(local_x0, local_y0, local_x2, local_y2, 
+                             local_x3, local_y3, COLOR_WHEEL_SHADOW);
+  } else {
+    // Drawing to screen - use screen coordinates directly
+    SafeDraw::fillTriangle(ctx, x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
+                      COLOR_WHEEL_SHADOW);
+    SafeDraw::fillTriangle(ctx, x0 + 2, y0 + 2, x2 + 2, y2 + 2, x3 + 2, y3 + 2,
+                      COLOR_WHEEL_SHADOW);
+  }
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror wheel shadow to shadow sprite
   SHADOW_MIRROR_fillTriangle(x0 + 2, y0 + 2, x1 + 2, y1 + 2, x2 + 2, y2 + 2,
@@ -105,8 +126,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
 #endif
 
   // Neumático exterior (banda de rodadura)
-  drawTarget->fillTriangle(x0, y0, x1, y1, x2, y2, COLOR_WHEEL_TREAD);
-  drawTarget->fillTriangle(x0, y0, x2, y2, x3, y3, COLOR_WHEEL_TREAD);
+  SafeDraw::fillTriangle(ctx, x0, y0, x1, y1, x2, y2, COLOR_WHEEL_TREAD);
+  SafeDraw::fillTriangle(ctx, x0, y0, x2, y2, x3, y3, COLOR_WHEEL_TREAD);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror wheel tread to shadow sprite
   SHADOW_MIRROR_fillTriangle(x0, y0, x1, y1, x2, y2, COLOR_WHEEL_TREAD);
@@ -114,10 +135,10 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
 #endif
 
   // Borde exterior brillante
-  drawTarget->drawLine(x0, y0, x1, y1, COLOR_WHEEL_OUTER);
-  drawTarget->drawLine(x1, y1, x2, y2, COLOR_WHEEL_OUTER);
-  drawTarget->drawLine(x2, y2, x3, y3, COLOR_WHEEL_OUTER);
-  drawTarget->drawLine(x3, y3, x0, y0, COLOR_WHEEL_OUTER);
+  SafeDraw::drawLine(ctx, x0, y0, x1, y1, COLOR_WHEEL_OUTER);
+  SafeDraw::drawLine(ctx, x1, y1, x2, y2, COLOR_WHEEL_OUTER);
+  SafeDraw::drawLine(ctx, x2, y2, x3, y3, COLOR_WHEEL_OUTER);
+  SafeDraw::drawLine(ctx, x3, y3, x0, y0, COLOR_WHEEL_OUTER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror wheel border to shadow sprite
   SHADOW_MIRROR_drawLine(x0, y0, x1, y1, COLOR_WHEEL_OUTER);
@@ -152,11 +173,11 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
     int ty2 = mcy + (int)(sinf(rad) * treadHalf);
 
     // Dibujar marca con efecto 3D (línea oscura + highlight perpendicular)
-    drawTarget->drawLine(tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
+    SafeDraw::drawLine(ctx, tx1, ty1, tx2, ty2, COLOR_WHEEL_SHADOW);
     // Small perpendicular offset for highlight
     int offset_x = (int)roundf(sinf(rad)); // perpendicular to wheel axis
     int offset_y = (int)roundf(-cosf(rad));
-    drawTarget->drawLine(tx1 + offset_x, ty1 + offset_y, tx2 + offset_x,
+    SafeDraw::drawLine(ctx, tx1 + offset_x, ty1 + offset_y, tx2 + offset_x,
                          ty2 + offset_y, COLOR_TREAD_HIGHLIGHT);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror tread marks to shadow sprite
@@ -177,8 +198,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
   int ix3 = cx - dx * innerScale / 100 + ex * innerScale / 100;
   int iy3 = cy - dy * innerScale / 100 + ey * innerScale / 100;
 
-  drawTarget->fillTriangle(ix0, iy0, ix1, iy1, ix2, iy2, COLOR_WHEEL_INNER);
-  drawTarget->fillTriangle(ix0, iy0, ix2, iy2, ix3, iy3, COLOR_WHEEL_INNER);
+  SafeDraw::fillTriangle(ctx, ix0, iy0, ix1, iy1, ix2, iy2, COLOR_WHEEL_INNER);
+  SafeDraw::fillTriangle(ctx, ix0, iy0, ix2, iy2, ix3, iy3, COLOR_WHEEL_INNER);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror inner wheel to shadow sprite
   SHADOW_MIRROR_fillTriangle(ix0, iy0, ix1, iy1, ix2, iy2, COLOR_WHEEL_INNER);
@@ -186,11 +207,11 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
 #endif
 
   // Centro de la rueda (hub) con efecto 3D
-  drawTarget->fillCircle(cx, cy, 5, COLOR_HUB_CENTER);
-  drawTarget->drawCircle(cx, cy, 5, COLOR_WHEEL_OUTER);
+  SafeDraw::fillCircle(ctx, cx, cy, 5, COLOR_HUB_CENTER);
+  SafeDraw::drawCircle(ctx, cx, cy, 5, COLOR_WHEEL_OUTER);
 
   // Punto de luz central (highlight)
-  drawTarget->fillCircle(cx - 1, cy - 1, 1, COLOR_HUB_BOLT);
+  SafeDraw::fillCircle(ctx, cx - 1, cy - 1, 1, COLOR_HUB_BOLT);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror hub to shadow sprite
   SHADOW_MIRROR_fillCircle(cx, cy, 5, COLOR_HUB_CENTER);
@@ -205,7 +226,7 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
     int ay = cy + (int)(sinf(rad) * arrowLen);
 
     // Línea principal
-    drawTarget->drawLine(cx, cy, ax, ay, TFT_CYAN);
+    SafeDraw::drawLine(ctx, cx, cy, ax, ay, TFT_CYAN);
 
     // Punta de flecha
     float arrowAngle1 = rad + 2.5f;
@@ -216,8 +237,8 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
     int ax2 = ax - (int)(cosf(arrowAngle2) * arrowSize);
     int ay2 = ay - (int)(sinf(arrowAngle2) * arrowSize);
 
-    drawTarget->drawLine(ax, ay, ax1, ay1, TFT_CYAN);
-    drawTarget->drawLine(ax, ay, ax2, ay2, TFT_CYAN);
+    SafeDraw::drawLine(ctx, ax, ay, ax1, ay1, TFT_CYAN);
+    SafeDraw::drawLine(ctx, ax, ay, ax2, ay2, TFT_CYAN);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror direction arrow to shadow sprite
     SHADOW_MIRROR_drawLine(cx, cy, ax, ay, TFT_CYAN);
@@ -229,6 +250,7 @@ static void drawWheel3D(int cx, int cy, float angleDeg,
 
 void WheelsDisplay::init(TFT_eSPI *display) {
   tft = display;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   initialized = true;
   // Resetear cache de todas las ruedas
   for (int i = 0; i < 4; i++) {
@@ -248,7 +270,11 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
 
   // Phase 6.3: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // Clamp valores
@@ -275,8 +301,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
   drawWheel3D(cx, cy, angleDeg, drawTarget);
 
   // Temperatura encima con fondo semitransparente
-  drawTarget->fillRoundRect(cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
-  drawTarget->drawRoundRect(cx - 26, cy - 36, 52, 16, 3, TFT_DARKGREY);
+  SafeDraw::fillRoundRect(ctx, cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
+  SafeDraw::drawRoundRect(ctx, cx - 26, cy - 36, 52, 16, 3, TFT_DARKGREY);
   drawTarget->setTextDatum(MC_DATUM);
   char buf[16];
 
@@ -288,7 +314,7 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     drawTarget->setTextColor(colorByTemp(tempC), COLOR_INFO_BG);
     snprintf(buf, sizeof(buf), "%d C", (int)tempC);
   }
-  drawTarget->drawString(buf, cx, cy - 28, 2);
+  SafeDraw::drawString(ctx, buf, cx, cy - 28, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror temperature display to shadow sprite
   SHADOW_MIRROR_fillRoundRect(cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
@@ -303,8 +329,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
 #endif
 
   // Esfuerzo debajo con fondo semitransparente
-  drawTarget->fillRoundRect(cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
-  drawTarget->drawRoundRect(cx - 26, cy + 18, 52, 16, 3, TFT_DARKGREY);
+  SafeDraw::fillRoundRect(ctx, cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
+  SafeDraw::drawRoundRect(ctx, cx - 26, cy + 18, 52, 16, 3, TFT_DARKGREY);
 
   // Si esfuerzo es -1, mostrar "--" (sensor deshabilitado)
   if (effortPct < 0.0f) {
@@ -314,7 +340,7 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     drawTarget->setTextColor(colorByEffort(effortPct), COLOR_INFO_BG);
     snprintf(buf, sizeof(buf), "%d%%", (int)effortPct);
   }
-  drawTarget->drawString(buf, cx, cy + 26, 2);
+  SafeDraw::drawString(ctx, buf, cx, cy + 26, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror effort display to shadow sprite
   SHADOW_MIRROR_fillRoundRect(cx - 26, cy + 18, 52, 16, 3, COLOR_INFO_BG);
@@ -333,8 +359,8 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
   int barY = cy + 36;
 
   // Fondo de barra con efecto 3D
-  drawTarget->fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
-  drawTarget->drawRoundRect(barX, barY, barW, barH, 2, TFT_DARKGREY);
+  SafeDraw::fillRoundRect(ctx, barX, barY, barW, barH, 2, COLOR_BAR_BG);
+  SafeDraw::drawRoundRect(ctx, barX, barY, barW, barH, 2, TFT_DARKGREY);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3: Mirror effort bar background to shadow sprite
   SHADOW_MIRROR_fillRoundRect(barX, barY, barW, barH, 2, COLOR_BAR_BG);
@@ -345,10 +371,10 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
     int filled = (int)((effortPct / 100.0f) * (barW - 4));
     if (filled > 0) {
       uint16_t barColor = colorByEffort(effortPct);
-      drawTarget->fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1,
+      SafeDraw::fillRoundRect(ctx, barX + 2, barY + 2, filled, barH - 4, 1,
                                 barColor);
       // Highlight superior
-      drawTarget->drawFastHLine(barX + 2, barY + 2, filled, 0xFFFF);
+      SafeDraw::drawFastHLine(ctx, barX + 2, barY + 2, filled, 0xFFFF);
 #ifdef RENDER_SHADOW_MODE
       // Phase 3: Mirror effort bar fill to shadow sprite
       SHADOW_MIRROR_fillRoundRect(barX + 2, barY + 2, filled, barH - 4, 1,

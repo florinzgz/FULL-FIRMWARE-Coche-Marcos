@@ -140,9 +140,9 @@ bool update() {
       tft->fillScreen(TFT_BLACK);
       tft->setTextColor(TFT_WHITE, TFT_BLACK);
       tft->setTextDatum(TC_DATUM);
-      tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2,
+      SafeDraw::drawString(ctx, "Touch the RED target", TouchConstants::SCREEN_WIDTH / 2,
                       10, 2);
-      tft->drawString("Point 1 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
+      SafeDraw::drawString(ctx, "Point 1 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
       drawCalibrationPoint(CALIB_MARGIN, CALIB_MARGIN, TFT_RED);
     }
 
@@ -176,9 +176,9 @@ bool update() {
       tft->fillScreen(TFT_BLACK);
       tft->setTextColor(TFT_WHITE, TFT_BLACK);
       tft->setTextDatum(TC_DATUM);
-      tft->drawString("Touch the RED target", TouchConstants::SCREEN_WIDTH / 2,
+      SafeDraw::drawString(ctx, "Touch the RED target", TouchConstants::SCREEN_WIDTH / 2,
                       10, 2);
-      tft->drawString("Point 2 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
+      SafeDraw::drawString(ctx, "Point 2 of 2", TouchConstants::SCREEN_WIDTH / 2, 30, 2);
       drawCalibrationPoint(TouchConstants::SCREEN_WIDTH - CALIB_MARGIN,
                            TouchConstants::SCREEN_HEIGHT - CALIB_MARGIN,
                            TFT_RED);
@@ -288,12 +288,12 @@ bool applyCalibration(const uint16_t calibData[5]) {
 
 static void drawCalibrationPoint(int x, int y, uint16_t color) {
   // Draw crosshair target
-  tft->fillCircle(x, y, CALIB_RADIUS, color);
-  tft->drawCircle(x, y, CALIB_RADIUS + 5, TFT_WHITE);
-  tft->drawLine(x - 20, y, x - 10, y, TFT_WHITE);
-  tft->drawLine(x + 10, y, x + 20, y, TFT_WHITE);
-  tft->drawLine(x, y - 20, x, y - 10, TFT_WHITE);
-  tft->drawLine(x, y + 10, x, y + 20, TFT_WHITE);
+  SafeDraw::fillCircle(ctx, x, y, CALIB_RADIUS, color);
+  SafeDraw::drawCircle(ctx, x, y, CALIB_RADIUS + 5, TFT_WHITE);
+  SafeDraw::drawLine(ctx, x - 20, y, x - 10, y, TFT_WHITE);
+  SafeDraw::drawLine(ctx, x + 10, y, x + 20, y, TFT_WHITE);
+  SafeDraw::drawLine(ctx, x, y - 20, x, y - 10, TFT_WHITE);
+  SafeDraw::drawLine(ctx, x, y + 10, x, y + 20, TFT_WHITE);
 }
 
 static void drawInstructions() {
@@ -301,25 +301,25 @@ static void drawInstructions() {
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
   tft->setTextDatum(TC_DATUM);
 
-  tft->drawString("TOUCH CALIBRATION", TouchConstants::SCREEN_WIDTH / 2, 60, 4);
+  SafeDraw::drawString(ctx, "TOUCH CALIBRATION", TouchConstants::SCREEN_WIDTH / 2, 60, 4);
 
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
   tft->setTextDatum(TL_DATUM);
 
   int y = 120;
-  tft->drawString("You will be asked to touch", 60, y, 2);
+  SafeDraw::drawString(ctx, "You will be asked to touch", 60, y, 2);
   y += 25;
-  tft->drawString("2 points on the screen.", 60, y, 2);
+  SafeDraw::drawString(ctx, "2 points on the screen.", 60, y, 2);
   y += 25;
   y += 25; // Blank line for spacing
-  tft->drawString("Touch accurately for best", 60, y, 2);
+  SafeDraw::drawString(ctx, "Touch accurately for best", 60, y, 2);
   y += 25;
-  tft->drawString("results.", 60, y, 2);
+  SafeDraw::drawString(ctx, "results.", 60, y, 2);
   y += 30;
 
   tft->setTextColor(TFT_GREEN, TFT_BLACK);
   tft->setTextDatum(TC_DATUM);
-  tft->drawString("Touch anywhere to start", TouchConstants::SCREEN_WIDTH / 2,
+  SafeDraw::drawString(ctx, "Touch anywhere to start", TouchConstants::SCREEN_WIDTH / 2,
                   260, 2);
 }
 
@@ -458,33 +458,33 @@ static void drawVerification() {
   tft->setTextColor(TFT_GREEN, TFT_BLACK);
   tft->setTextDatum(TC_DATUM);
 
-  tft->drawString("CALIBRATION COMPLETE!", TouchConstants::SCREEN_WIDTH / 2,
+  SafeDraw::drawString(ctx, "CALIBRATION COMPLETE!", TouchConstants::SCREEN_WIDTH / 2,
                   100, 4);
 
   tft->setTextColor(TFT_WHITE, TFT_BLACK);
   tft->setTextDatum(TL_DATUM);
 
   int y = 160;
-  tft->drawString("Calibration values:", 60, y, 2);
+  SafeDraw::drawString(ctx, "Calibration values:", 60, y, 2);
   y += 25;
 
   char buf[64];
   snprintf(buf, sizeof(buf), "Min X: %d", result.calibData[0]);
-  tft->drawString(buf, 60, y, 2);
+  SafeDraw::drawString(ctx, buf, 60, y, 2);
   y += 20;
   snprintf(buf, sizeof(buf), "Max X: %d", result.calibData[1]);
-  tft->drawString(buf, 60, y, 2);
+  SafeDraw::drawString(ctx, buf, 60, y, 2);
   y += 20;
   snprintf(buf, sizeof(buf), "Min Y: %d", result.calibData[2]);
-  tft->drawString(buf, 60, y, 2);
+  SafeDraw::drawString(ctx, buf, 60, y, 2);
   y += 20;
   snprintf(buf, sizeof(buf), "Max Y: %d", result.calibData[3]);
-  tft->drawString(buf, 60, y, 2);
+  SafeDraw::drawString(ctx, buf, 60, y, 2);
   y += 25;
 
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
   tft->setTextDatum(TC_DATUM);
-  tft->drawString("Saving calibration...", TouchConstants::SCREEN_WIDTH / 2,
+  SafeDraw::drawString(ctx, "Saving calibration...", TouchConstants::SCREEN_WIDTH / 2,
                   280, 2);
 
   // Apply and save calibration

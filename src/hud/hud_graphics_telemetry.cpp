@@ -1,4 +1,6 @@
 #include "hud_graphics_telemetry.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "hud_compositor.h"
 
 namespace HudGraphicsTelemetry {
@@ -63,7 +65,11 @@ static uint16_t getFpsColor(uint32_t fps) {
 static void drawTelemetry(const HudCompositor::RenderStats &stats,
                           TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = target ? (TFT_eSPI *)target : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(target, true, 0, 0,
+                               target ? target->width() : 480,
+                               target ? target->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // Clear the area
@@ -88,80 +94,80 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
 
   // FPS (color-coded)
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("FPS:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "FPS:", cursorX, cursorY);
   snprintf(buf, sizeof(buf), "%u", stats.fps);
   drawTarget->setTextColor(getFpsColor(stats.fps), COLOR_BACKGROUND);
-  drawTarget->drawString(buf, cursorX + 100, cursorY);
+  SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Frame time
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("Frame time:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Frame time:", cursorX, cursorY);
   snprintf(buf, sizeof(buf), "%u ms", stats.avgFrameTimeMs);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString(buf, cursorX + 100, cursorY);
+  SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Dirty rects
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("Dirty rects:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Dirty rects:", cursorX, cursorY);
   snprintf(buf, sizeof(buf), "%u", stats.dirtyRectCount);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString(buf, cursorX + 100, cursorY);
+  SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Dirty area
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("Dirty area:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Dirty area:", cursorX, cursorY);
   snprintf(buf, sizeof(buf), "%u px", stats.dirtyPixels);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString(buf, cursorX + 100, cursorY);
+  SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Bandwidth (convert bytes to KB/s)
   // Use 64-bit arithmetic to prevent overflow
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("Bandwidth:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Bandwidth:", cursorX, cursorY);
   uint32_t bandwidthKBps =
       (uint32_t)(((uint64_t)stats.bytesPushed * stats.fps) / 1024);
   snprintf(buf, sizeof(buf), "%u KB/s", bandwidthKBps);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString(buf, cursorX + 100, cursorY);
+  SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
   // PSRAM usage
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("PSRAM:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "PSRAM:", cursorX, cursorY);
   uint32_t psramKB = stats.psramUsedBytes / 1024;
   snprintf(buf, sizeof(buf), "%u KB", psramKB);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString(buf, cursorX + 100, cursorY);
+  SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Shadow mode status
   drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-  drawTarget->drawString("Shadow:", cursorX, cursorY);
+  SafeDraw::drawString(ctx, "Shadow:", cursorX, cursorY);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-  drawTarget->drawString(stats.shadowEnabled ? "ON" : "OFF", cursorX + 100,
+  SafeDraw::drawString(ctx, stats.shadowEnabled ? "ON" : "OFF", cursorX + 100,
                          cursorY);
   cursorY += LINE_HEIGHT;
 
   // Shadow blocks (only if shadow enabled)
   if (stats.shadowEnabled) {
     drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-    drawTarget->drawString("Shadow blocks:", cursorX, cursorY);
+    SafeDraw::drawString(ctx, "Shadow blocks:", cursorX, cursorY);
     snprintf(buf, sizeof(buf), "%u", stats.shadowBlocksCompared);
     drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
-    drawTarget->drawString(buf, cursorX + 100, cursorY);
+    SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
     cursorY += LINE_HEIGHT;
 
     // Shadow errors (red if > 0)
     drawTarget->setTextColor(COLOR_LABEL, COLOR_BACKGROUND);
-    drawTarget->drawString("Shadow errors:", cursorX, cursorY);
+    SafeDraw::drawString(ctx, "Shadow errors:", cursorX, cursorY);
     snprintf(buf, sizeof(buf), "%u", stats.shadowMismatches);
     uint16_t errorColor = (stats.shadowMismatches > 0) ? TFT_RED : COLOR_TEXT;
     drawTarget->setTextColor(errorColor, COLOR_BACKGROUND);
-    drawTarget->drawString(buf, cursorX + 100, cursorY);
+    SafeDraw::drawString(ctx, buf, cursorX + 100, cursorY);
   }
 }
 
@@ -171,6 +177,7 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   sprite = nullptr; // Will be set by compositor if used
   initialized = true;
   visible = false; // Hidden by default
