@@ -1,4 +1,6 @@
 #include "gauges.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "settings.h"
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // para constrain(), snprintf, etc.
@@ -39,8 +41,10 @@ static const uint16_t COLOR_SCALE_DANGER = 0xF800;    // Rojo
 static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
                          float startAngle, float endAngle,
                          TFT_eSPI *target = nullptr) {
+  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
   TFT_eSPI *drawTarget = target ? target : tft;
   if (!drawTarget) return;
+  // Note: These static helpers receive already-safe TFT_eSPI* from caller
 
   // Use TFT_eSPI's optimized drawArc() method for better performance
   for (int i = 0; i < thickness; i++) {
@@ -60,8 +64,10 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
 // Phase 6: Added target parameter for compositor mode
 static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
                            bool showNumbers, TFT_eSPI *target = nullptr) {
+  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
   TFT_eSPI *drawTarget = target ? target : tft;
   if (!drawTarget) return;
+  // Note: These static helpers receive already-safe TFT_eSPI* from caller
 
   int numMarks = maxValue / step;
   for (int i = 0; i <= numMarks; i++) {
@@ -135,8 +141,10 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
 // Phase 6: Added target parameter for compositor mode
 static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
                          bool erase, TFT_eSPI *target = nullptr) {
+  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
   TFT_eSPI *drawTarget = target ? target : tft;
   if (!drawTarget) return;
+  // Note: These static helpers receive already-safe TFT_eSPI* from caller
 
   // 🔒 CORRECCIÓN ALTA: Proteger contra división por cero
   if (maxValue <= 0.0f) {
@@ -207,8 +215,10 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 // Phase 6: Added target parameter for compositor mode
 static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
                                 const char *unit, TFT_eSPI *target = nullptr) {
+  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
   TFT_eSPI *drawTarget = target ? target : tft;
   if (!drawTarget) return;
+  // Note: These static helpers receive already-safe TFT_eSPI* from caller
 
   int outerRadius = 68;
   int innerRadius = 55;
@@ -266,6 +276,8 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
 // -----------------------
 void Gauges::init(TFT_eSPI *display) {
   tft = display;
+  // 🚨 CRITICAL FIX: Initialize SafeDraw
+  SafeDraw::init(display);
   lastSpeed = -1;
   lastRpm = -1;
 }
@@ -274,7 +286,11 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
                        TFT_eSprite *sprite) {
   // Phase 6: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0, 
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // 🔒 CORRECCIÓN ALTA: Clamp speed con límite superior seguro
@@ -332,7 +348,11 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
                      TFT_eSprite *sprite) {
   // Phase 6: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0, 
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // 🔒 CORRECCIÓN ALTA: Validar maxRpm para prevenir división por cero

@@ -1,4 +1,6 @@
 #include "hud_limp_diagnostics.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "hud_layer.h"
 #include "limp_mode.h"
 
@@ -67,7 +69,11 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
                             TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = target ? (TFT_eSPI *)target : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(target, true, 0, 0,
+                               target ? target->width() : 480,
+                               target ? target->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // Clear the area
@@ -166,6 +172,7 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   sprite = nullptr; // Will be set by compositor if used
   initialized = true;
 
@@ -190,7 +197,11 @@ void draw() {
   LimpMode::Diagnostics currentDiag = LimpMode::getDiagnostics();
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Only show when NOT in NORMAL state
   if (currentDiag.state == LimpMode::LimpState::NORMAL) {
@@ -224,7 +235,11 @@ void forceRedraw() {
   LimpMode::Diagnostics currentDiag = LimpMode::getDiagnostics();
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // If in NORMAL state, just clear
   if (currentDiag.state == LimpMode::LimpState::NORMAL) {
@@ -244,7 +259,11 @@ void clear() {
   if (!tft && !sprite) return;
 
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Clear diagnostics area
   drawTarget->fillRect(DIAG_X, DIAG_Y, DIAG_WIDTH, DIAG_HEIGHT,

@@ -1,4 +1,6 @@
 #include "hud_graphics_telemetry.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "hud_compositor.h"
 
 namespace HudGraphicsTelemetry {
@@ -63,7 +65,11 @@ static uint16_t getFpsColor(uint32_t fps) {
 static void drawTelemetry(const HudCompositor::RenderStats &stats,
                           TFT_eSprite *target) {
   // Use sprite if available, otherwise fall back to TFT
-  TFT_eSPI *drawTarget = target ? (TFT_eSPI *)target : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(target, true, 0, 0,
+                               target ? target->width() : 480,
+                               target ? target->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // Clear the area
@@ -171,6 +177,7 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   sprite = nullptr; // Will be set by compositor if used
   initialized = true;
   visible = false; // Hidden by default

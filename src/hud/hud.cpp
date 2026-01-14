@@ -1,4 +1,6 @@
 #include "hud.h"
+#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // Para DEG_TO_RAD, millis, constrain
 #include <TFT_eSPI.h>
@@ -859,7 +861,11 @@ static void drawSteeringWheel(float angleDeg) {
 
 void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   // Phase 6.4: Dual-mode rendering - sprite or TFT
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : &tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   const int y = 300;     // Posición vertical
@@ -1239,7 +1245,11 @@ void HUD::update(TFT_eSprite *sprite) {
   OperationMode mode = SystemMode::getMode();
   if (mode != OperationMode::MODE_FULL) {
     // Phase 6.4: Dual-mode rendering - sprite or TFT
-    TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : &tft;
+    // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
     drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,
@@ -1674,7 +1684,8 @@ void HUD::update(HudLayer::RenderContext &ctx) {
 #ifndef STANDALONE_DISPLAY
   OperationMode mode = SystemMode::getMode();
   if (mode != OperationMode::MODE_FULL) {
-    TFT_eSPI *drawTarget = ctx.sprite ? (TFT_eSPI *)ctx.sprite : &tft;
+    // 🚨 CRITICAL FIX: Use getDrawTarget for safe access
+    TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
     drawTarget->drawString(SystemMode::getModeName(), MODE_INDICATOR_X,

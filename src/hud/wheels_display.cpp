@@ -250,6 +250,7 @@ static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
 
 void WheelsDisplay::init(TFT_eSPI *display) {
   tft = display;
+  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
   initialized = true;
   // Resetear cache de todas las ruedas
   for (int i = 0; i < 4; i++) {
@@ -269,7 +270,11 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
 
   // Phase 6.3: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                               sprite ? sprite->width() : 480,
+                               sprite ? sprite->height() : 320);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
   // Clamp valores
