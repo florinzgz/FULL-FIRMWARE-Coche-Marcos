@@ -1225,17 +1225,18 @@ namespace {
  * @param dest Destination buffer
  * @param src Source string (may be null)
  * @param maxLen Maximum buffer size (including null terminator)
+ * 
+ * Uses snprintf instead of strncpy to satisfy SonarCloud security rule cpp:S5816.
+ * snprintf guarantees null termination and prevents buffer over-read/overflow.
  */
 inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
-  if (src == nullptr || maxLen == 0) {
-    if (maxLen > 0) {
-      dest[0] = '\0';
-    }
+  if (maxLen == 0) {
     return;
   }
   
-  strncpy(dest, src, maxLen - 1);
-  dest[maxLen - 1] = '\0'; // Ensure null termination
+  // Use snprintf for guaranteed safe string copy with truncation
+  // Format "%s" ensures string formatting, handles null src safely
+  snprintf(dest, maxLen, "%s", src ? src : "");
 }
 } // anonymous namespace
 
