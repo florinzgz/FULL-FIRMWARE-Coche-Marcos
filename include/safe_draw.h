@@ -375,6 +375,35 @@ inline void drawTriangle(const HudLayer::RenderContext &ctx,
 }
 
 /**
+ * @brief Safe drawArc with coordinate translation
+ * Note: TFT_eSPI's drawArc draws arc segments - used for gauges
+ */
+inline void drawArc(const HudLayer::RenderContext &ctx, int16_t screenX, int16_t screenY,
+                    int16_t r1, int16_t r2, int16_t startAngle, int16_t endAngle,
+                    uint16_t fg_color, uint16_t bg_color, bool smoothArc = true) {
+  if (ctx.sprite) {
+    // Check if arc center is within reasonable bounds
+    if (!ctx.isInBounds(screenX - r2, screenY - r2) && 
+        !ctx.isInBounds(screenX + r2, screenY + r2)) {
+#ifdef DEBUG_SAFE_DRAW
+      Serial.printf("[SafeDraw] drawArc out of bounds: center(%d,%d) r=%d\n",
+                    screenX, screenY, r2);
+#endif
+      return;  // Arc completely outside sprite
+    }
+    
+    int16_t localX = ctx.toLocalX(screenX);
+    int16_t localY = ctx.toLocalY(screenY);
+    
+    ctx.sprite->drawArc(localX, localY, r1, r2, startAngle, endAngle,
+                       fg_color, bg_color, smoothArc);
+  } else {
+    if (tftPtr) tftPtr->drawArc(screenX, screenY, r1, r2, startAngle, endAngle,
+                                fg_color, bg_color, smoothArc);
+  }
+}
+
+/**
  * @brief Get drawTarget pointer for functions that need raw access
  * WARNING: Use with extreme caution! Prefer SafeDraw methods.
  * Only use this when you need setTextColor, setTextDatum, etc.

@@ -40,17 +40,14 @@ static const uint16_t COLOR_SCALE_DANGER = 0xF800;    // Rojo
 // Phase 6: Added target parameter for compositor mode
 static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
                          float startAngle, float endAngle,
-                         TFT_eSPI *target = nullptr) {
-  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
-  // Note: These static helpers receive already-safe TFT_eSPI* from caller
+                         const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   // Use TFT_eSPI's optimized drawArc() method for better performance
   for (int i = 0; i < thickness; i++) {
     // drawArc expects angles in degrees, and draws a ring segment with given
     // thickness
-    drawTarget->drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
+    SafeDraw::drawArc(ctx, cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
                         color, color, true);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite for validation
@@ -63,11 +60,8 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
 // Dibujar marcas de escala con números
 // Phase 6: Added target parameter for compositor mode
 static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
-                           bool showNumbers, TFT_eSPI *target = nullptr) {
-  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
-  // Note: These static helpers receive already-safe TFT_eSPI* from caller
+                           bool showNumbers, const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   int numMarks = maxValue / step;
   for (int i = 0; i <= numMarks; i++) {
@@ -140,11 +134,8 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
 // Aguja 3D con efecto de profundidad
 // Phase 6: Added target parameter for compositor mode
 static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
-                         bool erase, TFT_eSPI *target = nullptr) {
-  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
-  // Note: These static helpers receive already-safe TFT_eSPI* from caller
+                         bool erase, const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   // 🔒 CORRECCIÓN ALTA: Proteger contra división por cero
   if (maxValue <= 0.0f) {
@@ -214,11 +205,9 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
 // -----------------------
 // Phase 6: Added target parameter for compositor mode
 static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
-                                const char *unit, TFT_eSPI *target = nullptr) {
-  // 🚨 CRITICAL FIX: Use provided target or fallback to global tft
-  TFT_eSPI *drawTarget = target ? target : tft;
-  if (!drawTarget) return;
-  // Note: These static helpers receive already-safe TFT_eSPI* from caller
+                                const char *unit,
+                                const HudLayer::RenderContext &ctx) {
+  // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   int outerRadius = 68;
   int innerRadius = 55;
@@ -248,16 +237,16 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
   // Arco de escala coloreado (verde-amarillo-rojo)
   // Verde (0-60%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_NORMAL, -135.0f,
-               -135.0f + 270.0f * 0.6f, drawTarget);
+               -135.0f + 270.0f * 0.6f, ctx);
   // Amarillo (60-85%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_WARN,
-               -135.0f + 270.0f * 0.6f, -135.0f + 270.0f * 0.85f, drawTarget);
+               -135.0f + 270.0f * 0.6f, -135.0f + 270.0f * 0.85f, ctx);
   // Rojo (85-100%)
   drawThickArc(cx, cy, outerRadius - 2, 3, COLOR_SCALE_DANGER,
-               -135.0f + 270.0f * 0.85f, 135.0f, drawTarget);
+               -135.0f + 270.0f * 0.85f, 135.0f, ctx);
 
   // Marcas de escala con números
-  drawScaleMarks(cx, cy, outerRadius, maxValue, step, true, drawTarget);
+  drawScaleMarks(cx, cy, outerRadius, maxValue, step, true, ctx);
 
   // Etiqueta de unidad
   drawTarget->setTextDatum(MC_DATUM);
@@ -305,14 +294,14 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
 
   // Redibujar fondo solo si es la primera vez
   if (lastSpeed < 0) {
-    drawGaugeBackground(cx, cy, maxKmh, step, "km/h", drawTarget);
+    drawGaugeBackground(cx, cy, maxKmh, step, "km/h", ctx);
   } else {
     // Borrar aguja anterior
-    drawNeedle3D(cx, cy, lastSpeed, (float)maxKmh, 50, true, drawTarget);
+    drawNeedle3D(cx, cy, lastSpeed, (float)maxKmh, 50, true, ctx);
   }
 
   // Dibujar aguja nueva con efecto 3D
-  drawNeedle3D(cx, cy, kmh, (float)maxKmh, 50, false, drawTarget);
+  drawNeedle3D(cx, cy, kmh, (float)maxKmh, 50, false, ctx);
 
   // Texto central grande con valor
   drawTarget->setTextDatum(MC_DATUM);
@@ -364,14 +353,14 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
   int step = (maxRpm <= 500) ? 50 : 100;
 
   if (lastRpm < 0) {
-    drawGaugeBackground(cx, cy, maxRpm, step, "RPM", drawTarget);
+    drawGaugeBackground(cx, cy, maxRpm, step, "RPM", ctx);
   } else {
     // Borrar aguja anterior
-    drawNeedle3D(cx, cy, lastRpm, (float)maxRpm, 50, true, drawTarget);
+    drawNeedle3D(cx, cy, lastRpm, (float)maxRpm, 50, true, ctx);
   }
 
   // Dibujar aguja nueva con efecto 3D
-  drawNeedle3D(cx, cy, rpm, (float)maxRpm, 50, false, drawTarget);
+  drawNeedle3D(cx, cy, rpm, (float)maxRpm, 50, false, ctx);
 
   // Texto central grande con valor
   drawTarget->setTextDatum(MC_DATUM);
