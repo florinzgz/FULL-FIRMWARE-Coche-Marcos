@@ -41,9 +41,9 @@ static constexpr size_t MAX_ERROR_MSG_LEN = 128;
  * to the render thread (HUDManager::update).
  */
 struct Event {
-  Type type;                          ///< Event type
+  Type type;                            ///< Event type
   char errorMessage[MAX_ERROR_MSG_LEN]; ///< Error message (for SHOW_ERROR)
-  uint8_t brightness;                 ///< Brightness value (for UPDATE_BRIGHTNESS)
+  uint8_t brightness; ///< Brightness value (for UPDATE_BRIGHTNESS)
 
   // Constructor: Initialize all fields to safe defaults
   Event() : type(Type::NONE), brightness(0) {

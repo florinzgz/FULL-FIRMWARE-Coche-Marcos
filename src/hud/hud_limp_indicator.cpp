@@ -1,7 +1,7 @@
 #include "hud_limp_indicator.h"
-#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
-#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
+#include "hud_layer.h" // 🚨 CRITICAL FIX: For RenderContext
 #include "limp_mode.h"
+#include "safe_draw.h" // 🚨 CRITICAL FIX: For coordinate-safe drawing
 
 namespace HudLimpIndicator {
 
@@ -82,8 +82,8 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(target, true, 0, 0,
-                               target ? target->width() : 480,
-                               target ? target->height() : 320);
+                              target ? target->width() : 480,
+                              target ? target->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
@@ -131,8 +131,8 @@ static void drawIndicator(LimpMode::LimpState state, TFT_eSprite *target) {
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
-  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
-  sprite = nullptr; // Will be set by compositor if used
+  SafeDraw::init(tft); // 🚨 CRITICAL FIX: Initialize SafeDraw
+  sprite = nullptr;    // Will be set by compositor if used
   lastState = LimpMode::LimpState::NORMAL;
   initialized = true;
 
@@ -173,8 +173,8 @@ void clear() {
   // Use sprite if available, otherwise fall back to TFT
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                              sprite ? sprite->width() : 480,
+                              sprite ? sprite->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Clear indicator area

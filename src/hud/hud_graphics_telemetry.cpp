@@ -1,7 +1,7 @@
 #include "hud_graphics_telemetry.h"
-#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
-#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "hud_compositor.h"
+#include "hud_layer.h" // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h" // 🚨 CRITICAL FIX: For coordinate-safe drawing
 
 namespace HudGraphicsTelemetry {
 
@@ -67,8 +67,8 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
   // Use sprite if available, otherwise fall back to TFT
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(target, true, 0, 0,
-                               target ? target->width() : 480,
-                               target ? target->height() : 320);
+                              target ? target->width() : 480,
+                              target ? target->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
@@ -149,7 +149,7 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
   SafeDraw::drawString(ctx, "Shadow:", cursorX, cursorY);
   drawTarget->setTextColor(COLOR_TEXT, COLOR_BACKGROUND);
   SafeDraw::drawString(ctx, stats.shadowEnabled ? "ON" : "OFF", cursorX + 100,
-                         cursorY);
+                       cursorY);
   cursorY += LINE_HEIGHT;
 
   // Shadow blocks (only if shadow enabled)
@@ -177,8 +177,8 @@ static void drawTelemetry(const HudCompositor::RenderStats &stats,
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
-  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
-  sprite = nullptr; // Will be set by compositor if used
+  SafeDraw::init(tft); // 🚨 CRITICAL FIX: Initialize SafeDraw
+  sprite = nullptr;    // Will be set by compositor if used
   initialized = true;
   visible = false; // Hidden by default
 

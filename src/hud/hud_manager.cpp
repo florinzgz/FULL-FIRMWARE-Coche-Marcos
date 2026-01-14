@@ -130,7 +130,8 @@ void HUDManager::init() {
   // 🔒 THREAD SAFETY: Create render event queue
   // Queue size: 10 events (enough for error bursts without blocking)
   constexpr size_t RENDER_QUEUE_SIZE = 10;
-  renderEventQueue = xQueueCreate(RENDER_QUEUE_SIZE, sizeof(RenderEvent::Event));
+  renderEventQueue =
+      xQueueCreate(RENDER_QUEUE_SIZE, sizeof(RenderEvent::Event));
   if (renderEventQueue == nullptr) {
     Serial.println("[HUD] CRITICAL: Failed to create render event queue!");
     Logger::error("HUD: Render queue creation failed");
@@ -480,7 +481,7 @@ void HUDManager::showReady() {
 void HUDManager::showError(const char *message) {
   // 🔒 THREAD SAFETY: Queue error display event instead of rendering directly
   // This prevents concurrent TFT access that causes ipc0 stack canary crashes
-  
+
   if (message == nullptr) {
     Logger::warn("HUD: showError called with null message");
     return;
@@ -489,7 +490,7 @@ void HUDManager::showError(const char *message) {
   // Create render event
   RenderEvent::Event event;
   event.type = RenderEvent::Type::SHOW_ERROR;
-  
+
   // Copy error message safely using helper function
   safeStringCopy(event.errorMessage, message, RenderEvent::MAX_ERROR_MSG_LEN);
 
@@ -1225,15 +1226,14 @@ namespace {
  * @param dest Destination buffer
  * @param src Source string (may be null)
  * @param maxLen Maximum buffer size (including null terminator)
- * 
- * Uses snprintf instead of strncpy to satisfy SonarCloud security rule cpp:S5816.
- * snprintf guarantees null termination and prevents buffer over-read/overflow.
+ *
+ * Uses snprintf instead of strncpy to satisfy SonarCloud security rule
+ * cpp:S5816. snprintf guarantees null termination and prevents buffer
+ * over-read/overflow.
  */
 inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
-  if (maxLen == 0) {
-    return;
-  }
-  
+  if (maxLen == 0) { return; }
+
   // Use snprintf for guaranteed safe string copy with truncation
   // Format "%s" ensures string formatting, handles null src safely
   snprintf(dest, maxLen, "%s", src ? src : "");
@@ -1248,9 +1248,9 @@ bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
 
   // Try to send to queue without blocking (0 ticks timeout)
   // This is critical for thread safety - we never want to block other tasks
-  BaseType_t result = xQueueSend(static_cast<QueueHandle_t>(renderEventQueue),
-                                  &event, 0);
-  
+  BaseType_t result =
+      xQueueSend(static_cast<QueueHandle_t>(renderEventQueue), &event, 0);
+
   if (result != pdTRUE) {
     // Queue is full - log detailed warning
     const char *eventTypeName = "UNKNOWN";
@@ -1270,12 +1270,13 @@ bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
     default:
       break;
     }
-    
+
     Logger::warnf("HUD: Render queue full! Dropped %s event", eventTypeName);
-    Serial.printf("[HUD] WARNING: Queue full, dropped %s event\n", eventTypeName);
+    Serial.printf("[HUD] WARNING: Queue full, dropped %s event\n",
+                  eventTypeName);
     return false;
   }
-  
+
   return true;
 }
 
@@ -1294,7 +1295,7 @@ void HUDManager::processRenderEvents() {
       safeStringCopy(errorMessage, event.errorMessage,
                      RenderEvent::MAX_ERROR_MSG_LEN);
       errorActive = true;
-      needsRedraw = true; // Force screen clear for error
+      needsRedraw = true;           // Force screen clear for error
       currentMenu = MenuType::NONE; // Exit any menu
       Logger::infof("HUD: Processing SHOW_ERROR event: %s", errorMessage);
       break;
@@ -1312,9 +1313,7 @@ void HUDManager::processRenderEvents() {
 
     case RenderEvent::Type::UPDATE_BRIGHTNESS:
       brightness = event.brightness;
-      if (initialized) {
-        ledcWrite(0, brightness);
-      }
+      if (initialized) { ledcWrite(0, brightness); }
       Logger::infof("HUD: Processing UPDATE_BRIGHTNESS event: %d", brightness);
       break;
 
@@ -1329,7 +1328,7 @@ void HUDManager::processRenderEvents() {
 void HUDManager::renderErrorScreen() {
   // 🔒 THREAD SAFETY: This function is ONLY called from update()
   // It performs the actual TFT drawing for error screens
-  
+
   // Clear screen on first draw
   if (needsRedraw) {
     tft.fillScreen(TFT_BLACK);
@@ -1341,16 +1340,15 @@ void HUDManager::renderErrorScreen() {
   tft.setTextSize(2);
   tft.setCursor(20, 140);
   tft.print("ERROR: ");
-  
+
   // Print error message (may wrap if too long)
   tft.setCursor(20, 165);
   tft.setTextSize(1);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.print(errorMessage);
-  
+
   // Instructions
   tft.setCursor(20, 200);
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.print("Sistema intentara recuperarse...");
 }
-

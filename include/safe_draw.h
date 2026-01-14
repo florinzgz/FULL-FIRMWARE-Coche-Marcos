@@ -9,10 +9,11 @@
  * @brief Safe drawing primitives that prevent coordinate space corruption
  *
  * 🚨 CRITICAL FIX for ipc0 Stack Canary Crashes
- * 
+ *
  * Problem: Functions were passing absolute screen coordinates (0-480, 0-320)
- * to sprite drawing calls, which expect local coordinates (0-sprite.width, 0-sprite.height).
- * This caused out-of-bounds writes that corrupted heap and FreeRTOS IPC stacks.
+ * to sprite drawing calls, which expect local coordinates (0-sprite.width,
+ * 0-sprite.height). This caused out-of-bounds writes that corrupted heap and
+ * FreeRTOS IPC stacks.
  *
  * Solution: These safe draw wrappers automatically:
  * 1. Translate screen coordinates to sprite-local coordinates
@@ -23,10 +24,12 @@
  * Usage:
  * Instead of:
  *   TFT_eSPI *drawTarget = sprite ? (TFT_eSPI*)sprite : tft;
- *   drawTarget->fillRect(240, 40, 100, 50, color);  // ❌ CRASHES if sprite is 100x100
+ *   drawTarget->fillRect(240, 40, 100, 50, color);  // ❌ CRASHES if sprite is
+ * 100x100
  *
  * Use:
- *   SafeDraw::fillRect(ctx, 240, 40, 100, 50, color);  // ✅ SAFE: auto-translates and clips
+ *   SafeDraw::fillRect(ctx, 240, 40, 100, 50, color);  // ✅ SAFE:
+ * auto-translates and clips
  */
 
 namespace SafeDraw {
@@ -39,9 +42,7 @@ static TFT_eSPI *tftPtr = nullptr;
  * @brief Initialize SafeDraw with TFT reference
  * Must be called before using SafeDraw functions
  */
-inline void init(TFT_eSPI *tft) {
-  tftPtr = tft;
-}
+inline void init(TFT_eSPI *tft) { tftPtr = tft; }
 
 /**
  * @brief Safe fillRect with coordinate translation and clipping
@@ -52,7 +53,7 @@ inline void init(TFT_eSPI *tft) {
  * @param h Rectangle height
  * @param color Fill color
  */
-inline void fillRect(const HudLayer::RenderContext &ctx, int16_t screenX, 
+inline void fillRect(const HudLayer::RenderContext &ctx, int16_t screenX,
                      int16_t screenY, int16_t w, int16_t h, uint16_t color) {
   if (ctx.sprite) {
     // Drawing to sprite - translate and clip
@@ -60,27 +61,31 @@ inline void fillRect(const HudLayer::RenderContext &ctx, int16_t screenX,
     int16_t y = screenY;
     int16_t width = w;
     int16_t height = h;
-    
+
     if (!ctx.clipRect(x, y, width, height)) {
       // Rectangle completely outside sprite bounds - skip draw
 #ifdef DEBUG_SAFE_DRAW
-      Serial.printf("[SafeDraw] fillRect clipped out: screen(%d,%d,%d,%d) sprite(%d,%d,%d,%d)\n",
-                    screenX, screenY, w, h, ctx.originX, ctx.originY, ctx.width, ctx.height);
+      Serial.printf("[SafeDraw] fillRect clipped out: screen(%d,%d,%d,%d) "
+                    "sprite(%d,%d,%d,%d)\n",
+                    screenX, screenY, w, h, ctx.originX, ctx.originY, ctx.width,
+                    ctx.height);
 #endif
       return;
     }
-    
+
     // Convert to local coordinates
     int16_t localX = ctx.toLocalX(x);
     int16_t localY = ctx.toLocalY(y);
-    
+
 #ifdef DEBUG_SAFE_DRAW
-    if (localX < -20 || localY < -20 || localX > ctx.width + 20 || localY > ctx.height + 20) {
-      Serial.printf("[SafeDraw] WARNING: fillRect near bounds: local(%d,%d,%d,%d) sprite(%d,%d)\n",
+    if (localX < -20 || localY < -20 || localX > ctx.width + 20 ||
+        localY > ctx.height + 20) {
+      Serial.printf("[SafeDraw] WARNING: fillRect near bounds: "
+                    "local(%d,%d,%d,%d) sprite(%d,%d)\n",
                     localX, localY, width, height, ctx.width, ctx.height);
     }
 #endif
-    
+
     ctx.sprite->fillRect(localX, localY, width, height, color);
   } else {
     // Drawing to screen - use screen coordinates directly
@@ -91,21 +96,21 @@ inline void fillRect(const HudLayer::RenderContext &ctx, int16_t screenX,
 /**
  * @brief Safe drawCircle with coordinate translation and bounds check
  */
-inline void drawCircle(const HudLayer::RenderContext &ctx, int16_t screenX, 
+inline void drawCircle(const HudLayer::RenderContext &ctx, int16_t screenX,
                        int16_t screenY, int16_t r, uint16_t color) {
   if (ctx.sprite) {
     // Check if circle intersects sprite (approximate check using bounding box)
-    if (!ctx.intersectsBounds(screenX - r, screenY - r, 2*r + 1, 2*r + 1)) {
+    if (!ctx.intersectsBounds(screenX - r, screenY - r, 2 * r + 1, 2 * r + 1)) {
 #ifdef DEBUG_SAFE_DRAW
       Serial.printf("[SafeDraw] drawCircle out of bounds: screen(%d,%d,r=%d)\n",
                     screenX, screenY, r);
 #endif
       return;
     }
-    
+
     int16_t localX = ctx.toLocalX(screenX);
     int16_t localY = ctx.toLocalY(screenY);
-    
+
     ctx.sprite->drawCircle(localX, localY, r, color);
   } else {
     if (tftPtr) tftPtr->drawCircle(screenX, screenY, r, color);
@@ -122,23 +127,23 @@ inline void drawLine(const HudLayer::RenderContext &ctx, int16_t x0, int16_t y0,
     // (More sophisticated line clipping could be added later)
     bool p0InBounds = ctx.isInBounds(x0, y0);
     bool p1InBounds = ctx.isInBounds(x1, y1);
-    
+
     if (!p0InBounds && !p1InBounds) {
       // Both endpoints outside - check if line passes through sprite
       // For now, just skip to prevent corruption
       // TODO: Implement Cohen-Sutherland line clipping
 #ifdef DEBUG_SAFE_DRAW
-      Serial.printf("[SafeDraw] drawLine out of bounds: (%d,%d)->(%d,%d)\n",
-                    x0, y0, x1, y1);
+      Serial.printf("[SafeDraw] drawLine out of bounds: (%d,%d)->(%d,%d)\n", x0,
+                    y0, x1, y1);
 #endif
       return;
     }
-    
+
     int16_t local_x0 = ctx.toLocalX(x0);
     int16_t local_y0 = ctx.toLocalY(y0);
     int16_t local_x1 = ctx.toLocalX(x1);
     int16_t local_y1 = ctx.toLocalY(y1);
-    
+
     ctx.sprite->drawLine(local_x0, local_y0, local_x1, local_y1, color);
   } else {
     if (tftPtr) tftPtr->drawLine(x0, y0, x1, y1, color);
@@ -152,17 +157,17 @@ inline void fillCircle(const HudLayer::RenderContext &ctx, int16_t screenX,
                        int16_t screenY, int16_t r, uint16_t color) {
   if (ctx.sprite) {
     // Check if circle intersects sprite
-    if (!ctx.intersectsBounds(screenX - r, screenY - r, 2*r + 1, 2*r + 1)) {
+    if (!ctx.intersectsBounds(screenX - r, screenY - r, 2 * r + 1, 2 * r + 1)) {
 #ifdef DEBUG_SAFE_DRAW
       Serial.printf("[SafeDraw] fillCircle out of bounds: screen(%d,%d,r=%d)\n",
                     screenX, screenY, r);
 #endif
       return;
     }
-    
+
     int16_t localX = ctx.toLocalX(screenX);
     int16_t localY = ctx.toLocalY(screenY);
-    
+
     ctx.sprite->fillCircle(localX, localY, r, color);
   } else {
     if (tftPtr) tftPtr->fillCircle(screenX, screenY, r, color);
@@ -183,10 +188,10 @@ inline void drawString(const HudLayer::RenderContext &ctx, const char *string,
 #endif
       return;
     }
-    
+
     int16_t localX = ctx.toLocalX(screenX);
     int16_t localY = ctx.toLocalY(screenY);
-    
+
     ctx.sprite->drawString(string, localX, localY, font);
   } else {
     if (tftPtr) tftPtr->drawString(string, screenX, screenY, font);
@@ -202,10 +207,10 @@ inline void drawPixel(const HudLayer::RenderContext &ctx, int16_t screenX,
     if (!ctx.isInBounds(screenX, screenY)) {
       return; // Pixel outside sprite
     }
-    
+
     int16_t localX = ctx.toLocalX(screenX);
     int16_t localY = ctx.toLocalY(screenY);
-    
+
     ctx.sprite->drawPixel(localX, localY, color);
   } else {
     if (tftPtr) tftPtr->drawPixel(screenX, screenY, color);
@@ -216,20 +221,21 @@ inline void drawPixel(const HudLayer::RenderContext &ctx, int16_t screenX,
  * @brief Safe fillRoundRect with coordinate translation and clipping
  */
 inline void fillRoundRect(const HudLayer::RenderContext &ctx, int16_t screenX,
-                          int16_t screenY, int16_t w, int16_t h, int16_t r, uint16_t color) {
+                          int16_t screenY, int16_t w, int16_t h, int16_t r,
+                          uint16_t color) {
   if (ctx.sprite) {
     int16_t x = screenX;
     int16_t y = screenY;
     int16_t width = w;
     int16_t height = h;
-    
+
     if (!ctx.clipRect(x, y, width, height)) {
       return; // Rectangle completely outside sprite bounds
     }
-    
+
     int16_t localX = ctx.toLocalX(x);
     int16_t localY = ctx.toLocalY(y);
-    
+
     ctx.sprite->fillRoundRect(localX, localY, width, height, r, color);
   } else {
     if (tftPtr) tftPtr->fillRoundRect(screenX, screenY, w, h, r, color);
@@ -240,20 +246,19 @@ inline void fillRoundRect(const HudLayer::RenderContext &ctx, int16_t screenX,
  * @brief Safe drawRoundRect with coordinate translation and clipping
  */
 inline void drawRoundRect(const HudLayer::RenderContext &ctx, int16_t screenX,
-                          int16_t screenY, int16_t w, int16_t h, int16_t r, uint16_t color) {
+                          int16_t screenY, int16_t w, int16_t h, int16_t r,
+                          uint16_t color) {
   if (ctx.sprite) {
     int16_t x = screenX;
     int16_t y = screenY;
     int16_t width = w;
     int16_t height = h;
-    
-    if (!ctx.clipRect(x, y, width, height)) {
-      return;
-    }
-    
+
+    if (!ctx.clipRect(x, y, width, height)) { return; }
+
     int16_t localX = ctx.toLocalX(x);
     int16_t localY = ctx.toLocalY(y);
-    
+
     ctx.sprite->drawRoundRect(localX, localY, width, height, r, color);
   } else {
     if (tftPtr) tftPtr->drawRoundRect(screenX, screenY, w, h, r, color);
@@ -270,14 +275,12 @@ inline void drawFastHLine(const HudLayer::RenderContext &ctx, int16_t screenX,
     int16_t y = screenY;
     int16_t width = w;
     int16_t height = 1;
-    
-    if (!ctx.clipRect(x, y, width, height)) {
-      return;
-    }
-    
+
+    if (!ctx.clipRect(x, y, width, height)) { return; }
+
     int16_t localX = ctx.toLocalX(x);
     int16_t localY = ctx.toLocalY(y);
-    
+
     ctx.sprite->drawFastHLine(localX, localY, width, color);
   } else {
     if (tftPtr) tftPtr->drawFastHLine(screenX, screenY, w, color);
@@ -294,14 +297,12 @@ inline void drawFastVLine(const HudLayer::RenderContext &ctx, int16_t screenX,
     int16_t y = screenY;
     int16_t width = 1;
     int16_t height = h;
-    
-    if (!ctx.clipRect(x, y, width, height)) {
-      return;
-    }
-    
+
+    if (!ctx.clipRect(x, y, width, height)) { return; }
+
     int16_t localX = ctx.toLocalX(x);
     int16_t localY = ctx.toLocalY(y);
-    
+
     ctx.sprite->drawFastVLine(localX, localY, height, color);
   } else {
     if (tftPtr) tftPtr->drawFastVLine(screenX, screenY, h, color);
@@ -312,11 +313,9 @@ inline void drawFastVLine(const HudLayer::RenderContext &ctx, int16_t screenX,
  * @brief Safe fillTriangle with coordinate translation
  * Triangles require all vertices to be translated
  */
-inline void fillTriangle(const HudLayer::RenderContext &ctx,
-                        int16_t x0, int16_t y0,
-                        int16_t x1, int16_t y1,
-                        int16_t x2, int16_t y2,
-                        uint16_t color) {
+inline void fillTriangle(const HudLayer::RenderContext &ctx, int16_t x0,
+                         int16_t y0, int16_t x1, int16_t y1, int16_t x2,
+                         int16_t y2, uint16_t color) {
   if (ctx.sprite) {
     // Translate all vertices to sprite-local coordinates
     int16_t local_x0 = ctx.toLocalX(x0);
@@ -325,19 +324,22 @@ inline void fillTriangle(const HudLayer::RenderContext &ctx,
     int16_t local_y1 = ctx.toLocalY(y1);
     int16_t local_x2 = ctx.toLocalX(x2);
     int16_t local_y2 = ctx.toLocalY(y2);
-    
+
     // Simple bounds check - if all vertices are far outside, skip
     if ((local_x0 < -50 && local_x1 < -50 && local_x2 < -50) ||
-        (local_x0 > ctx.width + 50 && local_x1 > ctx.width + 50 && local_x2 > ctx.width + 50) ||
+        (local_x0 > ctx.width + 50 && local_x1 > ctx.width + 50 &&
+         local_x2 > ctx.width + 50) ||
         (local_y0 < -50 && local_y1 < -50 && local_y2 < -50) ||
-        (local_y0 > ctx.height + 50 && local_y1 > ctx.height + 50 && local_y2 > ctx.height + 50)) {
+        (local_y0 > ctx.height + 50 && local_y1 > ctx.height + 50 &&
+         local_y2 > ctx.height + 50)) {
 #ifdef DEBUG_SAFE_DRAW
       Serial.printf("[SafeDraw] fillTriangle completely out of bounds\n");
 #endif
       return;
     }
-    
-    ctx.sprite->fillTriangle(local_x0, local_y0, local_x1, local_y1, local_x2, local_y2, color);
+
+    ctx.sprite->fillTriangle(local_x0, local_y0, local_x1, local_y1, local_x2,
+                             local_y2, color);
   } else {
     if (tftPtr) tftPtr->fillTriangle(x0, y0, x1, y1, x2, y2, color);
   }
@@ -346,11 +348,9 @@ inline void fillTriangle(const HudLayer::RenderContext &ctx,
 /**
  * @brief Safe drawTriangle with coordinate translation
  */
-inline void drawTriangle(const HudLayer::RenderContext &ctx,
-                        int16_t x0, int16_t y0,
-                        int16_t x1, int16_t y1,
-                        int16_t x2, int16_t y2,
-                        uint16_t color) {
+inline void drawTriangle(const HudLayer::RenderContext &ctx, int16_t x0,
+                         int16_t y0, int16_t x1, int16_t y1, int16_t x2,
+                         int16_t y2, uint16_t color) {
   if (ctx.sprite) {
     // Translate all vertices to sprite-local coordinates
     int16_t local_x0 = ctx.toLocalX(x0);
@@ -359,16 +359,19 @@ inline void drawTriangle(const HudLayer::RenderContext &ctx,
     int16_t local_y1 = ctx.toLocalY(y1);
     int16_t local_x2 = ctx.toLocalX(x2);
     int16_t local_y2 = ctx.toLocalY(y2);
-    
+
     // Simple bounds check
     if ((local_x0 < -50 && local_x1 < -50 && local_x2 < -50) ||
-        (local_x0 > ctx.width + 50 && local_x1 > ctx.width + 50 && local_x2 > ctx.width + 50) ||
+        (local_x0 > ctx.width + 50 && local_x1 > ctx.width + 50 &&
+         local_x2 > ctx.width + 50) ||
         (local_y0 < -50 && local_y1 < -50 && local_y2 < -50) ||
-        (local_y0 > ctx.height + 50 && local_y1 > ctx.height + 50 && local_y2 > ctx.height + 50)) {
+        (local_y0 > ctx.height + 50 && local_y1 > ctx.height + 50 &&
+         local_y2 > ctx.height + 50)) {
       return;
     }
-    
-    ctx.sprite->drawTriangle(local_x0, local_y0, local_x1, local_y1, local_x2, local_y2, color);
+
+    ctx.sprite->drawTriangle(local_x0, local_y0, local_x1, local_y1, local_x2,
+                             local_y2, color);
   } else {
     if (tftPtr) tftPtr->drawTriangle(x0, y0, x1, y1, x2, y2, color);
   }
@@ -378,28 +381,30 @@ inline void drawTriangle(const HudLayer::RenderContext &ctx,
  * @brief Safe drawArc with coordinate translation
  * Note: TFT_eSPI's drawArc draws arc segments - used for gauges
  */
-inline void drawArc(const HudLayer::RenderContext &ctx, int16_t screenX, int16_t screenY,
-                    int16_t r1, int16_t r2, int16_t startAngle, int16_t endAngle,
-                    uint16_t fg_color, uint16_t bg_color, bool smoothArc = true) {
+inline void drawArc(const HudLayer::RenderContext &ctx, int16_t screenX,
+                    int16_t screenY, int16_t r1, int16_t r2, int16_t startAngle,
+                    int16_t endAngle, uint16_t fg_color, uint16_t bg_color,
+                    bool smoothArc = true) {
   if (ctx.sprite) {
     // Check if arc center is within reasonable bounds
-    if (!ctx.isInBounds(screenX - r2, screenY - r2) && 
+    if (!ctx.isInBounds(screenX - r2, screenY - r2) &&
         !ctx.isInBounds(screenX + r2, screenY + r2)) {
 #ifdef DEBUG_SAFE_DRAW
       Serial.printf("[SafeDraw] drawArc out of bounds: center(%d,%d) r=%d\n",
                     screenX, screenY, r2);
 #endif
-      return;  // Arc completely outside sprite
+      return; // Arc completely outside sprite
     }
-    
+
     int16_t localX = ctx.toLocalX(screenX);
     int16_t localY = ctx.toLocalY(screenY);
-    
-    ctx.sprite->drawArc(localX, localY, r1, r2, startAngle, endAngle,
-                       fg_color, bg_color, smoothArc);
+
+    ctx.sprite->drawArc(localX, localY, r1, r2, startAngle, endAngle, fg_color,
+                        bg_color, smoothArc);
   } else {
-    if (tftPtr) tftPtr->drawArc(screenX, screenY, r1, r2, startAngle, endAngle,
-                                fg_color, bg_color, smoothArc);
+    if (tftPtr)
+      tftPtr->drawArc(screenX, screenY, r1, r2, startAngle, endAngle, fg_color,
+                      bg_color, smoothArc);
   }
 }
 
@@ -409,8 +414,8 @@ inline void drawArc(const HudLayer::RenderContext &ctx, int16_t screenX, int16_t
  * Only use this when you need setTextColor, setTextDatum, etc.
  * You MUST still translate coordinates manually!
  */
-inline TFT_eSPI* getDrawTarget(const HudLayer::RenderContext &ctx) {
-  return ctx.sprite ? (TFT_eSPI*)ctx.sprite : tftPtr;
+inline TFT_eSPI *getDrawTarget(const HudLayer::RenderContext &ctx) {
+  return ctx.sprite ? (TFT_eSPI *)ctx.sprite : tftPtr;
 }
 
 } // namespace SafeDraw

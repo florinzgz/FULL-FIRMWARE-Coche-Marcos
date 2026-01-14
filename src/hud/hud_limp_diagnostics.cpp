@@ -1,7 +1,7 @@
 #include "hud_limp_diagnostics.h"
-#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
-#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
+#include "hud_layer.h" // 🚨 CRITICAL FIX: For RenderContext
 #include "limp_mode.h"
+#include "safe_draw.h" // 🚨 CRITICAL FIX: For coordinate-safe drawing
 
 namespace HudLimpDiagnostics {
 
@@ -70,8 +70,8 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(target, true, 0, 0,
-                               target ? target->width() : 480,
-                               target ? target->height() : 320);
+                              target ? target->width() : 480,
+                              target ? target->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
@@ -103,7 +103,7 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   drawTarget->setTextColor(diag.pedalValid ? COLOR_OK : COLOR_FAIL,
                            COLOR_BACKGROUND);
   SafeDraw::drawString(ctx, diag.pedalValid ? "OK" : "FAIL", cursorX + 70,
-                         cursorY);
+                       cursorY);
   cursorY += LINE_HEIGHT;
 
   // Steering status
@@ -112,7 +112,7 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   drawTarget->setTextColor(diag.steeringValid ? COLOR_OK : COLOR_FAIL,
                            COLOR_BACKGROUND);
   SafeDraw::drawString(ctx, diag.steeringValid ? "OK" : "FAIL", cursorX + 70,
-                         cursorY);
+                       cursorY);
   cursorY += LINE_HEIGHT;
 
   // Battery status
@@ -120,8 +120,8 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   SafeDraw::drawString(ctx, "Battery:", cursorX, cursorY);
   drawTarget->setTextColor(diag.batteryUndervoltage ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  SafeDraw::drawString(ctx, diag.batteryUndervoltage ? "LOW" : "OK", cursorX + 70,
-                         cursorY);
+  SafeDraw::drawString(ctx, diag.batteryUndervoltage ? "LOW" : "OK",
+                       cursorX + 70, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Temperature status
@@ -129,8 +129,8 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
   SafeDraw::drawString(ctx, "Temp:", cursorX, cursorY);
   drawTarget->setTextColor(diag.temperatureWarning ? COLOR_FAIL : COLOR_OK,
                            COLOR_BACKGROUND);
-  SafeDraw::drawString(ctx, diag.temperatureWarning ? "WARN" : "OK", cursorX + 70,
-                         cursorY);
+  SafeDraw::drawString(ctx, diag.temperatureWarning ? "WARN" : "OK",
+                       cursorX + 70, cursorY);
   cursorY += LINE_HEIGHT;
 
   // Error count
@@ -171,8 +171,8 @@ static void drawDiagnostics(const LimpMode::Diagnostics &diag,
 
 void init(TFT_eSPI *tftDisplay) {
   tft = tftDisplay;
-  SafeDraw::init(tft);  // 🚨 CRITICAL FIX: Initialize SafeDraw
-  sprite = nullptr; // Will be set by compositor if used
+  SafeDraw::init(tft); // 🚨 CRITICAL FIX: Initialize SafeDraw
+  sprite = nullptr;    // Will be set by compositor if used
   initialized = true;
 
   // Initialize cache to NORMAL state
@@ -198,8 +198,8 @@ void draw() {
   // Use sprite if available, otherwise fall back to TFT
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                              sprite ? sprite->width() : 480,
+                              sprite ? sprite->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Only show when NOT in NORMAL state
@@ -236,8 +236,8 @@ void forceRedraw() {
   // Use sprite if available, otherwise fall back to TFT
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                              sprite ? sprite->width() : 480,
+                              sprite ? sprite->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // If in NORMAL state, just clear
@@ -260,8 +260,8 @@ void clear() {
   // Use sprite if available, otherwise fall back to TFT
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                              sprite ? sprite->width() : 480,
+                              sprite ? sprite->height() : 320);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
 
   // Clear diagnostics area

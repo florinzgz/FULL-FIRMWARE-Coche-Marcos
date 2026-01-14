@@ -571,8 +571,8 @@ static void drawModulesConfigScreen() {
   // Instructions
   tft->setTextDatum(BC_DATUM);
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
-  SafeDraw::drawString(ctx, "Toca para activar/desactivar módulos y sensores", 240, 300,
-                  1);
+  SafeDraw::drawString(ctx, "Toca para activar/desactivar módulos y sensores",
+                       240, 300, 1);
 }
 
 static void updateModulesConfig(int touchX, int touchY, bool touched) {
@@ -968,7 +968,7 @@ static void drawNumericKeypad() {
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(TFT_WHITE, TFT_NAVY);
     SafeDraw::drawString(ctx, btn.label, btn.x + KEYPAD_BTN_WIDTH / 2,
-                    btn.y + KEYPAD_BTN_HEIGHT / 2, 4);
+                         btn.y + KEYPAD_BTN_HEIGHT / 2, 4);
   }
 
   // Instructions
@@ -1065,11 +1065,11 @@ static void updateOptionHighlight() {
   if (lastSelectedOption != -1 && lastSelectedOption != selectedOption) {
     tft->setTextColor(TFT_WHITE, TFT_BLACK);
     SafeDraw::drawString(ctx, MENU_ITEMS[lastSelectedOption - 1], 80,
-                    80 + (lastSelectedOption - 1) * 20, 2);
+                         80 + (lastSelectedOption - 1) * 20, 2);
   }
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
   SafeDraw::drawString(ctx, MENU_ITEMS[selectedOption - 1], 80,
-                  80 + (selectedOption - 1) * 20, 2);
+                       80 + (selectedOption - 1) * 20, 2);
 }
 
 static void updateCodeDisplay() {

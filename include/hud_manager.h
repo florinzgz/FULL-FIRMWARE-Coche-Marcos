@@ -18,7 +18,8 @@
  * 🔒 THREAD SAFETY: TFT_eSPI is NOT thread-safe!
  * - ALL TFT drawing operations MUST happen in HUDManager::update()
  * - Other contexts must use queueRenderEvent() to request rendering
- * - Direct tft.* calls from outside update() will cause crashes (ipc0 stack canary)
+ * - Direct tft.* calls from outside update() will cause crashes (ipc0 stack
+ * canary)
  */
 class HUDManager {
 public:
@@ -176,7 +177,8 @@ private:
   static void renderStatistics();
   static void renderQuickMenu();
   static void renderHiddenMenu();
-  static void renderErrorScreen(); // 🔒 NEW: Render error screen (called only from update)
+  static void
+  renderErrorScreen(); // 🔒 NEW: Render error screen (called only from update)
 
   // Helpers optimización
   static void updateOnlyChanged();

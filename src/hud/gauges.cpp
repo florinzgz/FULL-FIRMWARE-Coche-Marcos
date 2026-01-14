@@ -1,6 +1,6 @@
 #include "gauges.h"
-#include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
-#include "safe_draw.h"     // 🚨 CRITICAL FIX: For coordinate-safe drawing
+#include "hud_layer.h" // 🚨 CRITICAL FIX: For RenderContext
+#include "safe_draw.h" // 🚨 CRITICAL FIX: For coordinate-safe drawing
 #include "settings.h"
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include <Arduino.h>       // para constrain(), snprintf, etc.
@@ -48,7 +48,7 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
     // drawArc expects angles in degrees, and draws a ring segment with given
     // thickness
     SafeDraw::drawArc(ctx, cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
-                        color, color, true);
+                      color, color, true);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror to shadow sprite for validation
     SHADOW_MIRROR_drawArc(cx, cy, r - i, r - i, (int)startAngle, (int)endAngle,
@@ -60,7 +60,8 @@ static void drawThickArc(int cx, int cy, int r, int thickness, uint16_t color,
 // Dibujar marcas de escala con números
 // Phase 6: Added target parameter for compositor mode
 static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
-                           bool showNumbers, const HudLayer::RenderContext &ctx) {
+                           bool showNumbers,
+                           const HudLayer::RenderContext &ctx) {
   // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
 
   int numMarks = maxValue / step;
@@ -160,7 +161,7 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
   if (erase) {
     // Borrar con negro
     SafeDraw::fillTriangle(ctx, tipX, tipY, baseX1, baseY1, baseX2, baseY2,
-                             TFT_BLACK);
+                           TFT_BLACK);
     SafeDraw::fillCircle(ctx, cx, cy, 8, COLOR_GAUGE_INNER);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3: Mirror erase to shadow sprite
@@ -171,11 +172,11 @@ static void drawNeedle3D(int cx, int cy, float value, float maxValue, int r,
   } else {
     // Sombra de la aguja (desplazada 2px)
     SafeDraw::fillTriangle(ctx, tipX + 1, tipY + 1, baseX1 + 1, baseY1 + 1,
-                             baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
+                           baseX2 + 1, baseY2 + 1, COLOR_NEEDLE_SHADOW);
 
     // Aguja principal
     SafeDraw::fillTriangle(ctx, tipX, tipY, baseX1, baseY1, baseX2, baseY2,
-                             COLOR_NEEDLE_BASE);
+                           COLOR_NEEDLE_BASE);
 
     // Línea central blanca (efecto brillo)
     int midX = cx + (int)(cosf(rad) * (r * 0.6f));
@@ -276,9 +277,9 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
   // Phase 6: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
   // 🚨 CRITICAL FIX: Create safe RenderContext
-  HudLayer::RenderContext ctx(sprite, true, 0, 0, 
-                               sprite ? sprite->width() : TFT_WIDTH,
-                               sprite ? sprite->height() : TFT_HEIGHT);
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                              sprite ? sprite->width() : TFT_WIDTH,
+                              sprite ? sprite->height() : TFT_HEIGHT);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
@@ -338,9 +339,9 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
   // Phase 6: Support dual-mode rendering (sprite or TFT)
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
   // 🚨 CRITICAL FIX: Create safe RenderContext
-  HudLayer::RenderContext ctx(sprite, true, 0, 0, 
-                               sprite ? sprite->width() : TFT_WIDTH,
-                               sprite ? sprite->height() : TFT_HEIGHT);
+  HudLayer::RenderContext ctx(sprite, true, 0, 0,
+                              sprite ? sprite->width() : TFT_WIDTH,
+                              sprite ? sprite->height() : TFT_HEIGHT);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
