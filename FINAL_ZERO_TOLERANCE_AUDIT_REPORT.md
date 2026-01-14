@@ -241,7 +241,9 @@ static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
 
 **Impact**: Would cause undefined behavior or compilation error. Wheel rendering would use garbage values, potentially causing out-of-bounds writes.
 
-**Fix Applied**: Replaced all 15 occurrences of `cx`/`cy` with `screenCX`/`screenCY`.
+**Fix Applied**: Replaced all 15 occurrences of `cx`/`cy` with `screenCX`/`screenCY` INSIDE the drawWheel3D() function body.
+
+**Note**: The function call `drawWheel3D(cx, cy, angleDeg, ctx)` at line 302 is correct - `cx` and `cy` here are the valid parameters of the calling function `drawWheel()`, not the undefined variables that were inside `drawWheel3D()`.
 
 **Verification**: ✅ Code compiles, no undefined variables.
 
