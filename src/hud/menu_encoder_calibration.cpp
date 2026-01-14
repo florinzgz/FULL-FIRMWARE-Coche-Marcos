@@ -149,9 +149,9 @@ void MenuEncoderCalibration::handleTouch(uint16_t x, uint16_t y) {
 void MenuEncoderCalibration::drawHeader() {
   tft->setTextDatum(TC_DATUM);
   tft->setTextColor(TFT_CYAN, COLOR_BG);
-  SafeDraw::drawString(ctx, "ENCODER CALIBRATION", 240, 10, 4);
+  tft->drawString("ENCODER CALIBRATION", 240, 10, 4);
 
-  SafeDraw::drawLine(ctx, 20, 40, 460, 40, TFT_DARKGREY);
+  tft->drawLine(20, 40, 460, 40, TFT_DARKGREY);
 }
 
 void MenuEncoderCalibration::drawLiveValue() {
@@ -161,7 +161,7 @@ void MenuEncoderCalibration::drawLiveValue() {
   // Draw label
   tft->setTextDatum(TR_DATUM);
   tft->setTextColor(COLOR_TEXT, COLOR_BG);
-  SafeDraw::drawString(ctx, "Live:", 155, 60, 2);
+  tft->drawString("Live:", 155, 60, 2);
 
   // Draw live value in large font
   tft->setTextDatum(TL_DATUM);
@@ -182,7 +182,7 @@ void MenuEncoderCalibration::drawLiveValue() {
   }
 
   tft->setTextColor(valueColor, COLOR_BG);
-  SafeDraw::drawString(ctx, valueStr, 165, 55, 4);
+  tft->drawString(valueStr, 165, 55, 4);
 }
 
 void MenuEncoderCalibration::drawCalibrationSteps() {
@@ -214,20 +214,20 @@ void MenuEncoderCalibration::drawStepIndicator(uint8_t step, const char *label,
   bool complete = (step < currentStep) || (currentStep == STEP_COMPLETE);
   uint16_t iconColor = getStepColor(active, complete);
 
-  SafeDraw::fillCircle(ctx, iconX, y + 6, 8, iconColor);
+  tft->fillCircle(iconX, y + 6, 8, iconColor);
   if (complete) {
     // Draw checkmark
-    SafeDraw::drawLine(ctx, iconX - 4, y + 6, iconX - 1, y + 9, COLOR_BG);
-    SafeDraw::drawLine(ctx, iconX - 1, y + 9, iconX + 5, y + 3, COLOR_BG);
+    tft->drawLine(iconX - 4, y + 6, iconX - 1, y + 9, COLOR_BG);
+    tft->drawLine(iconX - 1, y + 9, iconX + 5, y + 3, COLOR_BG);
   } else if (active) {
     // Draw dot
-    SafeDraw::fillCircle(ctx, iconX, y + 6, 3, COLOR_BG);
+    tft->fillCircle(iconX, y + 6, 3, COLOR_BG);
   }
 
   // Step label
   tft->setTextDatum(TL_DATUM);
   tft->setTextColor(active ? COLOR_ACTIVE : COLOR_TEXT, COLOR_BG);
-  SafeDraw::drawString(ctx, label, labelX, y, 2);
+  tft->drawString(label, labelX, y, 2);
 
   // Step value
   char valueStr[16];
@@ -236,7 +236,7 @@ void MenuEncoderCalibration::drawStepIndicator(uint8_t step, const char *label,
   tft->setTextColor(complete ? COLOR_COMPLETE
                              : (active ? COLOR_ACTIVE : COLOR_INACTIVE),
                     COLOR_BG);
-  SafeDraw::drawString(ctx, valueStr, valueX, y, 2);
+  tft->drawString(valueStr, valueX, y, 2);
 }
 
 void MenuEncoderCalibration::drawButtons() {
@@ -247,7 +247,7 @@ void MenuEncoderCalibration::drawButtons() {
                      btnSetCenter.h, 5, centerColor);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_BG, centerColor);
-  SafeDraw::drawString(ctx, "Set Center", btnSetCenter.x + btnSetCenter.w / 2,
+  tft->drawString("Set Center", btnSetCenter.x + btnSetCenter.w / 2,
                        btnSetCenter.y + btnSetCenter.h / 2, 2);
 
   // Set Left button
@@ -256,7 +256,7 @@ void MenuEncoderCalibration::drawButtons() {
   tft->fillRoundRect(btnSetLeft.x, btnSetLeft.y, btnSetLeft.w, btnSetLeft.h, 5,
                      leftColor);
   tft->setTextColor(COLOR_BG, leftColor);
-  SafeDraw::drawString(ctx, "Set Left", btnSetLeft.x + btnSetLeft.w / 2,
+  tft->drawString("Set Left", btnSetLeft.x + btnSetLeft.w / 2,
                        btnSetLeft.y + btnSetLeft.h / 2, 2);
 
   // Set Right button
@@ -265,7 +265,7 @@ void MenuEncoderCalibration::drawButtons() {
   tft->fillRoundRect(btnSetRight.x, btnSetRight.y, btnSetRight.w, btnSetRight.h,
                      5, rightColor);
   tft->setTextColor(COLOR_BG, rightColor);
-  SafeDraw::drawString(ctx, "Set Right", btnSetRight.x + btnSetRight.w / 2,
+  tft->drawString("Set Right", btnSetRight.x + btnSetRight.w / 2,
                        btnSetRight.y + btnSetRight.h / 2, 2);
 
   // Save button
@@ -274,28 +274,28 @@ void MenuEncoderCalibration::drawButtons() {
                            : (saveConfirmed ? TFT_BLUE : COLOR_INACTIVE);
   tft->fillRoundRect(btnSave.x, btnSave.y, btnSave.w, btnSave.h, 5, saveColor);
   tft->setTextColor(COLOR_TEXT, saveColor);
-  SafeDraw::drawString(ctx, saveConfirmed ? "SAVED!" : "Save",
+  tft->drawString(saveConfirmed ? "SAVED!" : "Save",
                        btnSave.x + btnSave.w / 2, btnSave.y + btnSave.h / 2, 2);
 
   // Reset button
   tft->fillRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
                      COLOR_ERROR);
   tft->setTextColor(COLOR_TEXT, COLOR_ERROR);
-  SafeDraw::drawString(ctx, "Reset Defaults", btnReset.x + btnReset.w / 2,
+  tft->drawString("Reset Defaults", btnReset.x + btnReset.w / 2,
                        btnReset.y + btnReset.h / 2, 2);
 
   // Back button
   tft->fillRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5,
                      TFT_DARKGREY);
   tft->setTextColor(COLOR_TEXT, TFT_DARKGREY);
-  SafeDraw::drawString(ctx, "Back", btnBack.x + btnBack.w / 2,
+  tft->drawString("Back", btnBack.x + btnBack.w / 2,
                        btnBack.y + btnBack.h / 2, 2);
 }
 
 void MenuEncoderCalibration::drawInstructions() {
   tft->setTextDatum(BC_DATUM);
   tft->setTextColor(COLOR_WARNING, COLOR_BG);
-  SafeDraw::drawString(ctx, getStepInstruction(), 240, 295, 2);
+  tft->drawString(getStepInstruction(), 240, 295, 2);
 }
 
 void MenuEncoderCalibration::drawVisualIndicator() {
@@ -331,7 +331,7 @@ void MenuEncoderCalibration::drawVisualIndicator() {
   centerX = constrain(centerX, barX + 5, barX + barW - 10);
 
   // Draw center line
-  SafeDraw::drawLine(ctx, centerX, barY + 5, centerX, barY + barH - 5,
+  tft->drawLine(centerX, barY + 5, centerX, barY + barH - 5,
                      TFT_CYAN);
 
   // Draw left/right zones
@@ -340,7 +340,7 @@ void MenuEncoderCalibration::drawVisualIndicator() {
                 COLOR_WARNING);
 
   // Draw position marker
-  SafeDraw::fillTriangle(ctx, markerX - 8, barY + 50, markerX + 8, barY + 50,
+  tft->fillTriangle(markerX - 8, barY + 50, markerX + 8, barY + 50,
                          markerX, barY + 38, COLOR_ACTIVE);
 }
 
