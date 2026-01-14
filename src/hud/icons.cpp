@@ -1,4 +1,8 @@
 #include "icons.h"
+
+// Screen dimensions
+static constexpr int16_t TFT_WIDTH = 480;
+static constexpr int16_t TFT_HEIGHT = 320;
 #include "display_types.h" // para CACHE_UNINITIALIZED
 #include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
 #include "logger.h"
@@ -112,9 +116,8 @@ void Icons::drawSystemState(System::State st, TFT_eSprite *sprite) {
   if (drawTarget) {
     drawTarget->setTextDatum(TL_DATUM);
     drawTarget->setTextColor(col, TFT_BLACK);
+    SafeDraw::drawString(ctx, txt, 10, 10, 2);
   }
-  
-  SafeDraw::drawString(ctx, txt, 10, 10, 2);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror system state to shadow sprite
   SHADOW_MIRROR_fillRect(5, 5, 80, 20, TFT_BLACK);

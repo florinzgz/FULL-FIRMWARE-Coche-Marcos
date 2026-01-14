@@ -288,8 +288,8 @@ void Gauges::drawSpeed(int cx, int cy, float kmh, int maxKmh, float pedalPct,
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0, 
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
@@ -350,8 +350,8 @@ void Gauges::drawRPM(int cx, int cy, float rpm, int maxRpm,
   // Safe cast: TFT_eSprite inherits from TFT_eSPI
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0, 
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 

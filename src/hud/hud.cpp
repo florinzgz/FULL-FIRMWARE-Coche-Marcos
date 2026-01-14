@@ -863,8 +863,8 @@ void HUD::drawPedalBar(float pedalPercent, TFT_eSprite *sprite) {
   // Phase 6.4: Dual-mode rendering - sprite or TFT
   // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
 
@@ -1247,8 +1247,8 @@ void HUD::update(TFT_eSprite *sprite) {
     // Phase 6.4: Dual-mode rendering - sprite or TFT
     // 🚨 CRITICAL FIX: Create safe RenderContext
   HudLayer::RenderContext ctx(sprite, true, 0, 0,
-                               sprite ? sprite->width() : 480,
-                               sprite ? sprite->height() : 320);
+                               sprite ? sprite->width() : TFT_WIDTH,
+                               sprite ? sprite->height() : TFT_HEIGHT);
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
     drawTarget->setTextDatum(MC_DATUM);
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
