@@ -190,14 +190,14 @@ static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
 
   // Llanta interior (más clara)
   int innerScale = 55; // 55% del tamaño para dejar ver más neumático
-  int ix0 = cx - dx * innerScale / 100 - ex * innerScale / 100;
-  int iy0 = cy - dy * innerScale / 100 - ey * innerScale / 100;
-  int ix1 = cx + dx * innerScale / 100 - ex * innerScale / 100;
-  int iy1 = cy + dy * innerScale / 100 - ey * innerScale / 100;
-  int ix2 = cx + dx * innerScale / 100 + ex * innerScale / 100;
-  int iy2 = cy + dy * innerScale / 100 + ey * innerScale / 100;
-  int ix3 = cx - dx * innerScale / 100 + ex * innerScale / 100;
-  int iy3 = cy - dy * innerScale / 100 + ey * innerScale / 100;
+  int ix0 = screenCX - dx * innerScale / 100 - ex * innerScale / 100;
+  int iy0 = screenCY - dy * innerScale / 100 - ey * innerScale / 100;
+  int ix1 = screenCX + dx * innerScale / 100 - ex * innerScale / 100;
+  int iy1 = screenCY + dy * innerScale / 100 - ey * innerScale / 100;
+  int ix2 = screenCX + dx * innerScale / 100 + ex * innerScale / 100;
+  int iy2 = screenCY + dy * innerScale / 100 + ey * innerScale / 100;
+  int ix3 = screenCX - dx * innerScale / 100 + ex * innerScale / 100;
+  int iy3 = screenCY - dy * innerScale / 100 + ey * innerScale / 100;
 
   SafeDraw::fillTriangle(ctx, ix0, iy0, ix1, iy1, ix2, iy2, COLOR_WHEEL_INNER);
   SafeDraw::fillTriangle(ctx, ix0, iy0, ix2, iy2, ix3, iy3, COLOR_WHEEL_INNER);
@@ -208,26 +208,26 @@ static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
 #endif
 
   // Centro de la rueda (hub) con efecto 3D
-  SafeDraw::fillCircle(ctx, cx, cy, 5, COLOR_HUB_CENTER);
-  SafeDraw::drawCircle(ctx, cx, cy, 5, COLOR_WHEEL_OUTER);
+  SafeDraw::fillCircle(ctx, screenCX, screenCY, 5, COLOR_HUB_CENTER);
+  SafeDraw::drawCircle(ctx, screenCX, screenCY, 5, COLOR_WHEEL_OUTER);
 
   // Punto de luz central (highlight)
-  SafeDraw::fillCircle(ctx, cx - 1, cy - 1, 1, COLOR_HUB_BOLT);
+  SafeDraw::fillCircle(ctx, screenCX - 1, screenCY - 1, 1, COLOR_HUB_BOLT);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror hub to shadow sprite
-  SHADOW_MIRROR_fillCircle(cx, cy, 5, COLOR_HUB_CENTER);
-  SHADOW_MIRROR_drawCircle(cx, cy, 5, COLOR_WHEEL_OUTER);
-  SHADOW_MIRROR_fillCircle(cx - 1, cy - 1, 1, COLOR_HUB_BOLT);
+  SHADOW_MIRROR_fillCircle(screenCX, screenCY, 5, COLOR_HUB_CENTER);
+  SHADOW_MIRROR_drawCircle(screenCX, screenCY, 5, COLOR_WHEEL_OUTER);
+  SHADOW_MIRROR_fillCircle(screenCX - 1, screenCY - 1, 1, COLOR_HUB_BOLT);
 #endif
 
   // Flecha de dirección mejorada (solo para ruedas que giran)
   if (fabs(angleDeg) > 0.1f) {
     int arrowLen = 22; // Un poco más larga para ruedas verticales
-    int ax = cx + (int)(cosf(rad) * arrowLen);
-    int ay = cy + (int)(sinf(rad) * arrowLen);
+    int ax = screenCX + (int)(cosf(rad) * arrowLen);
+    int ay = screenCY + (int)(sinf(rad) * arrowLen);
 
     // Línea principal
-    SafeDraw::drawLine(ctx, cx, cy, ax, ay, TFT_CYAN);
+    SafeDraw::drawLine(ctx, screenCX, screenCY, ax, ay, TFT_CYAN);
 
     // Punta de flecha
     float arrowAngle1 = rad + 2.5f;
@@ -242,7 +242,7 @@ static void drawWheel3D(int screenCX, int screenCY, float angleDeg,
     SafeDraw::drawLine(ctx, ax, ay, ax2, ay2, TFT_CYAN);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror direction arrow to shadow sprite
-    SHADOW_MIRROR_drawLine(cx, cy, ax, ay, TFT_CYAN);
+    SHADOW_MIRROR_drawLine(screenCX, screenCY, ax, ay, TFT_CYAN);
     SHADOW_MIRROR_drawLine(ax, ay, ax1, ay1, TFT_CYAN);
     SHADOW_MIRROR_drawLine(ax, ay, ax2, ay2, TFT_CYAN);
 #endif
@@ -299,7 +299,7 @@ void WheelsDisplay::drawWheel(int cx, int cy, float angleDeg, float tempC,
   cache.lastEffort = effortPct;
 
   // Dibujar rueda 3D mejorada
-  drawWheel3D(cx, cy, angleDeg, drawTarget);
+  drawWheel3D(cx, cy, angleDeg, ctx);
 
   // Temperatura encima con fondo semitransparente
   SafeDraw::fillRoundRect(ctx, cx - 26, cy - 36, 52, 16, 3, COLOR_INFO_BG);
