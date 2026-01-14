@@ -289,7 +289,9 @@ void Icons::drawGear(Shifter::Gear g, TFT_eSprite *sprite) {
 
 void Icons::drawFeatures(bool mode4x4, bool regenOn, TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
   if (!isValidForDrawing()) return;
   // v2.14.0: Simplified - only 4x4 mode and REGEN
@@ -319,32 +321,32 @@ void Icons::drawFeatures(bool mode4x4, bool regenOn, TFT_eSprite *sprite) {
     int cy = (y1 + y2) / 2;
 
     // Sombra del cuadrado (offset 2px)
-    drawTarget->fillRoundRect(x1 + 2, y1 + 2, w, h, 5, COLOR_BOX_SHADOW);
+    SafeDraw::fillRoundRect(ctx, x1 + 2, y1 + 2, w, h, 5, COLOR_BOX_SHADOW);
 
     // Fondo del cuadrado
     uint16_t bgColor = active ? activeColor : COLOR_BOX_BG;
-    drawTarget->fillRoundRect(x1, y1, w, h, 5, bgColor);
+    SafeDraw::fillRoundRect(ctx, x1, y1, w, h, 5, bgColor);
 
     // Borde exterior
     drawTarget->drawRoundRect(x1, y1, w, h, 5, COLOR_BOX_BORDER);
 
     // Efecto 3D: highlight superior
-    drawTarget->drawFastHLine(x1 + 5, y1 + 2, w - 10, COLOR_BOX_HIGHLIGHT);
-    drawTarget->drawFastHLine(x1 + 5, y1 + 3, w - 10, COLOR_BOX_HIGHLIGHT);
+    SafeDraw::drawFastHLine(ctx, x1 + 5, y1 + 2, w - 10, COLOR_BOX_HIGHLIGHT);
+    SafeDraw::drawFastHLine(ctx, x1 + 5, y1 + 3, w - 10, COLOR_BOX_HIGHLIGHT);
 
     // Efecto 3D: sombra inferior interna
-    drawTarget->drawFastHLine(x1 + 5, y2 - 3, w - 10, COLOR_BOX_SHADOW);
-    drawTarget->drawFastHLine(x1 + 5, y2 - 2, w - 10, COLOR_BOX_SHADOW);
+    SafeDraw::drawFastHLine(ctx, x1 + 5, y2 - 3, w - 10, COLOR_BOX_SHADOW);
+    SafeDraw::drawFastHLine(ctx, x1 + 5, y2 - 2, w - 10, COLOR_BOX_SHADOW);
 
     // Texto centrado con sombra
     drawTarget->setTextDatum(MC_DATUM);
     // Sombra del texto
     drawTarget->setTextColor(TFT_BLACK, bgColor);
-    drawTarget->drawString(text, cx + 1, cy + 1, 2);
+    SafeDraw::drawString(ctx, text, cx + 1, cy + 1, 2);
     // Texto principal
     uint16_t textColor = active ? TFT_WHITE : TFT_DARKGREY;
     drawTarget->setTextColor(textColor, bgColor);
-    drawTarget->drawString(text, cx, cy, 2);
+    SafeDraw::drawString(ctx, text, cx, cy, 2);
     drawTarget->setTextDatum(TL_DATUM);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror 3D box to shadow sprite
@@ -378,7 +380,7 @@ void Icons::drawFeatures(bool mode4x4, bool regenOn, TFT_eSprite *sprite) {
   // Regenerativo - Usar helper draw3DBox
   if (iRegen != lastRegen) {
     // Limpiar área primero
-    drawTarget->fillRect(400, 250, 75, 45, TFT_BLACK);
+    SafeDraw::fillRect(ctx, 400, 250, 75, 45, TFT_BLACK);
 #ifdef RENDER_SHADOW_MODE
     SHADOW_MIRROR_fillRect(400, 250, 75, 45, TFT_BLACK);
 #endif
@@ -390,7 +392,9 @@ void Icons::drawFeatures(bool mode4x4, bool regenOn, TFT_eSprite *sprite) {
 
 void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
   if (!isValidForDrawing()) return;
   volts = constrain(volts, 0.0f, 99.9f);
@@ -403,7 +407,7 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   int h = BATTERY_Y2 - BATTERY_Y1;
 
   // Limpiar área
-  drawTarget->fillRect(x, y, w, h, TFT_BLACK);
+  SafeDraw::fillRect(ctx, x, y, w, h, TFT_BLACK);
 
   // Calcular porcentaje de batería (asumiendo 20V-28V como rango)
   float percent = constrain((volts - 20.0f) / 8.0f * 100.0f, 0.0f, 100.0f);
@@ -417,7 +421,7 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   int capH = 10;
 
   // Cuerpo de la batería con efecto 3D
-  drawTarget->fillRoundRect(battX, battY, battW, battH, 3, 0x2104);
+  SafeDraw::fillRoundRect(ctx, battX, battY, battW, battH, 3, 0x2104);
   drawTarget->drawRoundRect(battX, battY, battW, battH, 3, 0x6B6D);
 
   // Terminal positivo
@@ -439,7 +443,7 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
     drawTarget->fillRoundRect(battX + 3, battY + 3, fillW, battH - 6, 1,
                               fillColor);
     // Highlight 3D
-    drawTarget->drawFastHLine(battX + 3, battY + 3, fillW, 0xFFFF);
+    SafeDraw::drawFastHLine(ctx, battX + 3, battY + 3, fillW, 0xFFFF);
   }
 
   // Voltaje debajo del icono
@@ -447,7 +451,7 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
   drawTarget->setTextColor(fillColor, TFT_BLACK);
   char buf[10];
   snprintf(buf, sizeof(buf), "%.1fV", volts);
-  drawTarget->drawString(buf, battX, battY + battH + 3, 1);
+  SafeDraw::drawString(ctx, buf, battX, battY + battH + 3, 1);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror battery indicator to shadow sprite
   SHADOW_MIRROR_fillRect(x, y, w, h, TFT_BLACK);
@@ -468,7 +472,9 @@ void Icons::drawBattery(float volts, TFT_eSprite *sprite) {
 
 void Icons::drawErrorWarning(TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
   if (!isValidForDrawing()) return;
   int count = System::getErrorCount();
@@ -491,14 +497,14 @@ void Icons::drawErrorWarning(TFT_eSprite *sprite) {
                              0x8400);
 
     // Signo de exclamación
-    drawTarget->fillRect(midX - 1, topY + 8, 3, 10, TFT_BLACK);
-    drawTarget->fillCircle(midX, botY - 5, 2, TFT_BLACK);
+    SafeDraw::fillRect(ctx, midX - 1, topY + 8, 3, 10, TFT_BLACK);
+    SafeDraw::fillCircle(ctx, midX, botY - 5, 2, TFT_BLACK);
 
     // Contador de errores
     drawTarget->setTextColor(TFT_YELLOW, TFT_BLACK);
     char buf[8];
     snprintf(buf, sizeof(buf), "%d", count);
-    drawTarget->drawString(buf, WARNING_X2 + 5, WARNING_Y1 + 15, 2);
+    SafeDraw::drawString(ctx, buf, WARNING_X2 + 5, WARNING_Y1 + 15, 2);
 #ifdef RENDER_SHADOW_MODE
     // Phase 3.5: Mirror error warning to shadow sprite
     SHADOW_MIRROR_fillTriangle(WARNING_X1 + 2, botY + 2, WARNING_X2 + 2,
@@ -527,7 +533,9 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
                              uint8_t currentTotal, uint8_t tempTotal,
                              uint8_t wheelTotal, TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
   if (!isValidForDrawing()) return;
 
@@ -575,39 +583,39 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
   drawTarget->fillCircle(startX + 1, ledY + 1, ledRadius,
                          getDarkColor(colorCurrent));
   // LED principal
-  drawTarget->fillCircle(startX, ledY, ledRadius, colorCurrent);
+  SafeDraw::fillCircle(ctx, startX, ledY, ledRadius, colorCurrent);
   // Highlight 3D (brillo)
-  drawTarget->fillCircle(startX - 2, ledY - 2, 2, 0xFFFF);
+  SafeDraw::fillCircle(ctx, startX - 2, ledY - 2, 2, 0xFFFF);
   // Borde
-  drawTarget->drawCircle(startX, ledY, ledRadius, getDarkColor(colorCurrent));
+  SafeDraw::drawCircle(ctx, startX, ledY, ledRadius, getDarkColor(colorCurrent));
 
   drawTarget->setTextDatum(MC_DATUM);
   drawTarget->setTextColor(colorCurrent, TFT_BLACK);
-  drawTarget->drawString("I", startX, textY, 1);
+  SafeDraw::drawString(ctx, "I", startX, textY, 1);
 
   // LED 2: Temperatura (DS18B20) con efecto 3D
   uint16_t colorTemp = getStatusColor(tempOK, tempTotal);
   drawTarget->fillCircle(startX + spacing + 1, ledY + 1, ledRadius,
                          getDarkColor(colorTemp));
-  drawTarget->fillCircle(startX + spacing, ledY, ledRadius, colorTemp);
-  drawTarget->fillCircle(startX + spacing - 2, ledY - 2, 2, 0xFFFF);
+  SafeDraw::fillCircle(ctx, startX + spacing, ledY, ledRadius, colorTemp);
+  SafeDraw::fillCircle(ctx, startX + spacing - 2, ledY - 2, 2, 0xFFFF);
   drawTarget->drawCircle(startX + spacing, ledY, ledRadius,
                          getDarkColor(colorTemp));
 
   drawTarget->setTextColor(colorTemp, TFT_BLACK);
-  drawTarget->drawString("T", startX + spacing, textY, 1);
+  SafeDraw::drawString(ctx, "T", startX + spacing, textY, 1);
 
   // LED 3: Ruedas con efecto 3D
   uint16_t colorWheel = getStatusColor(wheelOK, wheelTotal);
   drawTarget->fillCircle(startX + 2 * spacing + 1, ledY + 1, ledRadius,
                          getDarkColor(colorWheel));
-  drawTarget->fillCircle(startX + 2 * spacing, ledY, ledRadius, colorWheel);
-  drawTarget->fillCircle(startX + 2 * spacing - 2, ledY - 2, 2, 0xFFFF);
+  SafeDraw::fillCircle(ctx, startX + 2 * spacing, ledY, ledRadius, colorWheel);
+  SafeDraw::fillCircle(ctx, startX + 2 * spacing - 2, ledY - 2, 2, 0xFFFF);
   drawTarget->drawCircle(startX + 2 * spacing, ledY, ledRadius,
                          getDarkColor(colorWheel));
 
   drawTarget->setTextColor(colorWheel, TFT_BLACK);
-  drawTarget->drawString("W", startX + 2 * spacing, textY, 1);
+  SafeDraw::drawString(ctx, "W", startX + 2 * spacing, textY, 1);
 #ifdef RENDER_SHADOW_MODE
   // Phase 3.5: Mirror sensor status to shadow sprite
   SHADOW_MIRROR_fillRect(SENSOR_STATUS_X1, SENSOR_STATUS_Y1,
@@ -646,7 +654,9 @@ void Icons::drawSensorStatus(uint8_t currentOK, uint8_t tempOK, uint8_t wheelOK,
 void Icons::drawTempWarning(bool tempWarning, float maxTemp,
                             TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
   if (!isValidForDrawing()) return;
 
@@ -690,7 +700,9 @@ static float lastAmbientTemp = -999.0f;
 
 void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
   // Phase 6.2: Support dual-mode rendering (sprite or TFT)
-  TFT_eSPI *drawTarget = sprite ? (TFT_eSPI *)sprite : tft;
+  // 🚨 CRITICAL FIX: Create safe RenderContext
+  HudLayer::RenderContext ctx = createContext(sprite);
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
   if (!isValidForDrawing()) return;
 
@@ -707,12 +719,12 @@ void Icons::drawAmbientTemp(float ambientTemp, TFT_eSprite *sprite) {
   int iconY = AMBIENT_TEMP_Y + 3;
 
   // Cuerpo del termómetro (vertical)
-  drawTarget->fillRoundRect(iconX, iconY, 6, 12, 2, TFT_CYAN);
+  SafeDraw::fillRoundRect(ctx, iconX, iconY, 6, 12, 2, TFT_CYAN);
   drawTarget->drawRoundRect(iconX, iconY, 6, 12, 2, TFT_DARKGREY);
 
   // Bulbo del termómetro
-  drawTarget->fillCircle(iconX + 3, iconY + 13, 4, TFT_CYAN);
-  drawTarget->drawCircle(iconX + 3, iconY + 13, 4, TFT_DARKGREY);
+  SafeDraw::fillCircle(ctx, iconX + 3, iconY + 13, 4, TFT_CYAN);
+  SafeDraw::drawCircle(ctx, iconX + 3, iconY + 13, 4, TFT_DARKGREY);
 
   // Texto de temperatura
   drawTarget->setTextDatum(ML_DATUM);

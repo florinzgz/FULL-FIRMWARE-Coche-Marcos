@@ -213,6 +213,102 @@ inline void drawPixel(const HudLayer::RenderContext &ctx, int16_t screenX,
 }
 
 /**
+ * @brief Safe fillRoundRect with coordinate translation and clipping
+ */
+inline void fillRoundRect(const HudLayer::RenderContext &ctx, int16_t screenX,
+                          int16_t screenY, int16_t w, int16_t h, int16_t r, uint16_t color) {
+  if (ctx.sprite) {
+    int16_t x = screenX;
+    int16_t y = screenY;
+    int16_t width = w;
+    int16_t height = h;
+    
+    if (!ctx.clipRect(x, y, width, height)) {
+      return; // Rectangle completely outside sprite bounds
+    }
+    
+    int16_t localX = ctx.toLocalX(x);
+    int16_t localY = ctx.toLocalY(y);
+    
+    ctx.sprite->fillRoundRect(localX, localY, width, height, r, color);
+  } else {
+    if (tftPtr) tftPtr->fillRoundRect(screenX, screenY, w, h, r, color);
+  }
+}
+
+/**
+ * @brief Safe drawRoundRect with coordinate translation and clipping
+ */
+inline void drawRoundRect(const HudLayer::RenderContext &ctx, int16_t screenX,
+                          int16_t screenY, int16_t w, int16_t h, int16_t r, uint16_t color) {
+  if (ctx.sprite) {
+    int16_t x = screenX;
+    int16_t y = screenY;
+    int16_t width = w;
+    int16_t height = h;
+    
+    if (!ctx.clipRect(x, y, width, height)) {
+      return;
+    }
+    
+    int16_t localX = ctx.toLocalX(x);
+    int16_t localY = ctx.toLocalY(y);
+    
+    ctx.sprite->drawRoundRect(localX, localY, width, height, r, color);
+  } else {
+    if (tftPtr) tftPtr->drawRoundRect(screenX, screenY, w, h, r, color);
+  }
+}
+
+/**
+ * @brief Safe drawFastHLine (horizontal line)
+ */
+inline void drawFastHLine(const HudLayer::RenderContext &ctx, int16_t screenX,
+                          int16_t screenY, int16_t w, uint16_t color) {
+  if (ctx.sprite) {
+    int16_t x = screenX;
+    int16_t y = screenY;
+    int16_t width = w;
+    int16_t height = 1;
+    
+    if (!ctx.clipRect(x, y, width, height)) {
+      return;
+    }
+    
+    int16_t localX = ctx.toLocalX(x);
+    int16_t localY = ctx.toLocalY(y);
+    
+    ctx.sprite->drawFastHLine(localX, localY, width, color);
+  } else {
+    if (tftPtr) tftPtr->drawFastHLine(screenX, screenY, w, color);
+  }
+}
+
+/**
+ * @brief Safe drawFastVLine (vertical line)
+ */
+inline void drawFastVLine(const HudLayer::RenderContext &ctx, int16_t screenX,
+                          int16_t screenY, int16_t h, uint16_t color) {
+  if (ctx.sprite) {
+    int16_t x = screenX;
+    int16_t y = screenY;
+    int16_t width = 1;
+    int16_t height = h;
+    
+    if (!ctx.clipRect(x, y, width, height)) {
+      return;
+    }
+    
+    int16_t localX = ctx.toLocalX(x);
+    int16_t localY = ctx.toLocalY(y);
+    
+    ctx.sprite->drawFastVLine(localX, localY, height, color);
+  } else {
+    if (tftPtr) tftPtr->drawFastVLine(screenX, screenY, h, color);
+  }
+}
+
+/**
  * @brief Get drawTarget pointer for functions that need raw access
  * WARNING: Use with extreme caution! Prefer SafeDraw methods.
  * Only use this when you need setTextColor, setTextDatum, etc.
