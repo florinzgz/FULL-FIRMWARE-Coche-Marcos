@@ -1,21 +1,21 @@
 #include "hud_manager.h"
+#include "gauges.h" // Speed and RPM gauges
 #include "hud.h"
 #include "hud_compositor.h"         // Phase 5: Layered compositor
 #include "hud_graphics_telemetry.h" // Phase 9: Graphics telemetry
 #include "hud_limp_diagnostics.h"   // Phase 4.3: Limp diagnostics
 #include "hud_limp_indicator.h"     // Phase 4.2: Limp indicator
 #include "icons.h"                  // Dashboard icons
-#include "gauges.h"                 // Speed and RPM gauges
-#include "wheels_display.h"         // Wheel status display
-#include "menu_hidden.h"            // Hidden menu
 #include "logger.h"
-#include "pedal.h" // Para calibración del pedal
+#include "menu_hidden.h" // Hidden menu
+#include "pedal.h"       // Para calibración del pedal
 #include "pins.h"
 #include "render_engine.h" // Sprite-based rendering engine
 #include "sensors.h"       // Para estado de sensores
 #include "settings.h"      // For DISPLAY_BRIGHTNESS_DEFAULT
 #include "storage.h"
 #include "system.h"
+#include "wheels_display.h" // Wheel status display
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
