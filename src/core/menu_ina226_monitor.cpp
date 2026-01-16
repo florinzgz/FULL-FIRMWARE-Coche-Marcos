@@ -106,7 +106,7 @@ void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y) {
     else
       statusColor = TFT_GREEN;
   }
-  _SafeDraw::fillCircle(ctx, x + CARD_WIDTH - 10, y + 10, 5, statusColor);
+  _tft->fillCircle(x + CARD_WIDTH - 10, y + 10, 5, statusColor);
 
   // Current value
   _tft->setTextSize(2);
