@@ -11,7 +11,7 @@ reviews:
   profile: "assertive"
   high_level_summary: true
   high_level_summary_placeholder: "**Resumen de cambios**"
-  request_changes_workflow: false
+  request_changes_workflow: true
   poem: false
   collapse_walkthrough: false
   auto_incremental_review: true
@@ -21,26 +21,102 @@ chat:
 
 knowledge_base:
   learnings:
+
     core_architecture:
       path: "src/core"
       content: |
         Firmware ESP32-S3 basado en managers:
-        PowerManager, SafetyManager, SensorManager, ControlManager, HUDManager.
+        - PowerManager
+        - SafetyManager
+        - SensorManager
+        - ControlManager
+        - HUDManager
 
-        Prioridad:
+        Prioridades:
         - seguridad
         - tolerancia a fallos
         - watchdog
-        - logging
+        - logging persistente
         - recuperación segura
 
     components_technology:
       path: "**/*.cpp"
       content: |
-        Tecnologías:
+        Tecnologías integradas:
         - ABS / TCS
         - HUD TFT
-        - INA226, DS18B20
+        - INA226 (corriente)
+        - DS18B20 (temperatura)
         - LEDs WS2812B
-        - DFPlayer
+        - DFPlayer Mini
         - MCP23017
+        - PCA9685
+        - Encoder de dirección 1:1
+        - Motores RS390 (1:50) y RS775 (1:75)
+
+    hardware_layout:
+      path: "src/hardware"
+      content: |
+        Hardware del sistema:
+        - ESP32-S3
+        - TCA9548A como multiplexor I2C
+        - INA226 por canal
+        - DS18B20 en bus 1-Wire
+        - PCA9685 para servos/luces
+        - Encoder de dirección en eje 1:1
+        - Motores RS390 12V 6000 RPM (1:50)
+        - Motores RS775 24V 15000 RPM (1:75)
+
+        Referencias de verdad:
+        - pins.h (pines verificados)
+        - addresses.h (I2C verificado)
+        - settings.h (clamps globales)
+
+    system_diagnostics:
+      path: "src/system"
+      content: |
+        Sistema de diagnóstico persistente:
+        - logError()
+        - getErrors()
+        - getErrorCount()
+        - clearErrors()
+
+        Integración:
+        - HUDManager muestra advertencias
+        - icons.cpp dibuja icono de error persistente
+        - storage.cpp guarda logs en Preferences
+        - logger.cpp usa ring buffer persistente
+
+    settings_reference:
+      path: "src/config/settings.h"
+      content: |
+        Umbrales globales:
+        - temperatura
+        - corriente
+        - velocidad
+        - regeneración
+
+        Todos los módulos deben respetar estos clamps:
+        - current.cpp
+        - temperature.cpp
+        - traction.cpp
+        - pedal.cpp
+        - steering.cpp
+        - wheels.cpp
+        - HUDManager
+
+    board_definition:
+      path: "boards/custom_esp32s3.json"
+      content: |
+        Definición de placa personalizada:
+        - asignación de pines
+        - particiones
+        - flags de compilación
+        - opciones de sdkconfig
+        - compatibilidad con PlatformIO
+
+        Esta configuración es la fuente de verdad para:
+        - inicialización de hardware
+        - managers
+        - drivers
+        - build reproducible
