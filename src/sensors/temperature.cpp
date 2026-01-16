@@ -9,8 +9,12 @@
 
 extern Storage::Config cfg;
 
+#ifndef DISABLE_SENSORS
+// Only instantiate in full vehicle mode
+// These global constructors configure GPIO pins and could cause bootloop
 static OneWire oneWire(PIN_ONEWIRE);
 static DallasTemperature sensors(&oneWire);
+#endif
 
 static float lastTemp[Sensors::NUM_TEMPS];
 static bool sensorOk[Sensors::NUM_TEMPS];
@@ -34,6 +38,11 @@ static bool initialized = false;
 static SemaphoreHandle_t tempMutex = nullptr;
 
 void Sensors::initTemperature() {
+#ifdef DISABLE_SENSORS
+  Logger::info("Temperature: Skipped in DISABLE_SENSORS mode");
+  initialized = true;
+  return;
+#else
   // 🔒 CORRECCIÓN CRÍTICA: Crear mutex si no existe
   if (tempMutex == nullptr) {
     tempMutex = xSemaphoreCreateMutex();
@@ -116,9 +125,18 @@ void Sensors::initTemperature() {
     Logger::warn(
         "DS18B20 init: algunos sensores no disponibles - modo degradado");
   }
+#endif
 }
 
 void Sensors::updateTemperature() {
+#ifdef DISABLE_SENSORS
+  // In disabled mode, return default values
+  for (int i = 0; i < NUM_TEMPS; i++) {
+    lastTemp[i] = 0.0f;
+    sensorOk[i] = false;
+  }
+  return;
+#else
   uint32_t now = millis();
 
   if (!cfg.tempSensorsEnabled) {
@@ -187,6 +205,7 @@ void Sensors::updateTemperature() {
       Logger::warn("Temperature: mutex timeout en updateTemperature");
     }
   }
+#endif
 }
 
 float Sensors::getTemperature(int channel) {

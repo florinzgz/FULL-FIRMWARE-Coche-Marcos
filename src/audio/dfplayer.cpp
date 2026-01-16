@@ -15,15 +15,23 @@ constexpr uint8_t DFPLAYER_MSG_STATUS = 0x02;
 constexpr uint8_t DFPLAYER_MSG_PLAY_FINISHED = 0x3D;
 constexpr uint8_t DFPLAYER_MSG_FEEDBACK = 0x3F;
 
+#ifndef DISABLE_SENSORS
 // DFPlayer instance and Serial for communication
+// Only instantiate in full vehicle mode to prevent bootloop
 static DFRobotDFPlayerMini dfPlayer;
 static HardwareSerial
     DFSerial(1); // UART1 for DFPlayer (v2.12.0: migrado de UART0)
+#endif
 
 // Flag de inicialización
 static bool initialized = false;
 
 void Audio::DFPlayer::init() {
+#ifdef DISABLE_SENSORS
+  Logger::info("DFPlayer: Skipped in DISABLE_SENSORS mode");
+  initialized = true;
+  return;
+#else
   // Initialize Serial port for DFPlayer on UART1 pins (GPIO 18/17)
   // ✅ v2.12.0: Migrado de UART0 (GPIO 43/44) a UART1 (GPIO 18/17)
   // - Libera UART0 nativo para TOFSense-M S LiDAR
@@ -41,6 +49,7 @@ void Audio::DFPlayer::init() {
   }
   Logger::info("DFPlayer initialized on UART1 (GPIO18/17)");
   initialized = true;
+#endif
 }
 
 void Audio::DFPlayer::play(uint16_t track) {
