@@ -63,6 +63,8 @@ static void drawScaleMarks(int cx, int cy, int r, int maxValue, int step,
                            bool showNumbers,
                            const HudLayer::RenderContext &ctx) {
   // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
+  if (!drawTarget) return;
 
   int numMarks = maxValue / step;
   for (int i = 0; i <= numMarks; i++) {
@@ -209,6 +211,8 @@ static void drawGaugeBackground(int cx, int cy, int maxValue, int step,
                                 const char *unit,
                                 const HudLayer::RenderContext &ctx) {
   // 🚨 CRITICAL FIX: Use SafeDraw with RenderContext
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
+  if (!drawTarget) return;
 
   int outerRadius = 68;
   int innerRadius = 55;
