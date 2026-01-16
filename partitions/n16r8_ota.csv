@@ -5,10 +5,11 @@
 
 nvs,      data, nvs,     0x9000,   0x5000,
 otadata,  data, ota,     0xE000,   0x2000,
+coredump, data, coredump,0x10000,  0x10000,
 
-# OTA partitions (5MB each)
-app0,     app,  ota_0,   0x10000,  0x500000,
-app1,     app,  ota_1,   0x510000, 0x500000,
+# OTA partitions (5MB each - adjusted offset for coredump)
+app0,     app,  ota_0,   0x20000,  0x500000,
+app1,     app,  ota_1,   0x520000, 0x500000,
 
-# SPIFFS (~6MB for data storage)
-spiffs,   data, spiffs,  0xA10000, 0x5F0000,
+# SPIFFS (~6MB for data storage - adjusted offset)
+spiffs,   data, spiffs,  0xA20000, 0x5E0000,

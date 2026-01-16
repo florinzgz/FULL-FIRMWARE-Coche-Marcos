@@ -41,13 +41,14 @@ CONFIG_USB_CDC_ENABLED=y
 CONFIG_USB_CDC_ON_BOOT=y
 
 # -------------------------------
-# CORE DUMP (DISABLED — CRITICAL)
-# Prevents:
-#   "No core dump partition found"
-#   "Core dump flash config is corrupted"
-#   Bootloops & USB disappearing
+# CORE DUMP (ENABLED TO FLASH)
+# Now with proper partition to prevent:
+# "No core dump partition found"
+# "Core dump flash config is corrupted"
 # -------------------------------
-CONFIG_ESP_COREDUMP_ENABLE_TO_NONE=y
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
 
 # -------------------------------
 # PANIC / CRASH BEHAVIOR
