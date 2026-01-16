@@ -11,9 +11,7 @@
 namespace HUDManager {
 
 // Forward to class-based HUDManager::init()
-inline bool init() {
-  return ::HUDManager::init();
-}
+inline bool init() { return ::HUDManager::init(); }
 
 // Forward to class-based HUDManager::update()
 inline void update() { ::HUDManager::update(); }
