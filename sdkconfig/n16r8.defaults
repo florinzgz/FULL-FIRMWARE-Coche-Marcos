@@ -81,6 +81,12 @@ CONFIG_FREERTOS_USE_TRACE_FACILITY=y
 # Increased to 4096 bytes to prevent stack overflow bootloops
 CONFIG_ESP_IPC_TASK_STACK_SIZE=4096
 
+# IDLE task stack size
+# Default: 1536 bytes - can be insufficient for graphical systems on dual-core ESP32-S3
+# Increased to 2048 bytes to prevent crashes when system is in apparent idle state
+# This prevents rare crashes during "idle" periods on graphical + dual core systems
+CONFIG_FREERTOS_IDLE_TASK_STACKSIZE=2048
+
 # -------------------------------
 # LOGGING
 # -------------------------------
