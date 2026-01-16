@@ -1,7 +1,7 @@
 #include "../../include/menu_ina226_monitor.h"
+#include "../../include/hud_layer.h" // For RenderContext
 #include "../../include/i2c_recovery.h"
 #include "../../include/logger.h" // 🔒 CRITICAL FIX: Include logger for error reporting
-#include "../../include/hud_layer.h" // For RenderContext
 #include "../../include/safe_draw.h" // For SafeDraw::getDrawTarget
 
 TFT_eSPI *MenuINA226Monitor::_tft = nullptr;
@@ -43,7 +43,7 @@ void MenuINA226Monitor::draw() {
   // Draw 6 sensor cards in 2x3 grid
   // Create RenderContext for direct screen drawing
   HudLayer::RenderContext ctx(nullptr, true, 0, 0, 480, 320);
-  
+
   for (int i = 0; i < 6; i++) {
     uint16_t x = (i % 2) * (CARD_WIDTH + CARD_MARGIN) + 5;
     uint16_t y = (i / 2) * (CARD_HEIGHT + CARD_MARGIN) + 30;
@@ -91,7 +91,7 @@ void MenuINA226Monitor::handleTouch(uint16_t x, uint16_t y) {
 }
 
 void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y,
-                                        const HudLayer::RenderContext &ctx) {
+                                       const HudLayer::RenderContext &ctx) {
   // 🔒 CRITICAL FIX: Get draw target from RenderContext
   TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
   if (!drawTarget) return;
