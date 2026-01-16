@@ -4,6 +4,10 @@
 #include "hud_graphics_telemetry.h" // Phase 9: Graphics telemetry
 #include "hud_limp_diagnostics.h"   // Phase 4.3: Limp diagnostics
 #include "hud_limp_indicator.h"     // Phase 4.2: Limp indicator
+#include "icons.h"                  // Dashboard icons
+#include "gauges.h"                 // Speed and RPM gauges
+#include "wheels_display.h"         // Wheel status display
+#include "menu_hidden.h"            // Hidden menu
 #include "logger.h"
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
@@ -208,6 +212,16 @@ void HUDManager::init() {
   // causing the screen to appear vertically inverted (half blue/half white).
   // Rotation 3 provides landscape mode (480x320) for ST7796S display.
   tft.setRotation(3); // Landscape mode: 480x320
+
+  // 🔒 CRITICAL: Initialize dashboard components IMMEDIATELY after rotation
+  // This ensures TFT is fully initialized before any drawing functions execute
+  // SAFETY REQUIREMENT: Components must initialize in this exact order
+  Serial.println("[HUD] Initializing dashboard components...");
+  Icons::init(&tft);
+  Gauges::init(&tft);
+  WheelsDisplay::init(&tft);
+  MenuHidden::init(&tft);
+  Serial.println("[HUD] Dashboard components initialized");
 
   // 🔒 v2.8.3: Eliminada pantalla azul de boot - directo a dashboard
   // El boot screen anterior era innecesario y causaba parpadeo visual
