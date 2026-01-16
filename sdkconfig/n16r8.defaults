@@ -71,10 +71,15 @@ CONFIG_HEAP_POISONING_LIGHT=y
 CONFIG_HEAP_TRACING_OFF=y
 
 # -------------------------------
-# RTOS
+# RTOS & STACK CONFIGURATION
 # -------------------------------
 CONFIG_FREERTOS_HZ=1000
 CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+
+# IPC (Inter-Processor Communication) task stack
+# Default: 1024 bytes - insufficient for ESP32-S3 dual-core
+# Increased to 4096 bytes to prevent stack overflow bootloops
+CONFIG_ESP_IPC_TASK_STACK_SIZE=4096
 
 # -------------------------------
 # LOGGING
