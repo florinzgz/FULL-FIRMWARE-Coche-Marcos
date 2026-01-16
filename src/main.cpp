@@ -2,9 +2,9 @@
 // Handles initialization, mode management, and main control loop
 
 #include "SystemConfig.h"
+#include "hud_manager.h"
 #include "logger.h"
 #include "managers/ControlManager.h"
-#include "managers/HUDManager.h"
 #include "managers/ModeManager.h"
 #include "managers/PowerManager.h"
 #include "managers/SafetyManager.h"
@@ -260,7 +260,7 @@ void handleCriticalError(const char *errorMsg) {
     Logger::error("Allowing watchdog timeout for system reset");
 
 #ifndef STANDALONE_DISPLAY
-    HUDManager::showError();
+    HUDManager::showError("Critical error: System failed after max retries");
 #endif
 
     Serial.println("[CRITICAL ERROR] Max retries - stopping watchdog feeds");
@@ -277,7 +277,7 @@ void handleCriticalError(const char *errorMsg) {
   }
 
 #ifndef STANDALONE_DISPLAY
-  HUDManager::showError();
+  HUDManager::showError("Critical error detected");
 #endif
 
   Serial.printf("[CRITICAL ERROR] Retry %d/%d in %lums\n", retryCount,

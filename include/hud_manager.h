@@ -26,8 +26,9 @@ public:
   /**
    * @brief Inicializa el sistema de visualización
    * Configura TFT_eSPI, backlight, touchscreen
+   * @return true si la inicialización fue exitosa, false en caso contrario
    */
-  static void init();
+  static bool init();
 
   /**
    * @brief Actualiza la visualización (llamar en loop principal)
