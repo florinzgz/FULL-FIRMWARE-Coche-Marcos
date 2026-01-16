@@ -66,12 +66,20 @@ CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=n
 # Task watchdog (application runtime)
 CONFIG_ESP_TASK_WDT=y
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=30
+CONFIG_ESP_TASK_WDT_PANIC=y
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
+CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
 
 # Bootloader RTC watchdog - critical for slow PSRAM init
 # Default 9s can be too short for QIO Flash + QSPI PSRAM init
 # Increased to 40s to prevent bootloop during initialization
 CONFIG_BOOTLOADER_WDT_ENABLE=y
 CONFIG_BOOTLOADER_WDT_TIME_MS=40000
+
+# Interrupt watchdog - increased timeout for complex initialization
+CONFIG_ESP_INT_WDT=y
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=800
+CONFIG_ESP_INT_WDT_CHECK_CPU1=y
 
 # -------------------------------
 # HEAP DEBUGGING (SAFE)

@@ -2,8 +2,11 @@
 #include <Adafruit_MCP23X17.h>
 
 namespace MCPShared {
+#ifndef STANDALONE_DISPLAY
 // Objeto compartido MCP23017 @ 0x20
+// Not instantiated in STANDALONE_DISPLAY mode to prevent bootloop
 extern Adafruit_MCP23X17 mcp;
+#endif
 extern bool initialized;
 
 /**
