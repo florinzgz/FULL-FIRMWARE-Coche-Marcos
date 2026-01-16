@@ -4,6 +4,10 @@
 #include "hud_graphics_telemetry.h" // Phase 9: Graphics telemetry
 #include "hud_limp_diagnostics.h"   // Phase 4.3: Limp diagnostics
 #include "hud_limp_indicator.h"     // Phase 4.2: Limp indicator
+#include "icons.h"                  // Dashboard icons
+#include "gauges.h"                 // Speed and RPM gauges
+#include "wheels_display.h"         // Wheel status display
+#include "menu_hidden.h"            // Hidden menu
 #include "logger.h"
 #include "pedal.h" // Para calibración del pedal
 #include "pins.h"
@@ -71,6 +75,24 @@ public:
     return limpActive || telemetryActive;
   }
 };
+
+/**
+ * @brief Safely copy a string to a fixed-size buffer with null termination
+ * @param dest Destination buffer
+ * @param src Source string (may be null)
+ * @param maxLen Maximum buffer size (including null terminator)
+ *
+ * Uses snprintf instead of strncpy to satisfy SonarCloud security rule
+ * cpp:S5816. snprintf guarantees null termination and prevents buffer
+ * over-read/overflow.
+ */
+inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
+  if (maxLen == 0) { return; }
+
+  // Use snprintf for guaranteed safe string copy with truncation
+  // Format "%s" ensures string formatting, handles null src safely
+  snprintf(dest, maxLen, "%s", src ? src : "");
+}
 
 // Static instances
 static BaseHudRenderer baseHudRenderer;
@@ -190,6 +212,16 @@ void HUDManager::init() {
   // causing the screen to appear vertically inverted (half blue/half white).
   // Rotation 3 provides landscape mode (480x320) for ST7796S display.
   tft.setRotation(3); // Landscape mode: 480x320
+
+  // 🔒 CRITICAL: Initialize dashboard components IMMEDIATELY after rotation
+  // This ensures TFT is fully initialized before any drawing functions execute
+  // SAFETY REQUIREMENT: Components must initialize in this exact order
+  Serial.println("[HUD] Initializing dashboard components...");
+  Icons::init(&tft);
+  Gauges::init(&tft);
+  WheelsDisplay::init(&tft);
+  MenuHidden::init(&tft);
+  Serial.println("[HUD] Dashboard components initialized");
 
   // 🔒 v2.8.3: Eliminada pantalla azul de boot - directo a dashboard
   // El boot screen anterior era innecesario y causaba parpadeo visual
@@ -1219,26 +1251,6 @@ void HUDManager::renderHiddenMenu() {
 // ============================================================================
 // Thread-Safe Render Event System
 // ============================================================================
-
-namespace {
-/**
- * @brief Safely copy a string to a fixed-size buffer with null termination
- * @param dest Destination buffer
- * @param src Source string (may be null)
- * @param maxLen Maximum buffer size (including null terminator)
- *
- * Uses snprintf instead of strncpy to satisfy SonarCloud security rule
- * cpp:S5816. snprintf guarantees null termination and prevents buffer
- * over-read/overflow.
- */
-inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
-  if (maxLen == 0) { return; }
-
-  // Use snprintf for guaranteed safe string copy with truncation
-  // Format "%s" ensures string formatting, handles null src safely
-  snprintf(dest, maxLen, "%s", src ? src : "");
-}
-} // anonymous namespace
 
 bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
   if (renderEventQueue == nullptr) {

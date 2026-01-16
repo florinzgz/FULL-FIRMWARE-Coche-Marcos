@@ -1,8 +1,4 @@
 #include "icons.h"
-
-// Screen dimensions
-static constexpr int16_t TFT_WIDTH = 480;
-static constexpr int16_t TFT_HEIGHT = 320;
 #include "display_types.h" // para CACHE_UNINITIALIZED
 #include "hud_layer.h"     // 🚨 CRITICAL FIX: For RenderContext
 #include "logger.h"
@@ -10,8 +6,7 @@ static constexpr int16_t TFT_HEIGHT = 320;
 #include "shadow_render.h" // Phase 3: Shadow mirroring support
 #include "system.h"        // para consultar errores persistentes
 #include <Arduino.h>       // para constrain()
-#include <TFT_eSPI.h>
-#include <math.h> // para fabs()
+#include <math.h>          // para fabs()
 
 static TFT_eSPI *tft = nullptr;
 static bool initialized = false;
@@ -73,7 +68,10 @@ static inline HudLayer::RenderContext createContext(TFT_eSprite *sprite) {
                                    sprite->height());
   } else {
     // Create context for screen rendering
-    return HudLayer::RenderContext(nullptr, true, 0, 0, 480, 320);
+    // Get dimensions from TFT object if available, otherwise use default
+    int16_t w = tft ? tft->width() : 480;
+    int16_t h = tft ? tft->height() : 320;
+    return HudLayer::RenderContext(nullptr, true, 0, 0, w, h);
   }
 }
 
