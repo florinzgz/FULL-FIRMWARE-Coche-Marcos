@@ -72,6 +72,24 @@ public:
   }
 };
 
+/**
+ * @brief Safely copy a string to a fixed-size buffer with null termination
+ * @param dest Destination buffer
+ * @param src Source string (may be null)
+ * @param maxLen Maximum buffer size (including null terminator)
+ *
+ * Uses snprintf instead of strncpy to satisfy SonarCloud security rule
+ * cpp:S5816. snprintf guarantees null termination and prevents buffer
+ * over-read/overflow.
+ */
+inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
+  if (maxLen == 0) { return; }
+
+  // Use snprintf for guaranteed safe string copy with truncation
+  // Format "%s" ensures string formatting, handles null src safely
+  snprintf(dest, maxLen, "%s", src ? src : "");
+}
+
 // Static instances
 static BaseHudRenderer baseHudRenderer;
 static CombinedDiagnosticsRenderer combinedDiagnosticsRenderer;
@@ -1219,26 +1237,6 @@ void HUDManager::renderHiddenMenu() {
 // ============================================================================
 // Thread-Safe Render Event System
 // ============================================================================
-
-namespace {
-/**
- * @brief Safely copy a string to a fixed-size buffer with null termination
- * @param dest Destination buffer
- * @param src Source string (may be null)
- * @param maxLen Maximum buffer size (including null terminator)
- *
- * Uses snprintf instead of strncpy to satisfy SonarCloud security rule
- * cpp:S5816. snprintf guarantees null termination and prevents buffer
- * over-read/overflow.
- */
-inline void safeStringCopy(char *dest, const char *src, size_t maxLen) {
-  if (maxLen == 0) { return; }
-
-  // Use snprintf for guaranteed safe string copy with truncation
-  // Format "%s" ensures string formatting, handles null src safely
-  snprintf(dest, maxLen, "%s", src ? src : "");
-}
-} // anonymous namespace
 
 bool HUDManager::queueRenderEvent(const RenderEvent::Event &event) {
   if (renderEventQueue == nullptr) {
