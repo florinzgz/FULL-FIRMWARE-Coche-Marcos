@@ -23,10 +23,12 @@ CONFIG_SPIRAM_MEMTEST=y
 
 # Make PSRAM usable as normal heap
 CONFIG_SPIRAM_USE_MALLOC=y
-CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=n
+# Keep small allocations in internal RAM for stability
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 
 # Prefer PSRAM for large allocations
-CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=64
+# Reserve sufficient internal RAM for critical early boot operations
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=65536
 
 # -------------------------------
 # CACHE (ESP32-S3)
@@ -61,8 +63,15 @@ CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=n
 # -------------------------------
 # WATCHDOG SAFETY
 # -------------------------------
+# Task watchdog (application runtime)
 CONFIG_ESP_TASK_WDT=y
-CONFIG_ESP_TASK_WDT_TIMEOUT_S=8
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=30
+
+# Bootloader RTC watchdog - critical for slow PSRAM init
+# Default 9s can be too short for QIO Flash + QSPI PSRAM init
+# Increased to 40s to prevent bootloop during initialization
+CONFIG_BOOTLOADER_WDT_ENABLE=y
+CONFIG_BOOTLOADER_WDT_TIME_MS=40000
 
 # -------------------------------
 # HEAP DEBUGGING (SAFE)
