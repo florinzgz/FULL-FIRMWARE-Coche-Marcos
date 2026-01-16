@@ -1,6 +1,8 @@
 #include "../../include/menu_ina226_monitor.h"
 #include "../../include/i2c_recovery.h"
 #include "../../include/logger.h" // 🔒 CRITICAL FIX: Include logger for error reporting
+#include "../../include/hud_layer.h" // For RenderContext
+#include "../../include/safe_draw.h" // For SafeDraw::getDrawTarget
 
 TFT_eSPI *MenuINA226Monitor::_tft = nullptr;
 unsigned long MenuINA226Monitor::_lastUpdate = 0;
@@ -39,10 +41,13 @@ void MenuINA226Monitor::draw() {
   _tft->print("INA226 Monitor");
 
   // Draw 6 sensor cards in 2x3 grid
+  // Create RenderContext for direct screen drawing
+  HudLayer::RenderContext ctx(nullptr, true, 0, 0, 480, 320);
+  
   for (int i = 0; i < 6; i++) {
     uint16_t x = (i % 2) * (CARD_WIDTH + CARD_MARGIN) + 5;
     uint16_t y = (i / 2) * (CARD_HEIGHT + CARD_MARGIN) + 30;
-    drawSensorCard(i, x, y);
+    drawSensorCard(i, x, y, ctx);
   }
 
   drawStatistics();
@@ -56,11 +61,14 @@ void MenuINA226Monitor::update() {
 
   updateSensorData();
 
+  // Create RenderContext for direct screen drawing
+  HudLayer::RenderContext ctx(nullptr, true, 0, 0, 480, 320);
+
   // Redraw sensor cards and statistics
   for (int i = 0; i < 6; i++) {
     uint16_t x = (i % 2) * (CARD_WIDTH + CARD_MARGIN) + 5;
     uint16_t y = (i / 2) * (CARD_HEIGHT + CARD_MARGIN) + 30;
-    drawSensorCard(i, x, y);
+    drawSensorCard(i, x, y, ctx);
   }
 
   drawStatistics();
@@ -82,19 +90,21 @@ void MenuINA226Monitor::handleTouch(uint16_t x, uint16_t y) {
   }
 }
 
-void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y) {
-  // 🔒 CRITICAL FIX: Check _tft is not null before use
-  if (_tft == nullptr) return;
+void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y,
+                                        const HudLayer::RenderContext &ctx) {
+  // 🔒 CRITICAL FIX: Get draw target from RenderContext
+  TFT_eSPI *drawTarget = SafeDraw::getDrawTarget(ctx);
+  if (!drawTarget) return;
 
   // Card background
-  _tft->fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 5, TFT_DARKGREY);
-  _tft->drawRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 5, TFT_WHITE);
+  drawTarget->fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 5, TFT_DARKGREY);
+  drawTarget->drawRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 5, TFT_WHITE);
 
   // Sensor name
-  _tft->setTextSize(1);
-  _tft->setTextColor(TFT_CYAN, TFT_DARKGREY);
-  _tft->setCursor(x + 5, y + 5);
-  _tft->print(getSensorName(index));
+  drawTarget->setTextSize(1);
+  drawTarget->setTextColor(TFT_CYAN, TFT_DARKGREY);
+  drawTarget->setCursor(x + 5, y + 5);
+  drawTarget->print(getSensorName(index));
 
   // Status indicator (LED)
   uint16_t statusColor = TFT_DARKGREY;
@@ -106,42 +116,42 @@ void MenuINA226Monitor::drawSensorCard(uint8_t index, uint16_t x, uint16_t y) {
     else
       statusColor = TFT_GREEN;
   }
-  _tft->fillCircle(x + CARD_WIDTH - 10, y + 10, 5, statusColor);
+  drawTarget->fillCircle(x + CARD_WIDTH - 10, y + 10, 5, statusColor);
 
   // Current value
-  _tft->setTextSize(2);
+  drawTarget->setTextSize(2);
   uint16_t currentColor = getCurrentColor(_sensors[index].current);
-  _tft->setTextColor(currentColor, TFT_DARKGREY);
-  _tft->setCursor(x + 10, y + 35);
+  drawTarget->setTextColor(currentColor, TFT_DARKGREY);
+  drawTarget->setCursor(x + 10, y + 35);
   if (_sensors[index].online) {
     char buf[16];
     snprintf(buf, sizeof(buf), "%.1fA", _sensors[index].current);
-    _tft->print(buf);
+    drawTarget->print(buf);
   } else {
-    _tft->print("--.-A");
+    drawTarget->print("--.-A");
   }
 
   // Voltage value
-  _tft->setTextSize(1);
-  _tft->setTextColor(TFT_WHITE, TFT_DARKGREY);
-  _tft->setCursor(x + 10, y + 60);
+  drawTarget->setTextSize(1);
+  drawTarget->setTextColor(TFT_WHITE, TFT_DARKGREY);
+  drawTarget->setCursor(x + 10, y + 60);
   if (_sensors[index].online) {
     char buf[16];
     snprintf(buf, sizeof(buf), "%.1fV", _sensors[index].voltage);
-    _tft->print(buf);
+    drawTarget->print(buf);
   } else {
-    _tft->print("--.-V");
+    drawTarget->print("--.-V");
   }
 
   // State text
-  _tft->setTextColor(TFT_LIGHTGREY, TFT_DARKGREY);
-  _tft->setCursor(x + 10, y + 80);
+  drawTarget->setTextColor(TFT_LIGHTGREY, TFT_DARKGREY);
+  drawTarget->setCursor(x + 10, y + 80);
   if (_sensors[index].state == 0)
-    _tft->print("OK");
+    drawTarget->print("OK");
   else if (_sensors[index].state == 1)
-    _tft->print("BACKOFF");
+    drawTarget->print("BACKOFF");
   else
-    _tft->print("OFFLINE");
+    drawTarget->print("OFFLINE");
 }
 
 void MenuINA226Monitor::drawStatistics() {

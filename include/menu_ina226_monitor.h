@@ -5,6 +5,11 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 
+// Forward declaration
+namespace HudLayer {
+struct RenderContext;
+}
+
 /**
  * INA226 Real-time Monitor Menu
  *
@@ -62,7 +67,8 @@ private:
   static const uint16_t BTN_Y = 285;
 
   // Helper methods
-  static void drawSensorCard(uint8_t index, uint16_t x, uint16_t y);
+  static void drawSensorCard(uint8_t index, uint16_t x, uint16_t y,
+                             const HudLayer::RenderContext &ctx);
   static void drawStatistics();
   static void drawButtons();
   static void updateSensorData();
