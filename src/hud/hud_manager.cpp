@@ -140,7 +140,7 @@ static constexpr const char *GEAR_NAMES[] = {"P", "D2", "D1", "N", "R"};
 static constexpr uint8_t GEAR_COUNT =
     sizeof(GEAR_NAMES) / sizeof(GEAR_NAMES[0]);
 
-void HUDManager::init() {
+bool HUDManager::init() {
   // 🔒 v2.8.1: Hardware reset y backlight ahora se hacen en main.cpp setup()
   // para asegurar que el display tiene luz incluso si la inicialización falla.
   // Aquí solo verificamos que ya están configurados y procedemos con TFT init.
@@ -195,7 +195,7 @@ void HUDManager::init() {
                   "operate without UI\n",
                   e.what());
     Serial.flush();
-    return; // Salir sin bloquear el sistema
+    return false; // Salir sin bloquear el sistema
   } catch (...) {
     Logger::error(
         "HUD: TFT init unknown exception - continuing in degraded mode");
@@ -204,7 +204,7 @@ void HUDManager::init() {
     Serial.println(
         "[HUD] CRITICAL: Display init failed, vehicle will operate without UI");
     Serial.flush();
-    return; // Salir sin bloquear el sistema
+    return false; // Salir sin bloquear el sistema
   }
 
   // 🔒 v2.8.2: CRITICAL FIX - Set rotation IMMEDIATELY after tft.init()
@@ -392,6 +392,7 @@ void HUDManager::init() {
   // (line 54)
   Logger::info("HUDManager: Inicialización completada");
   Serial.println("[HUD] HUDManager initialization complete!");
+  return true;
 }
 
 void HUDManager::update() {

@@ -12,8 +12,7 @@ namespace HUDManager {
 
 // Forward to class-based HUDManager::init()
 inline bool init() {
-  ::HUDManager::init();
-  return ::HUDManager::initOK();
+  return ::HUDManager::init();
 }
 
 // Forward to class-based HUDManager::update()
