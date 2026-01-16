@@ -11,5 +11,5 @@ coredump, data, coredump,0x10000,  0x10000,
 app0,     app,  ota_0,   0x20000,  0x500000,
 app1,     app,  ota_1,   0x520000, 0x500000,
 
-# SPIFFS (~6MB for data storage - adjusted offset)
-spiffs,   data, spiffs,  0xA20000, 0x5E0000,
+# SPIFFS (~5.9MB for data storage - adjusted with safety margin)
+spiffs,   data, spiffs,  0xA20000, 0x5DF000,

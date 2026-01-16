@@ -9,5 +9,5 @@ coredump, data, coredump,0xE000,   0x10000,
 # Single application partition (10MB - adjusted offset for coredump)
 app0,     app,  factory, 0x1E000,  0xA00000,
 
-# SPIFFS (~6MB for data storage - adjusted offset)
-spiffs,   data, spiffs,  0xA1E000, 0x5E2000,
+# SPIFFS (~5.9MB for data storage - adjusted with safety margin)
+spiffs,   data, spiffs,  0xA1E000, 0x5E1000,
