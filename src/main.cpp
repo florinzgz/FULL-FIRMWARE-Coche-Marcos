@@ -2,9 +2,9 @@
 // Handles initialization, mode management, and main control loop
 
 #include "SystemConfig.h"
+#include "hud_manager.h"
 #include "logger.h"
 #include "managers/ControlManager.h"
-#include "managers/HUDManager.h"
 #include "managers/ModeManager.h"
 #include "managers/PowerManager.h"
 #include "managers/SafetyManager.h"
