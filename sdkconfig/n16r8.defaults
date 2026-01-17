@@ -30,6 +30,10 @@ CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 # Reserve sufficient internal RAM (64KB) for critical early boot operations
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=65536
 
+# v2.17.2: Ignore PSRAM init failure to prevent bootloop if PSRAM not detected
+# Allows system to boot without PSRAM for debugging purposes
+CONFIG_SPIRAM_IGNORE_NOTFOUND=y
+
 # -------------------------------
 # CACHE (ESP32-S3)
 # -------------------------------
@@ -77,8 +81,10 @@ CONFIG_BOOTLOADER_WDT_ENABLE=y
 CONFIG_BOOTLOADER_WDT_TIME_MS=40000
 
 # Interrupt watchdog - increased timeout for complex initialization
+# v2.17.2: Increased from 800ms to 3000ms to prevent bootloop during PSRAM init
+# PSRAM memory test + initialization can take >800ms, causing watchdog reset
 CONFIG_ESP_INT_WDT=y
-CONFIG_ESP_INT_WDT_TIMEOUT_MS=800
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=3000
 CONFIG_ESP_INT_WDT_CHECK_CPU1=y
 
 # -------------------------------
