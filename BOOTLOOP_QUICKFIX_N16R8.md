@@ -38,7 +38,7 @@ You should see:
 
 **File:** `sdkconfig/n16r8.defaults`
 
-- Interrupt watchdog timeout: **800ms → 3000ms**
+- Interrupt watchdog timeout: **from 800ms to 3000ms**
 - Added: `CONFIG_SPIRAM_IGNORE_NOTFOUND=y`
 
 ## Why It Works

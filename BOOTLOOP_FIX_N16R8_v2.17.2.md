@@ -390,7 +390,8 @@ def test_boot_time():
 
 ---
 
-**Author:** GitHub Copilot  
+**Author:** florinzgz  
+**Contributor:** GitHub Copilot
 **Hardware:** ESP32-S3 N16R8  
 **Firmware Version:** 2.17.2  
 **Status:** ✅ VERIFIED AND TESTED

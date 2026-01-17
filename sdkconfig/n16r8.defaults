@@ -82,7 +82,8 @@ CONFIG_BOOTLOADER_WDT_TIME_MS=40000
 
 # Interrupt watchdog - increased timeout for complex initialization
 # v2.17.2: Increased from 800ms to 3000ms to prevent bootloop during PSRAM init
-# PSRAM memory test + initialization can take >800ms, causing watchdog reset
+# PSRAM memory test + initialization can take >800ms (especially during cold boot
+# or on certain PSRAM chip batches), causing watchdog reset before boot completes
 CONFIG_ESP_INT_WDT=y
 CONFIG_ESP_INT_WDT_TIMEOUT_MS=3000
 CONFIG_ESP_INT_WDT_CHECK_CPU1=y
