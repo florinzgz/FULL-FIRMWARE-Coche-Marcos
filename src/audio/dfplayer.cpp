@@ -53,6 +53,10 @@ void Audio::DFPlayer::init() {
 }
 
 void Audio::DFPlayer::play(uint16_t track) {
+#ifdef DISABLE_SENSORS
+  // No-op in disabled mode
+  return;
+#else
   if (!initialized) {
     Logger::warn("DFPlayer play() llamado sin init");
     System::logError(701);
@@ -77,9 +81,14 @@ void Audio::DFPlayer::play(uint16_t track) {
   // Play track using DFPlayer library
   dfPlayer.play(track);
   Logger::infof("DFPlayer play track %u", (unsigned)track);
+#endif
 }
 
 void Audio::DFPlayer::update() {
+#ifdef DISABLE_SENSORS
+  // No-op in disabled mode
+  return;
+#else
   if (!initialized) return;
 
   // Check for messages from DFPlayer
@@ -104,6 +113,7 @@ void Audio::DFPlayer::update() {
   // Despachar desde la cola si quieres:
   // Item it;
   // if (AudioQueue::pop(it)) play(it.track);
+#endif
 }
 
 bool Audio::DFPlayer::initOK() { return initialized; }

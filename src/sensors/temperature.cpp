@@ -244,6 +244,13 @@ bool Sensors::temperatureInitOK() { return initialized; }
 // 🔒 MEJORA OPCIONAL: Función de diagnóstico avanzado
 Sensors::TemperatureStatus Sensors::getTemperatureStatus() {
   TemperatureStatus status;
+#ifdef DISABLE_SENSORS
+  status.sensorsDetected = 0;
+  status.sensorsWorking = 0;
+  status.criticalTempDetected = false;
+  status.maxTemp = -999.0f;
+  status.lastUpdateMs = 0;
+#else
   status.sensorsDetected = sensors.getDeviceCount();
   status.sensorsWorking = 0;
   status.criticalTempDetected = false;
@@ -263,6 +270,7 @@ Sensors::TemperatureStatus Sensors::getTemperatureStatus() {
       }
     }
   }
+#endif
 
   return status;
 }

@@ -3,6 +3,11 @@
 #include "pins.h"
 #include "system.h"
 
+/**
+ * @deprecated This namespace is legacy code and not used in current firmware.
+ * Use MCP23017Manager singleton instead for all MCP23017 operations.
+ * Kept for backward compatibility only.
+ */
 namespace MCPShared {
 #ifndef STANDALONE_DISPLAY
 // Only instantiate MCP23017 in full vehicle mode
