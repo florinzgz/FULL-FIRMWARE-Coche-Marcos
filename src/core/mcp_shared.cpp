@@ -4,7 +4,13 @@
 #include "system.h"
 
 namespace MCPShared {
+#ifndef STANDALONE_DISPLAY
+// Only instantiate MCP23017 in full vehicle mode
+// In standalone mode, this peripheral is not needed and its
+// global constructor could cause bootloop issues
 Adafruit_MCP23X17 mcp;
+#endif
+
 bool initialized = false;
 
 // Pin range constants for motor direction control
@@ -12,6 +18,12 @@ constexpr int FIRST_DIR_PIN = MCP_PIN_FL_IN1;
 constexpr int LAST_DIR_PIN = MCP_PIN_RR_IN2;
 
 bool init() {
+#ifdef STANDALONE_DISPLAY
+  // In standalone mode, MCP23017 is not used
+  Logger::info("MCPShared: Skipped in STANDALONE_DISPLAY mode");
+  initialized = true;
+  return true;
+#else
   if (initialized) {
     Logger::info("MCPShared: Already initialized");
     return true;
@@ -40,5 +52,6 @@ bool init() {
   initialized = true;
   Logger::info("MCPShared: MCP23017 init OK");
   return true;
+#endif
 }
 } // namespace MCPShared

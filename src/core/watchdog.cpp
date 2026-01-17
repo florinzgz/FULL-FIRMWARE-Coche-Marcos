@@ -6,9 +6,9 @@
 
 namespace Watchdog {
 
-// Configuración
+// Configuration - Must match CONFIG_ESP_TASK_WDT_TIMEOUT_S in sdkconfig
 constexpr uint32_t WDT_TIMEOUT_SECONDS =
-    30; // Aumentado para inicialización larga
+    30; // Increased for long initialization sequences
 static bool initialized = false;
 static uint32_t lastFeedTime = 0;
 static uint32_t feedCount = 0;
