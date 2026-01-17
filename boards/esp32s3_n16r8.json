@@ -1,6 +1,6 @@
 {
   "id": "esp32s3_n16r8",
-  "name": "ESP32-S3 N16R8",
+  "name": "ESP32-S3 DevKitC-1 N16R8",
   "vendor": "Espressif",
   "url": "https://www.espressif.com",
   "frameworks": ["arduino", "espidf"],
@@ -13,11 +13,15 @@
     "f_cpu": "240000000L",
     "f_flash": "80000000L",
 
+    "arduino.flash_mode": "qio",
+    "arduino.memory_type": "qio_qspi",
+    "arduino.psram_type": "qspi",
+
     "flash_mode": "qio",
     "flash_size": "16MB",
 
     "psram_type": "qspi",
-    "memory_type": "qio_qspi",
+    "psram_size": "8MB",
 
     "extra_flags": [
       "-DBOARD_HAS_PSRAM",

@@ -19,7 +19,7 @@ ESP32-S3 N16R8
 
 | Component | Specification | Details |
 |-----------|--------------|---------|
-| **Module** | ESP32-S3-WROOM-2 N16R8 | Official Espressif module |
+| **Module** | ESP32-S3 DevKitC-1 N16R8 | Official Espressif module with WROOM-2 |
 | **Development Board** | ESP32-S3-DevKitC-1 | 44-pin variant |
 | **CPU** | Dual-core Xtensa LX7 | 240 MHz |
 | **Flash Memory** | 16 MB | **QIO mode** (Quad I/O, 4 data lines) |
