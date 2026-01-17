@@ -352,6 +352,10 @@ if (validatePWMChannel(channel, "MOTOR_FL")) {
 | MCP23017 | 0x20 | GPIO expander |
 | INA226 (x5) | 0x40-0x44 | Current sensors (via TCA9548A) |
 
+**Nota:** `MCPShared` (legacy) mantiene un `Adafruit_MCP23X17` compartido para
+Traction/Shifter (GPIO expander @ 0x20); reemplazado por `MCP23017Manager` y
+omitido en modo `STANDALONE_DISPLAY`.
+
 ### **Timeouts I2C (v2.11.5+)**
 - **Read:** 100ms
 - **Write:** 50ms

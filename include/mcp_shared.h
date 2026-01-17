@@ -3,8 +3,9 @@
 
 /**
  * @deprecated This namespace is legacy code and not used in current firmware.
+ * Shared MCP23017 handle (Adafruit_MCP23X17 @ 0x20) for Traction/Shifter.
  * Use MCP23017Manager singleton instead for all MCP23017 operations.
- * Kept for backward compatibility only.
+ * Kept for backward compatibility only; disabled in STANDALONE_DISPLAY.
  */
 namespace MCPShared {
 #ifndef STANDALONE_DISPLAY
