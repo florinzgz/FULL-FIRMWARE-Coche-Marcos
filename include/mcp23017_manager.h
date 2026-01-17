@@ -38,7 +38,12 @@ private:
   MCP23017Manager(const MCP23017Manager &) = delete;
   MCP23017Manager &operator=(const MCP23017Manager &) = delete;
 
+#ifndef STANDALONE_DISPLAY
+  // Only instantiate MCP23017 in full vehicle mode
+  // In standalone mode, this peripheral is not needed and its
+  // global constructor could cause bootloop issues
   Adafruit_MCP23X17 mcp;
+#endif
   bool mcpOK = false;
   bool initialized = false;
 };
