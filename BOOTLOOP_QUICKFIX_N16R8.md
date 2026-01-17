@@ -38,8 +38,8 @@ You should see:
 
 **File:** `sdkconfig/n16r8.defaults`
 
-- Interrupt watchdog timeout: **from 800ms to 3000ms**
-- Added: `CONFIG_SPIRAM_IGNORE_NOTFOUND=y`
+- Interrupt watchdog timeout: **from 800ms to 3000ms** (allows PSRAM initialization to complete)
+- Added: `CONFIG_SPIRAM_IGNORE_NOTFOUND=y` (allows boot even if PSRAM fails to initialize)
 
 ## Why It Works
 
