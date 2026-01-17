@@ -1,6 +1,11 @@
 #pragma once
 #include <Adafruit_MCP23X17.h>
 
+/**
+ * @deprecated This namespace is legacy code and not used in current firmware.
+ * Use MCP23017Manager singleton instead for all MCP23017 operations.
+ * Kept for backward compatibility only.
+ */
 namespace MCPShared {
 #ifndef STANDALONE_DISPLAY
 // Objeto compartido MCP23017 @ 0x20
@@ -14,6 +19,7 @@ extern bool initialized;
  * @return true si inicialización exitosa
  * @note Solo inicializa una vez, llamadas subsecuentes retornan true sin
  * re-init
+ * @deprecated Use MCP23017Manager::getInstance().init() instead
  */
 bool init();
 } // namespace MCPShared
