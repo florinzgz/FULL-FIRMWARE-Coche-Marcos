@@ -19,7 +19,10 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_QUAD=y
 CONFIG_SPIRAM_TYPE_ESPPSRAM32=y
 CONFIG_SPIRAM_SPEED_80M=y
-CONFIG_SPIRAM_MEMTEST=y
+# v2.17.3: Disabled PSRAM memory test to prevent bootloop
+# Memory test can take >3000ms on some hardware batches, causing INT_WDT timeout
+# PSRAM will still be initialized and used, but without the comprehensive memory test
+CONFIG_SPIRAM_MEMTEST=n
 
 # Make PSRAM usable as normal heap
 CONFIG_SPIRAM_USE_MALLOC=y
@@ -82,10 +85,11 @@ CONFIG_BOOTLOADER_WDT_TIME_MS=40000
 
 # Interrupt watchdog - increased timeout for complex initialization
 # v2.17.2: Increased from 800ms to 3000ms to prevent bootloop during PSRAM init
-# PSRAM memory test + initialization can take >800ms (especially during cold boot
-# or on certain PSRAM chip batches), causing watchdog reset before boot completes
+# v2.17.3: Increased to 5000ms as additional safety margin with PSRAM memtest disabled
+# PSRAM initialization can still take >3000ms on certain hardware batches or during
+# cold boot, especially with debug builds and verbose logging enabled
 CONFIG_ESP_INT_WDT=y
-CONFIG_ESP_INT_WDT_TIMEOUT_MS=3000
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=5000
 CONFIG_ESP_INT_WDT_CHECK_CPU1=y
 
 # -------------------------------
