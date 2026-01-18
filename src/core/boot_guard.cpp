@@ -104,14 +104,12 @@ void BootGuard::incrementBootCounter() {
   bootCounterData.bootCount++;
   bootCounterData.lastBootMs = now;
 
-  Serial.printf("[BootGuard] Boot #%d within %lu ms\n", 
-                bootCounterData.bootCount, timeSinceFirst);
+  Serial.printf("[BootGuard] Boot #%d within %lu ms\n", bootCounterData.bootCount, timeSinceFirst);
 
   // Check for bootloop condition
   if (bootCounterData.bootCount >= BOOTLOOP_DETECTION_THRESHOLD) {
     bootCounterData.safeModeRequested = true;
-    Serial.printf("[BootGuard] ⚠️  BOOTLOOP DETECTED - %d boots in %lu ms\n",
-                  bootCounterData.bootCount, timeSinceFirst);
+    Serial.printf("[BootGuard] WARNING: BOOTLOOP DETECTED - %d boots in %lu ms\n", bootCounterData.bootCount, timeSinceFirst);
     Serial.println("[BootGuard] Safe mode will be activated");
   }
 }
