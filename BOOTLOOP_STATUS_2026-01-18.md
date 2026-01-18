@@ -241,9 +241,9 @@ All environments now boot successfully without bootloop issues.
 
 | Configuration | Before | After | Improvement |
 |---------------|--------|-------|-------------|
-| Interrupt WDT | 800ms | 3000ms | +275% margin |
-| Bootloader WDT | 9000ms | 40000ms | +344% margin |
-| PSRAM Ignore | No | Yes | Fail-safe mode |
+| Interrupt WDT | 800ms | 3000ms | 3.75x (375% of original) |
+| Bootloader WDT | 9000ms | 40000ms | 4.44x (444% of original) |
+| PSRAM Ignore | No | Yes | Fail-safe enabled |
 
 ---
 
