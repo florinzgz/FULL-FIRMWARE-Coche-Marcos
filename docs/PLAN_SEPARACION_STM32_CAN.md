@@ -164,6 +164,41 @@
 - La falta de heartbeat o CAN inválido **inhibe movimiento**.
 - ESP32 **nunca** conmuta potencia crítica directamente.
 
+### 6.4 Esquema funcional convalidado (estado final)
+
+```
+                 ┌───────────────────────────────────────────────┐
+                 │                ESP32 HMI                       │
+                 │  HUD/UI + Touch + Audio + LEDs + Obstacle      │
+                 │  Power-hold mínimo + Diagnóstico               │
+                 └───────────────┬───────────────────────────────┘
+                                 │  CAN (TJA1051T/3)
+                                 ▼
+                 ┌───────────────────────────────────────────────┐
+                 │              STM32 Control                     │
+                 │  Traction + Steering (Ackermann) + Safety      │
+                 │  Encoder + Wheels + INA226 + Temps + Relays    │
+                 └───────────────────────────────────────────────┘
+```
+
+**ESP32 (HMI) mantiene funcionando:**
+- `hud_manager`, `menu`, `audio`, `lighting`, backlight.
+- Touch + botones de UI (solicitudes al STM32).
+- Detección de obstáculos **local** con envío de alertas por CAN.
+- Relés de arranque/power-hold mínimos para mostrar estado.
+
+**STM32 (Control seguro) mantiene funcionando:**
+- Pedal, shifter y entradas críticas de control.
+- Encoder A/B/Z + cálculo de dirección **Ackermann**.
+- Sensores de rueda, corrientes INA226 (TCA9548A) y térmicos críticos.
+- Relés de potencia (tracción/dirección) y lógica ABS/TCS.
+
+**Rutas de datos (sin pérdida funcional):**
+- **Pedal/encoder/ruedas → STM32 → control tracción/dirección → relés.**
+- **INA226/temperaturas → STM32 → safety → estado CAN → HUD.**
+- **Obstáculos (sensores ESP32) → ESP32 → alerta CAN → STM32 inhibe.**
+- **UI (touch/menús) → ESP32 → comandos CAN → STM32 decide/ejecuta.**
+
 ---
 
 ## 7) Plan de migración por fases
