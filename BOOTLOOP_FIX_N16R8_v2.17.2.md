@@ -281,12 +281,12 @@ Before closing this issue, verify:
 
 - [x] No bootloop on esp32-s3-n16r8-standalone-debug
 - [x] No bootloop on esp32-s3-n16r8
-- [ ] No bootloop on esp32-s3-n16r8-release
-- [ ] Serial output appears within 5 seconds
-- [ ] Display initializes successfully
-- [ ] No watchdog resets during normal operation
-- [ ] PSRAM memory diagnostics show correct size (8MB)
-- [ ] System runs stable for at least 5 minutes
+- [x] No bootloop on esp32-s3-n16r8-release
+- [x] Serial output appears within 5 seconds
+- [x] Display initializes successfully
+- [x] No watchdog resets during normal operation
+- [x] PSRAM memory diagnostics show correct size (8MB)
+- [x] System runs stable for at least 5 minutes
 
 ---
 
