@@ -70,7 +70,7 @@ The ESP32-S3 **Interrupt Watchdog** monitors interrupt service routine execution
 
 ### Change 1: Increase Interrupt Watchdog Timeout
 
-**File:** `sdkconfig/n16r8.defaults` (Line 88)
+**File:** `sdkconfig/n16r8.defaults` (Lines 83-88)
 
 **Configuration:**
 ```ini
@@ -91,7 +91,7 @@ CONFIG_ESP_INT_WDT_CHECK_CPU1=y
 
 ### Change 2: Increase Bootloader Watchdog Timeout
 
-**File:** `sdkconfig/n16r8.defaults` (Line 81)
+**File:** `sdkconfig/n16r8.defaults` (Lines 80-81)
 
 **Configuration:**
 ```ini
@@ -109,7 +109,7 @@ CONFIG_BOOTLOADER_WDT_TIME_MS=40000
 
 ### Change 3: Add PSRAM Ignore Flag
 
-**File:** `sdkconfig/n16r8.defaults` (Line 35)
+**File:** `sdkconfig/n16r8.defaults` (Lines 33-35)
 
 **Configuration:**
 ```ini
