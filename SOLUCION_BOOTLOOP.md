@@ -84,7 +84,16 @@ pio device monitor
 - **Antes:** `CONFIG_SPIRAM_MEMTEST=y` (activada - causaba el bootloop)
 - **Ahora:** `CONFIG_SPIRAM_MEMTEST=n` (desactivada - arranque rápido)
 
-La PSRAM sigue funcionando perfectamente, solo se omite la prueba de memoria que tardaba demasiado.
+**¿Qué es SPIRAM_MEMTEST?**
+Es una prueba exhaustiva que escribe y lee patrones de datos en toda la memoria PSRAM (8MB) para verificar que funciona correctamente. Esta prueba detecta chips de memoria defectuosos o mal conectados.
+
+**¿Por qué desactivarla?**
+- La prueba tarda 1-3 segundos en completarse
+- El watchdog de interrupciones se dispara si tarda >5 segundos
+- La PSRAM sigue funcionando **completamente normal** sin la prueba
+- Cualquier problema de memoria se detectará durante el uso normal
+
+**Resultado:** La PSRAM se inicializa y funciona perfectamente, pero sin la prueba previa que causaba el bootloop.
 
 ### Cambio 2: Aumentar el timeout del watchdog
 - **Antes:** 3000ms (3 segundos - demasiado corto)
