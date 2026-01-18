@@ -149,6 +149,11 @@ bool HUDManager::init() {
   Serial.flush();
   delay(50); // 🔒 v2.11.6: Ensure UART output is sent before potential crash
 
+  // 🔍 DIAGNOSTIC MARKER F: HUD init started
+  Serial.write('F');
+  Serial.flush();
+  delay(10);
+
   // 🔒 THREAD SAFETY: Create render event queue
   // Queue size: 10 events (enough for error bursts without blocking)
   constexpr size_t RENDER_QUEUE_SIZE = 10;
@@ -164,6 +169,11 @@ bool HUDManager::init() {
     Logger::info("HUD: Render event queue initialized");
   }
 
+  // 🔍 DIAGNOSTIC MARKER G: Queue created
+  Serial.write('G');
+  Serial.flush();
+  delay(10);
+
   // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en
   // main.cpp) La configuración de OUTPUT/HIGH se realiza únicamente en
   // main.cpp.
@@ -175,6 +185,11 @@ bool HUDManager::init() {
   delay(50); // 🔒 v2.11.6: Critical delay to ensure message is visible before
              // crash
 
+  // 🔍 DIAGNOSTIC MARKER H: Before tft.init()
+  Serial.write('H');
+  Serial.flush();
+  delay(10);
+
   // 🔒 v2.11.5: FAULT TOLERANCE - Proteger inicialización del display
   // Si el display falla, el coche debe poder seguir funcionando
   // NOTE: Catching general exception because TFT_eSPI may throw various types
@@ -184,6 +199,12 @@ bool HUDManager::init() {
     // Set initialized flag immediately after successful tft.init()
     // This ensures the flag reflects TFT initialization state accurately
     initialized = true;
+
+    // 🔍 DIAGNOSTIC MARKER I: tft.init() SUCCESS
+    Serial.write('I');
+    Serial.flush();
+    delay(10);
+
     Serial.println("[HUD] TFT_eSPI init SUCCESS");
     Serial.flush();
   } catch (const std::exception &e) {
@@ -213,6 +234,11 @@ bool HUDManager::init() {
   // Rotation 3 provides landscape mode (480x320) for ST7796S display.
   tft.setRotation(3); // Landscape mode: 480x320
 
+  // 🔍 DIAGNOSTIC MARKER J: Rotation set
+  Serial.write('J');
+  Serial.flush();
+  delay(10);
+
   // 🔒 CRITICAL: Initialize dashboard components IMMEDIATELY after rotation
   // This ensures TFT is fully initialized before any drawing functions execute
   // SAFETY REQUIREMENT: Components must initialize in this exact order
@@ -222,6 +248,11 @@ bool HUDManager::init() {
   WheelsDisplay::init(&tft);
   MenuHidden::init(&tft);
   Serial.println("[HUD] Dashboard components initialized");
+
+  // 🔍 DIAGNOSTIC MARKER K: Dashboard components initialized
+  Serial.write('K');
+  Serial.flush();
+  delay(10);
 
   // 🔒 v2.8.3: Eliminada pantalla azul de boot - directo a dashboard
   // El boot screen anterior era innecesario y causaba parpadeo visual
