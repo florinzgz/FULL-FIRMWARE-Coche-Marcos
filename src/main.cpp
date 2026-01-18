@@ -10,6 +10,7 @@
 #include "managers/SafetyManager.h"
 #include "managers/SensorManager.h"
 #include "managers/TelemetryManager.h"
+#include "pins.h"
 #include "watchdog.h"
 #include <Arduino.h>
 
@@ -25,6 +26,12 @@ namespace CriticalErrorConfig {
 constexpr uint8_t MAX_RETRIES = 3;
 constexpr uint32_t RETRY_DELAY_MS = 5000;
 } // namespace CriticalErrorConfig
+
+namespace DisplayBootConfig {
+constexpr uint32_t TFT_RESET_PULSE_MS = 10;
+constexpr uint32_t TFT_RESET_RECOVERY_MS = 50;
+constexpr uint32_t TFT_RESET_STABILIZATION_MS = 10;
+} // namespace DisplayBootConfig
 
 // Forward declarations
 void initializeSystem();
@@ -46,6 +53,21 @@ void setup() {
   while (!Serial && millis() < 2000) {
     ;
   }
+
+  Serial.println("[BOOT] Enabling TFT backlight...");
+  pinMode(PIN_TFT_BL, OUTPUT);
+  digitalWrite(PIN_TFT_BL, HIGH);
+  // PWM setup in HUDManager::init will override this, but keep the backlight on
+  // immediately so boot progress is visible even if init fails.
+
+  Serial.println("[BOOT] Resetting TFT display...");
+  pinMode(PIN_TFT_RST, OUTPUT);
+  digitalWrite(PIN_TFT_RST, HIGH);
+  delay(DisplayBootConfig::TFT_RESET_STABILIZATION_MS);
+  digitalWrite(PIN_TFT_RST, LOW);
+  delay(DisplayBootConfig::TFT_RESET_PULSE_MS);
+  digitalWrite(PIN_TFT_RST, HIGH);
+  delay(DisplayBootConfig::TFT_RESET_RECOVERY_MS);
 
   // 🔍 DIAGNOSTIC MARKER A: Serial initialized
   Serial.write('A');
