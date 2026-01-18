@@ -50,6 +50,7 @@ Guía completa y actualizada de todas las conexiones hardware:
 
 ### 🏗️ Arquitectura y Seguridad
 - [**ARCHITECTURE.md**](ARCHITECTURE.md) - Arquitectura del sistema
+- [**DUAL_FIRMWARE_ARCHITECTURE_STUDY.md**](DUAL_FIRMWARE_ARCHITECTURE_STUDY.md) - Separación HMI/control en dos firmwares
 - [**SISTEMAS_SEGURIDAD_AVANZADOS.md**](SISTEMAS_SEGURIDAD_AVANZADOS.md) - Sistemas seguridad
 - [**TOLERANCIA_FALLOS.md**](TOLERANCIA_FALLOS.md) - Tolerancia a fallos
 
