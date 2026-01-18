@@ -482,9 +482,33 @@ build_flags =
 - **[SOLUCION_BOOTLOOP.md](SOLUCION_BOOTLOOP.md)** - Guía rápida para usuarios
 
 ### Archivos de Configuración
-- **platformio.ini** - Stack sizes (líneas 39-40)
+- **platformio.ini** - Stack sizes (líneas 39-40), board selection (línea 19)
+- **boards/esp32s3_n16r8.json** - Custom board manifest para N16R8 hardware
 - **sdkconfig/n16r8.defaults** - Watchdog y PSRAM config
 - **src/hud/hud_manager.cpp** - Constructor global TFT_eSPI (línea 124)
+
+### 📝 Nota sobre Custom Board Manifest
+
+Este proyecto usa un **custom board manifest** (`boards/esp32s3_n16r8.json`) específico para el hardware N16R8:
+- 16MB Flash QIO mode @ 3.3V
+- 8MB PSRAM QSPI mode @ 3.3V
+- Memory type: `qio_qspi` (correcto para este hardware)
+
+**⚠️ Importante:** Algunas guías online sugieren usar `board = esp32-s3-devkitc-1` con `memory_type = qio_opi`, pero eso es **incorrecto** para N16R8. El modo OPI (Octal) requiere hardware diferente (como N32R16V con OPI Flash/PSRAM @ 1.8V).
+
+**Configuración correcta para N16R8:**
+```ini
+[env:esp32-s3-n16r8]
+board = esp32s3_n16r8              # Custom board en boards/
+board_build.arduino.memory_type = qio_qspi  # QIO flash + QSPI PSRAM
+```
+
+**NO usar:**
+```ini
+# ❌ INCORRECTO para N16R8
+board_build.arduino.memory_type = qio_opi   # Requiere hardware OPI
+board_build.psram_type = opi                # No compatible con N16R8
+```
 
 ### Historial de Cambios
 - **v2.11.6:** Fix global constructor TFT_eSPI

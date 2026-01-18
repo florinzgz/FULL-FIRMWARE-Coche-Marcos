@@ -171,8 +171,24 @@ Si después de seguir estos pasos el bootloop persiste:
    board_build.arduino.usb_cdc_on_boot = 1
    ```
 
-5. **Consulta la documentación técnica:** 
-   - [ANALISIS_CAUSAS_BOOTLOOP.md](ANALISIS_CAUSAS_BOOTLOOP.md) - Análisis completo con sección USB-CDC
+5. **⚠️ NO cambies la configuración del board:**
+   
+   Este proyecto usa un custom board manifest (`boards/esp32s3_n16r8.json`) configurado específicamente para N16R8 hardware (16MB QIO Flash + 8MB QSPI PSRAM).
+   
+   **NO cambies esto en platformio.ini:**
+   ```ini
+   board = esp32s3_n16r8                      # ✅ CORRECTO
+   board_build.arduino.memory_type = qio_qspi # ✅ CORRECTO para N16R8
+   ```
+   
+   **NO uses configuraciones de otras guías:**
+   ```ini
+   board = esp32-s3-devkitc-1          # ❌ Configuración genérica
+   memory_type = qio_opi               # ❌ Solo para hardware OPI (N32R16V)
+   ```
+
+6. **Consulta la documentación técnica:** 
+   - [ANALISIS_CAUSAS_BOOTLOOP.md](ANALISIS_CAUSAS_BOOTLOOP.md) - Análisis completo con sección USB-CDC y board config
    - [BOOTLOOP_STATUS_2026-01-18.md](BOOTLOOP_STATUS_2026-01-18.md) - Estado del bootloop
    - [BOOTLOOP_FIX_v2.17.3.md](BOOTLOOP_FIX_v2.17.3.md) - Detalles técnicos de la solución
 
