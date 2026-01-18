@@ -1,5 +1,4 @@
 #include "boot_guard.h"
-#include "logger.h"
 #include "obstacle_config.h"
 #include "pins.h"
 #include <Arduino.h>
@@ -50,8 +49,8 @@ void BootGuard::applyXshutStrappingGuard() {
 #endif
 
   // No action needed - TOFSense-M S doesn't use XSHUT pins
-  Logger::info(
-      "BootGuard: XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
+  // v2.17.3: Removed Logger call - can be called before Logger::init()
+  Serial.println("[BootGuard] XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
 }
 
 // ============================================================================
@@ -59,6 +58,7 @@ void BootGuard::applyXshutStrappingGuard() {
 // ============================================================================
 
 void BootGuard::initBootCounter() {
+  // v2.17.3: Use Serial instead of Logger - can be called before Logger::init()
   // Check if RTC memory has valid data
   if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
     // First boot or power cycle - initialize
@@ -67,15 +67,15 @@ void BootGuard::initBootCounter() {
     bootCounterData.firstBootMs = 0;
     bootCounterData.lastBootMs = 0;
     bootCounterData.safeModeRequested = false;
-    Logger::info(
-        "BootGuard: Boot counter initialized (power cycle or first boot)");
+    Serial.println("[BootGuard] Boot counter initialized (power cycle or first boot)");
   } else {
-    Logger::infof("BootGuard: Boot counter found - %d previous boots",
+    Serial.printf("[BootGuard] Boot counter found - %d previous boots\n",
                   bootCounterData.bootCount);
   }
 }
 
 void BootGuard::incrementBootCounter() {
+  // v2.17.3: Use Serial instead of Logger - can be called before Logger::init()
   uint32_t now = millis();
 
   // If this is the first boot in the sequence, record timestamp
@@ -83,7 +83,7 @@ void BootGuard::incrementBootCounter() {
     bootCounterData.firstBootMs = now;
     bootCounterData.lastBootMs = now;
     bootCounterData.bootCount = 1;
-    Logger::info("BootGuard: Starting new boot sequence");
+    Serial.println("[BootGuard] Starting new boot sequence");
     return;
   }
 
@@ -96,8 +96,7 @@ void BootGuard::incrementBootCounter() {
     bootCounterData.lastBootMs = now;
     bootCounterData.bootCount = 1;
     bootCounterData.safeModeRequested = false;
-    Logger::info(
-        "BootGuard: Boot detection window expired - resetting counter");
+    Serial.println("[BootGuard] Boot detection window expired - resetting counter");
     return;
   }
 
@@ -105,22 +104,21 @@ void BootGuard::incrementBootCounter() {
   bootCounterData.bootCount++;
   bootCounterData.lastBootMs = now;
 
-  Logger::infof("BootGuard: Boot #%d within %lu ms", bootCounterData.bootCount,
-                timeSinceFirst);
+  Serial.printf("[BootGuard] Boot #%d within %lu ms\n", bootCounterData.bootCount, timeSinceFirst);
 
   // Check for bootloop condition
   if (bootCounterData.bootCount >= BOOTLOOP_DETECTION_THRESHOLD) {
     bootCounterData.safeModeRequested = true;
-    Logger::errorf("BootGuard: BOOTLOOP DETECTED - %d boots in %lu ms",
-                   bootCounterData.bootCount, timeSinceFirst);
-    Logger::error("BootGuard: Safe mode will be activated");
+    Serial.printf("[BootGuard] WARNING: BOOTLOOP DETECTED - %d boots in %lu ms\n", bootCounterData.bootCount, timeSinceFirst);
+    Serial.println("[BootGuard] Safe mode will be activated");
   }
 }
 
 void BootGuard::clearBootCounter() {
+  // v2.17.3: Use Serial instead of Logger - Logger may not be initialized yet
   // Called from loop() to indicate successful boot
   if (bootCounterData.bootCount > 0) {
-    Logger::infof("BootGuard: Boot successful - clearing counter (was %d)",
+    Serial.printf("[BootGuard] Boot successful - clearing counter (was %d)\n",
                   bootCounterData.bootCount);
   }
 
