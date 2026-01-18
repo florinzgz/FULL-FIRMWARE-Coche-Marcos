@@ -2,7 +2,7 @@
 
 **Proyecto:** FULL-FIRMWARE-Coche-Marcos  
 **Alcance:** Planificación y documentación (sin cambios de hardware ni código)  
-**Objetivo:** Separar HMI y control seguro en dos firmwares dentro de la misma repo, usando CAN con TJA1051T/3.
+**Objetivo:** Separar HMI y control seguro en dos firmware dentro de la misma repo, usando CAN con TJA1051T/3.
 
 ---
 
@@ -11,7 +11,7 @@
 - **STM32G474RE** asume **control seguro y potencia crítica**.
 - El ESP32 **nunca** tiene control final directo de potencia o movimiento.
 - **Comunicación dedicada** vía **CAN** con TJA1051T/3 (UART solo como respaldo técnico justificado).
-- **Una sola repository**, organizada y mantenible.
+- **Un solo repositorio**, organizado y mantenible.
 - **Fase inicial:** solo estudio, arquitectura y documentación.
 
 ---
@@ -71,7 +71,7 @@
 
 ---
 
-## 3) Separación lógica en dos firmwares (misma repo)
+## 3) Separación lógica en dos firmware (misma repo)
 
 ### 3.1 firmware-esp32-hmi
 - UI/menús/diagnóstico
@@ -114,7 +114,7 @@
 
 ---
 
-## 5) Propuesta de estructura de repository
+## 5) Propuesta de estructura de repositorio
 
 ```
 /firmware
