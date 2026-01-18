@@ -50,7 +50,8 @@ void BootGuard::applyXshutStrappingGuard() {
 
   // No action needed - TOFSense-M S doesn't use XSHUT pins
   // v2.17.3: Removed Logger call - can be called before Logger::init()
-  Serial.println("[BootGuard] XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
+  Serial.println(
+      "[BootGuard] XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
 }
 
 // ============================================================================
@@ -67,7 +68,8 @@ void BootGuard::initBootCounter() {
     bootCounterData.firstBootMs = 0;
     bootCounterData.lastBootMs = 0;
     bootCounterData.safeModeRequested = false;
-    Serial.println("[BootGuard] Boot counter initialized (power cycle or first boot)");
+    Serial.println(
+        "[BootGuard] Boot counter initialized (power cycle or first boot)");
   } else {
     Serial.printf("[BootGuard] Boot counter found - %d previous boots\n",
                   bootCounterData.bootCount);
@@ -96,7 +98,8 @@ void BootGuard::incrementBootCounter() {
     bootCounterData.lastBootMs = now;
     bootCounterData.bootCount = 1;
     bootCounterData.safeModeRequested = false;
-    Serial.println("[BootGuard] Boot detection window expired - resetting counter");
+    Serial.println(
+        "[BootGuard] Boot detection window expired - resetting counter");
     return;
   }
 
@@ -104,12 +107,15 @@ void BootGuard::incrementBootCounter() {
   bootCounterData.bootCount++;
   bootCounterData.lastBootMs = now;
 
-  Serial.printf("[BootGuard] Boot #%d within %lu ms\n", bootCounterData.bootCount, timeSinceFirst);
+  Serial.printf("[BootGuard] Boot #%d within %lu ms\n",
+                bootCounterData.bootCount, timeSinceFirst);
 
   // Check for bootloop condition
   if (bootCounterData.bootCount >= BOOTLOOP_DETECTION_THRESHOLD) {
     bootCounterData.safeModeRequested = true;
-    Serial.printf("[BootGuard] WARNING: BOOTLOOP DETECTED - %d boots in %lu ms\n", bootCounterData.bootCount, timeSinceFirst);
+    Serial.printf(
+        "[BootGuard] WARNING: BOOTLOOP DETECTED - %d boots in %lu ms\n",
+        bootCounterData.bootCount, timeSinceFirst);
     Serial.println("[BootGuard] Safe mode will be activated");
   }
 }
