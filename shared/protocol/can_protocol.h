@@ -22,20 +22,20 @@ enum {
   CAN_ID_DIAG_SNAPSHOT = 0x303u
 };
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t protocol_version;
   uint16_t firmware_version;
   uint16_t capability_flags;
   uint16_t reserved;
 } can_hello_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint32_t uptime_ms;
   uint16_t status_flags;
   uint16_t reserved;
 } can_heartbeat_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   int16_t throttle;
   int16_t brake;
   int16_t steering;
@@ -43,28 +43,28 @@ typedef struct {
   uint8_t reserved;
 } can_cmd_setpoint_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t requested_mode;
   uint16_t profile_id;
   uint16_t reserved;
   uint16_t crc16;
 } can_cmd_mode_request_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t test_id;
   uint16_t parameter;
   uint16_t duration_ms;
   uint16_t reserved;
 } can_cmd_actuator_test_t;
 
-typedef struct {
-  uint16_t speed_cms;
+typedef struct __attribute__((packed)) {
+  uint16_t speed_cm_per_s;
   int16_t steering_deg_x10;
   uint16_t current_a_x10;
   uint16_t temp_c_x10;
 } can_telemetry_state_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t fault_code;
   uint8_t fault_level;
   uint8_t inhibit_state;
@@ -72,14 +72,14 @@ typedef struct {
   uint16_t reserved;
 } can_safety_event_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t active_mode;
   uint16_t limits_flags;
   uint16_t torque_limit;
   uint16_t reserved;
 } can_control_status_t;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
   uint16_t sensor_flags;
   uint16_t relay_state;
   uint16_t error_bitmap;
