@@ -188,6 +188,12 @@
 - Validar safety e inhibición final.
 - ESP32 se limita a HMI + avisos.
 
+### Nota de compatibilidad (no romper firmware actual)
+- **Fase 0–1:** no se cambia la funcionalidad actual; el ESP32 mantiene la lógica existente de obstáculos, INA226 y encoder/dirección Ackermann.
+- **Abstracciones:** se introducen interfaces para que la fuente de datos/actuación pueda ser **local o CAN**, sin modificar el comportamiento visible.
+- **Fase 2 (shadow mode):** STM32 calcula en paralelo y el ESP32 compara resultados sin actuar, registrando discrepancias antes del traspaso.
+- **Corte final:** solo cuando la equivalencia y latencias estén validadas, la autoridad de potencia se mueve al STM32 (Fase 3).
+
 ---
 
 ## 8) Riesgos técnicos y errores comunes
