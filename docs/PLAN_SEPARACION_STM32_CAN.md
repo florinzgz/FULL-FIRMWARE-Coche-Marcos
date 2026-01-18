@@ -164,7 +164,7 @@
 - La falta de heartbeat o CAN inválido **inhibe movimiento**.
 - ESP32 **nunca** conmuta potencia crítica directamente.
 
-### 6.4 Esquema funcional convalidado (estado final)
+### 6.4 Esquema funcional consolidado (estado final)
 
 ```
                  ┌───────────────────────────────────────────────┐
