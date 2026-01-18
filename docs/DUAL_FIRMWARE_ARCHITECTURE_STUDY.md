@@ -1,8 +1,8 @@
-# Estudio técnico y separación de firmware (ESP32 HMI + STM32 Control)
+# Estudio técnico y separación de firmware (ESP32 HMI + STM32G474RE Control)
 
 **Objetivo:** definir una separación limpia en dos firmwares manteniendo una sola repo, sin romper el sistema actual, y preparando la migración del control crítico a STM32G474RE.
 
-**Alcance actual:** solo arquitectura y plan de transición. No hay cambios de cableado ni hardware en esta fase.
+**Alcance actual:** arquitectura y plan de transición con **CAN bus** definido como contrato. No hay cambios de cableado ni hardware en esta fase.
 
 ---
 
@@ -45,7 +45,7 @@ Responsable exclusivo de HMI y arranque básico:
 - Relés mínimos de arranque / power-hold
 - Comunicación con STM32 y presentación de estados/alertas
 
-### Firmware B: **firmware-stm32-control**
+### Firmware B: **firmware-stm32-control (STM32G474RE)**
 Responsable del control crítico y seguridad:
 - Control de motores y dirección
 - Encoder y sensores de rueda
@@ -53,6 +53,7 @@ Responsable del control crítico y seguridad:
 - Relés de potencia no esenciales para el arranque (tracción, dirección, etc.)
 - Decisiones finales de seguridad: cut-off, inhibición, fallos
 - Gestión determinista de tiempo real y watchdogs del dominio de control
+- Comunicación por **CAN bus** como canal principal
 
 ---
 
@@ -92,10 +93,10 @@ Responsable del control crítico y seguridad:
 │  │  ├─ platformio.ini
 │  │  └─ src/            (HMI, UI, audio, LEDs, obstacle)
 │  └─ stm32-control/
-│     ├─ CMakeLists.txt o STM32CubeMX/
-│     └─ src/            (control, safety, sensores críticos)
+│     ├─ README.md        (STM32G474RE + FDCAN)
+│     └─ src/             (control, safety, sensores críticos)
 ├─ shared/
-│  ├─ protocol/          (contrato, IDs, estados, CRC)
+│  ├─ protocol/          (CAN IDs, payloads, CRC)
 │  └─ types/             (estructuras comunes, enums)
 ├─ docs/
 │  └─ DUAL_FIRMWARE_ARCHITECTURE_STUDY.md
@@ -106,16 +107,18 @@ Responsable del control crítico y seguridad:
 
 ---
 
-## 5. Protocolo de comunicación (concepto, no implementación)
+## 5. Protocolo de comunicación CAN (contrato inicial implementado)
 
 ### 5.1 Canal físico
-- **Primario:** UART con framing y CRC (simple, robusto)
-- **Alternativo:** SPI si se requiere mayor throughput
+- **Primario:** **CAN bus** con FDCAN (STM32G474RE) y TWAI (ESP32-S3)
+- **Velocidad recomendada:** 500 kbps arbitration / 2 Mbps data (CAN FD)
+- **Transceptor:** TJA1051/MCP2551 (según disponibilidad industrial)
 
 ### 5.2 Principios
 - **STM32 es autoridad de seguridad.**
 - **ESP32 solo solicita y visualiza.**
 - **Heartbeat obligatorio y timeouts con fail-safe.**
+- **IDs y payloads versionados** en `shared/protocol/can_protocol.h`
 
 ### 5.3 Tipos de mensajes (ejemplo)
 **HMI → Control**
@@ -142,11 +145,16 @@ Responsable del control crítico y seguridad:
 4. **Setpoints solo aceptados si STM32 está “armed”**
 5. **Si se pierde heartbeat → STM32 inhibe movimiento**
 
+### 5.5 Implementación inicial
+- **Contrato CAN:** `shared/protocol/can_protocol.h`
+- **STM32G474RE:** base en `firmware/stm32-control/` (CubeMX/FDCAN)
+- **ESP32-S3:** stub de transporte CAN mientras se mantiene el control local
+
 ---
 
 ## 6. Transición incremental (sin romper el sistema)
 
-1. **Definir contrato** (`shared/protocol`) y documentarlo.
+1. **Definir contrato** (`shared/protocol/can_protocol.h`) y documentarlo.
 2. **Crear interfaces abstractas** en el ESP32 (`IControlLink`, `ISafetyStatus`) con stubs locales.
 3. **Inicialmente, ESP32 sigue actuando** como control real (stubs usan la implementación actual).
 4. **Mover módulos de control al STM32** uno por uno:
