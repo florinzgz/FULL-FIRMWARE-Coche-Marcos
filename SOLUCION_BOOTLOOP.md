@@ -149,7 +149,28 @@ Si después de seguir estos pasos el bootloop persiste:
 
 3. **Revisa la configuración de hardware:** Confirma que tienes un ESP32-S3 N16R8 (16MB Flash + 8MB PSRAM @ 3.3V)
 
-4. **Consulta la documentación técnica:** 
+4. **⚠️ IMPORTANTE - Verifica USB-CDC:**
+   
+   Si ves repetidamente mensajes del ROM pero tu firmware no aparece, puede que USB-CDC no esté activo. 
+   
+   **¿Cómo saberlo?**
+   - El LED del ESP32 parpadea (firmware funciona)
+   - La pantalla táctil responde (firmware funciona)
+   - Pero NO ves output serial del firmware
+   
+   **Solución:** El USB-CDC ya está configurado en el board JSON, pero si persiste el problema, puedes añadir explícitamente en `platformio.ini`:
+   
+   ```ini
+   [env:esp32-s3-n16r8]
+   ; ... configuración existente ...
+   
+   ; USB-CDC explícito (redundante pero más claro)
+   board_build.arduino.usb_mode = 1
+   board_build.arduino.usb_cdc_on_boot = 1
+   ```
+
+5. **Consulta la documentación técnica:** 
+   - [ANALISIS_CAUSAS_BOOTLOOP.md](ANALISIS_CAUSAS_BOOTLOOP.md) - Análisis completo con sección USB-CDC
    - [BOOTLOOP_STATUS_2026-01-18.md](BOOTLOOP_STATUS_2026-01-18.md) - Estado del bootloop
    - [BOOTLOOP_FIX_v2.17.3.md](BOOTLOOP_FIX_v2.17.3.md) - Detalles técnicos de la solución
 

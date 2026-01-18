@@ -268,6 +268,87 @@ tft.init();   // ← Se llama DESPUÉS de setup(), con protección try/catch
 
 ---
 
+### 6️⃣ CRÍTICO: USB-CDC No Activado (Puede Parecer Bootloop)
+
+**¿Qué es USB-CDC?**
+USB-CDC (Communications Device Class) es el modo que permite que el ESP32-S3 se comunique por USB como puerto serial sin necesitar chip UART externo (como CP2102 o CH340).
+
+**¿Por qué puede PARECER un bootloop?**
+Si USB-CDC no está activado correctamente:
+- ✅ El firmware SÍ arranca y funciona
+- ✅ `Serial.begin()` se ejecuta
+- ❌ Pero el puerto USB no se activa
+- ❌ El monitor solo ve mensajes del ROM bootloader
+- ❌ **PARECE** un bootloop, pero NO LO ES
+
+**El síntoma exacto:**
+```
+ESP-ROM:esp32s3-20210327
+rst:0x3 (RTC_SW_SYS_RST)
+[... se repite ...]
+```
+
+Sin ver ningún output del firmware (ni siquiera 'A', 'B', 'C' markers).
+
+**✅ ESTADO EN v2.17.3:**
+
+**Configuración en `boards/esp32s3_n16r8.json` (líneas 28-29):**
+```json
+"extra_flags": [
+  "-DBOARD_HAS_PSRAM",
+  "-DARDUINO_USB_MODE=1",           // ← USB mode activado
+  "-DARDUINO_USB_CDC_ON_BOOT=1"     // ← CDC activo desde boot
+]
+```
+
+**Configuración en `sdkconfig/n16r8.defaults` (líneas 49-50):**
+```ini
+CONFIG_USB_CDC_ENABLED=y           # USB-CDC habilitado
+CONFIG_USB_CDC_ON_BOOT=y           # CDC activo desde boot
+```
+
+**¿Es suficiente?**
+
+Según la documentación de PlatformIO para ESP32-S3, hay **DOS formas** de configurar USB-CDC:
+
+**Método 1:** En el board JSON (actual)
+```json
+"extra_flags": [
+  "-DARDUINO_USB_MODE=1",
+  "-DARDUINO_USB_CDC_ON_BOOT=1"
+]
+```
+
+**Método 2:** En platformio.ini (recomendado como redundancia)
+```ini
+board_build.arduino.usb_mode = 1
+board_build.arduino.usb_cdc_on_boot = 1
+```
+
+**Estado actual:**
+- ✅ Método 1 implementado (board JSON)
+- ⚠️ Método 2 NO implementado (platformio.ini)
+
+**¿Necesita cambio?**
+
+**NO es estrictamente necesario** porque:
+1. El board JSON ya incluye los flags
+2. El sdkconfig tiene CONFIG_USB_CDC_ENABLED=y
+3. Ambos son leídos por el build system
+
+**PERO puede ser conveniente añadirlo** por:
+1. **Redundancia:** Asegura que siempre esté activo
+2. **Claridad:** Más visible en platformio.ini
+3. **Compatibilidad:** Algunas versiones de platformio-espressif32 prefieren board_build
+
+**Verificado en:**
+- `boards/esp32s3_n16r8.json` líneas 28-29
+- `sdkconfig/n16r8.defaults` líneas 49-50
+
+**✅ CONCLUSIÓN: CONFIGURADO** - USB-CDC está activo en board JSON y sdkconfig. Añadir en platformio.ini sería redundante pero más explícito.
+
+---
+
 ## 📊 Tabla Resumen de Fixes
 
 | Causa Potencial | Estado Original | Fix Implementado | Versión | Verificación |
@@ -277,6 +358,9 @@ tft.init();   // ← Se llama DESPUÉS de setup(), con protección try/catch
 | **PSRAM Init Timeout** | Memtest activado (>3s) | Memtest desactivado (<1s) | v2.17.3 | ✅ `sdkconfig:25` |
 | **Watchdog Timeout** | 800ms INT_WDT | 5000ms INT_WDT (+6x) | v2.17.2 | ✅ `sdkconfig:92` |
 | **Global Constructor** | `TFT_eSPI tft()` | `TFT_eSPI tft` (default) | v2.11.6 | ✅ `hud_manager.cpp:124` |
+| **USB-CDC No Activo** | N/A | USB_MODE=1, CDC_ON_BOOT=1 | Siempre | ✅ `esp32s3_n16r8.json:28-29` |
+
+**Nota sobre USB-CDC:** Está configurado en board JSON y sdkconfig. Opcionalmente se puede añadir también en platformio.ini para mayor claridad (ver sección 6️⃣).
 
 ---
 
@@ -291,6 +375,33 @@ El firmware **v2.17.3** incluye fixes completos para:
 3. ✅ **PSRAM timeout** - Memtest desactivado, timeout aumentado
 4. ✅ **Watchdog timeout** - Timeouts aumentados 6x (INT) y 4x (BOOT)
 5. ✅ **Global constructors** - TFT usa constructor seguro
+6. ✅ **USB-CDC** - Configurado en board JSON y sdkconfig
+
+### ⚠️ Diagnóstico Importante: ¿Es Realmente un Bootloop?
+
+Si ves esto repetidamente:
+```
+ESP-ROM:esp32s3-20210327
+rst:0x3 (RTC_SW_SYS_RST)
+```
+
+**Puede ser:**
+
+**A) Bootloop real** - El firmware NO arranca:
+- No llega a `setup()`
+- Crash durante inicialización
+- → **Solución:** Los fixes de v2.17.3 ya lo previenen
+
+**B) Bootloop aparente** - El firmware SÍ arranca pero USB-CDC no se activa:
+- El firmware funciona correctamente
+- Pero Serial no es visible por USB
+- Monitor solo ve ROM bootloader
+- → **Verificar:** USB-CDC está configurado (ver sección 6️⃣)
+
+**Cómo distinguir:**
+- Si tienes LED de debug → ¿parpadea? → Firmware funciona, problema de USB-CDC
+- Si puedes tocar la pantalla → ¿responde? → Firmware funciona, problema de USB-CDC
+- Si NADA funciona → Bootloop real (aplicar fixes v2.17.3)
 
 ### 🔧 ¿Qué Hacer Si Experimentas Bootloop?
 
@@ -303,6 +414,27 @@ pio run -e esp32-s3-n16r8 -t upload
 ```
 
 **El firmware ya contiene todos los fixes** - solo necesitas subirlo al ESP32.
+
+**Si aún ves solo mensajes del ROM:**
+
+Es posible que USB-CDC no esté completamente configurado. Aunque está en el board JSON, puedes añadir explícitamente en `platformio.ini`:
+
+```ini
+[env:esp32-s3-n16r8]
+; ... configuración existente ...
+
+; USB-CDC explícito (opcional, ya está en board JSON)
+board_build.arduino.usb_mode = 1
+board_build.arduino.usb_cdc_on_boot = 1
+```
+
+O en `build_flags`:
+```ini
+build_flags =
+    ${env:esp32-s3-n16r8.build_flags}
+    -DARDUINO_USB_MODE=1
+    -DARDUINO_USB_CDC_ON_BOOT=1
+```
 
 ### 📈 Secuencia de Boot Esperada (v2.17.3)
 
