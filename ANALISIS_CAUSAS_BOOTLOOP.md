@@ -35,6 +35,28 @@ entry 0x403c98d0
 4. **❌ `Saved PC:0x403cdb0a`** - La CPU se reinicia ejecutando código early runtime
 5. **❌ No se alcanza `setup()`** - El crash ocurre durante la inicialización
 
+### 📝 Nota Técnica sobre rst:0x3 (RTC_SW_SYS_RST)
+
+**¿Por qué aparece este código de reset?**
+
+El código `rst:0x3 (RTC_SW_SYS_RST)` es el reset reason reportado por el ROM bootloader del ESP32-S3. Según la documentación de ESP-IDF:
+
+- `esp_restart()` puede reportar como `RTC_SW_CPU_RESET` o `RTC_SW_SYS_RESET`
+- El tipo específico depende de si `CONFIG_ESP_SYSTEM_MEMPROT_FEATURE` está activo
+- `RTC_SW_SYS_RST` (0x3) es el comportamiento **esperado** cuando el sistema se reinicia por software
+
+**Importante:** Ver `rst:0x3` NO significa necesariamente un error. Puede ser:
+- Un reinicio intencional del firmware (`esp_restart()`)
+- Un watchdog que detectó un problema y reinició el sistema (comportamiento de seguridad correcto)
+- Un crash que el sistema detectó y reinició de forma controlada
+
+**El problema real** no es el código de reset, sino que:
+1. El reset ocurre **repetidamente** (bootloop)
+2. Ocurre **antes** de que el firmware imprima nada
+3. El sistema nunca alcanza `setup()`
+
+Por eso los fixes de v2.17.3 se enfocan en **prevenir** las causas del reset repetido, no en cambiar el código de reset.
+
 ---
 
 ## 🎯 4 Causas Probables Identificadas

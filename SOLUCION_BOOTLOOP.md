@@ -20,6 +20,8 @@ entry 0x403c98d0
 
 **Tu ESP32-S3 está en un BOOTLOOP** - se está reiniciando constantemente antes de poder ejecutar tu programa.
 
+**📝 Nota:** El código `rst:0x3 (RTC_SW_SYS_RST)` significa "reset por software del sistema". Esto es **normal** cuando el watchdog detecta un problema y reinicia el chip de forma segura. El problema NO es el código de reset, sino que ocurre **repetidamente** antes de llegar a `setup()`.
+
 ---
 
 ## ✅ ¿Por qué sucede?
