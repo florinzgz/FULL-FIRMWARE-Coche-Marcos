@@ -47,6 +47,11 @@ void setup() {
     ;
   }
 
+  // 🔍 DIAGNOSTIC MARKER A: Serial initialized
+  Serial.write('A');
+  Serial.flush();
+  delay(10);
+
   Serial.println("[BOOT] Starting vehicle firmware...");
   Serial.print("[BOOT] Firmware version: ");
   Serial.println(FIRMWARE_VERSION);
@@ -61,17 +66,37 @@ void setup() {
                   BootGuard::getBootCount());
   }
 
+  // 🔍 DIAGNOSTIC MARKER B: Boot counter initialized
+  Serial.write('B');
+  Serial.flush();
+  delay(10);
+
   // Critical boot sequence
   System::init();
   Storage::init();
   Watchdog::init();
   Watchdog::feed();
 
+  // 🔍 DIAGNOSTIC MARKER C: Core systems initialized
+  Serial.write('C');
+  Serial.flush();
+  delay(10);
+
   Logger::init();
   Logger::info("Boot sequence started");
   Watchdog::feed();
 
+  // 🔍 DIAGNOSTIC MARKER D: Before initializeSystem (includes HUD init)
+  Serial.write('D');
+  Serial.flush();
+  delay(10);
+
   initializeSystem();
+
+  // 🔍 DIAGNOSTIC MARKER E: System initialization complete
+  Serial.write('E');
+  Serial.flush();
+  delay(10);
 
   Serial.println("[BOOT] System initialization complete");
   Logger::info("Vehicle firmware ready");
