@@ -192,6 +192,7 @@ Para desarrolladores que quieran entender los detalles:
 
 ## 📖 Documentación Relacionada
 
+- **[ANALISIS_CAUSAS_BOOTLOOP.md](ANALISIS_CAUSAS_BOOTLOOP.md)** - 🔬 **Análisis técnico completo de las 4 causas principales**
 - **[BOOTLOOP_STATUS_2026-01-18.md](BOOTLOOP_STATUS_2026-01-18.md)** - Informe completo del estado
 - **[BOOTLOOP_FIX_v2.17.3.md](BOOTLOOP_FIX_v2.17.3.md)** - Análisis técnico detallado
 - **[README.md](README.md)** - Documentación general del proyecto
