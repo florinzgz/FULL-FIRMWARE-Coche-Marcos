@@ -181,13 +181,13 @@
                  └───────────────────────────────────────────────┘
 ```
 
-**ESP32 (HMI) mantiene funcionando:**
+**ESP32 (HMI) mantiene en funcionamiento:**
 - `hud_manager`, `menu`, `audio`, `lighting`, backlight.
 - Touch + botones de UI (solicitudes al STM32).
 - Detección de obstáculos **local** con envío de alertas por CAN.
 - Relés de arranque/power-hold mínimos para mostrar estado.
 
-**STM32 (Control seguro) mantiene funcionando:**
+**STM32 (Control seguro) mantiene en funcionamiento:**
 - Pedal, shifter y entradas críticas de control.
 - Encoder A/B/Z + cálculo de dirección **Ackermann**.
 - Sensores de rueda, corrientes INA226 (TCA9548A) y térmicos críticos.
