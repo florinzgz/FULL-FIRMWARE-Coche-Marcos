@@ -59,9 +59,9 @@ typedef struct __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
   uint16_t speed_cm_per_s;
-  int16_t steering_deg_x10;
-  uint16_t current_a_x10;
-  uint16_t temp_c_x10;
+  int16_t steering_deg_tenths;
+  uint16_t current_a_tenths;
+  uint16_t temp_c_tenths;
 } can_telemetry_state_t;
 
 typedef struct __attribute__((packed)) {
@@ -75,7 +75,7 @@ typedef struct __attribute__((packed)) {
 typedef struct __attribute__((packed)) {
   uint16_t active_mode;
   uint16_t limits_flags;
-  uint16_t torque_limit;
+  uint16_t torque_limit_nm_tenths;
   uint16_t reserved;
 } can_control_status_t;
 
