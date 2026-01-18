@@ -1,9 +1,9 @@
 # ESP32-S3 Car Control System - FULL FIRMWARE
 
-**Versión:** 2.17.1 (PHASE 14)  
+**Versión:** 2.17.3 (PHASE 14 - Bootloop Fix)  
 **Hardware:** ESP32-S3 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)  
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
-**Última actualización:** 2026-01-12
+**Última actualización:** 2026-01-18
 
 ---
 
@@ -20,6 +20,27 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 - **Iluminación:** WS2812B LEDs (28 frontales + 16 traseros)
 - **Audio:** DFPlayer Mini
 - **Standalone:** Sin WiFi/OTA (actualización solo por USB - v2.11.0)
+
+## 🔴 ¿Estás experimentando un BOOTLOOP?
+
+Si ves reinicios constantes con mensajes como:
+```
+rst:0x3 (RTC_SW_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+entry 0x403c98d0
+[... se repite infinitamente ...]
+```
+
+**👉 Lee la [SOLUCIÓN AL BOOTLOOP](SOLUCION_BOOTLOOP.md)** - Guía completa en español
+
+**Solución rápida:**
+```bash
+pio run -e esp32-s3-n16r8 -t clean
+pio run -e esp32-s3-n16r8 -t upload
+```
+
+El firmware v2.17.3 incluye la solución definitiva al bootloop.
+
+---
 
 ## 🚀 Inicio Rápido
 
@@ -83,6 +104,13 @@ Ver [docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md) para 
 
 La documentación completa está disponible en el directorio [`docs/`](docs/):
 
+### 🔴 Solución de Problemas
+- **[SOLUCION_BOOTLOOP.md](SOLUCION_BOOTLOOP.md)** - 🇪🇸 **¿Tu ESP32 se reinicia constantemente? Lee esto primero**
+- **[BOOTLOOP_FIX_QUICKSTART.md](BOOTLOOP_FIX_QUICKSTART.md)** - Guía rápida de solución al bootloop
+- **[BOOTLOOP_STATUS_2026-01-18.md](BOOTLOOP_STATUS_2026-01-18.md)** - Estado actual del bootloop (v2.17.3)
+- **[BOOTLOOP_FIX_v2.17.3.md](BOOTLOOP_FIX_v2.17.3.md)** - Análisis técnico completo del fix
+
+### 📌 Documentación Principal
 - **[HARDWARE.md](HARDWARE.md)** - 📌 **ESPECIFICACIÓN OFICIAL DEL HARDWARE** - Fuente única de verdad para N16R8
 - **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
 - **[CLEANUP_SUMMARY_N16R8.md](CLEANUP_SUMMARY_N16R8.md)** - Resumen de consolidación del repositorio
