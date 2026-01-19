@@ -76,6 +76,21 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
     return false;
   }
 
+  uint32_t expectedSize = w * h * 2; // 16-bit color = 2 bytes per pixel
+  if (!psramFound()) {
+    Logger::errorf("RenderEngine: PSRAM not detected - cannot allocate sprite "
+                   "%d",
+                   id);
+    return false;
+  }
+  uint32_t freePsram = ESP.getFreePsram();
+  if (freePsram < expectedSize) {
+    Logger::errorf("RenderEngine: Insufficient PSRAM for sprite %d (need %u "
+                   "bytes, have %u bytes)",
+                   id, expectedSize, freePsram);
+    return false;
+  }
+
   if (sprites[id]) {
     sprites[id]->deleteSprite();
     delete sprites[id];
@@ -96,8 +111,6 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   // 🔍 VERIFICATION: Log memory state before sprite allocation
   uint32_t heapBefore = ESP.getFreeHeap();
   uint32_t psramBefore = ESP.getFreePsram();
-  uint32_t expectedSize = w * h * 2; // 16-bit color = 2 bytes per pixel
-
   Logger::infof("RenderEngine: Creating sprite %d (%dx%d, ~%u KB)", id, w, h,
                 expectedSize / 1024);
   Logger::infof("  Before: Heap=%u KB, PSRAM=%u KB", heapBefore / 1024,
