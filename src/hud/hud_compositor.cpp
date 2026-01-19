@@ -108,6 +108,9 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
     return false;
   }
 
+  // 🔒 CRITICAL: Force sprites to PSRAM to avoid heap pressure/bootloops
+  layerSprites[idx]->setAttribute(PSRAM_ENABLE, 1);
+
   // Create sprite buffer (16-bit color)
   void *spriteBuffer =
       layerSprites[idx]->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -449,6 +452,9 @@ bool HudCompositor::createShadowSprite() {
     Logger::error("HudCompositor: Failed to allocate shadow sprite");
     return false;
   }
+
+  // 🔒 CRITICAL: Force shadow sprite to PSRAM to avoid heap pressure/bootloops
+  shadowSprite->setAttribute(PSRAM_ENABLE, 1);
 
   // Create sprite buffer (16-bit color)
   void *spriteBuffer = shadowSprite->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
