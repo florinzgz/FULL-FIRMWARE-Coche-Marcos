@@ -64,7 +64,7 @@ void BootGuard::initBootCounter() {
   // v2.17.3: Use Serial instead of Logger - can be called before Logger::init()
   // Check if RTC memory has valid data
   if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
-    uint8_t preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+    auto preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
     if (bootCounterData.magic == RESET_MARKER_MAGIC) {
       preservedMarker = bootCounterData.resetMarker;
       if (preservedMarker >
