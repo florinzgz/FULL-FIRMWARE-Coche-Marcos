@@ -39,12 +39,16 @@ constexpr float WHEEL_OUTPUT_RPM =
 // =======================
 // Ruedas
 // =======================
-constexpr float WHEEL_CIRCUM_MM = 1100.0f; // Circunferencia real de rueda (mm)
+constexpr float PI = 3.14159265358979323846f;
+constexpr float WHEEL_DIAMETER_MM =
+    1100.0f; // Diámetro de rueda (1100 mm / 110 cm) para cálculo de velocidad
+constexpr float WHEEL_CIRCUM_MM =
+    WHEEL_DIAMETER_MM * PI; // Circunferencia real de rueda (mm)
 constexpr float WHEEL_MAX_SPEED_MS =
     (WHEEL_OUTPUT_RPM / 60.0f) * (WHEEL_CIRCUM_MM / 1000.0f);    // m/s
 constexpr float WHEEL_MAX_SPEED_KMH = WHEEL_MAX_SPEED_MS * 3.6f; // km/h
 constexpr int PULSES_PER_REV =
-    6; // Pulsos por vuelta del sensor de rueda (inductivo)
+    6; // 6 tornillos por rueda = 6 pulsos/vuelta (sensor inductivo)
 constexpr uint32_t SENSOR_TIMEOUT_MS =
     1000; // 🔒 Timeout para sensor sin pulsos (1s)
 
@@ -61,10 +65,8 @@ constexpr float MM_TO_KMH = 0.0036f; // mm/s → km/h  (3.6 / 1000 = 0.0036)
 #undef RAD_TO_DEG
 #endif
 
-constexpr float DEG_TO_RAD =
-    3.14159265358979323846f / 180.0f; // grados → radianes
-constexpr float RAD_TO_DEG =
-    180.0f / 3.14159265358979323846f; // radianes → grados
+constexpr float DEG_TO_RAD = PI / 180.0f; // grados → radianes
+constexpr float RAD_TO_DEG = 180.0f / PI; // radianes → grados
 
 // =======================
 // Filtros y suavizado
