@@ -1,4 +1,6 @@
 // src/i2c.cpp
+#include "boot_guard.h"
+#include "i2c_recovery.h"
 #include "logger.h" // 🔒 IMPROVEMENT: Use Logger for consistent error reporting
 #include "pins.h"   // Use centralized I2C addresses from pins.h
 #include <Wire.h>
@@ -19,6 +21,12 @@ constexpr uint16_t RETRY_DELAY_MS =
 } // namespace I2CConstants
 
 void select_tca9548a_channel(uint8_t channel) {
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("I2C: Wire.begin() missing before channel select");
+    return;
+  }
+
   // 🔒 CRITICAL FIX: Validate channel and log errors
   if (channel > 7) {
     Logger::errorf("I2C: Invalid TCA9548A channel %d (must be 0-7)", channel);
@@ -43,6 +51,11 @@ void select_tca9548a_channel(uint8_t channel) {
 // hace reintentos largos para evitar bloqueos; el llamador decide la política.
 bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg,
                        uint16_t &out) {
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("I2C: Wire.begin() missing before INA226 read");
+    return false;
+  }
   // 🔒 CRITICAL FIX: Validate channel before use
   if (tca_channel > 7) {
     Logger::errorf("I2C: Invalid TCA channel %d (must be 0-7)", tca_channel);
@@ -99,6 +112,11 @@ bool read_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg,
 // dado. Retorna true en éxito.
 bool write_ina226_reg16(uint8_t tca_channel, uint8_t dev_addr, uint8_t reg,
                         uint16_t value) {
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("I2C: Wire.begin() missing before INA226 write");
+    return false;
+  }
   // 🔒 CRITICAL FIX: Validate channel before use
   if (tca_channel > 7) {
     Logger::errorf("I2C: Invalid TCA channel %d (must be 0-7)", tca_channel);

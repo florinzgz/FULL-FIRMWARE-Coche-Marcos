@@ -16,6 +16,7 @@
 
 // Include core system components for proper boot sequence
 #include "boot_guard.h" // 🔒 v2.17.1: Boot counter for bootloop detection
+#include "i2c_recovery.h"
 #include "storage.h"
 #include "system.h"
 
@@ -80,6 +81,8 @@ void setup() {
 
   // 🔒 v2.17.1: Initialize and check boot counter BEFORE any other init
   BootGuard::initBootCounter();
+  BootGuard::logResetMarker();
+  BootGuard::clearResetMarker();
   BootGuard::incrementBootCounter();
 
   if (BootGuard::isBootloopDetected()) {
@@ -98,6 +101,7 @@ void setup() {
   Storage::init();
   Watchdog::init();
   Watchdog::feed();
+  I2CRecovery::init();
 
   // 🔍 DIAGNOSTIC MARKER C: Core systems initialized
   Serial.write('C');
@@ -305,6 +309,7 @@ void handleCriticalError(const char *errorMsg) {
     Logger::errorf("Critical error: Max retries reached (%d/%d)", retryCount,
                    CriticalErrorConfig::MAX_RETRIES);
     Logger::error("Allowing watchdog timeout for system reset");
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_WATCHDOG_LOOP);
 
 #ifndef STANDALONE_DISPLAY
     HUDManager::showError("Critical error: System failed after max retries");
@@ -340,6 +345,7 @@ void handleCriticalError(const char *errorMsg) {
   }
 
   Logger::info("Attempting system restart...");
+  BootGuard::setResetMarker(BootGuard::RESET_MARKER_EXPLICIT_RESTART);
   Serial.println("[CRITICAL ERROR] Restarting...");
   Serial.flush();
 

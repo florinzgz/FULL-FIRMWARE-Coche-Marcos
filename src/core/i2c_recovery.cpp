@@ -14,6 +14,7 @@ namespace I2CRecovery {
 // Estados de hasta 16 dispositivos I²C
 constexpr uint8_t MAX_DEVICES = 16;
 static DeviceState devices[MAX_DEVICES];
+static bool initialized = false;
 
 // Pines I²C (de pins.h)
 static uint8_t pinSDA = PIN_I2C_SDA;
@@ -25,6 +26,7 @@ void init() {
   Wire.begin(pinSDA, pinSCL);
   Wire.setClock(I2C_FREQUENCY);
   Serial.printf("[I2CRecovery] I2C initialized at %u Hz\n", I2C_FREQUENCY);
+  initialized = true;
 
   // Inicializar estados
   for (uint8_t i = 0; i < MAX_DEVICES; i++) {
@@ -38,7 +40,13 @@ void init() {
   Serial.println("[I2CRecovery] Sistema recuperación I²C inicializado");
 }
 
+bool isInitialized() { return initialized; }
+
 bool recoverBus() {
+  if (!initialized) {
+    Logger::error("I2CRecovery: recoverBus called before init");
+    return false;
+  }
   Serial.println("[I2CRecovery] WARNING: Iniciando bus recovery");
 
   // 1. Terminar transacción I²C actual
@@ -111,6 +119,10 @@ bool recoverBus() {
 }
 
 bool tcaSelectSafe(uint8_t channel, uint8_t tcaAddr) {
+  if (!initialized) {
+    Logger::error("I2CRecovery: tcaSelectSafe called before init");
+    return false;
+  }
   if (channel > 7) {
     Serial.printf("[I2CRecovery] ERROR: TCA channel inválido: %d\n", channel);
     return false;
@@ -159,6 +171,10 @@ bool tcaSelectSafe(uint8_t channel, uint8_t tcaAddr) {
 
 bool readBytesWithRetry(uint8_t deviceAddr, uint8_t regAddr, uint8_t *buffer,
                         uint8_t length, uint8_t deviceId) {
+  if (!initialized) {
+    Logger::error("I2CRecovery: readBytesWithRetry called before init");
+    return false;
+  }
   if (deviceId >= MAX_DEVICES) {
     Logger::errorf("deviceId inválido: %d", deviceId);
     return false;
@@ -267,6 +283,10 @@ bool readBytesWithRetry(uint8_t deviceAddr, uint8_t regAddr, uint8_t *buffer,
 bool writeBytesWithRetry(uint8_t deviceAddr, uint8_t regAddr,
                          const uint8_t *data, uint8_t length,
                          uint8_t deviceId) {
+  if (!initialized) {
+    Logger::error("I2CRecovery: writeBytesWithRetry called before init");
+    return false;
+  }
   if (deviceId >= MAX_DEVICES) {
     Logger::errorf("deviceId inválido: %d", deviceId);
     return false;
@@ -321,6 +341,10 @@ bool writeBytesWithRetry(uint8_t deviceAddr, uint8_t regAddr,
 }
 
 bool reinitSensor(uint8_t channel, uint8_t deviceAddr, uint8_t deviceId) {
+  if (!initialized) {
+    Logger::error("I2CRecovery: reinitSensor called before init");
+    return false;
+  }
   Serial.println("[I2CRecovery] Re-init sensor...");
 
   // 1. Intentar re-seleccionar canal TCA9548A
@@ -362,6 +386,10 @@ const DeviceState &getDeviceState(uint8_t deviceId) {
 }
 
 void resetDeviceState(uint8_t deviceId) {
+  if (!initialized) {
+    Logger::error("I2CRecovery: resetDeviceState called before init");
+    return;
+  }
   if (deviceId >= MAX_DEVICES) return;
 
   devices[deviceId].online = true;
@@ -374,6 +402,7 @@ void resetDeviceState(uint8_t deviceId) {
 }
 
 bool isBusHealthy() {
+  if (!initialized) return false;
   uint8_t onlineCount = 0;
   for (uint8_t i = 0; i < MAX_DEVICES; i++) {
     if (devices[i].online) onlineCount++;
@@ -382,6 +411,10 @@ bool isBusHealthy() {
 }
 
 void markDeviceOffline(uint8_t deviceId) {
+  if (!initialized) {
+    Logger::error("I2CRecovery: markDeviceOffline called before init");
+    return;
+  }
   if (deviceId >= MAX_DEVICES) return;
 
   devices[deviceId].online = false;

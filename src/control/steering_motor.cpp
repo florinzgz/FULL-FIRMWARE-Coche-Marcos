@@ -6,6 +6,8 @@
 #include "pwm_channels.h" // 🔒 v2.8.5: PWM channel validation
 #include "steering.h"
 #include "system.h" // 🔒 v2.4.0: Para logError()
+#include "boot_guard.h"
+#include "i2c_recovery.h"
 #include <Adafruit_PWMServoDriver.h>
 #include <Wire.h>
 #include <cmath> // 🔒 v2.4.0: Para std::isfinite()
@@ -41,6 +43,13 @@ static uint16_t pctToTicks(float pct) {
 }
 
 void SteeringMotor::init() {
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("SteeringMotor: I2C not initialized before PCA9685 init");
+    initialized = false;
+    return;
+  }
+
   // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
   // No llamar Wire.begin() aquí para evitar resetear configuración I2C
 

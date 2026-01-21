@@ -1,4 +1,5 @@
 #include "hud_compositor.h"
+#include "boot_guard.h"
 #include "logger.h"
 #include <cstring>
 
@@ -103,6 +104,7 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   // Create new sprite
   layerSprites[idx] = new (std::nothrow) TFT_eSprite(tft);
   if (!layerSprites[idx]) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_NULL_POINTER);
     Logger::errorf("HudCompositor: Failed to allocate sprite for layer %d",
                    idx);
     return false;
@@ -449,6 +451,7 @@ bool HudCompositor::createShadowSprite() {
   // Create new shadow sprite
   shadowSprite = new (std::nothrow) TFT_eSprite(tft);
   if (!shadowSprite) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_NULL_POINTER);
     Logger::error("HudCompositor: Failed to allocate shadow sprite");
     return false;
   }
@@ -459,6 +462,7 @@ bool HudCompositor::createShadowSprite() {
   // Create sprite buffer (16-bit color)
   void *spriteBuffer = shadowSprite->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_NULL_POINTER);
     Logger::error("HudCompositor: Failed to create shadow sprite buffer");
     delete shadowSprite;
     shadowSprite = nullptr;
