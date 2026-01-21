@@ -29,10 +29,19 @@ static RTC_NOINIT_ATTR BootCounterData bootCounterData;
 static constexpr uint32_t BOOT_COUNTER_MAGIC = 0xB007C047; // "BOOT COTR"
 static constexpr uint32_t RESET_MARKER_MAGIC = 0xB007C048; // "BOOT MARK"
 static constexpr uint8_t RESET_MARKER_MAX =
-    static_cast<uint8_t>(RESET_MARKER_NULL_POINTER);
+    static_cast<uint8_t>(RESET_MARKER_MAX_VALUE);
 
 static inline bool isValidResetMarker(uint8_t marker) {
-  return marker <= RESET_MARKER_MAX;
+  switch (static_cast<ResetMarker>(marker)) {
+  case RESET_MARKER_NONE:
+  case RESET_MARKER_EXPLICIT_RESTART:
+  case RESET_MARKER_WATCHDOG_LOOP:
+  case RESET_MARKER_I2C_PREINIT:
+  case RESET_MARKER_NULL_POINTER:
+    return true;
+  default:
+    return false;
+  }
 }
 
 void BootGuard::applyXshutStrappingGuard() {
@@ -73,7 +82,8 @@ void BootGuard::initBootCounter() {
     uint8_t preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
     if (bootCounterData.magic == RESET_MARKER_MAGIC) {
       preservedMarker = bootCounterData.resetMarker;
-      if (!isValidResetMarker(preservedMarker)) {
+      if (preservedMarker > RESET_MARKER_MAX ||
+          !isValidResetMarker(preservedMarker)) {
         preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
       }
     }
