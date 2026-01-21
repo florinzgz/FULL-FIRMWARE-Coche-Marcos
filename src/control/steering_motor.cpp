@@ -1,13 +1,13 @@
 #include "steering_motor.h"
+#include "boot_guard.h"
 #include "current.h"
+#include "i2c_recovery.h"
 #include "logger.h"
 #include "mcp23017_manager.h"
 #include "pins.h"
 #include "pwm_channels.h" // 🔒 v2.8.5: PWM channel validation
 #include "steering.h"
 #include "system.h" // 🔒 v2.4.0: Para logError()
-#include "boot_guard.h"
-#include "i2c_recovery.h"
 #include <Adafruit_PWMServoDriver.h>
 #include <Wire.h>
 #include <cmath> // 🔒 v2.4.0: Para std::isfinite()

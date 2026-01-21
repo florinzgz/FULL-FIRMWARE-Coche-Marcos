@@ -2,6 +2,7 @@
 #include "adaptive_cruise.h"
 #include "boot_guard.h"
 #include "current.h"
+#include "i2c_recovery.h"
 #include "logger.h"
 #include "mcp23017_manager.h"
 #include "obstacle_safety.h"
@@ -14,7 +15,6 @@
 #include "storage.h"
 #include "system.h"
 #include "wheels.h"
-#include "i2c_recovery.h"
 
 #include <Adafruit_PWMServoDriver.h>
 #include <Wire.h>
