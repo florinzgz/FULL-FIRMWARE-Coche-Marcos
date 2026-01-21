@@ -1,6 +1,8 @@
 #include "render_engine.h"
+#include "boot_guard.h"
 #include "logger.h"
 #include <Arduino.h>
+#include <new>
 
 // ====== CONSTANTS ======
 static constexpr int SPRITE_WIDTH = 480;
@@ -96,7 +98,12 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
     delete sprites[id];
   }
 
-  sprites[id] = new TFT_eSprite(tft);
+  sprites[id] = new (std::nothrow) TFT_eSprite(tft);
+  if (!sprites[id]) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_NULL_POINTER);
+    Logger::errorf("RenderEngine: Sprite %d allocation failed (nullptr)", id);
+    return false;
+  }
 
   // 🔒 CRITICAL FIX: Force sprite buffers to PSRAM to prevent heap corruption
   // Large full-screen sprites (480×320×16bit = ~300KB each) MUST be in PSRAM

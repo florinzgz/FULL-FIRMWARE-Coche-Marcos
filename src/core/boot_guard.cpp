@@ -21,6 +21,7 @@ struct BootCounterData {
   uint32_t firstBootMs;   // Timestamp of first boot in sequence
   uint32_t lastBootMs;    // Timestamp of last boot
   bool safeModeRequested; // Flag to enter safe mode
+  uint8_t resetMarker;    // Persisted reset marker for diagnostics
 };
 
 // RTC memory - survives warm reset, cleared on power cycle
@@ -68,6 +69,7 @@ void BootGuard::initBootCounter() {
     bootCounterData.firstBootMs = 0;
     bootCounterData.lastBootMs = 0;
     bootCounterData.safeModeRequested = false;
+    bootCounterData.resetMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
     Serial.println(
         "[BootGuard] Boot counter initialized (power cycle or first boot)");
   } else {
@@ -142,4 +144,44 @@ bool BootGuard::isBootloopDetected() {
 
 bool BootGuard::shouldEnterSafeMode() {
   return bootCounterData.safeModeRequested;
+}
+
+void BootGuard::setResetMarker(ResetMarker marker) {
+  if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
+    bootCounterData.magic = BOOT_COUNTER_MAGIC;
+    bootCounterData.bootCount = 0;
+    bootCounterData.firstBootMs = 0;
+    bootCounterData.lastBootMs = 0;
+    bootCounterData.safeModeRequested = false;
+  }
+  bootCounterData.resetMarker = static_cast<uint8_t>(marker);
+}
+
+BootGuard::ResetMarker BootGuard::getResetMarker() {
+  return static_cast<ResetMarker>(bootCounterData.resetMarker);
+}
+
+void BootGuard::clearResetMarker() {
+  bootCounterData.resetMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+}
+
+void BootGuard::logResetMarker() {
+  ResetMarker marker = getResetMarker();
+  switch (marker) {
+  case RESET_MARKER_EXPLICIT_RESTART:
+    Serial.println("[BootGuard] Reset marker: explicit restart");
+    break;
+  case RESET_MARKER_WATCHDOG_LOOP:
+    Serial.println("[BootGuard] Reset marker: watchdog timeout expected");
+    break;
+  case RESET_MARKER_I2C_PREINIT:
+    Serial.println("[BootGuard] Reset marker: I2C used before init");
+    break;
+  case RESET_MARKER_NULL_POINTER:
+    Serial.println("[BootGuard] Reset marker: null pointer guard hit");
+    break;
+  case RESET_MARKER_NONE:
+  default:
+    break;
+  }
 }
