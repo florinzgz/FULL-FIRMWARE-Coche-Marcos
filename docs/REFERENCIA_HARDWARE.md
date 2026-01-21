@@ -216,6 +216,9 @@ GND, 5V, 14, 13, 12, 11, 10, 9, 46, 3, 8, 18, 17, 16, 15, 7, 6, 5, 4, RST, 3V3, 
 | 17 | WHEEL_RL | Rear Left |
 | 15 | WHEEL_RR | Rear Right |
 
+- 6 tornillos por rueda = 6 pulsos/revolución (sensor inductivo).
+- Diámetro de rueda: 110 cm (circunferencia calculada en firmware).
+
 #### Pedal y Temperatura
 | GPIO | Función | Notas |
 |------|---------|-------|
