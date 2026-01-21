@@ -27,6 +27,7 @@ struct BootCounterData {
 // RTC memory - survives warm reset, cleared on power cycle
 static RTC_NOINIT_ATTR BootCounterData bootCounterData;
 static constexpr uint32_t BOOT_COUNTER_MAGIC = 0xB007C047; // "BOOT COTR"
+static constexpr uint32_t RESET_MARKER_MAGIC = 0xB007C048; // "BOOT MARK"
 
 void BootGuard::applyXshutStrappingGuard() {
   // v2.15.0: TOFSense-M S migration - No XSHUT pins needed (UART sensor)
@@ -63,13 +64,21 @@ void BootGuard::initBootCounter() {
   // v2.17.3: Use Serial instead of Logger - can be called before Logger::init()
   // Check if RTC memory has valid data
   if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
+    auto preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+    if (bootCounterData.magic == RESET_MARKER_MAGIC) {
+      preservedMarker = bootCounterData.resetMarker;
+      if (preservedMarker >
+          static_cast<uint8_t>(RESET_MARKER_MAX_VALUE)) {
+        preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+      }
+    }
     // First boot or power cycle - initialize
     bootCounterData.magic = BOOT_COUNTER_MAGIC;
     bootCounterData.bootCount = 0;
     bootCounterData.firstBootMs = 0;
     bootCounterData.lastBootMs = 0;
     bootCounterData.safeModeRequested = false;
-    bootCounterData.resetMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+    bootCounterData.resetMarker = preservedMarker;
     Serial.println(
         "[BootGuard] Boot counter initialized (power cycle or first boot)");
   } else {
@@ -148,11 +157,8 @@ bool BootGuard::shouldEnterSafeMode() {
 
 void BootGuard::setResetMarker(ResetMarker marker) {
   if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
-    bootCounterData.magic = BOOT_COUNTER_MAGIC;
-    bootCounterData.bootCount = 0;
-    bootCounterData.firstBootMs = 0;
-    bootCounterData.lastBootMs = 0;
-    bootCounterData.safeModeRequested = false;
+    // Preserve marker via a temporary magic value until initBootCounter() runs.
+    bootCounterData.magic = RESET_MARKER_MAGIC;
   }
   bootCounterData.resetMarker = static_cast<uint8_t>(marker);
 }

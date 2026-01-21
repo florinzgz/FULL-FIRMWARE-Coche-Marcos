@@ -9,6 +9,7 @@ enum ResetMarker : uint8_t {
   RESET_MARKER_WATCHDOG_LOOP = 2,
   RESET_MARKER_I2C_PREINIT = 3,
   RESET_MARKER_NULL_POINTER = 4,
+  RESET_MARKER_MAX_VALUE = RESET_MARKER_NULL_POINTER,
 };
 
 // Ensure XSHUT lines that land on strapping pins are forced HIGH early in boot
