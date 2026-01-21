@@ -67,8 +67,7 @@ void BootGuard::initBootCounter() {
     auto preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
     if (bootCounterData.magic == RESET_MARKER_MAGIC) {
       preservedMarker = bootCounterData.resetMarker;
-      if (preservedMarker >
-          static_cast<uint8_t>(RESET_MARKER_MAX_VALUE)) {
+      if (preservedMarker > static_cast<uint8_t>(RESET_MARKER_MAX_VALUE)) {
         preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
       }
     }
