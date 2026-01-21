@@ -27,9 +27,13 @@ struct BootCounterData {
 // RTC memory - survives warm reset, cleared on power cycle
 static RTC_NOINIT_ATTR BootCounterData bootCounterData;
 static constexpr uint32_t BOOT_COUNTER_MAGIC = 0xB007C047; // "BOOT COTR"
-static constexpr uint32_t RESET_MARKER_MAGIC = 0xB007C048; // "BOOT MRKR"
+static constexpr uint32_t RESET_MARKER_MAGIC = 0xB007C048; // "BOOT MARK"
 static constexpr uint8_t RESET_MARKER_MAX =
     static_cast<uint8_t>(RESET_MARKER_NULL_POINTER);
+
+static inline bool isValidResetMarker(uint8_t marker) {
+  return marker <= RESET_MARKER_MAX;
+}
 
 void BootGuard::applyXshutStrappingGuard() {
   // v2.15.0: TOFSense-M S migration - No XSHUT pins needed (UART sensor)
@@ -69,7 +73,7 @@ void BootGuard::initBootCounter() {
     uint8_t preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
     if (bootCounterData.magic == RESET_MARKER_MAGIC) {
       preservedMarker = bootCounterData.resetMarker;
-      if (preservedMarker > RESET_MARKER_MAX) {
+      if (!isValidResetMarker(preservedMarker)) {
         preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
       }
     }
@@ -158,7 +162,7 @@ bool BootGuard::shouldEnterSafeMode() {
 
 void BootGuard::setResetMarker(ResetMarker marker) {
   if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
-    // Preserve marker across boot counter init without touching bootloop state.
+    // Preserve marker via a temporary magic value until initBootCounter() runs.
     bootCounterData.magic = RESET_MARKER_MAGIC;
   }
   bootCounterData.resetMarker = static_cast<uint8_t>(marker);
