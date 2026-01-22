@@ -1,4 +1,3 @@
-#include "sdkconfig.h"
 #include "dfplayer.h"
 #include "logger.h"
 #include "pins.h" // para PIN_DFPLAYER_TX y PIN_DFPLAYER_RX
