@@ -1,6 +1,8 @@
 #include "render_engine.h"
+#include "boot_guard.h"
 #include "logger.h"
 #include <Arduino.h>
+#include <new>
 
 // ====== CONSTANTS ======
 static constexpr int SPRITE_WIDTH = 480;
@@ -76,12 +78,32 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
     return false;
   }
 
+  uint32_t expectedSize = w * h * 2; // 16-bit color = 2 bytes per pixel
+  if (!psramFound()) {
+    Logger::errorf("RenderEngine: PSRAM not detected - cannot allocate sprite "
+                   "%d",
+                   id);
+    return false;
+  }
+  uint32_t freePsram = ESP.getFreePsram();
+  if (freePsram < expectedSize) {
+    Logger::errorf("RenderEngine: Insufficient PSRAM for sprite %d (need %u "
+                   "bytes, have %u bytes)",
+                   id, expectedSize, freePsram);
+    return false;
+  }
+
   if (sprites[id]) {
     sprites[id]->deleteSprite();
     delete sprites[id];
   }
 
-  sprites[id] = new TFT_eSprite(tft);
+  sprites[id] = new (std::nothrow) TFT_eSprite(tft);
+  if (!sprites[id]) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_NULL_POINTER);
+    Logger::errorf("RenderEngine: Sprite %d allocation failed (nullptr)", id);
+    return false;
+  }
 
   // 🔒 CRITICAL FIX: Force sprite buffers to PSRAM to prevent heap corruption
   // Large full-screen sprites (480×320×16bit = ~300KB each) MUST be in PSRAM
@@ -96,8 +118,6 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   // 🔍 VERIFICATION: Log memory state before sprite allocation
   uint32_t heapBefore = ESP.getFreeHeap();
   uint32_t psramBefore = ESP.getFreePsram();
-  uint32_t expectedSize = w * h * 2; // 16-bit color = 2 bytes per pixel
-
   Logger::infof("RenderEngine: Creating sprite %d (%dx%d, ~%u KB)", id, w, h,
                 expectedSize / 1024);
   Logger::infof("  Before: Heap=%u KB, PSRAM=%u KB", heapBefore / 1024,

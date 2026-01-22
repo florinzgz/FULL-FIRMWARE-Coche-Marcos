@@ -2,9 +2,9 @@
 
 ## ESP32-S3 Car Control System - Coche Inteligente Marcos
 
-**Versión Actual:** v2.15.0  
-**Fecha:** 2026-01-05  
-**Estado:** ✅ Actualizado con migración TOFSense-M S 8x8 Matrix
+**Versión Actual:** v2.17.1  
+**Fecha:** 2026-01-12  
+**Estado:** ✅ Actualizado con hardware N16R8 (PHASE 14)
 
 ---
 
@@ -103,5 +103,5 @@ Ver [CAMBIOS_RECIENTES.md](CAMBIOS_RECIENTES.md) para detalles completos.
 ---
 
 **Documentación mantenida por:** Sistema de control automático  
-**Última revisión:** 2026-01-05  
-**Versión firmware:** v2.15.0
+**Última revisión:** 2026-01-12  
+**Versión firmware:** v2.17.1

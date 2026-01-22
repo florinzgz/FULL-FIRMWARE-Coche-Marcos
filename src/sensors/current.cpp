@@ -16,6 +16,7 @@
 #endif
 // --- FIN FIX ---
 
+#include "boot_guard.h"
 #include "i2c_recovery.h" // Sistema de recuperación I²C
 #include "logger.h"
 #include "pins.h" // 🔒 Para PIN_I2C_SDA y PIN_I2C_SCL
@@ -99,6 +100,11 @@ static bool tcaSelect(uint8_t channel) {
 void Sensors::initCurrent() {
   // DEPENDENCY: I2C bus MUST be initialized by I2CRecovery::init() before
   // calling this function. 🔒 CORRECCIÓN CRÍTICA: Crear mutex I2C si no existe
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("Current: I2C not initialized before INA226 init");
+    return;
+  }
   if (i2cMutex == nullptr) {
     i2cMutex = xSemaphoreCreateMutex();
     if (i2cMutex == nullptr) {

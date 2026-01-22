@@ -1,0 +1,183 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║         ESP32-S3 BOOTLOOP FIX v2.17.3 - TESTING CHECKLIST               ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+DATE: 2026-01-18
+FIRMWARE: v2.17.3
+ISSUE: Bootloop with rst:0x3 (RTC_SW_SYS_RST)
+FIX: Disabled PSRAM memtest + Increased INT_WDT to 5000ms
+
+────────────────────────────────────────────────────────────────────────────
+STEP 1: CLEAN BUILD
+────────────────────────────────────────────────────────────────────────────
+[ ] Navigate to project directory
+    cd C:\FULL-FIRMWARE-Coche-Marcos-3
+
+[ ] Clean previous build
+    pio run -e esp32-s3-n16r8-standalone-debug -t clean
+
+[ ] Verify clean succeeded
+    ✅ Should see: "Cleaning... Done"
+
+────────────────────────────────────────────────────────────────────────────
+STEP 2: BUILD FIRMWARE
+────────────────────────────────────────────────────────────────────────────
+[ ] Build new firmware
+    pio run -e esp32-s3-n16r8-standalone-debug
+
+[ ] Verify build succeeded
+    ✅ Should see: "SUCCESS"
+    ✅ No compilation errors
+    ✅ Firmware size reasonable (<2MB)
+
+────────────────────────────────────────────────────────────────────────────
+STEP 3: UPLOAD TO DEVICE
+────────────────────────────────────────────────────────────────────────────
+[ ] Connect ESP32-S3 to COM3 (or update platformio.ini)
+
+[ ] Upload firmware
+    pio run -e esp32-s3-n16r8-standalone-debug -t upload
+
+[ ] Verify upload succeeded
+    ✅ Should see: "Leaving... Hard resetting via RTS pin..."
+    ✅ No upload errors
+
+────────────────────────────────────────────────────────────────────────────
+STEP 4: MONITOR SERIAL OUTPUT
+────────────────────────────────────────────────────────────────────────────
+[ ] Open serial monitor
+    pio device monitor -e esp32-s3-n16r8-standalone-debug --filter esp32_exception_decoder
+
+[ ] Watch for boot sequence
+
+────────────────────────────────────────────────────────────────────────────
+EXPECTED OUTPUT (Success):
+────────────────────────────────────────────────────────────────────────────
+
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403cdb0a
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+
+=== ESP32-S3 EARLY BOOT ===
+[STANDALONE] Mode active
+A[BootGuard] Boot counter initialized (power cycle or first boot)
+[BootGuard] Starting new boot sequence
+B[BOOT] Starting vehicle firmware...
+[BOOT] Firmware version: 2.17.3
+C[System init] entrando en PRECHECK
+[System init] Free heap: XXXXX bytes
+[System init] === DIAGNÓSTICO DE MEMORIA ===
+[System init] ✅ PSRAM DETECTADA Y HABILITADA
+[... continues normally ...]
+
+────────────────────────────────────────────────────────────────────────────
+SUCCESS INDICATORS (Check ALL):
+────────────────────────────────────────────────────────────────────────────
+[ ] ✅ Only ONE boot sequence (not repeating)
+[ ] ✅ "=== ESP32-S3 EARLY BOOT ===" message appears
+[ ] ✅ Firmware version shows "2.17.3" 
+[ ] ✅ Diagnostic markers appear: A, B, C
+[ ] ✅ PSRAM detected message appears
+[ ] ✅ System continues to initialize (no hang)
+[ ] ✅ Main loop reached (messages continue)
+[ ] ✅ No reset after 10 seconds
+[ ] ✅ No reset after 1 minute
+[ ] ✅ Stable for 5+ minutes
+
+────────────────────────────────────────────────────────────────────────────
+FAILURE INDICATORS (If ANY occur, REPORT):
+────────────────────────────────────────────────────────────────────────────
+[ ] ❌ Repeated "entry 0x403c98d0" with no progress
+[ ] ❌ Multiple "rst:0x3" reset messages
+[ ] ❌ No "EARLY BOOT" message after 5 seconds
+[ ] ❌ Firmware version NOT "2.17.3"
+[ ] ❌ System hangs (no new messages)
+[ ] ❌ Unexpected reset during initialization
+
+────────────────────────────────────────────────────────────────────────────
+STEP 5: VERIFY PSRAM FUNCTIONALITY
+────────────────────────────────────────────────────────────────────────────
+[ ] Check PSRAM detection in serial output
+    ✅ Should see: "✅ PSRAM DETECTADA Y HABILITADA"
+    ✅ Should see: "PSRAM Total: XXXXX bytes (8.00 MB)"
+
+[ ] Check PSRAM usage
+    ✅ Free PSRAM should be close to total (little usage at boot)
+
+[ ] Monitor for PSRAM errors
+    ❌ Should NOT see: "PSRAM allocation failed"
+    ❌ Should NOT see: "PSRAM NO DETECTADA" (unless hardware has none)
+
+────────────────────────────────────────────────────────────────────────────
+STEP 6: STABILITY TEST
+────────────────────────────────────────────────────────────────────────────
+[ ] Let device run for 5 minutes minimum
+
+[ ] Check for unexpected resets
+    ✅ Should see periodic memory logs every 30 seconds
+    ❌ Should NOT see any "rst:0x" messages
+
+[ ] Monitor resource usage
+    ✅ Heap should remain stable
+    ✅ PSRAM usage should be reasonable
+
+────────────────────────────────────────────────────────────────────────────
+STEP 7: TEST OTHER ENVIRONMENTS (Optional)
+────────────────────────────────────────────────────────────────────────────
+[ ] Test main debug environment
+    pio run -e esp32-s3-n16r8 -t upload
+
+[ ] Test release environment
+    pio run -e esp32-s3-n16r8-release -t upload
+
+[ ] Verify all environments boot successfully
+
+────────────────────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+────────────────────────────────────────────────────────────────────────────
+
+IF STILL BOOTLOOPING:
+1. Try fullclean build:
+   pio run -e esp32-s3-n16r8-standalone-debug -t fullclean
+   pio run -e esp32-s3-n16r8-standalone-debug
+
+2. Check sdkconfig was applied:
+   Look in .pio/build/esp32-s3-n16r8-standalone-debug/sdkconfig
+   Should have: CONFIG_SPIRAM_MEMTEST=n
+
+3. Try even higher timeout:
+   Edit sdkconfig/n16r8.defaults
+   Change: CONFIG_ESP_INT_WDT_TIMEOUT_MS=10000
+
+4. Check hardware:
+   - PSRAM properly installed?
+   - USB cable good?
+   - Power supply adequate?
+
+────────────────────────────────────────────────────────────────────────────
+DOCUMENTATION
+────────────────────────────────────────────────────────────────────────────
+Quick Reference:    BOOTLOOP_QUICKFIX_v2.17.3.md
+Technical Details:  BOOTLOOP_FIX_v2.17.3.md
+Executive Summary:  BOOTLOOP_FIX_FINAL_v2.17.3.md
+
+────────────────────────────────────────────────────────────────────────────
+REPORT RESULTS
+────────────────────────────────────────────────────────────────────────────
+After testing, please report:
+[ ] ✅ SUCCESS - Device boots without loop
+[ ] ❌ FAILED - Still bootlooping (include serial output)
+[ ] ⚠️  PARTIAL - Boots but has other issues (describe)
+
+Copy relevant serial output and attach to issue or PR.
+
+────────────────────────────────────────────────────────────────────────────
+END OF CHECKLIST
+────────────────────────────────────────────────────────────────────────────

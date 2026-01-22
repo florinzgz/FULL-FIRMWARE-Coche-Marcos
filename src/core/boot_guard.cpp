@@ -1,5 +1,4 @@
 #include "boot_guard.h"
-#include "logger.h"
 #include "obstacle_config.h"
 #include "pins.h"
 #include <Arduino.h>
@@ -22,11 +21,13 @@ struct BootCounterData {
   uint32_t firstBootMs;   // Timestamp of first boot in sequence
   uint32_t lastBootMs;    // Timestamp of last boot
   bool safeModeRequested; // Flag to enter safe mode
+  uint8_t resetMarker;    // Persisted reset marker for diagnostics
 };
 
 // RTC memory - survives warm reset, cleared on power cycle
 static RTC_NOINIT_ATTR BootCounterData bootCounterData;
 static constexpr uint32_t BOOT_COUNTER_MAGIC = 0xB007C047; // "BOOT COTR"
+static constexpr uint32_t RESET_MARKER_MAGIC = 0xB007C048; // "BOOT MARK"
 
 void BootGuard::applyXshutStrappingGuard() {
   // v2.15.0: TOFSense-M S migration - No XSHUT pins needed (UART sensor)
@@ -50,8 +51,9 @@ void BootGuard::applyXshutStrappingGuard() {
 #endif
 
   // No action needed - TOFSense-M S doesn't use XSHUT pins
-  Logger::info(
-      "BootGuard: XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
+  // v2.17.3: Removed Logger call - can be called before Logger::init()
+  Serial.println(
+      "[BootGuard] XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
 }
 
 // ============================================================================
@@ -59,23 +61,33 @@ void BootGuard::applyXshutStrappingGuard() {
 // ============================================================================
 
 void BootGuard::initBootCounter() {
+  // v2.17.3: Use Serial instead of Logger - can be called before Logger::init()
   // Check if RTC memory has valid data
   if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
+    auto preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+    if (bootCounterData.magic == RESET_MARKER_MAGIC) {
+      preservedMarker = bootCounterData.resetMarker;
+      if (preservedMarker > static_cast<uint8_t>(RESET_MARKER_MAX_VALUE)) {
+        preservedMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+      }
+    }
     // First boot or power cycle - initialize
     bootCounterData.magic = BOOT_COUNTER_MAGIC;
     bootCounterData.bootCount = 0;
     bootCounterData.firstBootMs = 0;
     bootCounterData.lastBootMs = 0;
     bootCounterData.safeModeRequested = false;
-    Logger::info(
-        "BootGuard: Boot counter initialized (power cycle or first boot)");
+    bootCounterData.resetMarker = preservedMarker;
+    Serial.println(
+        "[BootGuard] Boot counter initialized (power cycle or first boot)");
   } else {
-    Logger::infof("BootGuard: Boot counter found - %d previous boots",
+    Serial.printf("[BootGuard] Boot counter found - %d previous boots\n",
                   bootCounterData.bootCount);
   }
 }
 
 void BootGuard::incrementBootCounter() {
+  // v2.17.3: Use Serial instead of Logger - can be called before Logger::init()
   uint32_t now = millis();
 
   // If this is the first boot in the sequence, record timestamp
@@ -83,7 +95,7 @@ void BootGuard::incrementBootCounter() {
     bootCounterData.firstBootMs = now;
     bootCounterData.lastBootMs = now;
     bootCounterData.bootCount = 1;
-    Logger::info("BootGuard: Starting new boot sequence");
+    Serial.println("[BootGuard] Starting new boot sequence");
     return;
   }
 
@@ -96,8 +108,8 @@ void BootGuard::incrementBootCounter() {
     bootCounterData.lastBootMs = now;
     bootCounterData.bootCount = 1;
     bootCounterData.safeModeRequested = false;
-    Logger::info(
-        "BootGuard: Boot detection window expired - resetting counter");
+    Serial.println(
+        "[BootGuard] Boot detection window expired - resetting counter");
     return;
   }
 
@@ -105,22 +117,24 @@ void BootGuard::incrementBootCounter() {
   bootCounterData.bootCount++;
   bootCounterData.lastBootMs = now;
 
-  Logger::infof("BootGuard: Boot #%d within %lu ms", bootCounterData.bootCount,
-                timeSinceFirst);
+  Serial.printf("[BootGuard] Boot #%d within %lu ms\n",
+                bootCounterData.bootCount, timeSinceFirst);
 
   // Check for bootloop condition
   if (bootCounterData.bootCount >= BOOTLOOP_DETECTION_THRESHOLD) {
     bootCounterData.safeModeRequested = true;
-    Logger::errorf("BootGuard: BOOTLOOP DETECTED - %d boots in %lu ms",
-                   bootCounterData.bootCount, timeSinceFirst);
-    Logger::error("BootGuard: Safe mode will be activated");
+    Serial.printf(
+        "[BootGuard] WARNING: BOOTLOOP DETECTED - %d boots in %lu ms\n",
+        bootCounterData.bootCount, timeSinceFirst);
+    Serial.println("[BootGuard] Safe mode will be activated");
   }
 }
 
 void BootGuard::clearBootCounter() {
+  // v2.17.3: Use Serial instead of Logger - Logger may not be initialized yet
   // Called from loop() to indicate successful boot
   if (bootCounterData.bootCount > 0) {
-    Logger::infof("BootGuard: Boot successful - clearing counter (was %d)",
+    Serial.printf("[BootGuard] Boot successful - clearing counter (was %d)\n",
                   bootCounterData.bootCount);
   }
 
@@ -138,4 +152,41 @@ bool BootGuard::isBootloopDetected() {
 
 bool BootGuard::shouldEnterSafeMode() {
   return bootCounterData.safeModeRequested;
+}
+
+void BootGuard::setResetMarker(ResetMarker marker) {
+  if (bootCounterData.magic != BOOT_COUNTER_MAGIC) {
+    // Preserve marker via a temporary magic value until initBootCounter() runs.
+    bootCounterData.magic = RESET_MARKER_MAGIC;
+  }
+  bootCounterData.resetMarker = static_cast<uint8_t>(marker);
+}
+
+BootGuard::ResetMarker BootGuard::getResetMarker() {
+  return static_cast<ResetMarker>(bootCounterData.resetMarker);
+}
+
+void BootGuard::clearResetMarker() {
+  bootCounterData.resetMarker = static_cast<uint8_t>(RESET_MARKER_NONE);
+}
+
+void BootGuard::logResetMarker() {
+  ResetMarker marker = getResetMarker();
+  switch (marker) {
+  case RESET_MARKER_EXPLICIT_RESTART:
+    Serial.println("[BootGuard] Reset marker: explicit restart");
+    break;
+  case RESET_MARKER_WATCHDOG_LOOP:
+    Serial.println("[BootGuard] Reset marker: watchdog timeout expected");
+    break;
+  case RESET_MARKER_I2C_PREINIT:
+    Serial.println("[BootGuard] Reset marker: I2C used before init");
+    break;
+  case RESET_MARKER_NULL_POINTER:
+    Serial.println("[BootGuard] Reset marker: null pointer guard hit");
+    break;
+  case RESET_MARKER_NONE:
+  default:
+    break;
+  }
 }

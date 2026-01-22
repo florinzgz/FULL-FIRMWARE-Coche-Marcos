@@ -7,11 +7,12 @@
 // ============================================================================
 
 // Firmware version string (semantic versioning)
+// v2.17.3: Bootloop fix - Disabled PSRAM memtest, increased INT_WDT to 5000ms
 // v2.11.3: Stack overflow fixes - IPC stack increase, logger buffer reduction,
 // watchdog feeds
-#define FIRMWARE_VERSION "2.11.3"
+#define FIRMWARE_VERSION "2.17.3"
 #define FIRMWARE_VERSION_MAJOR 2
-#define FIRMWARE_VERSION_MINOR 11
+#define FIRMWARE_VERSION_MINOR 17
 #define FIRMWARE_VERSION_PATCH 3
 
 // Build date (automatically set at compile time)

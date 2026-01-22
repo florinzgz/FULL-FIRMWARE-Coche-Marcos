@@ -40,6 +40,7 @@ struct DeviceState {
  * Configura pines SDA/SCL para bus recovery y estados de dispositivos.
  */
 void init();
+bool isInitialized();
 
 /**
  * @brief Selecciona canal TCA9548A con timeout y recovery

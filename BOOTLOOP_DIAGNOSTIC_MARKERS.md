@@ -14,6 +14,12 @@ This system uses binary character markers (`Serial.write()`) to identify exactly
 2. **Survive partial serial buffer loss** - Simple characters are easier to capture
 3. **Work even if crash occurs mid-print** - No string formatting overhead
 
+In addition, the firmware now persists a **reset marker** in RTC memory. When a
+critical error exceeds the maximum retry count, the system stops feeding the
+watchdog to force a reset and records `RESET_MARKER_WATCHDOG_LOOP` for the next
+boot log. This behavior is intentional and should be accounted for in
+telemetry/monitoring workflows.
+
 ---
 
 ## Marker Map

@@ -10,11 +10,13 @@
 #include "managers/SafetyManager.h"
 #include "managers/SensorManager.h"
 #include "managers/TelemetryManager.h"
+#include "pins.h"
 #include "watchdog.h"
 #include <Arduino.h>
 
 // Include core system components for proper boot sequence
 #include "boot_guard.h" // 🔒 v2.17.1: Boot counter for bootloop detection
+#include "i2c_recovery.h"
 #include "storage.h"
 #include "system.h"
 
@@ -25,6 +27,12 @@ namespace CriticalErrorConfig {
 constexpr uint8_t MAX_RETRIES = 3;
 constexpr uint32_t RETRY_DELAY_MS = 5000;
 } // namespace CriticalErrorConfig
+
+namespace DisplayBootConfig {
+constexpr uint32_t TFT_RESET_PULSE_MS = 10;
+constexpr uint32_t TFT_RESET_RECOVERY_MS = 50;
+constexpr uint32_t TFT_RESET_STABILIZATION_MS = 10;
+} // namespace DisplayBootConfig
 
 // Forward declarations
 void initializeSystem();
@@ -47,6 +55,21 @@ void setup() {
     ;
   }
 
+  Serial.println("[BOOT] Enabling TFT backlight...");
+  pinMode(PIN_TFT_BL, OUTPUT);
+  digitalWrite(PIN_TFT_BL, HIGH);
+  // PWM setup in HUDManager::init will override this, but keep the backlight on
+  // immediately so boot progress is visible even if init fails.
+
+  Serial.println("[BOOT] Resetting TFT display...");
+  pinMode(PIN_TFT_RST, OUTPUT);
+  digitalWrite(PIN_TFT_RST, HIGH);
+  delay(DisplayBootConfig::TFT_RESET_STABILIZATION_MS);
+  digitalWrite(PIN_TFT_RST, LOW);
+  delay(DisplayBootConfig::TFT_RESET_PULSE_MS);
+  digitalWrite(PIN_TFT_RST, HIGH);
+  delay(DisplayBootConfig::TFT_RESET_RECOVERY_MS);
+
   // 🔍 DIAGNOSTIC MARKER A: Serial initialized
   Serial.write('A');
   Serial.flush();
@@ -58,6 +81,8 @@ void setup() {
 
   // 🔒 v2.17.1: Initialize and check boot counter BEFORE any other init
   BootGuard::initBootCounter();
+  BootGuard::logResetMarker();
+  BootGuard::clearResetMarker();
   BootGuard::incrementBootCounter();
 
   if (BootGuard::isBootloopDetected()) {
@@ -76,6 +101,7 @@ void setup() {
   Storage::init();
   Watchdog::init();
   Watchdog::feed();
+  I2CRecovery::init();
 
   // 🔍 DIAGNOSTIC MARKER C: Core systems initialized
   Serial.write('C');
@@ -283,6 +309,7 @@ void handleCriticalError(const char *errorMsg) {
     Logger::errorf("Critical error: Max retries reached (%d/%d)", retryCount,
                    CriticalErrorConfig::MAX_RETRIES);
     Logger::error("Allowing watchdog timeout for system reset");
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_WATCHDOG_LOOP);
 
 #ifndef STANDALONE_DISPLAY
     HUDManager::showError("Critical error: System failed after max retries");
@@ -318,6 +345,7 @@ void handleCriticalError(const char *errorMsg) {
   }
 
   Logger::info("Attempting system restart...");
+  BootGuard::setResetMarker(BootGuard::RESET_MARKER_EXPLICIT_RESTART);
   Serial.println("[CRITICAL ERROR] Restarting...");
   Serial.flush();
 

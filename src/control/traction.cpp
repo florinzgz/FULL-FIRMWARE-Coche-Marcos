@@ -1,6 +1,8 @@
 #include "traction.h"
 #include "adaptive_cruise.h"
+#include "boot_guard.h"
 #include "current.h"
+#include "i2c_recovery.h"
 #include "logger.h"
 #include "mcp23017_manager.h"
 #include "obstacle_safety.h"
@@ -197,6 +199,13 @@ inline bool isTempValid(float tempC) {
 } // namespace
 
 void Traction::init() {
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("Traction: I2C not initialized before PCA9685 init");
+    initialized = false;
+    return;
+  }
+
   s = {};
   for (int i = 0; i < 4; ++i) {
     s.w[i] = {};

@@ -1,5 +1,7 @@
 #include "steering_motor.h"
+#include "boot_guard.h"
 #include "current.h"
+#include "i2c_recovery.h"
 #include "logger.h"
 #include "mcp23017_manager.h"
 #include "pins.h"
@@ -41,6 +43,13 @@ static uint16_t pctToTicks(float pct) {
 }
 
 void SteeringMotor::init() {
+  if (!I2CRecovery::isInitialized()) {
+    BootGuard::setResetMarker(BootGuard::RESET_MARKER_I2C_PREINIT);
+    Logger::error("SteeringMotor: I2C not initialized before PCA9685 init");
+    initialized = false;
+    return;
+  }
+
   // NOTA: Wire.begin() ya se llama en main.cpp vía I2CRecovery::init()
   // No llamar Wire.begin() aquí para evitar resetear configuración I2C
 

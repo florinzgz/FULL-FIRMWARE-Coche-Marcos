@@ -161,6 +161,7 @@
 - Alimentación: 5V (o 12V según modelo)
 - Salida: NPN normalmente abierta
 - 6 tornillos por rueda = 6 pulsos/revolución
+- Diámetro de rueda: 110 cm (circunferencia calculada en firmware)
 - Distancia máxima detección: 4mm
 
 ### Encoder E6B2-CWZ6C 1200PR (Dirección)
