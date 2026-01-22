@@ -1,7 +1,7 @@
 # Integración ESP32-S3 + STM32G474RE por CAN (TJA1051T/3)
 
-**Fecha:** 2026-01-22 (fecha de estudio en este repositorio)  
-**Versión firmware base analizada:** v2.17.1 (PHASE 14, según README.md; docs/README.md aún indica v2.15.0)  
+**Fecha:** 2026-01-22 (ISO 8601, enero 2026)  
+**Versión firmware base analizada:** v2.17.1 (PHASE 14, README.md). Nota: docs/README.md aún indica v2.15.0.  
 
 Este documento cumple el requisito de **estudio previo** del firmware actual y
 define una **arquitectura de integración ESP32-S3 + STM32G474RE** basada en los
@@ -179,7 +179,8 @@ Basado en `src/managers/*.h`:
 **CAN (FDCAN1 o FDCAN2):**
 - Conexión al transceptor **TJA1051T/3**.
 - Línea CANH/CANL compartida con ESP32 via transceptor propio.
-- Velocidad recomendada inicial: **500 kbps** (estable en automoción).
+- Velocidad recomendada inicial: **500 kbps** (estable). **1 Mbps** es común
+  en automoción moderna si la carga y el cableado lo permiten.
 
 **GPIO habilitación transceptor (recomendado):**
 - `CAN_STB`/`EN` del TJA1051T/3 controlado por STM32 para fail-safe.
@@ -291,7 +292,7 @@ Cada fase debe poder **revertirse** cambiando un backend/flag.
 | Riesgo | Impacto | Mitigación |
 | --- | --- | --- |
 | Divergencia de sensores ESP32/STM32 | decisiones inconsistentes | Fase 1 con comparación y logs |
-| Pérdida de CAN | pérdida de control | STM32 entra en safe + relés off |
+| Pérdida de CAN | pérdida de control | STM32 entra en safe + relés off tras **100 ms** sin heartbeat |
 | Latencia CAN | control inestable | Periodos ≤20 ms + watchdog |
 | Integración relés | apagado incorrecto | STM32 controla TRAC/DIR, ESP32 solo power-hold |
 | Bootloop por cambios | sistema no arranca | Mantener init actual + backends selectivos |
