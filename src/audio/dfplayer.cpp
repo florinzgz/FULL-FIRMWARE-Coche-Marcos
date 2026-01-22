@@ -16,11 +16,12 @@ constexpr uint8_t DFPLAYER_MSG_PLAY_FINISHED = 0x3D;
 constexpr uint8_t DFPLAYER_MSG_FEEDBACK = 0x3F;
 
 #ifndef DISABLE_SENSORS
-// DFPlayer instance and Serial for communication
-// Only instantiate in full vehicle mode to prevent bootloop
-static DFRobotDFPlayerMini dfPlayer;
-static HardwareSerial
-    DFSerial(1); // UART1 for DFPlayer (v2.12.0: migrado de UART0)
+// 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
+// Global constructors DFRobotDFPlayerMini() and HardwareSerial(1) were causing
+// "Stack canary watchpoint triggered (ipc0)" by initializing UART peripheral before main()
+// Now using pointers that are allocated in init() after FreeRTOS is ready
+static DFRobotDFPlayerMini *dfPlayer = nullptr;
+static HardwareSerial *DFSerial = nullptr; // UART1 for DFPlayer (v2.12.0: migrado de UART0)
 #endif
 
 // Flag de inicialización
@@ -32,15 +33,38 @@ void Audio::DFPlayer::init() {
   initialized = true;
   return;
 #else
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate DFPlayer and HardwareSerial NOW
+  // This prevents "Stack canary watchpoint triggered (ipc0)" by deferring UART
+  // initialization until after FreeRTOS and heap are ready
+  if (DFSerial == nullptr) {
+    DFSerial = new (std::nothrow) HardwareSerial(1);
+    if (DFSerial == nullptr) {
+      Logger::error("DFPlayer: Failed to allocate HardwareSerial object");
+      System::logError(699);
+      initialized = false;
+      return;
+    }
+  }
+  
+  if (dfPlayer == nullptr) {
+    dfPlayer = new (std::nothrow) DFRobotDFPlayerMini();
+    if (dfPlayer == nullptr) {
+      Logger::error("DFPlayer: Failed to allocate DFRobotDFPlayerMini object");
+      System::logError(699);
+      initialized = false;
+      return;
+    }
+  }
+
   // Initialize Serial port for DFPlayer on UART1 pins (GPIO 18/17)
   // ✅ v2.12.0: Migrado de UART0 (GPIO 43/44) a UART1 (GPIO 18/17)
   // - Libera UART0 nativo para TOFSense-M S LiDAR
   // - GPIO 18 = TX (envía comandos al DFPlayer)
   // - GPIO 17 = RX (recibe respuestas del DFPlayer)
-  DFSerial.begin(9600, SERIAL_8N1, PIN_DFPLAYER_RX, PIN_DFPLAYER_TX);
+  DFSerial->begin(9600, SERIAL_8N1, PIN_DFPLAYER_RX, PIN_DFPLAYER_TX);
 
   // Initialize DFPlayer with actual hardware check
-  bool ok = dfPlayer.begin(DFSerial); // Actual initialization result
+  bool ok = dfPlayer->begin(*DFSerial); // Actual initialization result
   if (!ok) {
     Logger::errorf("DFPlayer init failed on UART1");
     System::logError(700); // código reservado: fallo init
@@ -71,7 +95,7 @@ void Audio::DFPlayer::play(uint16_t track) {
     return;
   }
 
-  bool ready = dfPlayer.available(); // Check actual status
+  bool ready = dfPlayer->available(); // Check actual status
   if (!ready) {
     Logger::warnf("DFPlayer not ready, cannot play track %u", (unsigned)track);
     System::logError(701);
@@ -79,7 +103,7 @@ void Audio::DFPlayer::play(uint16_t track) {
   }
 
   // Play track using DFPlayer library
-  dfPlayer.play(track);
+  dfPlayer->play(track);
   Logger::infof("DFPlayer play track %u", (unsigned)track);
 #endif
 }
@@ -92,9 +116,9 @@ void Audio::DFPlayer::update() {
   if (!initialized) return;
 
   // Check for messages from DFPlayer
-  if (dfPlayer.available()) {
-    uint8_t type = dfPlayer.readType(); // Read message type
-    int value = dfPlayer.read();        // Read message value
+  if (dfPlayer->available()) {
+    uint8_t type = dfPlayer->readType(); // Read message type
+    int value = dfPlayer->read();        // Read message value
 
     // Log errors (types >= 0x01 are typically errors/notifications)
     // Ignore normal playback feedback messages

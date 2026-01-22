@@ -11,7 +11,7 @@
 #include <TFT_eSPI.h>
 
 // Forward declaration of TFT instance (shared with HUD)
-extern TFT_eSPI tft;
+extern TFT_eSPI *tft;
 
 // Static member definitions
 bool MenuPowerConfig::needsRedraw = true;
@@ -67,14 +67,14 @@ void MenuPowerConfig::draw() {
   // By the time this menu is accessed, TFT is guaranteed to be initialized
   // If called prematurely during boot, the worst case is a visual glitch
 
-  tft.fillScreen(COLOR_BG);
+  tft->fillScreen(COLOR_BG);
 
   // Header
-  tft.setTextDatum(TC_DATUM);
-  tft.setTextColor(COLOR_ACCENT, COLOR_BG);
-  tft.drawString("POWER CONFIGURATION", 240, HEADER_Y, 4);
+  tft->setTextDatum(TC_DATUM);
+  tft->setTextColor(COLOR_ACCENT, COLOR_BG);
+  tft->drawString("POWER CONFIGURATION", 240, HEADER_Y, 4);
 
-  tft.drawLine(20, 42, 460, 42, TFT_DARKGREY);
+  tft->drawLine(20, 42, 460, 42, TFT_DARKGREY);
 
   // Draw sliders
   drawSlider(SLIDER_X, SLIDER_Y_START, "Power Hold:", powerHoldDelay, 100,
@@ -140,12 +140,12 @@ void MenuPowerConfig::handleTouch(uint16_t x, uint16_t y) {
 void MenuPowerConfig::drawSlider(uint16_t x, uint16_t y, const char *label,
                                  uint16_t value, uint16_t min, uint16_t max) {
   // Draw label
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString(label, LABEL_X, y + 5, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString(label, LABEL_X, y + 5, 2);
 
   // Draw slider background
-  tft.fillRoundRect(x, y, SLIDER_WIDTH, SLIDER_HEIGHT, 5, COLOR_INACTIVE);
+  tft->fillRoundRect(x, y, SLIDER_WIDTH, SLIDER_HEIGHT, 5, COLOR_INACTIVE);
 
   // Calculate fill width
   uint16_t fillWidth = ((uint32_t)(value - min) * SLIDER_WIDTH) / (max - min);
@@ -156,17 +156,17 @@ void MenuPowerConfig::drawSlider(uint16_t x, uint16_t y, const char *label,
   if (value > (max * 2 / 3)) fillColor = COLOR_WARNING;
   if (value > (max * 9 / 10)) fillColor = COLOR_DANGER;
 
-  tft.fillRoundRect(x, y, fillWidth, SLIDER_HEIGHT, 5, fillColor);
+  tft->fillRoundRect(x, y, fillWidth, SLIDER_HEIGHT, 5, fillColor);
 
   // Draw border
-  tft.drawRoundRect(x, y, SLIDER_WIDTH, SLIDER_HEIGHT, 5, COLOR_TEXT);
+  tft->drawRoundRect(x, y, SLIDER_WIDTH, SLIDER_HEIGHT, 5, COLOR_TEXT);
 
   // Draw value
   char valueStr[16];
   snprintf(valueStr, sizeof(valueStr), "%d ms", value);
-  tft.setTextDatum(TR_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString(valueStr, x + SLIDER_WIDTH + 80, y + 5, 2);
+  tft->setTextDatum(TR_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString(valueStr, x + SLIDER_WIDTH + 80, y + 5, 2);
 }
 
 void MenuPowerConfig::drawTestButtons() {
@@ -176,21 +176,21 @@ void MenuPowerConfig::drawTestButtons() {
                        (activeTest == 3) ? COLOR_DANGER : COLOR_INACTIVE,
                        TFT_DARKGREY};
 
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Test Relays:", LABEL_X, TEST_BTN_Y + 10, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Test Relays:", LABEL_X, TEST_BTN_Y + 10, 2);
 
   for (int i = 0; i < 4; i++) {
     uint16_t btnX = 100 + i * 90;
     uint16_t btnW = (i == 3) ? 100 : 80;
 
-    tft.fillRoundRect(btnX, TEST_BTN_Y, btnW, 40, 5, colors[i]);
-    tft.drawRoundRect(btnX, TEST_BTN_Y, btnW, 40, 5, COLOR_TEXT);
+    tft->fillRoundRect(btnX, TEST_BTN_Y, btnW, 40, 5, colors[i]);
+    tft->drawRoundRect(btnX, TEST_BTN_Y, btnW, 40, 5, COLOR_TEXT);
 
-    tft.setTextDatum(MC_DATUM);
-    tft.setTextColor((activeTest == i + 1 && i < 3) ? COLOR_BG : COLOR_TEXT,
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor((activeTest == i + 1 && i < 3) ? COLOR_BG : COLOR_TEXT,
                      colors[i]);
-    tft.drawString(labels[i], btnX + btnW / 2, TEST_BTN_Y + 20, 2);
+    tft->drawString(labels[i], btnX + btnW / 2, TEST_BTN_Y + 20, 2);
   }
 
   // Test status indicator
@@ -199,59 +199,59 @@ void MenuPowerConfig::drawTestButtons() {
     char statusStr[32];
     snprintf(statusStr, sizeof(statusStr), "Testing... %lus",
              (unsigned long)elapsed);
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(COLOR_ACTIVE, COLOR_BG);
-    tft.drawString(statusStr, 100, TEST_BTN_Y + 45, 1);
+    tft->setTextDatum(TL_DATUM);
+    tft->setTextColor(COLOR_ACTIVE, COLOR_BG);
+    tft->drawString(statusStr, 100, TEST_BTN_Y + 45, 1);
   }
 }
 
 void MenuPowerConfig::drawActionButtons() {
   // Save button
-  tft.fillRoundRect(20, ACTION_BTN_Y, 120, BUTTON_HEIGHT, 5, COLOR_ACTIVE);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(COLOR_BG, COLOR_ACTIVE);
-  tft.drawString("SAVE", 80, ACTION_BTN_Y + BUTTON_HEIGHT / 2, 2);
+  tft->fillRoundRect(20, ACTION_BTN_Y, 120, BUTTON_HEIGHT, 5, COLOR_ACTIVE);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(COLOR_BG, COLOR_ACTIVE);
+  tft->drawString("SAVE", 80, ACTION_BTN_Y + BUTTON_HEIGHT / 2, 2);
 
   // Reset button
-  tft.fillRoundRect(170, ACTION_BTN_Y, 120, BUTTON_HEIGHT, 5, COLOR_WARNING);
-  tft.setTextColor(COLOR_BG, COLOR_WARNING);
-  tft.drawString("RESET", 230, ACTION_BTN_Y + BUTTON_HEIGHT / 2, 2);
+  tft->fillRoundRect(170, ACTION_BTN_Y, 120, BUTTON_HEIGHT, 5, COLOR_WARNING);
+  tft->setTextColor(COLOR_BG, COLOR_WARNING);
+  tft->drawString("RESET", 230, ACTION_BTN_Y + BUTTON_HEIGHT / 2, 2);
 
   // Back button
-  tft.fillRoundRect(340, ACTION_BTN_Y, 120, BUTTON_HEIGHT, 5, TFT_DARKGREY);
-  tft.setTextColor(COLOR_TEXT, TFT_DARKGREY);
-  tft.drawString("BACK", 400, ACTION_BTN_Y + BUTTON_HEIGHT / 2, 2);
+  tft->fillRoundRect(340, ACTION_BTN_Y, 120, BUTTON_HEIGHT, 5, TFT_DARKGREY);
+  tft->setTextColor(COLOR_TEXT, TFT_DARKGREY);
+  tft->drawString("BACK", 400, ACTION_BTN_Y + BUTTON_HEIGHT / 2, 2);
 }
 
 void MenuPowerConfig::drawCurrentValues() {
   // Current relay states
   auto relayState = Relays::get();
 
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
 
   // Draw status indicators
   int statusY = TEST_BTN_Y + 50;
 
   // Power Hold status
-  tft.fillCircle(110, statusY, 6,
+  tft->fillCircle(110, statusY, 6,
                  relayState.mainOn ? COLOR_ACTIVE : COLOR_DANGER);
-  tft.drawString("Main", 120, statusY - 6, 1);
+  tft->drawString("Main", 120, statusY - 6, 1);
 
   // 12V Aux status
-  tft.fillCircle(180, statusY, 6,
+  tft->fillCircle(180, statusY, 6,
                  relayState.steeringOn ? COLOR_ACTIVE : COLOR_INACTIVE);
-  tft.drawString("Steer", 190, statusY - 6, 1);
+  tft->drawString("Steer", 190, statusY - 6, 1);
 
   // 24V Traction status
-  tft.fillCircle(250, statusY, 6,
+  tft->fillCircle(250, statusY, 6,
                  relayState.tractionOn ? COLOR_ACTIVE : COLOR_INACTIVE);
-  tft.drawString("Traction", 260, statusY - 6, 1);
+  tft->drawString("Traction", 260, statusY - 6, 1);
 
   // Lights status
-  tft.fillCircle(330, statusY, 6,
+  tft->fillCircle(330, statusY, 6,
                  relayState.lightsOn ? COLOR_WARNING : COLOR_INACTIVE);
-  tft.drawString("Lights", 340, statusY - 6, 1);
+  tft->drawString("Lights", 340, statusY - 6, 1);
 }
 
 bool MenuPowerConfig::handleSliderTouch(uint16_t x, uint16_t y,

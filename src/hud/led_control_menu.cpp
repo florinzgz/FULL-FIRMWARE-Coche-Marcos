@@ -12,7 +12,7 @@
 #include <TFT_eSPI.h>
 
 // Forward declaration of TFT instance (shared with HUD)
-extern TFT_eSPI tft;
+extern TFT_eSPI *tft;
 
 // Colors
 static const uint16_t COLOR_BG = TFT_BLACK;
@@ -114,14 +114,14 @@ bool LEDControlMenu::handleTouch(uint16_t x, uint16_t y) {
 }
 
 void LEDControlMenu::drawUI() {
-  tft.fillScreen(COLOR_BG);
+  tft->fillScreen(COLOR_BG);
 
   // Header
-  tft.setTextDatum(TC_DATUM);
-  tft.setTextColor(COLOR_ACCENT, COLOR_BG);
-  tft.drawString("LED CONTROL", 200, HEADER_Y, 4);
+  tft->setTextDatum(TC_DATUM);
+  tft->setTextColor(COLOR_ACCENT, COLOR_BG);
+  tft->drawString("LED CONTROL", 200, HEADER_Y, 4);
 
-  tft.drawLine(10, 35, 390, 35, TFT_DARKGREY);
+  tft->drawLine(10, 35, 390, 35, TFT_DARKGREY);
 
   drawPatternButtons();
   drawBrightnessSlider();
@@ -131,9 +131,9 @@ void LEDControlMenu::drawUI() {
 }
 
 void LEDControlMenu::drawPatternButtons() {
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Pattern:", 10, PATTERN_Y + 20, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Pattern:", 10, PATTERN_Y + 20, 2);
 
   // Draw 8 pattern buttons in 2 rows of 4
   for (int i = 0; i < NUM_PATTERNS; i++) {
@@ -145,68 +145,68 @@ void LEDControlMenu::drawPatternButtons() {
     uint16_t btnColor = (i == currentPattern) ? COLOR_SELECTED : TFT_DARKGREY;
     uint16_t textColor = (i == currentPattern) ? COLOR_BG : COLOR_TEXT;
 
-    tft.fillRoundRect(btnX, btnY, PATTERN_BTN_W, PATTERN_BTN_H, 4, btnColor);
-    tft.drawRoundRect(btnX, btnY, PATTERN_BTN_W, PATTERN_BTN_H, 4, COLOR_TEXT);
+    tft->fillRoundRect(btnX, btnY, PATTERN_BTN_W, PATTERN_BTN_H, 4, btnColor);
+    tft->drawRoundRect(btnX, btnY, PATTERN_BTN_W, PATTERN_BTN_H, 4, COLOR_TEXT);
 
-    tft.setTextDatum(MC_DATUM);
-    tft.setTextColor(textColor, btnColor);
-    tft.drawString(PATTERN_NAMES[i], btnX + PATTERN_BTN_W / 2,
+    tft->setTextDatum(MC_DATUM);
+    tft->setTextColor(textColor, btnColor);
+    tft->drawString(PATTERN_NAMES[i], btnX + PATTERN_BTN_W / 2,
                    btnY + PATTERN_BTN_H / 2, 1);
   }
 }
 
 void LEDControlMenu::drawBrightnessSlider() {
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Bright:", 10, BRIGHTNESS_Y + 8, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Bright:", 10, BRIGHTNESS_Y + 8, 2);
 
   // Background
-  tft.fillRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5,
+  tft->fillRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5,
                     COLOR_SLIDER_BG);
 
   // Filled portion
   int fillW = (brightness * SLIDER_W) / 255;
-  tft.fillRoundRect(SLIDER_X, BRIGHTNESS_Y, fillW, SLIDER_H, 5, TFT_YELLOW);
+  tft->fillRoundRect(SLIDER_X, BRIGHTNESS_Y, fillW, SLIDER_H, 5, TFT_YELLOW);
 
   // Border
-  tft.drawRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5, COLOR_TEXT);
+  tft->drawRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5, COLOR_TEXT);
 
   // Value text
   char valueStr[8];
   snprintf(valueStr, sizeof(valueStr), "%d%%", (brightness * 100) / 255);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(COLOR_BG, TFT_YELLOW);
-  tft.drawString(valueStr, SLIDER_X + SLIDER_W / 2, BRIGHTNESS_Y + SLIDER_H / 2,
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(COLOR_BG, TFT_YELLOW);
+  tft->drawString(valueStr, SLIDER_X + SLIDER_W / 2, BRIGHTNESS_Y + SLIDER_H / 2,
                  2);
 }
 
 void LEDControlMenu::drawSpeedSlider() {
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Speed:", 10, SPEED_Y + 8, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Speed:", 10, SPEED_Y + 8, 2);
 
   // Background
-  tft.fillRoundRect(SLIDER_X, SPEED_Y, SLIDER_W, SLIDER_H, 5, COLOR_SLIDER_BG);
+  tft->fillRoundRect(SLIDER_X, SPEED_Y, SLIDER_W, SLIDER_H, 5, COLOR_SLIDER_BG);
 
   // Filled portion
   int fillW = (speed * SLIDER_W) / 255;
-  tft.fillRoundRect(SLIDER_X, SPEED_Y, fillW, SLIDER_H, 5, TFT_BLUE);
+  tft->fillRoundRect(SLIDER_X, SPEED_Y, fillW, SLIDER_H, 5, TFT_BLUE);
 
   // Border
-  tft.drawRoundRect(SLIDER_X, SPEED_Y, SLIDER_W, SLIDER_H, 5, COLOR_TEXT);
+  tft->drawRoundRect(SLIDER_X, SPEED_Y, SLIDER_W, SLIDER_H, 5, COLOR_TEXT);
 
   // Value text
   char valueStr[8];
   snprintf(valueStr, sizeof(valueStr), "%d%%", (speed * 100) / 255);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(COLOR_TEXT, TFT_BLUE);
-  tft.drawString(valueStr, SLIDER_X + SLIDER_W / 2, SPEED_Y + SLIDER_H / 2, 2);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(COLOR_TEXT, TFT_BLUE);
+  tft->drawString(valueStr, SLIDER_X + SLIDER_W / 2, SPEED_Y + SLIDER_H / 2, 2);
 }
 
 void LEDControlMenu::drawColorPicker() {
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Color:", 10, COLOR_Y + 10, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Color:", 10, COLOR_Y + 10, 2);
 
   // Draw preset color buttons
   for (int i = 0; i < NUM_PRESET_COLORS; i++) {
@@ -219,38 +219,38 @@ void LEDControlMenu::drawColorPicker() {
     drawColorButton(btnX, btnY, PRESET_COLORS[i]);
 
     if (isSelected) {
-      tft.drawRect(btnX - 2, btnY - 2, 34, 34, COLOR_SELECTED);
-      tft.drawRect(btnX - 1, btnY - 1, 32, 32, COLOR_SELECTED);
+      tft->drawRect(btnX - 2, btnY - 2, 34, 34, COLOR_SELECTED);
+      tft->drawRect(btnX - 1, btnY - 1, 32, 32, COLOR_SELECTED);
     }
   }
 
   // Current color preview
-  tft.fillRect(SLIDER_X + 290, COLOR_Y, 40, 30, rgb888to565(customColor));
-  tft.drawRect(SLIDER_X + 290, COLOR_Y, 40, 30, COLOR_TEXT);
+  tft->fillRect(SLIDER_X + 290, COLOR_Y, 40, 30, rgb888to565(customColor));
+  tft->drawRect(SLIDER_X + 290, COLOR_Y, 40, 30, COLOR_TEXT);
 }
 
 void LEDControlMenu::drawColorButton(int x, int y, uint32_t color) {
   uint16_t color565 = rgb888to565(color);
-  tft.fillRect(x, y, 30, 30, color565);
-  tft.drawRect(x, y, 30, 30, COLOR_TEXT);
+  tft->fillRect(x, y, 30, 30, color565);
+  tft->drawRect(x, y, 30, 30, COLOR_TEXT);
 }
 
 void LEDControlMenu::drawBackButton() {
-  tft.fillRoundRect(BACK_BTN_X, BACK_BTN_Y, BACK_BTN_W, BACK_BTN_H, 5,
+  tft->fillRoundRect(BACK_BTN_X, BACK_BTN_Y, BACK_BTN_W, BACK_BTN_H, 5,
                     TFT_DARKGREY);
-  tft.drawRoundRect(BACK_BTN_X, BACK_BTN_Y, BACK_BTN_W, BACK_BTN_H, 5,
+  tft->drawRoundRect(BACK_BTN_X, BACK_BTN_Y, BACK_BTN_W, BACK_BTN_H, 5,
                     COLOR_TEXT);
 
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(COLOR_TEXT, TFT_DARKGREY);
-  tft.drawString("BACK", BACK_BTN_X + BACK_BTN_W / 2,
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(COLOR_TEXT, TFT_DARKGREY);
+  tft->drawString("BACK", BACK_BTN_X + BACK_BTN_W / 2,
                  BACK_BTN_Y + BACK_BTN_H / 2, 2);
 
   // Save button
-  tft.fillRoundRect(10, BACK_BTN_Y, 80, BACK_BTN_H, 5, COLOR_SELECTED);
-  tft.drawRoundRect(10, BACK_BTN_Y, 80, BACK_BTN_H, 5, COLOR_TEXT);
-  tft.setTextColor(COLOR_BG, COLOR_SELECTED);
-  tft.drawString("SAVE", 50, BACK_BTN_Y + BACK_BTN_H / 2, 2);
+  tft->fillRoundRect(10, BACK_BTN_Y, 80, BACK_BTN_H, 5, COLOR_SELECTED);
+  tft->drawRoundRect(10, BACK_BTN_Y, 80, BACK_BTN_H, 5, COLOR_TEXT);
+  tft->setTextColor(COLOR_BG, COLOR_SELECTED);
+  tft->drawString("SAVE", 50, BACK_BTN_Y + BACK_BTN_H / 2, 2);
 }
 
 bool LEDControlMenu::handlePatternButtonTouch(uint16_t x, uint16_t y) {

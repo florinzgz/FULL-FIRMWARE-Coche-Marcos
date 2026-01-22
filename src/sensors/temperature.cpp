@@ -10,10 +10,12 @@
 extern Storage::Config cfg;
 
 #ifndef DISABLE_SENSORS
-// Only instantiate in full vehicle mode
-// These global constructors configure GPIO pins and could cause bootloop
-static OneWire oneWire(PIN_ONEWIRE);
-static DallasTemperature sensors(&oneWire);
+// 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
+// Global constructors OneWire(PIN) and DallasTemperature(&oneWire) were causing
+// "Stack canary watchpoint triggered (ipc0)" by setting GPIO modes before main()
+// Now using pointers that are allocated in initTemperature() after FreeRTOS is ready
+static OneWire *oneWire = nullptr;
+static DallasTemperature *sensors = nullptr;
 #endif
 
 static float lastTemp[Sensors::NUM_TEMPS];
@@ -43,6 +45,27 @@ void Sensors::initTemperature() {
   initialized = true;
   return;
 #else
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate OneWire and DallasTemperature NOW
+  // This prevents "Stack canary watchpoint triggered (ipc0)" by deferring GPIO
+  // initialization until after FreeRTOS and heap are ready
+  if (oneWire == nullptr) {
+    oneWire = new (std::nothrow) OneWire(PIN_ONEWIRE);
+    if (oneWire == nullptr) {
+      Logger::error("Temperature: Failed to allocate OneWire object");
+      System::logError(397);
+      return;
+    }
+  }
+  
+  if (sensors == nullptr) {
+    sensors = new (std::nothrow) DallasTemperature(oneWire);
+    if (sensors == nullptr) {
+      Logger::error("Temperature: Failed to allocate DallasTemperature object");
+      System::logError(397);
+      return;
+    }
+  }
+
   // 🔒 CORRECCIÓN CRÍTICA: Crear mutex si no existe
   if (tempMutex == nullptr) {
     tempMutex = xSemaphoreCreateMutex();
@@ -53,9 +76,9 @@ void Sensors::initTemperature() {
     }
   }
 
-  sensors.begin();
+  sensors->begin();
 
-  int count = sensors.getDeviceCount();
+  int count = sensors->getDeviceCount();
 
   if (count != NUM_TEMPS) {
     Logger::warnf("DS18B20: detectados %d, esperados %d", count, NUM_TEMPS);
@@ -73,7 +96,7 @@ void Sensors::initTemperature() {
     uint32_t sensorStartTime = millis(); // Tiempo de inicio para este sensor
 
     // Obtener dirección ROM del sensor
-    bool gotAddress = sensors.getAddress(tempSensorAddrs[i], i);
+    bool gotAddress = sensors->getAddress(tempSensorAddrs[i], i);
     uint32_t addressDuration = millis() - sensorStartTime;
 
     if (addressDuration > PER_SENSOR_TIMEOUT_MS) {
@@ -87,7 +110,7 @@ void Sensors::initTemperature() {
 
     if (gotAddress) {
       // Configurar resolución máxima (12-bit = 0.0625°C, 750ms conversión)
-      sensors.setResolution(tempSensorAddrs[i], 12);
+      sensors->setResolution(tempSensorAddrs[i], 12);
 
       addressesStored[i] = true;
       sensorOk[i] = true;
@@ -116,7 +139,7 @@ void Sensors::initTemperature() {
   }
 
   // 🔒 Configurar modo asíncrono (no bloqueante)
-  sensors.setWaitForConversion(false);
+  sensors->setWaitForConversion(false);
 
   initialized = (count > 0);
   Logger::infof("Temperature sensors init: %d/%d OK", sensorsToInit, NUM_TEMPS);
@@ -154,7 +177,7 @@ void Sensors::updateTemperature() {
     if (now - lastUpdateMs < UPDATE_INTERVAL_MS) return; // 🔒 Using constant
 
     // Iniciar request asíncrono (no bloqueante)
-    sensors.requestTemperatures();
+    sensors->requestTemperatures();
     requestPending = true;
     requestTime = now;
     return;
@@ -180,7 +203,7 @@ void Sensors::updateTemperature() {
     if (!sensorOk[i] || !addressesStored[i]) continue;
 
     // 🔒 Leer temperatura usando dirección ROM específica
-    float t = sensors.getTempC(tempSensorAddrs[i]);
+    float t = sensors->getTempC(tempSensorAddrs[i]);
 
     // Validación y fallback
     if (t == DEVICE_DISCONNECTED_C || !isfinite(t)) {
@@ -251,7 +274,7 @@ Sensors::TemperatureStatus Sensors::getTemperatureStatus() {
   status.maxTemp = -999.0f;
   status.lastUpdateMs = 0;
 #else
-  status.sensorsDetected = sensors.getDeviceCount();
+  status.sensorsDetected = sensors->getDeviceCount();
   status.sensorsWorking = 0;
   status.criticalTempDetected = false;
   status.maxTemp = -999.0f;
