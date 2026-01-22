@@ -2,7 +2,7 @@
 #include "obstacle_config.h"
 #include "pins.h"
 #include <Arduino.h>
-#include <ESP.h>
+#include <Esp.h>
 
 // ============================================================================
 // 🔒 v2.17.1: Boot Counter for Bootloop Detection
