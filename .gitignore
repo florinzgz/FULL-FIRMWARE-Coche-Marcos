@@ -14,6 +14,9 @@ _codeql_detected_source_root
 .piolibdeps/
 compile_commands.json
 
+# Exception: Keep custom bootloader
+!firmware/bootloader_qio_80m.bin
+
 # Python
 __pycache__/
 *.pyc
