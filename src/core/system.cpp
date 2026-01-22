@@ -53,15 +53,11 @@ void System::init() {
   // ========================================
   // PASO 1: Crear mutex en primera llamada (thread-safe)
   // ========================================
-  // Use portENTER_CRITICAL/portEXIT_CRITICAL for atomic check-and-set
-  static portMUX_TYPE initMutexSpinlock = portMUX_INITIALIZER_UNLOCKED;
-
-  portENTER_CRITICAL(&initMutexSpinlock);
+  // Use simple bool flag for Arduino framework compatibility
   bool needsCreate = !initMutexCreated;
   if (needsCreate) {
-    initMutexCreated = true; // Set flag inside critical section
+    initMutexCreated = true;
   }
-  portEXIT_CRITICAL(&initMutexSpinlock);
 
   if (needsCreate) {
     initMutex = xSemaphoreCreateMutex();
@@ -70,9 +66,7 @@ void System::init() {
       Logger::error("System init: CRITICAL - Failed to create init mutex");
       Serial.println("[CRITICAL] System::init() - mutex creation failed");
       // Reset flag on failure
-      portENTER_CRITICAL(&initMutexSpinlock);
       initMutexCreated = false;
-      portEXIT_CRITICAL(&initMutexSpinlock);
       // Continuar sin protección (menos seguro pero permite boot)
     } else {
       Logger::info("System init: Init mutex created");
