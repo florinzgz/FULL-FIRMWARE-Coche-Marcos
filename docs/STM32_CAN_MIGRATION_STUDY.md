@@ -7,6 +7,12 @@ Este documento cumple el requisito de **estudio previo** del firmware actual y
 define una **arquitectura de integración ESP32-S3 + STM32G474RE** basada en los
 módulos reales existentes, con migración progresiva y segura.
 
+### Criterios de éxito (objetivos verificables)
+- ESP32 debe **arrancar solo** y seguir operando HMI aunque STM32 esté desconectado.
+- CAN operativo con `CMD_SETPOINTS` (20 ms) y `STATE_FEEDBACK` (20 ms) sin pérdida.
+- STM32 debe **cortar potencia** tras pérdida de heartbeat dentro del timeout definido.
+- Migración por fases con conmutación reversible de backend sin cambios en HMI.
+
 ---
 
 ## 1) Resumen del firmware actual (basado en el código real)
@@ -179,9 +185,9 @@ Basado en `src/managers/*.h`:
 **CAN (FDCAN1 o FDCAN2):**
 - Conexión al transceptor **TJA1051T/3**.
 - Línea CANH/CANL compartida con ESP32 via transceptor propio.
-- Velocidad recomendada inicial: **500 kbps** para cableado largo o mayor
-  número de nodos. **1 Mbps** es común si el bus es corto, con baja carga y
-  pocas derivaciones.
+- Velocidad recomendada inicial: **500 kbps** para cableados largos (≈ >3 m),
+  más derivaciones o mayor número de nodos. **1 Mbps** si el bus es corto
+  (≈ ≤3 m), con baja carga y pocas derivaciones.
 
 **GPIO habilitación transceptor (recomendado):**
 - `CAN_STB`/`EN` del TJA1051T/3 controlado por STM32 para fail-safe.
@@ -241,7 +247,8 @@ Basado en `src/managers/*.h`:
 | 0x131 | STM32 → ESP32 | `HEARTBEAT` | 100 ms |
 
 ### 5.2 Política de seguridad CAN
-- Si STM32 **pierde heartbeat** del ESP32 → entra en modo seguro, no activa potencia.
+- Si STM32 **pierde heartbeat** del ESP32 → entra en modo seguro tras
+  **250 ms** sin heartbeat (valor conservador vs 100 ms para evitar falsos positivos).
 - ESP32 solo puede solicitar, **nunca forzar**.
 - STM32 valida todos los setpoints con sus sensores locales.
 
@@ -293,7 +300,7 @@ Cada fase debe poder **revertirse** cambiando un backend/flag.
 | Riesgo | Impacto | Mitigación |
 | --- | --- | --- |
 | Divergencia de sensores ESP32/STM32 | decisiones inconsistentes | Fase 1 con comparación y logs |
-| Pérdida de CAN | pérdida de control | STM32 entra en safe + relés off tras **100 ms** sin heartbeat |
+| Pérdida de CAN | pérdida de control | STM32 entra en safe + relés off tras **250 ms** sin heartbeat |
 | Latencia CAN | control inestable | Periodos ≤20 ms + watchdog |
 | Integración relés | apagado incorrecto | STM32 controla TRAC/DIR, ESP32 solo power-hold |
 | Bootloop por cambios | sistema no arranca | Mantener init actual + backends selectivos |
