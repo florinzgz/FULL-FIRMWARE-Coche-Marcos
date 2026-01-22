@@ -1,7 +1,7 @@
 # Integración ESP32-S3 + STM32G474RE por CAN (TJA1051T/3)
 
-**Fecha:** 2026-01-22  
-**Versión firmware base analizada:** v2.17.1 (PHASE 14)  
+**Fecha:** 2026-01-22 (fecha de estudio en este repositorio)  
+**Versión firmware base analizada:** v2.17.1 (PHASE 14, según README.md; docs/README.md aún indica v2.15.0)  
 
 Este documento cumple el requisito de **estudio previo** del firmware actual y
 define una **arquitectura de integración ESP32-S3 + STM32G474RE** basada en los
