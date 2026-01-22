@@ -1,6 +1,6 @@
 # Integración ESP32-S3 + STM32G474RE por CAN (TJA1051T/3)
 
-**Fecha:** 2026-01-22 (ISO 8601, enero 2026)  
+**Fecha/Date:** 2026-01-22 (ISO 8601, enero 2026)  
 **Versión firmware base analizada:** v2.17.1 (PHASE 14, README.md).  
 
 Este documento cumple el requisito de **estudio previo** del firmware actual y
@@ -187,7 +187,9 @@ Basado en `src/managers/*.h`:
 - Línea CANH/CANL compartida con ESP32 via transceptor propio.
 - Velocidad recomendada inicial: **500 kbps** para cableados largos (≈ >3 m),
   más derivaciones o mayor número de nodos. **1 Mbps** si el bus es corto
-  (≈ ≤3 m), con baja carga y pocas derivaciones.
+  (≈ ≤3 m), con baja carga y pocas derivaciones. Regla práctica de CAN clásica
+  (ISO 11898-2): mayor longitud ⇢ menor bit rate para mantener margen de
+  integridad de señal.
 
 **GPIO habilitación transceptor (recomendado):**
 - `CAN_STB`/`EN` del TJA1051T/3 controlado por STM32 para fail-safe.
@@ -237,7 +239,7 @@ Basado en `src/managers/*.h`:
 
 | ID | Dirección | Contenido | Periodo |
 | --- | --- | --- | --- |
-| 0x100 | ESP32 → STM32 | `CMD_SETPOINTS` (throttle %, steering deg, shifter, enable) | 20 ms |
+| 0x100 | ESP32 → STM32 | `CMD_SETPOINTS` (throttle %, steering deg, shifter, enable) | 20 ms *(loop 50 Hz actual, ver `SYSTEM_TICK_MS`)* |
 | 0x101 | ESP32 → STM32 | `CMD_HMI_MODE` (modo UI, flags, override) | 100 ms |
 | 0x110 | STM32 → ESP32 | `STATE_FEEDBACK` (velocidad ruedas, dirección, pedal real) | 20 ms |
 | 0x111 | STM32 → ESP32 | `SAFETY_STATUS` (ABS/TCS/overcurrent/temp) | 50 ms |
@@ -248,7 +250,7 @@ Basado en `src/managers/*.h`:
 
 ### 5.2 Política de seguridad CAN
 - Si STM32 **pierde heartbeat** del ESP32 → entra en modo seguro tras
-  **250 ms** sin heartbeat (valor conservador vs 100 ms para evitar falsos positivos).
+  **250 ms** sin heartbeat (≈ 2-3 periodos de 100 ms + margen de proceso).
 - ESP32 solo puede solicitar, **nunca forzar**.
 - STM32 valida todos los setpoints con sus sensores locales.
 
