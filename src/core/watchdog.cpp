@@ -2,7 +2,7 @@
 #include "logger.h"
 #include "pins.h"
 #include "power_mgmt.h"
-// Arduino framework - watchdog is handled automatically
+// Arduino framework provides automatic watchdog management (less configurable than ESP-IDF)
 
 namespace Watchdog {
 

@@ -53,11 +53,15 @@ void System::init() {
   // ========================================
   // PASO 1: Crear mutex en primera llamada (thread-safe)
   // ========================================
-  // Use simple bool flag for Arduino framework compatibility
-  bool needsCreate = !initMutexCreated;
-  if (needsCreate) {
+  // Use noInterrupts()/interrupts() to make check-and-set atomic
+  // (replaces portMUX_TYPE atomic behavior from ESP-IDF)
+  bool needsCreate = false;
+  noInterrupts();
+  if (!initMutexCreated) {
     initMutexCreated = true;
+    needsCreate = true;
   }
+  interrupts();
 
   if (needsCreate) {
     initMutex = xSemaphoreCreateMutex();

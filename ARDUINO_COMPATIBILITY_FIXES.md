@@ -101,7 +101,7 @@ All ESP-IDF specific dependencies have been removed to make the firmware compati
 
 ## Known Limitations
 
-1. **Boot Counter:** Lost on reset - bootloop detection only works within same power session
+1. **Boot Counter:** Lost on ANY reset (soft/watchdog/power) - bootloop detection is non-functional
 2. **Memory Diagnostics:** Slightly less detailed without heap caps functions
 3. **Critical Sections:** Using Arduino primitives instead of ESP-IDF (adequate for most cases)
 

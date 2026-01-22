@@ -8,10 +8,11 @@
 // 🔒 v2.17.1: Boot Counter for Bootloop Detection
 // ============================================================================
 // Arduino framework - uses regular static variables instead of RTC memory
-// IMPORTANT: Boot counter will be lost on reset, which means bootloop detection
-// will NOT work across power cycles. This is a limitation of Arduino framework.
-// Impact: System safety feature degraded - bootloop protection only works within
-// same power session. Consider using EEPROM for persistence if needed.
+// IMPORTANT: Boot counter will be lost on ANY reset (soft reset, watchdog reset,
+// or power cycle). This means bootloop detection will NOT work across ANY type of
+// reset. This is a fundamental limitation when not using ESP-IDF's RTC memory.
+// Impact: System safety feature degraded - bootloop protection is non-functional.
+// Consider using EEPROM/NVS for persistence if bootloop detection is required.
 // ============================================================================
 
 #define BOOTLOOP_DETECTION_THRESHOLD 3
