@@ -14,10 +14,9 @@
     "f_cpu": "240000000L",
     "f_flash": "80000000L",
 
-    "arduino.flash_mode": "qio",
-    "arduino.memory_type": "qio",
+    "flash_mode": "dio",
+    "arduino.flash_mode": "dio",
 
-    "flash_mode": "qio",
     "flash_size": "16MB",
 
     "extra_flags": [
