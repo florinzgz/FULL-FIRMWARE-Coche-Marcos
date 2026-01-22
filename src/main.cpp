@@ -42,6 +42,11 @@ void setup() {
   // 🔒 v2.11.6: BOOTLOOP FIX - Early UART diagnostic output
   // Initialize Serial first for all modes
   Serial.begin(115200);
+  
+  // 🔒 CRITICAL BOOTLOOP FIX v2.17.4: Add early delay for hardware stabilization
+  // ESP32-S3 with QSPI PSRAM may need extra time after power-on for voltage regulators
+  // to stabilize before initializing peripherals. This prevents brown-out resets.
+  delay(500);  // 500ms delay for power stabilization
 
 #ifdef STANDALONE_DISPLAY
   // Early diagnostic output for standalone mode
