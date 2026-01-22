@@ -52,7 +52,7 @@ void Sensors::initTemperature() {
     oneWire = new (std::nothrow) OneWire(PIN_ONEWIRE);
     if (oneWire == nullptr) {
       Logger::error("Temperature: Failed to allocate OneWire object");
-      System::logError(397);
+      System::logError(395); // Unique error code for OneWire allocation failure
       return;
     }
   }
@@ -61,7 +61,7 @@ void Sensors::initTemperature() {
     sensors = new (std::nothrow) DallasTemperature(oneWire);
     if (sensors == nullptr) {
       Logger::error("Temperature: Failed to allocate DallasTemperature object");
-      System::logError(397);
+      System::logError(396); // Unique error code for DallasTemperature allocation failure
       return;
     }
   }

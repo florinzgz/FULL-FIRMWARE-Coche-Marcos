@@ -40,7 +40,7 @@ void Audio::DFPlayer::init() {
     DFSerial = new (std::nothrow) HardwareSerial(1);
     if (DFSerial == nullptr) {
       Logger::error("DFPlayer: Failed to allocate HardwareSerial object");
-      System::logError(699);
+      System::logError(698); // Unique error code for HardwareSerial allocation failure
       initialized = false;
       return;
     }
@@ -50,7 +50,7 @@ void Audio::DFPlayer::init() {
     dfPlayer = new (std::nothrow) DFRobotDFPlayerMini();
     if (dfPlayer == nullptr) {
       Logger::error("DFPlayer: Failed to allocate DFRobotDFPlayerMini object");
-      System::logError(699);
+      System::logError(699); // Unique error code for DFRobotDFPlayerMini allocation failure
       initialized = false;
       return;
     }
