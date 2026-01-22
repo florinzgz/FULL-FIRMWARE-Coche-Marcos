@@ -1,7 +1,7 @@
 # Integración ESP32-S3 + STM32G474RE por CAN (TJA1051T/3)
 
 **Fecha:** 2026-01-22 (ISO 8601, enero 2026)  
-**Versión firmware base analizada:** v2.17.1 (PHASE 14, README.md). Nota: docs/README.md aún indica v2.15.0.  
+**Versión firmware base analizada:** v2.17.1 (PHASE 14, README.md).  
 
 Este documento cumple el requisito de **estudio previo** del firmware actual y
 define una **arquitectura de integración ESP32-S3 + STM32G474RE** basada en los
@@ -179,8 +179,9 @@ Basado en `src/managers/*.h`:
 **CAN (FDCAN1 o FDCAN2):**
 - Conexión al transceptor **TJA1051T/3**.
 - Línea CANH/CANL compartida con ESP32 via transceptor propio.
-- Velocidad recomendada inicial: **500 kbps** (estable). **1 Mbps** es común
-  en automoción moderna si la carga y el cableado lo permiten.
+- Velocidad recomendada inicial: **500 kbps** para cableado largo o mayor
+  número de nodos. **1 Mbps** es común si el bus es corto, con baja carga y
+  pocas derivaciones.
 
 **GPIO habilitación transceptor (recomendado):**
 - `CAN_STB`/`EN` del TJA1051T/3 controlado por STM32 para fail-safe.
