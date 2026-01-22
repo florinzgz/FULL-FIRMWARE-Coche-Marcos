@@ -25,8 +25,8 @@ All ESP-IDF specific dependencies have been removed to make the firmware compati
 - Removed `portMUX_TYPE` critical sections
 
 **Impact:**
-- ⚠️ Boot counter is lost on reset (bootloop detection only works within same power session)
-- Consider using EEPROM for persistence if cross-reset bootloop detection is needed
+- ⚠️ Boot counter is lost on ANY reset (soft/watchdog/power) - bootloop detection is non-functional
+- Consider using EEPROM/NVS for persistence if bootloop detection is required
 - Simpler critical section implementation with Arduino primitives
 
 ### 3. src/test/memory_stress_test.cpp

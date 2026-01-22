@@ -38,7 +38,7 @@ void BootGuard::applyXshutStrappingGuard() {
   // TOFSense-M S uses UART and doesn't have XSHUT pins
   // This function is now a no-op but retained for backward compatibility
   static bool alreadyApplied = false;
-  
+
   if (alreadyApplied) {
     return;
   }
