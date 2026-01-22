@@ -8,11 +8,12 @@
 // 🔒 v2.17.1: Boot Counter for Bootloop Detection
 // ============================================================================
 // Arduino framework - uses regular static variables instead of RTC memory
-// IMPORTANT: Boot counter will be lost on ANY reset (soft reset, watchdog reset,
-// or power cycle). This means bootloop detection will NOT work across ANY type of
-// reset. This is a fundamental limitation when not using ESP-IDF's RTC memory.
-// Impact: System safety feature degraded - bootloop protection is non-functional.
-// Consider using EEPROM/NVS for persistence if bootloop detection is required.
+// IMPORTANT: Boot counter will be lost on ANY reset (soft reset, watchdog
+// reset, or power cycle). This means bootloop detection will NOT work across
+// ANY type of reset. This is a fundamental limitation when not using ESP-IDF's
+// RTC memory. Impact: System safety feature degraded - bootloop protection is
+// non-functional. Consider using EEPROM/NVS for persistence if bootloop
+// detection is required.
 // ============================================================================
 
 #define BOOTLOOP_DETECTION_THRESHOLD 3
@@ -39,9 +40,7 @@ void BootGuard::applyXshutStrappingGuard() {
   // This function is now a no-op but retained for backward compatibility
   static bool alreadyApplied = false;
 
-  if (alreadyApplied) {
-    return;
-  }
+  if (alreadyApplied) { return; }
   alreadyApplied = true;
 
   // No action needed - TOFSense-M S doesn't use XSHUT pins

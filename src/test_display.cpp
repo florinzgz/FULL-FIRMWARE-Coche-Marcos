@@ -120,7 +120,8 @@ void loopDisplayTest() {
     testTft.printf("Loop: %lu  Uptime: %lus", loopCount, now / 1000);
   }
 
-  yield(); // Allow task scheduling (Arduino framework handles watchdog automatically)
+  yield(); // Allow task scheduling (Arduino framework handles watchdog
+           // automatically)
 }
 
 /**

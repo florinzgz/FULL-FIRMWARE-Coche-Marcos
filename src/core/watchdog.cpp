@@ -2,12 +2,14 @@
 #include "logger.h"
 #include "pins.h"
 #include "power_mgmt.h"
-// Arduino framework provides automatic watchdog management (less configurable than ESP-IDF)
+// Arduino framework provides automatic watchdog management (less configurable
+// than ESP-IDF)
 
 namespace Watchdog {
 
 // Arduino framework handles watchdog automatically
-// Note: API remains active for compatibility but actual watchdog is managed by Arduino
+// Note: API remains active for compatibility but actual watchdog is managed by
+// Arduino
 static bool apiEnabled = false; // Tracks API state, not actual watchdog state
 static uint32_t lastFeedTime = 0;
 static uint32_t feedCount = 0;
@@ -33,7 +35,8 @@ void feed() {
 
   // Log every 100 feeds for compatibility
   if (feedCount % 100 == 0) {
-    Logger::infof("WDT feed %lu (interval: %lums) [Arduino auto]", feedCount, interval);
+    Logger::infof("WDT feed %lu (interval: %lums) [Arduino auto]", feedCount,
+                  interval);
   }
 }
 
