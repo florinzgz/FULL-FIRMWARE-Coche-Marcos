@@ -9,7 +9,7 @@
 #include "shifter.h"
 #include "temperature.h"
 #include "wheels.h"
-#include <esp_heap_caps.h>
+#include <ESP.h>
 
 namespace MemoryStressTest {
 
@@ -171,8 +171,6 @@ bool testHeapFragmentation() {
 
   uint32_t startTime = millis();
   uint32_t heapBefore = ESP.getFreeHeap();
-  uint32_t largestBlockBefore =
-      heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
 
   // Perform many small allocations and deallocations
   const int ALLOC_COUNT = 100;
@@ -213,8 +211,6 @@ bool testHeapFragmentation() {
   }
 
   uint32_t heapAfter = ESP.getFreeHeap();
-  uint32_t largestBlockAfter =
-      heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
   uint32_t duration = millis() - startTime;
 
   // Check that heap returned to approximately original size
@@ -222,9 +218,6 @@ bool testHeapFragmentation() {
   bool passed = (abs(heapLoss) <= LEAK_TOLERANCE);
 
   recordTest("Heap Fragmentation", passed, heapBefore, heapAfter, duration);
-
-  Logger::infof("Largest free block before: %lu bytes", largestBlockBefore);
-  Logger::infof("Largest free block after: %lu bytes", largestBlockAfter);
 
   updateMinHeap();
 
@@ -268,14 +261,12 @@ void printMemoryStats() {
 
   uint32_t freeHeap = ESP.getFreeHeap();
   uint32_t totalHeap = ESP.getHeapSize();
-  uint32_t largestBlock = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
 
   Logger::info("\n--- Memory Statistics ---");
   Logger::infof("Total Heap: %lu bytes", totalHeap);
   Logger::infof("Free Heap: %lu bytes (%.1f%%)", freeHeap,
                 (freeHeap * 100.0f / totalHeap));
   Logger::infof("Min Free Heap: %lu bytes", minFreeHeap);
-  Logger::infof("Largest Free Block: %lu bytes", largestBlock);
 
   // PSRAM diagnostics
   if (psramFound()) {
@@ -285,12 +276,6 @@ void printMemoryStats() {
                   psramSize / BYTES_PER_MB);
     Logger::infof("PSRAM Free: %lu bytes (%.2f MB, %.1f%%)", freePsram,
                   freePsram / BYTES_PER_MB, (freePsram * 100.0f) / psramSize);
-
-    // Obtener mayor bloque disponible en PSRAM
-    uint32_t largestPsramBlock =
-        heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
-    Logger::infof("Largest PSRAM Block: %lu bytes (%.2f KB)", largestPsramBlock,
-                  largestPsramBlock / BYTES_PER_KB);
   } else {
     Logger::warn("PSRAM: Not available or not enabled");
   }

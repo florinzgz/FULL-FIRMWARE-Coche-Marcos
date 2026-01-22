@@ -18,7 +18,6 @@
 #include "pins.h"
 #include <Arduino.h>
 #include <TFT_eSPI.h>
-#include <esp_task_wdt.h> // For explicit watchdog reset
 
 // Create a local TFT instance for standalone testing
 // 🔒 v2.11.6: BOOTLOOP FIX - Use default constructor only
@@ -109,18 +108,8 @@ void setupDisplayTest() {
  * Call this from loop() in main.cpp when TEST_DISPLAY_STANDALONE is defined
  */
 void loopDisplayTest() {
-  static uint32_t lastWatchdogFeed = 0;
   static uint32_t loopCount = 0;
   uint32_t now = millis();
-
-  // Feed watchdog periodically
-  if (now - lastWatchdogFeed >= WATCHDOG_FEED_INTERVAL_MS) {
-    lastWatchdogFeed = now;
-    // Explicitly reset task watchdog for robust handling during long-running
-    // tests
-    esp_task_wdt_reset();
-    yield();
-  }
 
   // Update loop counter on display
   loopCount++;
@@ -131,7 +120,7 @@ void loopDisplayTest() {
     testTft.printf("Loop: %lu  Uptime: %lus", loopCount, now / 1000);
   }
 
-  // Use millis()-based timing at top of function instead
+  yield(); // Allow task scheduling (Arduino framework handles watchdog automatically)
 }
 
 /**

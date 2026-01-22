@@ -1,38 +1,68 @@
-.pio
-.vscode/.browse.c_cpp.db*
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/ipch
-_codeql_detected_source_root
+# =====================================================================
+# PlatformIO / Arduino-ESP32 Build System
+# =====================================================================
 
 # Build artifacts
-*.bin
-*.elf
-*.map
 .pio/
 .pioenvs/
 .piolibdeps/
+*.bin
+*.elf
+*.map
 compile_commands.json
 
-# Python
+# =====================================================================
+# VSCode / IDE
+# =====================================================================
+
+.vscode/
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch/
+.idea/
+
+# =====================================================================
+# Python cache
+# =====================================================================
+
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# IDE files
-.vscode/
-.idea/
-
+# =====================================================================
 # OS files
+# =====================================================================
+
 .DS_Store
 Thumbs.db
 
+# =====================================================================
 # Temporary files
+# =====================================================================
+
 *.tmp
 *.bak
 *.swp
 *~
+*.log
 
-# Deprecated hardware configurations
+# =====================================================================
+# Deprecated hardware configs
+# =====================================================================
+
 *.deprecated
+
+# =====================================================================
+# Bootloader exception (DISABLED)
+# Remove this if no custom bootloader is used
+# =====================================================================
+
+# !firmware/bootloader_qio_80m.bin
+
+# =====================================================================
+# CodeQL
+# =====================================================================
+
+_codeql_detected_source_root

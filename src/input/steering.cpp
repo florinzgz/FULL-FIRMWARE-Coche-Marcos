@@ -55,7 +55,7 @@ static long getTicksSafe() {
   return result;
 }
 
-void IRAM_ATTR isrEncA() {
+void isrEncA() {
   int a = digitalRead(PIN_ENCODER_A);
   int b = digitalRead(PIN_ENCODER_B);
 
@@ -85,7 +85,7 @@ void IRAM_ATTR isrEncA() {
   }
 }
 
-void IRAM_ATTR isrEncZ() { zSeen = true; }
+void isrEncZ() { zSeen = true; }
 
 static float ticksToDegrees(long t) {
   return (float)(t - zeroOffset) * 360.0f / (float)ticksPerTurn;

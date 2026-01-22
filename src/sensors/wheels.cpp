@@ -19,10 +19,10 @@ static bool wheelOk[Sensors::NUM_WHEELS];
 // 🔎 Nuevo: flag de inicialización global
 static bool initialized = false;
 
-void IRAM_ATTR wheelISR0() { pulses[0]++; }
-void IRAM_ATTR wheelISR1() { pulses[1]++; }
-void IRAM_ATTR wheelISR2() { pulses[2]++; }
-void IRAM_ATTR wheelISR3() { pulses[3]++; }
+void wheelISR0() { pulses[0]++; }
+void wheelISR1() { pulses[1]++; }
+void wheelISR2() { pulses[2]++; }
+void wheelISR3() { pulses[3]++; }
 
 void Sensors::initWheels() {
   for (int i = 0; i < NUM_WHEELS; i++) {

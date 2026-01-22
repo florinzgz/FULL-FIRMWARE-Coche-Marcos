@@ -2,14 +2,17 @@
 #include "obstacle_config.h"
 #include "pins.h"
 #include <Arduino.h>
-#include <esp_system.h>
-#include <rom/rtc.h>
+#include <ESP.h>
 
 // ============================================================================
 // 🔒 v2.17.1: Boot Counter for Bootloop Detection
 // ============================================================================
-// Uses RTC_NOINIT_ATTR to persist data across soft resets
-// RTC memory survives warm resets but not power cycles
+// Arduino framework - uses regular static variables instead of RTC memory
+// IMPORTANT: Boot counter will be lost on ANY reset (soft reset, watchdog reset,
+// or power cycle). This means bootloop detection will NOT work across ANY type of
+// reset. This is a fundamental limitation when not using ESP-IDF's RTC memory.
+// Impact: System safety feature degraded - bootloop protection is non-functional.
+// Consider using EEPROM/NVS for persistence if bootloop detection is required.
 // ============================================================================
 
 #define BOOTLOOP_DETECTION_THRESHOLD 3
@@ -24,8 +27,8 @@ struct BootCounterData {
   uint8_t resetMarker;    // Persisted reset marker for diagnostics
 };
 
-// RTC memory - survives warm reset, cleared on power cycle
-static RTC_NOINIT_ATTR BootCounterData bootCounterData;
+// Arduino framework - regular static variable (will be lost on reset)
+static BootCounterData bootCounterData;
 static constexpr uint32_t BOOT_COUNTER_MAGIC = 0xB007C047; // "BOOT COTR"
 static constexpr uint32_t RESET_MARKER_MAGIC = 0xB007C048; // "BOOT MARK"
 
@@ -35,23 +38,13 @@ void BootGuard::applyXshutStrappingGuard() {
   // TOFSense-M S uses UART and doesn't have XSHUT pins
   // This function is now a no-op but retained for backward compatibility
   static bool alreadyApplied = false;
-#if defined(ESP32) || defined(ESP_PLATFORM)
-  static portMUX_TYPE bootGuardMux = portMUX_INITIALIZER_UNLOCKED;
-  portENTER_CRITICAL(&bootGuardMux);
-#endif
+
   if (alreadyApplied) {
-#if defined(ESP32) || defined(ESP_PLATFORM)
-    portEXIT_CRITICAL(&bootGuardMux);
-#endif
     return;
   }
   alreadyApplied = true;
-#if defined(ESP32) || defined(ESP_PLATFORM)
-  portEXIT_CRITICAL(&bootGuardMux);
-#endif
 
   // No action needed - TOFSense-M S doesn't use XSHUT pins
-  // v2.17.3: Removed Logger call - can be called before Logger::init()
   Serial.println(
       "[BootGuard] XSHUT guard skipped (TOFSense-M S has no XSHUT pins)");
 }
