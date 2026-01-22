@@ -103,5 +103,5 @@ Ver [CAMBIOS_RECIENTES.md](CAMBIOS_RECIENTES.md) para detalles completos.
 ---
 
 **Documentación mantenida por:** Sistema de control automático  
-**Última revisión:** 2026-01-05  
-**Versión firmware:** v2.15.0
+**Última revisión:** 2026-01-12  
+**Versión firmware:** v2.17.1
