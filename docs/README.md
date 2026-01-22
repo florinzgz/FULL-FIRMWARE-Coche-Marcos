@@ -50,7 +50,7 @@ Guía completa y actualizada de todas las conexiones hardware:
 
 ### 🏗️ Arquitectura y Seguridad
 - [**ARCHITECTURE.md**](ARCHITECTURE.md) - Arquitectura del sistema
-- [**STM32_CAN_MIGRATION_STUDY.md**](STM32_CAN_MIGRATION_STUDY.md) - Estudio de integración ESP32 + STM32 por CAN
+- [**PLAN_SEPARACION_STM32_CAN.md**](PLAN_SEPARACION_STM32_CAN.md) - Plan de separación ESP32 HMI + STM32 control
 - [**SISTEMAS_SEGURIDAD_AVANZADOS.md**](SISTEMAS_SEGURIDAD_AVANZADOS.md) - Sistemas seguridad
 - [**TOLERANCIA_FALLOS.md**](TOLERANCIA_FALLOS.md) - Tolerancia a fallos
 

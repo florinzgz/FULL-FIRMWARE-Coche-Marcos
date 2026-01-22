@@ -87,6 +87,7 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 - **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
 - **[CLEANUP_SUMMARY_N16R8.md](CLEANUP_SUMMARY_N16R8.md)** - Resumen de consolidación del repositorio
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
+- **[docs/PLAN_SEPARACION_STM32_CAN.md](docs/PLAN_SEPARACION_STM32_CAN.md)** - Plan de separación ESP32 HMI + STM32 control
 - **[PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md)** - Certificación de hardware N16R8
 - **[PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md)** - Guía rápida de migración a N16R8
 - **[HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md)** - Verificación de hardware y datasheets
