@@ -1,3 +1,4 @@
+#include "sdkconfig.h"
 #include "relays.h"
 #include "logger.h"
 #include "pins.h"
