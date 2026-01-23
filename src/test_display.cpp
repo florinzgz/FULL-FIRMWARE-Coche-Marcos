@@ -20,11 +20,11 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 
-// Create a local TFT instance for standalone testing
-// 🔒 v2.11.6: BOOTLOOP FIX - Use default constructor only
-// Explicit TFT_eSPI() call runs complex init in global constructor (before
-// main) which can crash on ESP32-S3 with OPI PSRAM
-static TFT_eSPI testTft;
+// 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
+// Global constructor TFT_eSPI() was causing "Stack canary watchpoint triggered 
+// (ipc0)" by initializing SPI peripheral before FreeRTOS starts.
+// Now using pointer that is allocated in setupDisplayTest() after FreeRTOS is ready.
+static TFT_eSPI *testTft = nullptr;
 
 // Test configuration
 static constexpr uint32_t TEST_COLOR_DELAY_MS =
@@ -59,13 +59,27 @@ void setupDisplayTest() {
   Serial.println("TFT Display Test - ST7796S");
   Serial.println("========================================");
 
-  // 2. Configure backlight pin
+  // 2. Allocate TFT_eSPI object NOW (after FreeRTOS ready)
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Delayed allocation prevents IPC0 crash
+  if (testTft == nullptr) {
+    Serial.println("[TEST] Allocating TFT_eSPI object...");
+    testTft = new (std::nothrow) TFT_eSPI();
+    if (testTft == nullptr) {
+      Serial.println("[ERROR] Failed to allocate TFT_eSPI object!");
+      while (true) {
+        yield(); // Halt on allocation failure
+      }
+    }
+    Serial.println("[TEST] TFT_eSPI object allocated successfully");
+  }
+
+  // 3. Configure backlight pin
   Serial.println("[TEST] Configuring backlight...");
   pinMode(PIN_TFT_BL, OUTPUT);
   digitalWrite(PIN_TFT_BL, HIGH);
   Serial.printf("[TEST] Backlight enabled on GPIO %d\n", PIN_TFT_BL);
 
-  // 3. Hardware reset the display
+  // 4. Hardware reset the display
   Serial.println("[TEST] Performing hardware reset...");
   pinMode(PIN_TFT_RST, OUTPUT);
   digitalWrite(PIN_TFT_RST, LOW);
@@ -74,15 +88,15 @@ void setupDisplayTest() {
   delay(DisplayBootConfig::TFT_RESET_RECOVERY_MS);
   Serial.println("[TEST] Reset complete");
 
-  // 4. Initialize TFT
+  // 5. Initialize TFT
   Serial.println("[TEST] Initializing TFT_eSPI...");
-  testTft.init();
-  testTft.setRotation(3); // Landscape 480x320
-  Serial.printf("[TEST] Display dimensions: %dx%d\n", testTft.width(),
-                testTft.height());
+  testTft->init();
+  testTft->setRotation(3); // Landscape 480x320
+  Serial.printf("[TEST] Display dimensions: %dx%d\n", testTft->width(),
+                testTft->height());
 
   // 5. Clear screen
-  testTft.fillScreen(TFT_BLACK);
+  testTft->fillScreen(TFT_BLACK);
   yield();
 
   // 6. Run test sequence
@@ -104,16 +118,18 @@ void setupDisplayTest() {
  * Call this from loop() in main.cpp when TEST_DISPLAY_STANDALONE is defined
  */
 void loopDisplayTest() {
+  if (testTft == nullptr) return; // Safety check
+
   static uint32_t loopCount = 0;
   uint32_t now = millis();
 
   // Update loop counter on display
   loopCount++;
   if (loopCount % 100 == 0) {
-    testTft.fillRect(10, 290, 200, 20, TFT_BLACK);
-    testTft.setTextColor(TFT_WHITE, TFT_BLACK);
-    testTft.setCursor(10, 290);
-    testTft.printf("Loop: %lu  Uptime: %lus", loopCount, now / 1000);
+    testTft->fillRect(10, 290, 200, 20, TFT_BLACK);
+    testTft->setTextColor(TFT_WHITE, TFT_BLACK);
+    testTft->setCursor(10, 290);
+    testTft->printf("Loop: %lu  Uptime: %lus", loopCount, now / 1000);
   }
 
   yield(); // Allow task scheduling (Arduino framework handles watchdog
@@ -124,75 +140,81 @@ void loopDisplayTest() {
  * @brief Run color fill test on the display
  */
 static void runColorTest() {
+  if (testTft == nullptr) return; // Safety check
+
   for (size_t i = 0; i < NUM_TEST_COLORS; i++) {
-    testTft.fillScreen(TEST_COLORS[i]);
+    testTft->fillScreen(TEST_COLORS[i]);
     yield(); // Non-blocking alternative
     yield(); // Keep watchdog happy
   }
-  testTft.fillScreen(TFT_BLACK);
+  testTft->fillScreen(TFT_BLACK);
 }
 
 /**
  * @brief Draw random circles on the display
  */
 static void runCircleTest() {
-  testTft.fillScreen(TFT_BLACK);
+  if (testTft == nullptr) return; // Safety check
+
+  testTft->fillScreen(TFT_BLACK);
 
   for (uint32_t i = 0; i < TEST_CIRCLE_COUNT; i++) {
-    int16_t x = random(20, testTft.width() - 20);
-    int16_t y = random(20, testTft.height() - 20);
+    int16_t x = random(20, testTft->width() - 20);
+    int16_t y = random(20, testTft->height() - 20);
     int16_t r = random(10, 50);
     uint16_t color = TEST_COLORS[random(
         0, NUM_TEST_COLORS)]; // random(min, max) returns min to max-1
 
-    testTft.fillCircle(x, y, r, color);
+    testTft->fillCircle(x, y, r, color);
     yield();
     yield();
   }
 
   delay(1000);
-  testTft.fillScreen(TFT_BLACK);
+  testTft->fillScreen(TFT_BLACK);
 }
 
 /**
  * @brief Display test text on the screen
  */
 static void runTextTest() {
-  testTft.fillScreen(TFT_BLACK);
+  if (testTft == nullptr) return; // Safety check
+
+  testTft->fillScreen(TFT_BLACK);
 
   // Title
-  testTft.setTextDatum(MC_DATUM);
-  testTft.setTextColor(TFT_CYAN, TFT_BLACK);
-  testTft.drawString("TFT Display Test", 240, 40, 4);
+  testTft->setTextDatum(MC_DATUM);
+  testTft->setTextColor(TFT_CYAN, TFT_BLACK);
+  testTft->drawString("TFT Display Test", 240, 40, 4);
 
   // Test info
-  testTft.setTextDatum(TL_DATUM);
-  testTft.setTextColor(TFT_WHITE, TFT_BLACK);
-  testTft.setCursor(10, 80);
-  testTft.println("Display: ST7796S 480x320");
-  testTft.setCursor(10, 100);
-  testTft.println("Controller: ESP32-S3");
-  testTft.setCursor(10, 120);
-  testTft.printf("Rotation: %d (Landscape)", testTft.getRotation());
+  testTft->setTextDatum(TL_DATUM);
+  testTft->setTextColor(TFT_WHITE, TFT_BLACK);
+  testTft->setCursor(10, 80);
+  testTft->println("Display: ST7796S 480x320");
+  testTft->setCursor(10, 100);
+  testTft->println("Controller: ESP32-S3");
+  testTft->setCursor(10, 120);
+  testTft->printf("Rotation: %d (Landscape)", testTft->getRotation());
 
   // Pin info
-  testTft.setTextColor(TFT_YELLOW, TFT_BLACK);
-  testTft.setCursor(10, 160);
-  testTft.println("Pin Configuration:");
-  testTft.setTextColor(TFT_GREEN, TFT_BLACK);
-  testTft.setCursor(20, 180);
-  testTft.printf("CS: GPIO %d", PIN_TFT_CS);
-  testTft.setCursor(20, 200);
-  testTft.printf("DC: GPIO %d", PIN_TFT_DC);
-  testTft.setCursor(20, 220);
-  testTft.printf("RST: GPIO %d", PIN_TFT_RST);
-  testTft.setCursor(20, 240);
-  testTft.printf("BL: GPIO %d", PIN_TFT_BL);
+  testTft->setTextColor(TFT_YELLOW, TFT_BLACK);
+  testTft->setCursor(10, 160);
+  testTft->println("Pin Configuration:");
+  testTft->setTextColor(TFT_GREEN, TFT_BLACK);
+  testTft->setCursor(20, 180);
+  testTft->printf("CS: GPIO %d", PIN_TFT_CS);
+  testTft->setCursor(20, 200);
+  testTft->printf("DC: GPIO %d", PIN_TFT_DC);
+  testTft->setCursor(20, 220);
+  testTft->printf("RST: GPIO %d", PIN_TFT_RST);
+  testTft->setCursor(20, 240);
+  testTft->printf("BL: GPIO %d", PIN_TFT_BL);
 
   // Status
-  testTft.setTextDatum(MC_DATUM);
-  testTft.setTextColor(TFT_GREEN, TFT_BLACK);
-  testTft.drawString("TEST PASSED", 240, 280, 4);
+  testTft->setTextDatum(MC_DATUM);
+  testTft->setTextColor(TFT_GREEN, TFT_BLACK);
+  testTft->drawString("TEST PASSED", 240, 280, 4);
 }
 
 #endif // TEST_DISPLAY_STANDALONE
