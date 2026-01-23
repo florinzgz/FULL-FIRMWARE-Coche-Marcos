@@ -272,7 +272,8 @@ void initializeSystem() {
     Serial.println("[BOOT] Showing logo...");
     HUDManager::showLogo();
     unsigned long logoStart = millis();
-    while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
+    while (millis() - logoStart <
+           BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
       Watchdog::feed();
       delay(10);
     }
