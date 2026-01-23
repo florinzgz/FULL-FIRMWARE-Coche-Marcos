@@ -28,6 +28,13 @@ constexpr uint8_t MAX_RETRIES = 3;
 constexpr uint32_t RETRY_DELAY_MS = 5000;
 } // namespace CriticalErrorConfig
 
+// ============================================================================
+// Boot sequence configuration
+// ============================================================================
+namespace BootSequenceConfig {
+constexpr uint32_t LOGO_DISPLAY_DURATION_MS = 1500; // Show logo for 1.5 seconds
+} // namespace BootSequenceConfig
+
 // Forward declarations
 void initializeSystem();
 void handleCriticalError(const char *errorMsg);
@@ -208,7 +215,7 @@ void initializeSystem() {
   Serial.println("[BOOT] Showing logo...");
   HUDManager::showLogo();
   unsigned long logoStart = millis();
-  while (millis() - logoStart < 1500) {
+  while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
     Watchdog::feed();
     delay(10);
   }
@@ -265,7 +272,7 @@ void initializeSystem() {
     Serial.println("[BOOT] Showing logo...");
     HUDManager::showLogo();
     unsigned long logoStart = millis();
-    while (millis() - logoStart < 1500) {
+    while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
       Watchdog::feed();
       delay(10);
     }
