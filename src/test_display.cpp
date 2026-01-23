@@ -22,9 +22,10 @@
 #include <new> // For std::nothrow
 
 // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
-// Global constructor TFT_eSPI() was causing "Stack canary watchpoint triggered 
+// Global constructor TFT_eSPI() was causing "Stack canary watchpoint triggered
 // (ipc0)" by initializing SPI peripheral before FreeRTOS starts.
-// Now using pointer that is allocated in setupDisplayTest() after FreeRTOS is ready.
+// Now using pointer that is allocated in setupDisplayTest() after FreeRTOS is
+// ready.
 static TFT_eSPI *testTft = nullptr;
 
 // Test configuration
