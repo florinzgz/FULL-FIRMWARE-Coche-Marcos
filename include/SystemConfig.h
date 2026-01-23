@@ -17,4 +17,10 @@
 // System timing
 #define SYSTEM_TICK_MS 10
 
+namespace DisplayBootConfig {
+constexpr uint32_t TFT_RESET_PULSE_MS = 120;
+constexpr uint32_t TFT_RESET_RECOVERY_MS = 120;
+constexpr uint32_t TFT_RESET_STABILIZATION_MS = 20;
+} // namespace DisplayBootConfig
+
 // Add any other system-wide configuration constants here
