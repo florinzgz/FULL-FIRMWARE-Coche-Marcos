@@ -28,6 +28,13 @@ constexpr uint8_t MAX_RETRIES = 3;
 constexpr uint32_t RETRY_DELAY_MS = 5000;
 } // namespace CriticalErrorConfig
 
+// ============================================================================
+// Boot sequence configuration
+// ============================================================================
+namespace BootSequenceConfig {
+constexpr uint32_t LOGO_DISPLAY_DURATION_MS = 1500; // Show logo for 1.5 seconds
+} // namespace BootSequenceConfig
+
 // Forward declarations
 void initializeSystem();
 void handleCriticalError(const char *errorMsg);
@@ -204,6 +211,15 @@ void initializeSystem() {
   Logger::info("HUD Manager initialized (standalone)");
   Watchdog::feed();
 
+  // Show logo briefly after successful initialization
+  Serial.println("[BOOT] Showing logo...");
+  HUDManager::showLogo();
+  unsigned long logoStart = millis();
+  while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
+    Watchdog::feed();
+    delay(10);
+  }
+
   Serial.println("🧪 STANDALONE: Skipping other managers");
   Serial.flush();
   return; // ¡MUY IMPORTANTE!
@@ -237,6 +253,7 @@ void initializeSystem() {
 
   // HUD - Try to initialize even in safe mode (for error display)
   Serial.println("[INIT] HUD Manager initialization...");
+  bool hudInitialized = false;
   if (!HUDManager::init()) {
     if (!safeMode) {
       handleCriticalError("HUD Manager initialization failed");
@@ -246,8 +263,20 @@ void initializeSystem() {
     }
   } else {
     Logger::info("HUD Manager initialized");
+    hudInitialized = true;
   }
   Watchdog::feed();
+
+  // Show logo briefly after successful HUD initialization
+  if (hudInitialized) {
+    Serial.println("[BOOT] Showing logo...");
+    HUDManager::showLogo();
+    unsigned long logoStart = millis();
+    while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
+      Watchdog::feed();
+      delay(10);
+    }
+  }
 
   // Control Manager - Critical
   Serial.println("[INIT] Control Manager initialization...");
