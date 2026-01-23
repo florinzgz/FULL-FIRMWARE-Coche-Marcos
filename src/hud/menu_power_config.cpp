@@ -189,7 +189,7 @@ void MenuPowerConfig::drawTestButtons() {
 
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor((activeTest == i + 1 && i < 3) ? COLOR_BG : COLOR_TEXT,
-                     colors[i]);
+                      colors[i]);
     tft->drawString(labels[i], btnX + btnW / 2, TEST_BTN_Y + 20, 2);
   }
 
@@ -235,22 +235,22 @@ void MenuPowerConfig::drawCurrentValues() {
 
   // Power Hold status
   tft->fillCircle(110, statusY, 6,
-                 relayState.mainOn ? COLOR_ACTIVE : COLOR_DANGER);
+                  relayState.mainOn ? COLOR_ACTIVE : COLOR_DANGER);
   tft->drawString("Main", 120, statusY - 6, 1);
 
   // 12V Aux status
   tft->fillCircle(180, statusY, 6,
-                 relayState.steeringOn ? COLOR_ACTIVE : COLOR_INACTIVE);
+                  relayState.steeringOn ? COLOR_ACTIVE : COLOR_INACTIVE);
   tft->drawString("Steer", 190, statusY - 6, 1);
 
   // 24V Traction status
   tft->fillCircle(250, statusY, 6,
-                 relayState.tractionOn ? COLOR_ACTIVE : COLOR_INACTIVE);
+                  relayState.tractionOn ? COLOR_ACTIVE : COLOR_INACTIVE);
   tft->drawString("Traction", 260, statusY - 6, 1);
 
   // Lights status
   tft->fillCircle(330, statusY, 6,
-                 relayState.lightsOn ? COLOR_WARNING : COLOR_INACTIVE);
+                  relayState.lightsOn ? COLOR_WARNING : COLOR_INACTIVE);
   tft->drawString("Lights", 340, statusY - 6, 1);
 }
 

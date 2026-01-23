@@ -12,8 +12,9 @@ extern Storage::Config cfg;
 #ifndef DISABLE_SENSORS
 // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
 // Global constructors OneWire(PIN) and DallasTemperature(&oneWire) were causing
-// "Stack canary watchpoint triggered (ipc0)" by setting GPIO modes before main()
-// Now using pointers that are allocated in initTemperature() after FreeRTOS is ready
+// "Stack canary watchpoint triggered (ipc0)" by setting GPIO modes before
+// main() Now using pointers that are allocated in initTemperature() after
+// FreeRTOS is ready
 static OneWire *oneWire = nullptr;
 static DallasTemperature *sensors = nullptr;
 #endif
@@ -45,9 +46,9 @@ void Sensors::initTemperature() {
   initialized = true;
   return;
 #else
-  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate OneWire and DallasTemperature NOW
-  // This prevents "Stack canary watchpoint triggered (ipc0)" by deferring GPIO
-  // initialization until after FreeRTOS and heap are ready
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate OneWire and DallasTemperature
+  // NOW This prevents "Stack canary watchpoint triggered (ipc0)" by deferring
+  // GPIO initialization until after FreeRTOS and heap are ready
   if (oneWire == nullptr) {
     oneWire = new (std::nothrow) OneWire(PIN_ONEWIRE);
     if (oneWire == nullptr) {
@@ -56,12 +57,13 @@ void Sensors::initTemperature() {
       return;
     }
   }
-  
+
   if (sensors == nullptr) {
     sensors = new (std::nothrow) DallasTemperature(oneWire);
     if (sensors == nullptr) {
       Logger::error("Temperature: Failed to allocate DallasTemperature object");
-      System::logError(396); // Unique error code for DallasTemperature allocation failure
+      System::logError(
+          396); // Unique error code for DallasTemperature allocation failure
       return;
     }
   }

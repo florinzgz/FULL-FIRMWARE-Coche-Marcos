@@ -119,9 +119,9 @@ static bool initialized = false;
 
 // ✅ ÚNICA instancia global de TFT_eSPI - compartida con HUD y otros módulos
 // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
-// Global object constructor was causing "Stack canary watchpoint triggered (ipc0)"
-// Even default constructor TFT_eSPI() runs initialization code before main()
-// Now using pointer that is allocated in init() after FreeRTOS is ready
+// Global object constructor was causing "Stack canary watchpoint triggered
+// (ipc0)" Even default constructor TFT_eSPI() runs initialization code before
+// main() Now using pointer that is allocated in init() after FreeRTOS is ready
 TFT_eSPI *tft = nullptr;
 
 // ============================================================================
@@ -155,9 +155,9 @@ bool HUDManager::init() {
   Serial.flush();
   delay(10);
 
-  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate TFT object NOW (not in global constructor)
-  // This prevents "Stack canary watchpoint triggered (ipc0)" by deferring all TFT
-  // initialization until after FreeRTOS and heap are ready
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate TFT object NOW (not in global
+  // constructor) This prevents "Stack canary watchpoint triggered (ipc0)" by
+  // deferring all TFT initialization until after FreeRTOS and heap are ready
   if (tft == nullptr) {
     Serial.println("[HUD] Allocating TFT_eSPI object...");
     Serial.flush();
@@ -841,7 +841,7 @@ void HUDManager::renderHardwareTest() {
   tft->setTextColor(colorINA, TFT_BLACK);
   tft->setCursor(10, 50);
   tft->printf("INA226: %d/%d", status.currentSensorsOK,
-             status.currentSensorsTotal);
+              status.currentSensorsTotal);
 
   // DS18B20 sensores
   uint16_t colorTemp = getSensorStatusColor(status.temperatureSensorsOK,
@@ -849,7 +849,7 @@ void HUDManager::renderHardwareTest() {
   tft->setTextColor(colorTemp, TFT_BLACK);
   tft->setCursor(10, 65);
   tft->printf("DS18B20: %d/%d", status.temperatureSensorsOK,
-             status.temperatureSensorsTotal);
+              status.temperatureSensorsTotal);
 
   // Ruedas
   uint16_t colorWheel =
@@ -888,7 +888,7 @@ void HUDManager::renderHardwareTest() {
   tft->setTextColor(colorPedal, TFT_BLACK);
   tft->setCursor(250, 50);
   tft->printf("Pedal: %.1f%% [%d]", inputStatus.pedalPercent,
-             inputStatus.pedalRaw);
+              inputStatus.pedalRaw);
 
   // Steering
   uint16_t colorSteer = getSteeringColor(inputStatus);
@@ -911,8 +911,8 @@ void HUDManager::renderHardwareTest() {
   tft->setCursor(250, 125);
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
   tft->printf("Estado: L:%s M:%s 4:%s", inputStatus.lightsActive ? "ON" : "off",
-             inputStatus.multimediaActive ? "ON" : "off",
-             inputStatus.mode4x4Active ? "ON" : "off");
+              inputStatus.multimediaActive ? "ON" : "off",
+              inputStatus.mode4x4Active ? "ON" : "off");
 
   // ====== ESTADO GENERAL ======
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
@@ -926,8 +926,8 @@ void HUDManager::renderHardwareTest() {
   tft->setTextColor(sensorColor, TFT_BLACK);
   tft->setCursor(10, 165);
   tft->printf("Sensores: %s", status.allSensorsHealthy   ? "TODOS OK"
-                             : status.criticalSensorsOK ? "PARCIAL"
-                                                        : "FALLO");
+                              : status.criticalSensorsOK ? "PARCIAL"
+                                                         : "FALLO");
 
   // Entradas
   uint16_t inputColor = inputStatus.allInputsOK ? TFT_GREEN : TFT_RED;
@@ -945,9 +945,9 @@ void HUDManager::renderHardwareTest() {
   tft->setTextSize(2);
   tft->setCursor(10, 200);
   tft->print(allOK ? "SISTEMA: OK"
-            : (status.criticalSensorsOK && inputStatus.pedalOK)
-                ? "SISTEMA: WARN"
-                : "SISTEMA: FAIL");
+             : (status.criticalSensorsOK && inputStatus.pedalOK)
+                 ? "SISTEMA: WARN"
+                 : "SISTEMA: FAIL");
 
   // Calibración del pedal
   tft->setTextSize(1);
@@ -959,8 +959,8 @@ void HUDManager::renderHardwareTest() {
   tft->printf("Pedal cal: %d-%d", pedalMin, pedalMax);
   tft->setCursor(250, 180);
   tft->printf("Curva: %s", curve == 0   ? "Lineal"
-                          : curve == 1 ? "Suave"
-                                       : "Agresiva");
+                           : curve == 1 ? "Suave"
+                                        : "Agresiva");
 }
 
 void HUDManager::renderWifiConfig() {
@@ -993,16 +993,17 @@ void HUDManager::renderINA226Monitor() {
   tft->setTextSize(1);
   for (int i = 0; i < 4; i++) {
     tft->setCursor(20, 60 + i * 30);
-    tft->printf("Motor %d: %5.1fA %5.1fV %5.0fW", i + 1, carData.motorCurrent[i],
-               carData.batteryVoltage, // Aproximación
-               carData.motorCurrent[i] * carData.batteryVoltage);
+    tft->printf("Motor %d: %5.1fA %5.1fV %5.0fW", i + 1,
+                carData.motorCurrent[i],
+                carData.batteryVoltage, // Aproximación
+                carData.motorCurrent[i] * carData.batteryVoltage);
   }
 
   tft->setCursor(20, 220);
   tft->printf("Direccion: %5.1fA", carData.steeringCurrent);
   tft->setCursor(20, 250);
   tft->printf("Bateria: %5.1fA %5.1fV", carData.batteryCurrent,
-             carData.batteryVoltage);
+              carData.batteryVoltage);
 }
 
 void HUDManager::renderStatistics() {
@@ -1136,7 +1137,7 @@ void HUDManager::renderHiddenMenu() {
   tft->print("ENERGIA:");
   tft->setCursor(5, 45);
   tft->printf("Voltaje: %6.2fV  (%3.0f%%)", carData.voltage,
-             carData.batteryPercent);
+              carData.batteryPercent);
   tft->setCursor(5, 60);
   tft->printf("Corriente: %6.2fA", carData.current);
   tft->setCursor(5, 75);
@@ -1147,10 +1148,10 @@ void HUDManager::renderHiddenMenu() {
   tft->print("MOTORES:");
   tft->setCursor(5, 110);
   tft->printf("FL:%5.1fA FR:%5.1fA", carData.motorCurrent[0],
-             carData.motorCurrent[1]);
+              carData.motorCurrent[1]);
   tft->setCursor(5, 125);
   tft->printf("RL:%5.1fA RR:%5.1fA", carData.motorCurrent[2],
-             carData.motorCurrent[3]);
+              carData.motorCurrent[3]);
   tft->setCursor(5, 140);
   tft->printf("Direccion: %5.1fA", carData.steeringCurrent);
 
@@ -1179,7 +1180,7 @@ void HUDManager::renderHiddenMenu() {
   tft->setTextColor(colorPedal, TFT_BLACK);
   tft->setCursor(250, 140);
   tft->printf("Pedal: %5.1f%% [%d]", inputStatus.pedalPercent,
-             inputStatus.pedalRaw);
+              inputStatus.pedalRaw);
 
   // Estado del steering con color
   uint16_t colorSteer = getSteeringColor(inputStatus);
@@ -1213,7 +1214,7 @@ void HUDManager::renderHiddenMenu() {
   tft->setTextColor(colorINA, TFT_BLACK);
   tft->setCursor(5, 225);
   tft->printf("INA226: %d/%d", sensorStatus.currentSensorsOK,
-             sensorStatus.currentSensorsTotal);
+              sensorStatus.currentSensorsTotal);
 
   // DS18B20 (temperatura)
   uint16_t colorTemp = getSensorStatusColor(
@@ -1221,7 +1222,7 @@ void HUDManager::renderHiddenMenu() {
   tft->setTextColor(colorTemp, TFT_BLACK);
   tft->setCursor(80, 225);
   tft->printf("DS18B20: %d/%d", sensorStatus.temperatureSensorsOK,
-             sensorStatus.temperatureSensorsTotal);
+              sensorStatus.temperatureSensorsTotal);
 
   // Ruedas
   uint16_t colorWheel = getSensorStatusColor(sensorStatus.wheelSensorsOK,
@@ -1229,7 +1230,7 @@ void HUDManager::renderHiddenMenu() {
   tft->setTextColor(colorWheel, TFT_BLACK);
   tft->setCursor(175, 225);
   tft->printf("RUEDAS: %d/%d", sensorStatus.wheelSensorsOK,
-             sensorStatus.wheelSensorsTotal);
+              sensorStatus.wheelSensorsTotal);
 
   // Advertencia de temperatura
   if (sensorStatus.temperatureWarning) {
@@ -1253,8 +1254,8 @@ void HUDManager::renderHiddenMenu() {
   tft->setTextColor(TFT_CYAN, TFT_BLACK);
   tft->setCursor(250, 230);
   tft->printf("BTN: %s%s%s", inputStatus.lightsActive ? "L" : "-",
-             inputStatus.multimediaActive ? "M" : "-",
-             inputStatus.mode4x4Active ? "4" : "-");
+              inputStatus.multimediaActive ? "M" : "-",
+              inputStatus.mode4x4Active ? "4" : "-");
 
   // Odómetros
   tft->setTextColor(TFT_YELLOW, TFT_BLACK);
@@ -1270,9 +1271,9 @@ void HUDManager::renderHiddenMenu() {
   tft->setTextColor(sysColor, TFT_BLACK);
   tft->setCursor(250, 260);
   tft->print(allOK ? "SYS: OK"
-            : (sensorStatus.criticalSensorsOK && inputStatus.pedalOK)
-                ? "SYS: WARN"
-                : "SYS: FAIL");
+             : (sensorStatus.criticalSensorsOK && inputStatus.pedalOK)
+                 ? "SYS: WARN"
+                 : "SYS: FAIL");
 
   // PHASE 7: Shadow Mode status
   if (HudCompositor::isInitialized()) {

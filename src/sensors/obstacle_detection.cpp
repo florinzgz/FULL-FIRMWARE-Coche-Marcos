@@ -35,9 +35,10 @@
 namespace ObstacleDetection {
 
 // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
-// Global constructor HardwareSerial(UART_NUM) was causing "Stack canary watchpoint
-// triggered (ipc0)" by initializing UART peripheral before FreeRTOS starts.
-// Now using pointer that is allocated in init() after FreeRTOS is ready.
+// Global constructor HardwareSerial(UART_NUM) was causing "Stack canary
+// watchpoint triggered (ipc0)" by initializing UART peripheral before FreeRTOS
+// starts. Now using pointer that is allocated in init() after FreeRTOS is
+// ready.
 static HardwareSerial *TOFSerial = nullptr; // UART0 for TOFSense-M S
 
 // Sensor state
@@ -270,13 +271,14 @@ void init() {
                 ObstacleConfig::UART_NUM, PIN_TOFSENSE_RX, PIN_TOFSENSE_TX,
                 ObstacleConfig::UART_BAUDRATE);
 
-  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate TOFSerial NOW (not in global constructor)
-  // This prevents "Stack canary watchpoint triggered (ipc0)" by deferring UART
-  // initialization until after FreeRTOS and heap are ready
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate TOFSerial NOW (not in global
+  // constructor) This prevents "Stack canary watchpoint triggered (ipc0)" by
+  // deferring UART initialization until after FreeRTOS and heap are ready
   if (TOFSerial == nullptr) {
     TOFSerial = new (std::nothrow) HardwareSerial(ObstacleConfig::UART_NUM);
     if (TOFSerial == nullptr) {
-      Logger::error("ObstacleDetection: Failed to allocate HardwareSerial object");
+      Logger::error(
+          "ObstacleDetection: Failed to allocate HardwareSerial object");
       System::logError(697); // Error code for TOFSerial allocation failure
       initialized = false;
       return;

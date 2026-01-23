@@ -177,7 +177,7 @@ void MenuLEDControl::drawPatternSelector() {
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor((i == selectedPattern) ? COLOR_BG : COLOR_TEXT, btnColor);
     tft->drawString(PATTERN_NAMES[i], btnX + PATTERN_BTN_W / 2,
-                   btnY + PATTERN_BTN_H / 2, 1);
+                    btnY + PATTERN_BTN_H / 2, 1);
   }
 }
 
@@ -190,12 +190,12 @@ void MenuLEDControl::drawBrightnessSlider() {
 
   // Draw slider background
   tft->fillRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5,
-                    COLOR_SLIDER_BG);
+                     COLOR_SLIDER_BG);
 
   // Draw filled portion
   int fillW = (cfg.brightness * SLIDER_W) / 255;
   tft->fillRoundRect(SLIDER_X, BRIGHTNESS_Y, fillW, SLIDER_H, 5,
-                    COLOR_SLIDER_FG);
+                     COLOR_SLIDER_FG);
 
   // Draw border
   tft->drawRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5, COLOR_TEXT);
@@ -206,7 +206,7 @@ void MenuLEDControl::drawBrightnessSlider() {
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_TEXT, COLOR_BG);
   tft->drawString(valueStr, SLIDER_X + SLIDER_W + 30,
-                 BRIGHTNESS_Y + SLIDER_H / 2, 2);
+                  BRIGHTNESS_Y + SLIDER_H / 2, 2);
 }
 
 void MenuLEDControl::drawSpeedSlider() {
@@ -232,7 +232,8 @@ void MenuLEDControl::drawSpeedSlider() {
   snprintf(valueStr, sizeof(valueStr), "%d%%", (speed * 100) / 255);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_TEXT, COLOR_BG);
-  tft->drawString(valueStr, SLIDER_X + SLIDER_W + 30, SPEED_Y + SLIDER_H / 2, 2);
+  tft->drawString(valueStr, SLIDER_X + SLIDER_W + 30, SPEED_Y + SLIDER_H / 2,
+                  2);
 }
 
 void MenuLEDControl::drawColorPicker() {
@@ -257,7 +258,8 @@ void MenuLEDControl::drawColorPicker() {
   // Draw selection marker
   int markerX = barX + (colorPickerH * barW) / 255;
   tft->drawTriangle(markerX - 5, COLOR_Y + barH + 2, markerX + 5,
-                   COLOR_Y + barH + 2, markerX, COLOR_Y + barH + 8, COLOR_TEXT);
+                    COLOR_Y + barH + 2, markerX, COLOR_Y + barH + 8,
+                    COLOR_TEXT);
 
   // Draw current color preview using helper function
   uint16_t currentColor = hueToRGB565(colorPickerH);

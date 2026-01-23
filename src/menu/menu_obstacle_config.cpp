@@ -205,7 +205,7 @@ void drawSliderOption(int y, int optionIndex, const char *label, uint16_t value,
   int fillWidth = ((uint32_t)(value - minVal) * SLIDER_W) / (maxVal - minVal);
   tft->fillRect(SLIDER_X, y + 2, fillWidth, 20, color);
   tft->drawRect(SLIDER_X, y + 2, SLIDER_W, 20,
-               isSelected ? COLOR_SELECTED : COLOR_TEXT);
+                isSelected ? COLOR_SELECTED : COLOR_TEXT);
   char valueStr[16];
   snprintf(valueStr, sizeof(valueStr), "%dmm", value);
   tft->setTextColor(COLOR_TEXT, COLOR_BG);
@@ -219,7 +219,7 @@ void drawToggleOption(int y, int optionIndex, const char *label, bool enabled) {
   uint16_t btnColor = enabled ? COLOR_ENABLED : COLOR_DISABLED;
   tft->fillRoundRect(SLIDER_X, y, 80, 25, 5, btnColor);
   tft->drawRoundRect(SLIDER_X, y, 80, 25, 5,
-                    isSelected ? COLOR_SELECTED : COLOR_TEXT);
+                     isSelected ? COLOR_SELECTED : COLOR_TEXT);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(enabled ? COLOR_BG : COLOR_TEXT, btnColor);
   tft->drawString(enabled ? "ON" : "OFF", SLIDER_X + 40, y + 12, 2);
@@ -229,7 +229,7 @@ void drawToggleOption(int y, int optionIndex, const char *label, bool enabled) {
 void drawActionButtons() {
   bool saveSelected = (selectedOption == NUM_OPTIONS);
   tft->fillRoundRect(20, BACK_BTN_Y, 100, 35, 5,
-                    saveSelected ? COLOR_SELECTED : TFT_BLUE);
+                     saveSelected ? COLOR_SELECTED : TFT_BLUE);
   tft->drawRoundRect(20, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_BG, saveSelected ? COLOR_SELECTED : TFT_BLUE);

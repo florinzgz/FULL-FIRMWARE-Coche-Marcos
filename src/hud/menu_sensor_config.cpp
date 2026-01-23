@@ -225,7 +225,8 @@ void MenuSensorConfig::drawToggleWithLabel(const Button &btn,
   // Draw status indicator circle
   int circleX = 25;
   int circleY = btn.y + btn.h / 2;
-  tft->fillCircle(circleX, circleY, 8, enabled ? COLOR_ENABLED : COLOR_DISABLED);
+  tft->fillCircle(circleX, circleY, 8,
+                  enabled ? COLOR_ENABLED : COLOR_DISABLED);
   tft->drawCircle(circleX, circleY, 8, COLOR_TEXT);
 
   // Draw toggle button
@@ -272,27 +273,27 @@ void MenuSensorConfig::drawActionButtons() {
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_BG, saveColor);
   tft->drawString(saveLabel, btnSave.x + btnSave.w / 2,
-                 btnSave.y + btnSave.h / 2, 2);
+                  btnSave.y + btnSave.h / 2, 2);
 
   // Reset button
   uint16_t resetColor = (lastResetTime > 0) ? TFT_BLUE : COLOR_WARNING;
   const char *resetLabel = (lastResetTime > 0) ? "RESET!" : "RESET";
 
   tft->fillRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
-                    resetColor);
+                     resetColor);
   tft->drawRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
-                    COLOR_TEXT);
+                     COLOR_TEXT);
   tft->setTextColor(COLOR_BG, resetColor);
   tft->drawString(resetLabel, btnReset.x + btnReset.w / 2,
-                 btnReset.y + btnReset.h / 2, 2);
+                  btnReset.y + btnReset.h / 2, 2);
 
   // Back button
   tft->fillRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5,
-                    COLOR_INACTIVE);
+                     COLOR_INACTIVE);
   tft->drawRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5, COLOR_TEXT);
   tft->setTextColor(COLOR_TEXT, COLOR_INACTIVE);
   tft->drawString("BACK", btnBack.x + btnBack.w / 2, btnBack.y + btnBack.h / 2,
-                 2);
+                  2);
 }
 
 int MenuSensorConfig::getEnabledCount() {

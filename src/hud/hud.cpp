@@ -171,8 +171,8 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
 }
 
 void HUD::init() {
-  // ✅ NO llamar a tft->init() aquí - ya está inicializado en HUDManager::init()
-  // Usamos la instancia global compartida de TFT_eSPI
+  // ✅ NO llamar a tft->init() aquí - ya está inicializado en
+  // HUDManager::init() Usamos la instancia global compartida de TFT_eSPI
 
   // Clear screen and prepare for dashboard
   tft->fillScreen(TFT_BLACK);
@@ -422,12 +422,13 @@ static void drawDemoButton() {
   uint16_t borderColor = demoButtonWasPressed ? TFT_WHITE : TFT_CYAN;
   tft->drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, borderColor);
   tft->drawRoundRect(DEMO_BTN_X1 + 1, DEMO_BTN_Y1 + 1, btnW - 2, btnH - 2, 4,
-                    borderColor);
+                     borderColor);
 
   // Barra de progreso si está siendo pulsado
   if (demoButtonWasPressed && demoButtonProgress > 0.0f) {
     int progressW = (int)(btnW * demoButtonProgress);
-    tft->fillRect(DEMO_BTN_X1 + 2, DEMO_BTN_Y2 - 6, progressW - 4, 4, TFT_GREEN);
+    tft->fillRect(DEMO_BTN_X1 + 2, DEMO_BTN_Y2 - 6, progressW - 4, 4,
+                  TFT_GREEN);
   }
 
   // Draw button text
@@ -468,7 +469,7 @@ static void drawAxisRotationButton() {
 
   // Sombra 3D
   tft->fillRoundRect(AXIS_BTN_X1 + 2, AXIS_BTN_Y1 + 2, btnW, btnH, 5,
-                    COLOR_BOX_SHADOW);
+                     COLOR_BOX_SHADOW);
 
   // Fondo del botón
   uint16_t bgColor =
@@ -480,15 +481,15 @@ static void drawAxisRotationButton() {
 
   // Highlight superior
   tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 2, btnW - 10,
-                    COLOR_BOX_HIGHLIGHT);
+                     COLOR_BOX_HIGHLIGHT);
   tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 3, btnW - 10,
-                    COLOR_BOX_HIGHLIGHT);
+                     COLOR_BOX_HIGHLIGHT);
 
   // Sombra inferior
   tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 3, btnW - 10,
-                    COLOR_BOX_SHADOW);
+                     COLOR_BOX_SHADOW);
   tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 2, btnW - 10,
-                    COLOR_BOX_SHADOW);
+                     COLOR_BOX_SHADOW);
 
   // Icono de rotación (flechas circulares)
   int iconCx = centerX;
@@ -503,9 +504,9 @@ static void drawAxisRotationButton() {
 
   // Flechas de dirección
   tft->fillTriangle(iconCx + iconR - 2, iconCy - 4, iconCx + iconR + 4, iconCy,
-                   iconCx + iconR - 2, iconCy + 4, arrowColor);
+                    iconCx + iconR - 2, iconCy + 4, arrowColor);
   tft->fillTriangle(iconCx - iconR + 2, iconCy - 4, iconCx - iconR - 4, iconCy,
-                   iconCx - iconR + 2, iconCy + 4, arrowColor);
+                    iconCx - iconR + 2, iconCy + 4, arrowColor);
 
   // Texto "GIRO" debajo
   tft->setTextDatum(MC_DATUM);
@@ -1389,7 +1390,7 @@ void HUD::update(TFT_eSprite *sprite) {
         uint16_t rawX = 0, rawY = 0;
         if (tft->getTouchRaw(&rawX, &rawY)) {
           uint16_t rawZ = tft->getTouchRawZ(); // Read pressure only after
-                                              // successful raw read
+                                               // successful raw read
           Logger::infof("Touch detected at (%d, %d) - RAW: X=%d, Y=%d, Z=%d", x,
                         y, rawX, rawY, rawZ);
         } else {

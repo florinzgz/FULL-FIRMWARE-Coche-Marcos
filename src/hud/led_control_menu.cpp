@@ -151,7 +151,7 @@ void LEDControlMenu::drawPatternButtons() {
     tft->setTextDatum(MC_DATUM);
     tft->setTextColor(textColor, btnColor);
     tft->drawString(PATTERN_NAMES[i], btnX + PATTERN_BTN_W / 2,
-                   btnY + PATTERN_BTN_H / 2, 1);
+                    btnY + PATTERN_BTN_H / 2, 1);
   }
 }
 
@@ -162,7 +162,7 @@ void LEDControlMenu::drawBrightnessSlider() {
 
   // Background
   tft->fillRoundRect(SLIDER_X, BRIGHTNESS_Y, SLIDER_W, SLIDER_H, 5,
-                    COLOR_SLIDER_BG);
+                     COLOR_SLIDER_BG);
 
   // Filled portion
   int fillW = (brightness * SLIDER_W) / 255;
@@ -176,8 +176,8 @@ void LEDControlMenu::drawBrightnessSlider() {
   snprintf(valueStr, sizeof(valueStr), "%d%%", (brightness * 100) / 255);
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_BG, TFT_YELLOW);
-  tft->drawString(valueStr, SLIDER_X + SLIDER_W / 2, BRIGHTNESS_Y + SLIDER_H / 2,
-                 2);
+  tft->drawString(valueStr, SLIDER_X + SLIDER_W / 2,
+                  BRIGHTNESS_Y + SLIDER_H / 2, 2);
 }
 
 void LEDControlMenu::drawSpeedSlider() {
@@ -237,14 +237,14 @@ void LEDControlMenu::drawColorButton(int x, int y, uint32_t color) {
 
 void LEDControlMenu::drawBackButton() {
   tft->fillRoundRect(BACK_BTN_X, BACK_BTN_Y, BACK_BTN_W, BACK_BTN_H, 5,
-                    TFT_DARKGREY);
+                     TFT_DARKGREY);
   tft->drawRoundRect(BACK_BTN_X, BACK_BTN_Y, BACK_BTN_W, BACK_BTN_H, 5,
-                    COLOR_TEXT);
+                     COLOR_TEXT);
 
   tft->setTextDatum(MC_DATUM);
   tft->setTextColor(COLOR_TEXT, TFT_DARKGREY);
   tft->drawString("BACK", BACK_BTN_X + BACK_BTN_W / 2,
-                 BACK_BTN_Y + BACK_BTN_H / 2, 2);
+                  BACK_BTN_Y + BACK_BTN_H / 2, 2);
 
   // Save button
   tft->fillRoundRect(10, BACK_BTN_Y, 80, BACK_BTN_H, 5, COLOR_SELECTED);
