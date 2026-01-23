@@ -15,6 +15,7 @@
 
 #ifdef TEST_DISPLAY_STANDALONE
 
+#include "SystemConfig.h"
 #include "pins.h"
 #include <Arduino.h>
 #include <TFT_eSPI.h>
@@ -68,14 +69,9 @@ void setupDisplayTest() {
   Serial.println("[TEST] Performing hardware reset...");
   pinMode(PIN_TFT_RST, OUTPUT);
   digitalWrite(PIN_TFT_RST, LOW);
-  digitalWrite(PIN_TFT_RST, LOW);
-  uint32_t resetStart = millis();
-  while (millis() - resetStart < 10)
-    yield(); // 10ms reset pulse
+  delay(DisplayBootConfig::TFT_RESET_PULSE_MS);
   digitalWrite(PIN_TFT_RST, HIGH);
-  resetStart = millis();
-  while (millis() - resetStart < 50)
-    yield(); // 50ms recovery time
+  delay(DisplayBootConfig::TFT_RESET_RECOVERY_MS);
   Serial.println("[TEST] Reset complete");
 
   // 4. Initialize TFT
