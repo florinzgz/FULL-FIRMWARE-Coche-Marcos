@@ -63,8 +63,6 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_SPIRAM_MODE_QUAD=y      # Quad SPI (4-bit)
 CONFIG_SPIRAM_SIZE=8388608     # 8MB
 CONFIG_SPIRAM_SPEED_80M=y      # 80MHz
-CONFIG_SPIRAM_MEMTEST=n        # Disable memory test to avoid INT_WDT bootloop on slow PSRAM init
-CONFIG_ESP_INT_WDT_TIMEOUT_MS=5000  # Increase INT_WDT timeout for slow PSRAM init
 ```
 
 ### 2.3 Explicación de Configuración
