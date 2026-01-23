@@ -1,0 +1,12 @@
+# ============================================================================
+# ESP32-S3 N16R8 SDK Configuration Overrides
+# ============================================================================
+# Minimal overrides to prevent early-boot watchdog resets on some hardware.
+# Avoid adding unrelated CONFIG_SPIRAM_* flags in Arduino-ESP32 projects.
+# ============================================================================
+
+# N16R8 bootloop fix: Disable PSRAM memory test to avoid INT_WDT reset during boot.
+CONFIG_SPIRAM_MEMTEST=n
+
+# N16R8 bootloop fix: Increase interrupt watchdog timeout for slow PSRAM init.
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=5000
