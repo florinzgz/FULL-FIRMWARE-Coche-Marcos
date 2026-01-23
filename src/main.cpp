@@ -57,12 +57,11 @@ void setup() {
 
   Serial.println("[BOOT] Resetting TFT display...");
   pinMode(PIN_TFT_RST, OUTPUT);
-  digitalWrite(PIN_TFT_RST, HIGH);
-  delay(DisplayBootConfig::TFT_RESET_STABILIZATION_MS);
   digitalWrite(PIN_TFT_RST, LOW);
   delay(DisplayBootConfig::TFT_RESET_PULSE_MS);
   digitalWrite(PIN_TFT_RST, HIGH);
   delay(DisplayBootConfig::TFT_RESET_RECOVERY_MS);
+  delay(DisplayBootConfig::TFT_RESET_STABILIZATION_MS);
 
   // 🔍 DIAGNOSTIC MARKER A: Serial initialized
   Serial.write('A');
