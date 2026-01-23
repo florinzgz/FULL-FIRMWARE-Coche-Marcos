@@ -35,9 +35,6 @@ def _should_patch_legacy_timeout(content):
     
     We only want to patch the first case.
     """
-    if '#define CONFIG_INT_WDT_TIMEOUT_MS ' not in content:
-        return False
-    
     # Find the line with CONFIG_INT_WDT_TIMEOUT_MS
     for line in content.split('\n'):
         if line.startswith('#define CONFIG_INT_WDT_TIMEOUT_MS '):
