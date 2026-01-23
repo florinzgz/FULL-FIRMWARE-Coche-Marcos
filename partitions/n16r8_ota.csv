@@ -1,15 +1,17 @@
 # Name,   Type, SubType, Offset,   Size,     Flags
 # ESP32-S3 16MB Flash Partition Table - N16R8
-# Optimized for OTA updates
-# Flash: 16MB QIO, PSRAM: 8MB QSPI @ 3.3V
+# Optimized for large firmware + OTA
+# Flash: 16MB DIO, PSRAM: 8MB QSPI @ 3.3V
+# OTA slots: 6.5MB each (fits large firmware)
+# Total flash used: ~15.6MB
 
 nvs,      data, nvs,     0x9000,   0x5000,
 otadata,  data, ota,     0xE000,   0x2000,
 coredump, data, coredump,0x10000,  0x10000,
 
-# OTA partitions (5MB each - adjusted offset for coredump)
-app0,     app,  ota_0,   0x20000,  0x500000,
-app1,     app,  ota_1,   0x520000, 0x500000,
+# OTA partitions (6.5MB each = 0x680000)
+app0,     app,  ota_0,   0x20000,  0x680000,
+app1,     app,  ota_1,   0x6A0000, 0x680000,
 
-# SPIFFS (~5.9MB for data storage - adjusted with safety margin)
-spiffs,   data, spiffs,  0xA20000, 0x5DF000,
+# SPIFFS (~2.5MB = 0x280000)
+spiffs,   data, spiffs,  0xD20000, 0x280000,
