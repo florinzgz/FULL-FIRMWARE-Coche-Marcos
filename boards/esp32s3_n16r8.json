@@ -18,6 +18,10 @@
     "arduino.flash_mode": "dio",
 
     "flash_size": "16MB",
+    
+    "arduino.memory_type": "qio_qspi",
+    "arduino.partitions": "default_16MB.csv",
+    "arduino.psram_type": "qspi",
 
     "extra_flags": [
       "-DBOARD_HAS_PSRAM",
