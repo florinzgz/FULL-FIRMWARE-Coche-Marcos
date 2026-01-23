@@ -19,6 +19,7 @@
 #include "pins.h"
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+#include <new> // For std::nothrow
 
 // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
 // Global constructor TFT_eSPI() was causing "Stack canary watchpoint triggered 
