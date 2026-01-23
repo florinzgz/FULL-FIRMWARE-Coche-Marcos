@@ -10,7 +10,7 @@
 #include <TFT_eSPI.h>
 
 // Forward declaration of TFT instance (shared with HUD)
-extern TFT_eSPI tft;
+extern TFT_eSPI *tft;
 
 // Static member definitions
 bool MenuSensorConfig::sensorFL = true;
@@ -71,19 +71,19 @@ void MenuSensorConfig::draw() {
   if (!needsRedraw) return;
   needsRedraw = false;
 
-  tft.fillScreen(COLOR_BG);
+  tft->fillScreen(COLOR_BG);
 
   // Header
-  tft.setTextDatum(TC_DATUM);
-  tft.setTextColor(COLOR_ACCENT, COLOR_BG);
-  tft.drawString("SENSOR CONFIGURATION", 240, 10, 4);
+  tft->setTextDatum(TC_DATUM);
+  tft->setTextColor(COLOR_ACCENT, COLOR_BG);
+  tft->drawString("SENSOR CONFIGURATION", 240, 10, 4);
 
-  tft.drawLine(20, 42, 460, 42, TFT_DARKGREY);
+  tft->drawLine(20, 42, 460, 42, TFT_DARKGREY);
 
   // Section: Wheel Sensors
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Wheel Sensors:", 20, 55, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Wheel Sensors:", 20, 55, 2);
 
   // Draw sensor toggle buttons with labels
   drawToggleWithLabel(btnSensorFL, "Front Left (FL)", sensorFL);
@@ -92,9 +92,9 @@ void MenuSensorConfig::draw() {
   drawToggleWithLabel(btnSensorRR, "Rear Right (RR)", sensorRR);
 
   // Section: Current Sensors
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Current Sensors:", 20, 215, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Current Sensors:", 20, 215, 2);
 
   drawToggleWithLabel(btnINA226, "INA226 Monitors", sensorINA226);
 
@@ -206,27 +206,27 @@ void MenuSensorConfig::drawToggleButton(
   uint16_t bgColor = enabled ? COLOR_ENABLED : COLOR_DISABLED;
   uint16_t textColor = enabled ? COLOR_BG : COLOR_TEXT;
 
-  tft.fillRoundRect(x, y, w, h, 5, bgColor);
-  tft.drawRoundRect(x, y, w, h, 5, COLOR_TEXT);
+  tft->fillRoundRect(x, y, w, h, 5, bgColor);
+  tft->drawRoundRect(x, y, w, h, 5, COLOR_TEXT);
 
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(textColor, bgColor);
-  tft.drawString(enabled ? "ON" : "OFF", x + w / 2, y + h / 2, 2);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(textColor, bgColor);
+  tft->drawString(enabled ? "ON" : "OFF", x + w / 2, y + h / 2, 2);
 }
 
 void MenuSensorConfig::drawToggleWithLabel(const Button &btn,
                                            const char *fullLabel,
                                            bool enabled) {
   // Draw label on the left
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(enabled ? COLOR_TEXT : COLOR_INACTIVE, COLOR_BG);
-  tft.drawString(fullLabel, 40, btn.y + 10, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(enabled ? COLOR_TEXT : COLOR_INACTIVE, COLOR_BG);
+  tft->drawString(fullLabel, 40, btn.y + 10, 2);
 
   // Draw status indicator circle
   int circleX = 25;
   int circleY = btn.y + btn.h / 2;
-  tft.fillCircle(circleX, circleY, 8, enabled ? COLOR_ENABLED : COLOR_DISABLED);
-  tft.drawCircle(circleX, circleY, 8, COLOR_TEXT);
+  tft->fillCircle(circleX, circleY, 8, enabled ? COLOR_ENABLED : COLOR_DISABLED);
+  tft->drawCircle(circleX, circleY, 8, COLOR_TEXT);
 
   // Draw toggle button
   drawToggleButton(btn.x, btn.y, btn.w, btn.h, btn.label, enabled);
@@ -238,7 +238,7 @@ void MenuSensorConfig::drawStatusBar() {
 
   // Status bar background
   int barY = 245;
-  tft.fillRect(20, barY, 440, 20, COLOR_BG);
+  tft->fillRect(20, barY, 440, 20, COLOR_BG);
 
   // Draw status text
   char statusStr[48];
@@ -251,14 +251,14 @@ void MenuSensorConfig::drawStatusBar() {
     statusColor = COLOR_WARNING; // Show warning earlier (3 or fewer)
   if (enabledCount < 2) statusColor = COLOR_DISABLED;
 
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(statusColor, COLOR_BG);
-  tft.drawString(statusStr, 20, barY, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(statusColor, COLOR_BG);
+  tft->drawString(statusStr, 20, barY, 2);
 
   // Warning if too few sensors enabled
   if (enabledCount < 2) {
-    tft.setTextColor(COLOR_DISABLED, COLOR_BG);
-    tft.drawString("WARNING: Unsafe!", 280, barY, 2);
+    tft->setTextColor(COLOR_DISABLED, COLOR_BG);
+    tft->drawString("WARNING: Unsafe!", 280, barY, 2);
   }
 }
 
@@ -267,31 +267,31 @@ void MenuSensorConfig::drawActionButtons() {
   uint16_t saveColor = (lastSaveTime > 0) ? TFT_BLUE : COLOR_ENABLED;
   const char *saveLabel = (lastSaveTime > 0) ? "SAVED!" : "SAVE";
 
-  tft.fillRoundRect(btnSave.x, btnSave.y, btnSave.w, btnSave.h, 5, saveColor);
-  tft.drawRoundRect(btnSave.x, btnSave.y, btnSave.w, btnSave.h, 5, COLOR_TEXT);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(COLOR_BG, saveColor);
-  tft.drawString(saveLabel, btnSave.x + btnSave.w / 2,
+  tft->fillRoundRect(btnSave.x, btnSave.y, btnSave.w, btnSave.h, 5, saveColor);
+  tft->drawRoundRect(btnSave.x, btnSave.y, btnSave.w, btnSave.h, 5, COLOR_TEXT);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(COLOR_BG, saveColor);
+  tft->drawString(saveLabel, btnSave.x + btnSave.w / 2,
                  btnSave.y + btnSave.h / 2, 2);
 
   // Reset button
   uint16_t resetColor = (lastResetTime > 0) ? TFT_BLUE : COLOR_WARNING;
   const char *resetLabel = (lastResetTime > 0) ? "RESET!" : "RESET";
 
-  tft.fillRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
+  tft->fillRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
                     resetColor);
-  tft.drawRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
+  tft->drawRoundRect(btnReset.x, btnReset.y, btnReset.w, btnReset.h, 5,
                     COLOR_TEXT);
-  tft.setTextColor(COLOR_BG, resetColor);
-  tft.drawString(resetLabel, btnReset.x + btnReset.w / 2,
+  tft->setTextColor(COLOR_BG, resetColor);
+  tft->drawString(resetLabel, btnReset.x + btnReset.w / 2,
                  btnReset.y + btnReset.h / 2, 2);
 
   // Back button
-  tft.fillRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5,
+  tft->fillRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5,
                     COLOR_INACTIVE);
-  tft.drawRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5, COLOR_TEXT);
-  tft.setTextColor(COLOR_TEXT, COLOR_INACTIVE);
-  tft.drawString("BACK", btnBack.x + btnBack.w / 2, btnBack.y + btnBack.h / 2,
+  tft->drawRoundRect(btnBack.x, btnBack.y, btnBack.w, btnBack.h, 5, COLOR_TEXT);
+  tft->setTextColor(COLOR_TEXT, COLOR_INACTIVE);
+  tft->drawString("BACK", btnBack.x + btnBack.w / 2, btnBack.y + btnBack.h / 2,
                  2);
 }
 

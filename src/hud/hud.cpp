@@ -39,10 +39,10 @@
 #include "wheels.h"
 
 // ✅ Usar la instancia global de TFT_eSPI definida en hud_manager.cpp
-extern TFT_eSPI tft;
+extern TFT_eSPI *tft;
 
 // 🔒 v2.8.8: Touch integrado de TFT_eSPI
-// Usamos tft.getTouch() en lugar de librería XPT2046_Touchscreen separada
+// Usamos tft->getTouch() en lugar de librería XPT2046_Touchscreen separada
 // Esto evita conflictos de bus SPI que causaban pantalla blanca
 static bool touchInitialized = false;
 
@@ -171,18 +171,18 @@ static void setDefaultTouchCalibration(uint16_t calData[5]) {
 }
 
 void HUD::init() {
-  // ✅ NO llamar a tft.init() aquí - ya está inicializado en HUDManager::init()
+  // ✅ NO llamar a tft->init() aquí - ya está inicializado en HUDManager::init()
   // Usamos la instancia global compartida de TFT_eSPI
 
   // Clear screen and prepare for dashboard
-  tft.fillScreen(TFT_BLACK);
+  tft->fillScreen(TFT_BLACK);
 
   // Initialize dashboard components
   // CRITICAL: These must be called after tft is initialized and rotation is set
-  Gauges::init(&tft);
-  WheelsDisplay::init(&tft);
-  Icons::init(&tft);
-  MenuHidden::init(&tft); // MenuHidden stores tft pointer, must be non-null
+  Gauges::init(tft);
+  WheelsDisplay::init(tft);
+  Icons::init(tft);
+  MenuHidden::init(tft); // MenuHidden stores tft pointer, must be non-null
 
   // 🔒 v2.9.0: TOUCH INITIALIZATION - Using stored calibration or defaults
   touchInitialized = false;
@@ -236,7 +236,7 @@ void HUD::init() {
                       calData[4]);
 
         // v2.11.1: Validate rotation matches display rotation
-        uint8_t currentRotation = tft.getRotation();
+        uint8_t currentRotation = tft->getRotation();
         if (calData[4] != currentRotation) {
           Logger::warnf(
               "Touch: Calibration rotation (%d) != display rotation (%d)",
@@ -257,7 +257,7 @@ void HUD::init() {
       setDefaultTouchCalibration(calData);
     }
 
-    tft.setTouch(calData);
+    tft->setTouch(calData);
     touchInitialized = true;
     Logger::info("Touchscreen XPT2046 integrated with TFT_eSPI initialized OK");
 
@@ -283,11 +283,11 @@ void HUD::init() {
     // This helps diagnose if touch controller is responding
     uint16_t testX = 0, testY = 0;
     Logger::info("Touch: Testing touch controller response...");
-    bool touchResponding = tft.getTouchRaw(&testX, &testY);
+    bool touchResponding = tft->getTouchRaw(&testX, &testY);
     if (touchResponding) {
       // Read Z pressure value to check sensitivity (only if touch is
       // responding)
-      uint16_t testZ = tft.getTouchRawZ();
+      uint16_t testZ = tft->getTouchRawZ();
       Logger::infof(
           "Touch: Controller responding, raw values: X=%d, Y=%d, Z=%d", testX,
           testY, testZ);
@@ -342,52 +342,52 @@ void HUD::init() {
   // Draw initial dashboard elements
   // Show title and status - car visualization will appear when update() is
   // called
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextSize(1);
-  tft.drawString("Mercedes AMG GT", 240, 50, 4);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(TFT_WHITE, TFT_BLACK);
+  tft->setTextSize(1);
+  tft->drawString("Mercedes AMG GT", 240, 50, 4);
 
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("Esperando sensores...", 240, 80, 2);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+  tft->drawString("Esperando sensores...", 240, 80, 2);
 
   // Draw placeholder car outline to show display is working
   // Using named constants for consistency
-  tft.drawRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, TFT_DARKGREY);
-  tft.drawCircle(X_FL, Y_FL, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
-  tft.drawCircle(X_FR, Y_FR, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
-  tft.drawCircle(X_RL, Y_RL, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
-  tft.drawCircle(X_RR, Y_RR, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
+  tft->drawRect(CAR_BODY_X, CAR_BODY_Y, CAR_BODY_W, CAR_BODY_H, TFT_DARKGREY);
+  tft->drawCircle(X_FL, Y_FL, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
+  tft->drawCircle(X_FR, Y_FR, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
+  tft->drawCircle(X_RL, Y_RL, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
+  tft->drawCircle(X_RR, Y_RR, WHEEL_PLACEHOLDER_RADIUS, TFT_DARKGREY);
 
   // Reset carBodyDrawn flag so it will be redrawn on first update
   carBodyDrawn = false;
 }
 
 void HUD::showLogo() {
-  tft.fillScreen(TFT_BLACK);
+  tft->fillScreen(TFT_BLACK);
   carBodyDrawn = false; // Reset flag so car body will be redrawn after logo
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString("Mercedes AMG", 240, 120, 4);
-  tft.drawString("Sistema de arranque", 240, 170, 2);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(TFT_WHITE, TFT_BLACK);
+  tft->drawString("Mercedes AMG", 240, 120, 4);
+  tft->drawString("Sistema de arranque", 240, 170, 2);
 }
 
 void HUD::showReady() {
-  tft.fillScreen(TFT_BLACK);
+  tft->fillScreen(TFT_BLACK);
   carBodyDrawn = false; // Reset flag so car body will be redrawn
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.drawString("READY", 240, 40, 4);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(TFT_GREEN, TFT_BLACK);
+  tft->drawString("READY", 240, 40, 4);
 
 // 🔒 v2.9.1: Show touch calibration hint if not calibrated
 #ifndef DISABLE_TOUCH
   if (cfg.touchEnabled && !cfg.touchCalibrated) {
-    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.setTextSize(1);
-    tft.drawString("Touch no calibrado", 240, 90, 2);
-    tft.setTextColor(TFT_CYAN, TFT_BLACK);
-    tft.drawString("Toca bateria 4 veces: 8-9-8-9", 240, 115, 2);
-    tft.drawString("Opcion 3: Calibrar touch", 240, 135, 2);
+    tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft->setTextSize(1);
+    tft->drawString("Touch no calibrado", 240, 90, 2);
+    tft->setTextColor(TFT_CYAN, TFT_BLACK);
+    tft->drawString("Toca bateria 4 veces: 8-9-8-9", 240, 115, 2);
+    tft->drawString("Opcion 3: Calibrar touch", 240, 135, 2);
   }
 #endif
 }
@@ -416,26 +416,26 @@ static void drawDemoButton() {
   // Draw button background (más brillante para mayor visibilidad)
   uint16_t bgColor =
       demoButtonWasPressed ? 0x001F : TFT_NAVY; // Azul más claro si pulsado
-  tft.fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, bgColor);
+  tft->fillRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, bgColor);
 
   // Borde con efecto 3D
   uint16_t borderColor = demoButtonWasPressed ? TFT_WHITE : TFT_CYAN;
-  tft.drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, borderColor);
-  tft.drawRoundRect(DEMO_BTN_X1 + 1, DEMO_BTN_Y1 + 1, btnW - 2, btnH - 2, 4,
+  tft->drawRoundRect(DEMO_BTN_X1, DEMO_BTN_Y1, btnW, btnH, 5, borderColor);
+  tft->drawRoundRect(DEMO_BTN_X1 + 1, DEMO_BTN_Y1 + 1, btnW - 2, btnH - 2, 4,
                     borderColor);
 
   // Barra de progreso si está siendo pulsado
   if (demoButtonWasPressed && demoButtonProgress > 0.0f) {
     int progressW = (int)(btnW * demoButtonProgress);
-    tft.fillRect(DEMO_BTN_X1 + 2, DEMO_BTN_Y2 - 6, progressW - 4, 4, TFT_GREEN);
+    tft->fillRect(DEMO_BTN_X1 + 2, DEMO_BTN_Y2 - 6, progressW - 4, 4, TFT_GREEN);
   }
 
   // Draw button text
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_WHITE, bgColor);
-  tft.drawString("MENU", centerX, centerY - 4, 2);
-  tft.setTextColor(TFT_CYAN, bgColor);
-  tft.drawString("Pulsar 1.5s", centerX, centerY + 10, 1);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(TFT_WHITE, bgColor);
+  tft->drawString("MENU", centerX, centerY - 4, 2);
+  tft->setTextColor(TFT_CYAN, bgColor);
+  tft->drawString("Pulsar 1.5s", centerX, centerY + 10, 1);
 }
 
 // Verificar si el toque está en el área del botón DEMO (con margen extra para
@@ -467,27 +467,27 @@ static void drawAxisRotationButton() {
   const uint16_t COLOR_ACTIVE = 0x07E0; // Verde brillante cuando activo
 
   // Sombra 3D
-  tft.fillRoundRect(AXIS_BTN_X1 + 2, AXIS_BTN_Y1 + 2, btnW, btnH, 5,
+  tft->fillRoundRect(AXIS_BTN_X1 + 2, AXIS_BTN_Y1 + 2, btnW, btnH, 5,
                     COLOR_BOX_SHADOW);
 
   // Fondo del botón
   uint16_t bgColor =
       axisRotationEnabled ? 0x0320 : COLOR_BOX_BG; // Verde oscuro cuando activo
-  tft.fillRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, bgColor);
+  tft->fillRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, bgColor);
 
   // Borde con efecto 3D
-  tft.drawRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, 0x4A49);
+  tft->drawRoundRect(AXIS_BTN_X1, AXIS_BTN_Y1, btnW, btnH, 5, 0x4A49);
 
   // Highlight superior
-  tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 2, btnW - 10,
+  tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 2, btnW - 10,
                     COLOR_BOX_HIGHLIGHT);
-  tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 3, btnW - 10,
+  tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y1 + 3, btnW - 10,
                     COLOR_BOX_HIGHLIGHT);
 
   // Sombra inferior
-  tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 3, btnW - 10,
+  tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 3, btnW - 10,
                     COLOR_BOX_SHADOW);
-  tft.drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 2, btnW - 10,
+  tft->drawFastHLine(AXIS_BTN_X1 + 5, AXIS_BTN_Y2 - 2, btnW - 10,
                     COLOR_BOX_SHADOW);
 
   // Icono de rotación (flechas circulares)
@@ -498,20 +498,20 @@ static void drawAxisRotationButton() {
   uint16_t arrowColor = axisRotationEnabled ? TFT_WHITE : TFT_DARKGREY;
 
   // Dibujar arco con flechas (simulando rotación)
-  tft.drawCircle(iconCx, iconCy, iconR, arrowColor);
-  tft.drawCircle(iconCx, iconCy, iconR - 1, arrowColor);
+  tft->drawCircle(iconCx, iconCy, iconR, arrowColor);
+  tft->drawCircle(iconCx, iconCy, iconR - 1, arrowColor);
 
   // Flechas de dirección
-  tft.fillTriangle(iconCx + iconR - 2, iconCy - 4, iconCx + iconR + 4, iconCy,
+  tft->fillTriangle(iconCx + iconR - 2, iconCy - 4, iconCx + iconR + 4, iconCy,
                    iconCx + iconR - 2, iconCy + 4, arrowColor);
-  tft.fillTriangle(iconCx - iconR + 2, iconCy - 4, iconCx - iconR - 4, iconCy,
+  tft->fillTriangle(iconCx - iconR + 2, iconCy - 4, iconCx - iconR - 4, iconCy,
                    iconCx - iconR + 2, iconCy + 4, arrowColor);
 
   // Texto "GIRO" debajo
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(arrowColor, bgColor);
-  tft.drawString("GIRO", centerX, centerY + 12, 1);
-  tft.setTextDatum(TL_DATUM);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(arrowColor, bgColor);
+  tft->drawString("GIRO", centerX, centerY + 12, 1);
+  tft->setTextDatum(TL_DATUM);
 }
 
 // Verificar si el toque está en el área del botón de giro
@@ -1015,7 +1015,7 @@ void HUD::update(TFT_eSprite *sprite) {
   // render
 #ifdef DEBUG_RENDER
   // Fase 1: entrada a update()
-  tft.drawPixel(1, 0, TFT_RED);
+  tft->drawPixel(1, 0, TFT_RED);
 #endif
 
 #ifdef STANDALONE_DISPLAY
@@ -1175,7 +1175,7 @@ void HUD::update(TFT_eSprite *sprite) {
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 2 - después de obtener datos de sensores
-  tft.drawPixel(2, 0, TFT_RED);
+  tft->drawPixel(2, 0, TFT_RED);
 #endif
 
   // Draw car body outline (once, static background)
@@ -1183,7 +1183,7 @@ void HUD::update(TFT_eSprite *sprite) {
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 3 - después de dibujar carrocería
-  tft.drawPixel(3, 0, TFT_RED);
+  tft->drawPixel(3, 0, TFT_RED);
 #endif
 
   // Render gauges (ya optimizados internamente)
@@ -1192,14 +1192,14 @@ void HUD::update(TFT_eSprite *sprite) {
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 4 - después de gauge velocidad
-  tft.drawPixel(4, 0, TFT_RED);
+  tft->drawPixel(4, 0, TFT_RED);
 #endif
 
   Gauges::drawRPM(X_RPM, Y_RPM, rpm, MAX_RPM, sprite);
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 5 - después de gauge RPM
-  tft.drawPixel(5, 0, TFT_RED);
+  tft->drawPixel(5, 0, TFT_RED);
 #endif
 
   // Ruedas (optimizado: solo redibuja si cambian ángulo/temp/esfuerzo)
@@ -1215,7 +1215,7 @@ void HUD::update(TFT_eSprite *sprite) {
 
 #ifdef DEBUG_RENDER
   // 🔒 v2.8.4: Fase 6 - después de dibujar ruedas
-  tft.drawPixel(6, 0, TFT_RED);
+  tft->drawPixel(6, 0, TFT_RED);
 #endif
 
   // Mostrar ángulo del volante en grados (promedio de FL/FR)
@@ -1291,7 +1291,7 @@ void HUD::update(TFT_eSprite *sprite) {
   // 🔒 v2.9.2: Enhanced touch detection with diagnostics
   // Try to get calibrated touch coordinates
   bool touchDetected =
-      touchInitialized && cfg.touchEnabled && tft.getTouch(&touchX, &touchY);
+      touchInitialized && cfg.touchEnabled && tft->getTouch(&touchX, &touchY);
 
   // 🔒 v2.9.3: Additional diagnostics - check raw touch values when calibrated
   // touch fails This helps identify if the issue is calibration vs hardware
@@ -1304,14 +1304,14 @@ void HUD::update(TFT_eSprite *sprite) {
     // Periodically check if raw touch is working even if calibrated touch isn't
     if (now - lastRawTouchCheck > DIAGNOSTIC_RAW_TOUCH_CHECK_INTERVAL_MS) {
       uint16_t rawX = 0, rawY = 0;
-      bool rawTouchActive = tft.getTouchRaw(&rawX, &rawY);
+      bool rawTouchActive = tft->getTouchRaw(&rawX, &rawY);
 
       if (rawTouchActive) {
         // Read Z pressure value to diagnose sensitivity issues
         // Note: This is intentionally called each diagnostic interval when
         // touch is active to monitor pressure levels and help identify
         // Z_THRESHOLD issues
-        uint16_t rawZ = tft.getTouchRawZ();
+        uint16_t rawZ = tft->getTouchRawZ();
         diagnosticCounter++;
 
         // Log every Nth detection (starting from 0: counts 0, 5, 10, ...)
@@ -1351,7 +1351,7 @@ void HUD::update(TFT_eSprite *sprite) {
     lastTouchState = touchDetected;
   }
 
-  // 🔒 v2.8.8: Usar tft.getTouch() del touch integrado de TFT_eSPI
+  // 🔒 v2.8.8: Usar tft->getTouch() del touch integrado de TFT_eSPI
   if (touchDetected) {
     int x = (int)touchX;
     int y = (int)touchY;
@@ -1387,8 +1387,8 @@ void HUD::update(TFT_eSprite *sprite) {
       static uint32_t lastTouchLogTime = 0;
       if (now - lastTouchLogTime > 100) { // Limit to 10 times per second
         uint16_t rawX = 0, rawY = 0;
-        if (tft.getTouchRaw(&rawX, &rawY)) {
-          uint16_t rawZ = tft.getTouchRawZ(); // Read pressure only after
+        if (tft->getTouchRaw(&rawX, &rawY)) {
+          uint16_t rawZ = tft->getTouchRawZ(); // Read pressure only after
                                               // successful raw read
           Logger::infof("Touch detected at (%d, %d) - RAW: X=%d, Y=%d, Z=%d", x,
                         y, rawX, rawY, rawZ);
@@ -1518,27 +1518,27 @@ void HUD::update(TFT_eSprite *sprite) {
     const int overlayH = 40;
 
     // Semi-transparent background
-    tft.fillRect(overlayX, overlayY, overlayW, overlayH, 0x18E3); // Dark gray
-    tft.drawRect(overlayX, overlayY, overlayW, overlayH, TFT_CYAN);
+    tft->fillRect(overlayX, overlayY, overlayW, overlayH, 0x18E3); // Dark gray
+    tft->drawRect(overlayX, overlayY, overlayW, overlayH, TFT_CYAN);
 
     // Display match percentage
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextColor(TFT_WHITE, 0x18E3);
+    tft->setTextDatum(TL_DATUM);
+    tft->setTextColor(TFT_WHITE, 0x18E3);
     char buf[32];
     snprintf(buf, sizeof(buf), "MATCH: %.1f%%", matchPercentage);
-    tft.drawString(buf, overlayX + 3, overlayY + 3, 1);
+    tft->drawString(buf, overlayX + 3, overlayY + 3, 1);
 
     // Display mismatch pixel count
-    tft.setTextColor(mismatchPixels > 10000 ? TFT_RED : TFT_GREEN, 0x18E3);
+    tft->setTextColor(mismatchPixels > 10000 ? TFT_RED : TFT_GREEN, 0x18E3);
     snprintf(buf, sizeof(buf), "DIFF: %u px", mismatchPixels);
-    tft.drawString(buf, overlayX + 3, overlayY + 13, 1);
+    tft->drawString(buf, overlayX + 3, overlayY + 13, 1);
 
     // Display max and avg
-    tft.setTextColor(TFT_YELLOW, 0x18E3);
+    tft->setTextColor(TFT_YELLOW, 0x18E3);
     snprintf(buf, sizeof(buf), "MAX: %u", maxMismatch);
-    tft.drawString(buf, overlayX + 3, overlayY + 23, 1);
+    tft->drawString(buf, overlayX + 3, overlayY + 23, 1);
     snprintf(buf, sizeof(buf), "AVG: %.0f", avgMismatch);
-    tft.drawString(buf, overlayX + 60, overlayY + 23, 1);
+    tft->drawString(buf, overlayX + 60, overlayY + 23, 1);
   }
 #endif
 

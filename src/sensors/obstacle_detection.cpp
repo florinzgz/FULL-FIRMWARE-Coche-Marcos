@@ -34,9 +34,11 @@
 
 namespace ObstacleDetection {
 
-// Hardware instances
-static HardwareSerial
-    TOFSerial(ObstacleConfig::UART_NUM); // UART0 for TOFSense-M S
+// 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Pointer-based lazy initialization
+// Global constructor HardwareSerial(UART_NUM) was causing "Stack canary watchpoint
+// triggered (ipc0)" by initializing UART peripheral before FreeRTOS starts.
+// Now using pointer that is allocated in init() after FreeRTOS is ready.
+static HardwareSerial *TOFSerial = nullptr; // UART0 for TOFSense-M S
 
 // Sensor state
 static ObstacleSensor sensorData[ObstacleConfig::NUM_SENSORS];
@@ -268,6 +270,19 @@ void init() {
                 ObstacleConfig::UART_NUM, PIN_TOFSENSE_RX, PIN_TOFSENSE_TX,
                 ObstacleConfig::UART_BAUDRATE);
 
+  // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate TOFSerial NOW (not in global constructor)
+  // This prevents "Stack canary watchpoint triggered (ipc0)" by deferring UART
+  // initialization until after FreeRTOS and heap are ready
+  if (TOFSerial == nullptr) {
+    TOFSerial = new (std::nothrow) HardwareSerial(ObstacleConfig::UART_NUM);
+    if (TOFSerial == nullptr) {
+      Logger::error("ObstacleDetection: Failed to allocate HardwareSerial object");
+      System::logError(697); // Error code for TOFSerial allocation failure
+      initialized = false;
+      return;
+    }
+  }
+
   hardwarePresent = false;
   placeholderMode = true;
   bufferIndex = 0;
@@ -277,8 +292,8 @@ void init() {
   // Bidirectional UART: Both TX and RX configured for full communication
   // TX (GPIO43) → Sensor RX: Allows configuration commands
   // RX (GPIO44) ← Sensor TX: Receives 8x8 matrix data frames
-  TOFSerial.begin(ObstacleConfig::UART_BAUDRATE, SERIAL_8N1, PIN_TOFSENSE_RX,
-                  PIN_TOFSENSE_TX);
+  TOFSerial->begin(ObstacleConfig::UART_BAUDRATE, SERIAL_8N1, PIN_TOFSENSE_RX,
+                   PIN_TOFSENSE_TX);
 
   // Wait for UART to stabilize
   delay(100);
@@ -302,7 +317,7 @@ void init() {
 
   while (millis() - startMs < ObstacleConfig::SENSOR_DETECTION_TIMEOUT_MS &&
          !dataReceived) {
-    if (TOFSerial.available() > 0) {
+    if (TOFSerial->available() > 0) {
       dataReceived = true;
       hardwarePresent = true;
       placeholderMode = false;
@@ -347,8 +362,8 @@ void update() {
   const uint16_t MAX_BYTES_PER_UPDATE =
       ObstacleConfig::FRAME_LENGTH * 2; // Max 2 frames per update
 
-  while (TOFSerial.available() > 0 && bytesRead < MAX_BYTES_PER_UPDATE) {
-    uint8_t byte = TOFSerial.read();
+  while (TOFSerial->available() > 0 && bytesRead < MAX_BYTES_PER_UPDATE) {
+    uint8_t byte = TOFSerial->read();
     bytesRead++;
 
     // Look for frame header (4 bytes: 57 01 FF 00)

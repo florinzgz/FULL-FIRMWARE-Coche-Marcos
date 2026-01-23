@@ -18,7 +18,7 @@
 #include "obstacle_safety.h"
 #include <TFT_eSPI.h>
 
-extern TFT_eSPI tft;
+extern TFT_eSPI *tft;
 
 namespace ObstacleConfigMenu {
 
@@ -155,21 +155,21 @@ void update() {
 }
 
 void draw() {
-  tft.fillScreen(COLOR_BG);
-  tft.setTextDatum(TC_DATUM);
-  tft.setTextColor(COLOR_HEADER, COLOR_BG);
-  tft.drawString("Obstacle Detection Config", 240, HEADER_Y, 4);
+  tft->fillScreen(COLOR_BG);
+  tft->setTextDatum(TC_DATUM);
+  tft->setTextColor(COLOR_HEADER, COLOR_BG);
+  tft->drawString("Obstacle Detection Config", 240, HEADER_Y, 4);
 
   // v2.13.0: TOFSense-M S 8x8 matrix subtitle
-  tft.setTextColor(TFT_DARKGREY, COLOR_BG);
-  tft.drawString("TOFSense-M S (8x8 Matrix, 4m Range)", 240, HEADER_Y + 25, 2);
+  tft->setTextColor(TFT_DARKGREY, COLOR_BG);
+  tft->drawString("TOFSense-M S (8x8 Matrix, 4m Range)", 240, HEADER_Y + 25, 2);
 
   int y = OPTION_START_Y;
 
   // Umbrales de distancia
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Distance Thresholds:", 20, y, 2);
+  tft->setTextDatum(TL_DATUM);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Distance Thresholds:", 20, y, 2);
   y += 25;
 
   drawSliderOption(y, 0, "Critical:", criticalDistance, 100, 500,
@@ -181,8 +181,8 @@ void draw() {
   y += OPTION_HEIGHT + 10;
 
   // Sensor (solo Front)
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString("Sensor:", 20, y, 2);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString("Sensor:", 20, y, 2);
   y += 25;
   drawToggleOption(y, 3, SENSOR_NAMES[0], sensorEnabled[0]);
   y += OPTION_HEIGHT + 10;
@@ -199,55 +199,55 @@ void draw() {
 void drawSliderOption(int y, int optionIndex, const char *label, uint16_t value,
                       uint16_t minVal, uint16_t maxVal, uint16_t color) {
   bool isSelected = (selectedOption == optionIndex);
-  tft.setTextColor(isSelected ? COLOR_SELECTED : COLOR_TEXT, COLOR_BG);
-  tft.drawString(label, 40, y + 5, 2);
-  tft.fillRect(SLIDER_X, y + 2, SLIDER_W, 20, COLOR_DISABLED);
+  tft->setTextColor(isSelected ? COLOR_SELECTED : COLOR_TEXT, COLOR_BG);
+  tft->drawString(label, 40, y + 5, 2);
+  tft->fillRect(SLIDER_X, y + 2, SLIDER_W, 20, COLOR_DISABLED);
   int fillWidth = ((uint32_t)(value - minVal) * SLIDER_W) / (maxVal - minVal);
-  tft.fillRect(SLIDER_X, y + 2, fillWidth, 20, color);
-  tft.drawRect(SLIDER_X, y + 2, SLIDER_W, 20,
+  tft->fillRect(SLIDER_X, y + 2, fillWidth, 20, color);
+  tft->drawRect(SLIDER_X, y + 2, SLIDER_W, 20,
                isSelected ? COLOR_SELECTED : COLOR_TEXT);
   char valueStr[16];
   snprintf(valueStr, sizeof(valueStr), "%dmm", value);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  tft.drawString(valueStr, SLIDER_X + SLIDER_W + 10, y + 5, 2);
+  tft->setTextColor(COLOR_TEXT, COLOR_BG);
+  tft->drawString(valueStr, SLIDER_X + SLIDER_W + 10, y + 5, 2);
 }
 
 void drawToggleOption(int y, int optionIndex, const char *label, bool enabled) {
   bool isSelected = (selectedOption == optionIndex);
-  tft.setTextColor(isSelected ? COLOR_SELECTED : COLOR_TEXT, COLOR_BG);
-  tft.drawString(label, 40, y + 5, 2);
+  tft->setTextColor(isSelected ? COLOR_SELECTED : COLOR_TEXT, COLOR_BG);
+  tft->drawString(label, 40, y + 5, 2);
   uint16_t btnColor = enabled ? COLOR_ENABLED : COLOR_DISABLED;
-  tft.fillRoundRect(SLIDER_X, y, 80, 25, 5, btnColor);
-  tft.drawRoundRect(SLIDER_X, y, 80, 25, 5,
+  tft->fillRoundRect(SLIDER_X, y, 80, 25, 5, btnColor);
+  tft->drawRoundRect(SLIDER_X, y, 80, 25, 5,
                     isSelected ? COLOR_SELECTED : COLOR_TEXT);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(enabled ? COLOR_BG : COLOR_TEXT, btnColor);
-  tft.drawString(enabled ? "ON" : "OFF", SLIDER_X + 40, y + 12, 2);
-  tft.setTextDatum(TL_DATUM);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(enabled ? COLOR_BG : COLOR_TEXT, btnColor);
+  tft->drawString(enabled ? "ON" : "OFF", SLIDER_X + 40, y + 12, 2);
+  tft->setTextDatum(TL_DATUM);
 }
 
 void drawActionButtons() {
   bool saveSelected = (selectedOption == NUM_OPTIONS);
-  tft.fillRoundRect(20, BACK_BTN_Y, 100, 35, 5,
+  tft->fillRoundRect(20, BACK_BTN_Y, 100, 35, 5,
                     saveSelected ? COLOR_SELECTED : TFT_BLUE);
-  tft.drawRoundRect(20, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(COLOR_BG, saveSelected ? COLOR_SELECTED : TFT_BLUE);
-  tft.drawString("SAVE", 70, BACK_BTN_Y + 17, 2);
+  tft->drawRoundRect(20, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
+  tft->setTextDatum(MC_DATUM);
+  tft->setTextColor(COLOR_BG, saveSelected ? COLOR_SELECTED : TFT_BLUE);
+  tft->drawString("SAVE", 70, BACK_BTN_Y + 17, 2);
 
   // Reset button
-  tft.fillRoundRect(140, BACK_BTN_Y, 100, 35, 5, TFT_ORANGE);
-  tft.drawRoundRect(140, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
-  tft.setTextColor(COLOR_BG, TFT_ORANGE);
-  tft.drawString("RESET", 190, BACK_BTN_Y + 17, 2);
+  tft->fillRoundRect(140, BACK_BTN_Y, 100, 35, 5, TFT_ORANGE);
+  tft->drawRoundRect(140, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
+  tft->setTextColor(COLOR_BG, TFT_ORANGE);
+  tft->drawString("RESET", 190, BACK_BTN_Y + 17, 2);
 
   // Back button
-  tft.fillRoundRect(360, BACK_BTN_Y, 100, 35, 5, TFT_RED);
-  tft.drawRoundRect(360, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
-  tft.setTextColor(COLOR_BG, TFT_RED);
-  tft.drawString("BACK", 410, BACK_BTN_Y + 17, 2);
+  tft->fillRoundRect(360, BACK_BTN_Y, 100, 35, 5, TFT_RED);
+  tft->drawRoundRect(360, BACK_BTN_Y, 100, 35, 5, COLOR_TEXT);
+  tft->setTextColor(COLOR_BG, TFT_RED);
+  tft->drawString("BACK", 410, BACK_BTN_Y + 17, 2);
 
-  tft.setTextDatum(TL_DATUM);
+  tft->setTextDatum(TL_DATUM);
 }
 
 bool handleTouch(int16_t x, int16_t y) {
