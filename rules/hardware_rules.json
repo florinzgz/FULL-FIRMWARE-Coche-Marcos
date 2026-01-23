@@ -4,7 +4,7 @@
       "resource": "TFT",
       "description": "TFT display must be initialized before any drawing operations",
       "init_functions": [
-        "tft.init()"
+        "tft.init("
       ],
       "forbidden_before_init": [
         "tft.fillScreen(",
@@ -46,8 +46,7 @@
       "resource": "I2C",
       "description": "I2C bus must be initialized with Wire.begin before any device access",
       "init_functions": [
-        "Wire.begin(",
-        "Wire1.begin("
+        "Wire.begin("
       ],
       "forbidden_before_init": [
         "Wire.beginTransmission(",
@@ -81,7 +80,7 @@
       "forbidden_before_init": [
         "SPI.transfer(",
         "SPI.transfer16(",
-        "SPI.write("
+        "SPI.writeBytes("
       ],
       "fatal": true,
       "impact": "SPI communication fails, display/SD card errors"
@@ -93,7 +92,7 @@
       "description": "HUDManager::init must initialize TFT before calling HUD functions",
       "enforced_order": [
         "tft.init(",
-        "HUD::init("
+        "HUDManager::init("
       ],
       "fatal": true,
       "impact": "This is the exact bug that caused the bootloop - TFT accessed before initialization"
