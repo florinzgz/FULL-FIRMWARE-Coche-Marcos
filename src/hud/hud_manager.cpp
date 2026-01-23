@@ -17,6 +17,14 @@
 #include "system.h"
 #include "wheels_display.h" // Wheel status display
 #include <Arduino.h>
+
+// ============================================================================
+// 🔒 v2.17.3: FreeRTOS primitives for event queue system
+// ============================================================================
+// NOTE: FreeRTOS is part of Arduino ESP32 framework API
+// These includes are CORRECT and RECOMMENDED for ESP32 Arduino multithreading
+// See: docs/ARDUINO_ESP32_API_GUIDELINES.md
+// ============================================================================
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
