@@ -29,9 +29,9 @@ constexpr uint32_t RETRY_DELAY_MS = 5000;
 } // namespace CriticalErrorConfig
 
 namespace DisplayBootConfig {
-constexpr uint32_t TFT_RESET_PULSE_MS = 10;
-constexpr uint32_t TFT_RESET_RECOVERY_MS = 50;
-constexpr uint32_t TFT_RESET_STABILIZATION_MS = 10;
+constexpr uint32_t TFT_RESET_PULSE_MS = 120;
+constexpr uint32_t TFT_RESET_RECOVERY_MS = 120;
+constexpr uint32_t TFT_RESET_STABILIZATION_MS = 20;
 } // namespace DisplayBootConfig
 
 // Forward declarations
