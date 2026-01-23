@@ -50,12 +50,15 @@ board_build.flash_size = 16MB
 board_build.flash_mode = qio
 board_build.arduino.memory_type = qio_qspi  # QIO Flash + QSPI PSRAM
 board_build.partitions = partitions/n16r8_ota.csv
-board_build.sdkconfig = sdkconfig/n16r8.defaults
 ```
 
-### 2.2 SDK Configuration (sdkconfig/n16r8.defaults)
+### 2.2 Configuración SDK (Arduino-ESP32)
 
-The PSRAM is configured via SDK defaults:
+En Arduino-ESP32 el sdkconfig se genera desde el core y la definición de la placa,
+por lo que este proyecto no usa `sdkconfig.defaults` personalizados. Si necesitas
+mitigar reinicios, hay que hacerlo desde la configuración de pantalla/SPI y el flujo
+de inicialización, no con overrides de sdkconfig. Estos son los valores esperados en
+el sdkconfig generado:
 
 ```
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
