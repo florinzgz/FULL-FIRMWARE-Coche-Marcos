@@ -12,13 +12,42 @@ The fix: Patch the sdkconfig.h files to increase the timeout to 5000ms.
 
 This is a workaround until the Arduino framework is updated with better defaults.
 
-Author: GitHub Copilot  
+Author: Florin Zgureanu
 Date: 2026-01-23
 """
 
 Import("env")
 import os
 import re
+
+def _should_patch_legacy_timeout(content):
+    """
+    Check if CONFIG_INT_WDT_TIMEOUT_MS should be patched.
+    
+    Returns True if CONFIG_INT_WDT_TIMEOUT_MS exists as a standalone define
+    (not as an alias to CONFIG_ESP_INT_WDT_TIMEOUT_MS).
+    
+    Some older SDK versions have:
+        #define CONFIG_INT_WDT_TIMEOUT_MS 300
+    
+    While newer versions have:
+        #define CONFIG_INT_WDT_TIMEOUT_MS CONFIG_ESP_INT_WDT_TIMEOUT_MS
+    
+    We only want to patch the first case.
+    """
+    if '#define CONFIG_INT_WDT_TIMEOUT_MS ' not in content:
+        return False
+    
+    # Find the line with CONFIG_INT_WDT_TIMEOUT_MS
+    for line in content.split('\n'):
+        if line.startswith('#define CONFIG_INT_WDT_TIMEOUT_MS '):
+            # Check if it's an alias (contains CONFIG_ESP_INT_WDT_TIMEOUT_MS)
+            if 'CONFIG_ESP_INT_WDT_TIMEOUT_MS' in line:
+                return False  # It's an alias, don't patch
+            else:
+                return True  # It's a standalone value, patch it
+    
+    return False
 
 def patch_arduino_sdkconfig(env):
     """
@@ -89,8 +118,9 @@ def patch_arduino_sdkconfig(env):
                 content
             )
             
-            # Also patch CONFIG_INT_WDT_TIMEOUT_MS if it exists as a direct define
-            if '#define CONFIG_INT_WDT_TIMEOUT_MS ' in new_content and 'CONFIG_ESP_INT_WDT_TIMEOUT_MS' not in new_content.split('#define CONFIG_INT_WDT_TIMEOUT_MS')[1].split('\n')[0]:
+            # Also patch CONFIG_INT_WDT_TIMEOUT_MS if it exists as a standalone define
+            # (not as an alias to CONFIG_ESP_INT_WDT_TIMEOUT_MS)
+            if _should_patch_legacy_timeout(new_content):
                 new_content = re.sub(
                     r'#define\s+CONFIG_INT_WDT_TIMEOUT_MS\s+\d+',
                     '#define CONFIG_INT_WDT_TIMEOUT_MS 5000',
