@@ -176,7 +176,13 @@ def patch_arduino_sdkconfig(env):
                 skipped_count += 1
                 continue
             
-            current_value = int(match.group(1))
+            # Parse current value with error handling
+            try:
+                current_value = int(match.group(1))
+            except (ValueError, IndexError) as e:
+                print(f"   ⚠️  {variant}: Invalid timeout value '{match.group(1)}' - skipping")
+                skipped_count += 1
+                continue
             
             # Skip if already at safe value (idempotent)
             if current_value >= MIN_SAFE_TIMEOUT_MS:
@@ -200,9 +206,18 @@ def patch_arduino_sdkconfig(env):
                     new_content
                 )
             
-            # Write back (atomic write for safety)
-            with open(filepath, 'w') as f:
-                f.write(new_content)
+            # Write to temporary file first, then rename (atomic write)
+            temp_filepath = filepath + '.tmp'
+            try:
+                with open(temp_filepath, 'w') as f:
+                    f.write(new_content)
+                # Atomic rename (overwrites destination on Unix/Windows)
+                os.replace(temp_filepath, filepath)
+            except Exception as write_error:
+                # Clean up temp file on error
+                if os.path.exists(temp_filepath):
+                    os.remove(temp_filepath)
+                raise write_error
             
             print(f"   🔧 {variant}: Patched ({current_value}ms → {TARGET_TIMEOUT_MS}ms)")
             patched_count += 1
