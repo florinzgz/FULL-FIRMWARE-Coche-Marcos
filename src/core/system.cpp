@@ -20,6 +20,14 @@
 #include "temperature.h"
 #include "traction.h" // 🔒 v2.4.0: Para verificar tracción
 #include "wheels.h"
+
+// ============================================================================
+// 🔒 v2.17.3: FreeRTOS primitives for thread-safe initialization
+// ============================================================================
+// NOTE: FreeRTOS is part of Arduino ESP32 framework API
+// These includes are CORRECT and RECOMMENDED for ESP32 Arduino multithreading
+// See: docs/ARDUINO_ESP32_API_GUIDELINES.md
+// ============================================================================
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 

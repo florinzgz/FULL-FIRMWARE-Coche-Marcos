@@ -11,9 +11,30 @@ CONFIG_SPIRAM_TYPE_AUTO=y
 CONFIG_SPIRAM_SPEED_80M=y
 
 # 🔒 v2.17.3 BOOTLOOP FIX: Disable PSRAM memory test
-# Memory test can take >3000ms on some hardware batches, causing watchdog timeout
-# PSRAM will still be initialized and functional, just skips comprehensive test
-# Trade-off: Bad PSRAM detected during runtime instead of boot
+# ============================================================================
+# IMPORTANT: This setting disables the comprehensive PSRAM memory test
+#
+# WHY DISABLED:
+# - Memory test can take >3000ms on some hardware batches
+# - Exceeds interrupt watchdog timeout (CONFIG_ESP_INT_WDT_TIMEOUT_MS)
+# - Causes continuous resets: rst:0x3 (RTC_SW_SYS_RST) bootloop
+#
+# WHAT THIS MEANS:
+# - PSRAM is still initialized and fully functional
+# - Only the comprehensive test at boot is skipped
+# - Bad PSRAM will be detected during runtime (crashes/exceptions)
+# - Trade-off: Faster boot vs early defect detection
+#
+# TESTING PSRAM:
+# - Production code does NOT run PSRAM tests
+# - PSRAM health is monitored through normal operation
+# - Memory allocation failures are logged and handled
+# - See docs/ARDUINO_ESP32_API_GUIDELINES.md for PSRAM usage
+#
+# FUTURE:
+# - When bootloop issue is resolved, can re-enable test
+# - Arduino framework may fix default timeout in future versions
+# ============================================================================
 CONFIG_SPIRAM_MEMTEST=n
 
 # Malloc strategy
