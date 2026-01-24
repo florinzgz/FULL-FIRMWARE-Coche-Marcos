@@ -88,6 +88,8 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 - **[CLEANUP_SUMMARY_N16R8.md](CLEANUP_SUMMARY_N16R8.md)** - Resumen de consolidación del repositorio
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
 - **[docs/PLAN_SEPARACION_STM32_CAN.md](docs/PLAN_SEPARACION_STM32_CAN.md)** - Plan de separación ESP32 HMI + STM32 control
+- **[docs/MANUAL_TRANSRECEPTORES_STM32_ESP32.md](docs/MANUAL_TRANSRECEPTORES_STM32_ESP32.md)** - 📡 **Manual de transreceptores CAN** - Conexión ESP32-S3 ↔ STM32G474RE
+- **[RESPUESTA_TRANSRECEPTORES.md](RESPUESTA_TRANSRECEPTORES.md)** - Resumen rápido: 2× TJA1051T/3 y conexión CAN
 - **[PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md)** - Certificación de hardware N16R8
 - **[PHASE14_QUICK_REFERENCE.md](PHASE14_QUICK_REFERENCE.md)** - Guía rápida de migración a N16R8
 - **[HARDWARE_VERIFICATION.md](HARDWARE_VERIFICATION.md)** - Verificación de hardware y datasheets
