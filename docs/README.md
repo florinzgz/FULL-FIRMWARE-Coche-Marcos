@@ -51,6 +51,11 @@ Guía completa y actualizada de todas las conexiones hardware:
 ### 🏗️ Arquitectura y Seguridad
 - [**ARCHITECTURE.md**](ARCHITECTURE.md) - Arquitectura del sistema
 - [**PLAN_SEPARACION_STM32_CAN.md**](PLAN_SEPARACION_STM32_CAN.md) - Plan de separación ESP32 HMI + STM32 control
+- [**MANUAL_TRANSRECEPTORES_STM32_ESP32.md**](MANUAL_TRANSRECEPTORES_STM32_ESP32.md) - 📡 **Manual transreceptores CAN TJA1051T/3** - Conexión ESP32-S3 ↔ STM32G474RE
+- [**STM32G474RE_PINOUT_DEFINITIVO.md**](STM32G474RE_PINOUT_DEFINITIVO.md) - Pinout completo STM32G474RE
+- [**DESIGN_FREEZE_STM32G474RE.md**](DESIGN_FREEZE_STM32G474RE.md) - Design freeze STM32G474RE
+- [**AUDITORIA_PINOUT_STM32G474RE.md**](AUDITORIA_PINOUT_STM32G474RE.md) - Auditoría técnica pinout STM32
+- [**STM32_CAN_MIGRATION_STUDY.md**](STM32_CAN_MIGRATION_STUDY.md) - Estudio de integración ESP32-S3 + STM32G474RE
 - [**SISTEMAS_SEGURIDAD_AVANZADOS.md**](SISTEMAS_SEGURIDAD_AVANZADOS.md) - Sistemas seguridad
 - [**TOLERANCIA_FALLOS.md**](TOLERANCIA_FALLOS.md) - Tolerancia a fallos
 
