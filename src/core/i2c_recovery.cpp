@@ -26,9 +26,8 @@ void init() {
   Wire.begin(pinSDA, pinSCL);
   Wire.setClock(I2C_FREQUENCY);
   
-  // ⚠️ CRÍTICO: Configurar timeout a nivel de driver I²C
-  // Esto previene colgado del hardware I²C (no solo timeout a nivel de aplicación)
-  // Wire.setTimeOut() configura el timeout del driver ESP32 I²C
+  // ⚠️ CRÍTICO: Configurar timeout a nivel de driver I²C (Wire.setTimeOut())
+  // para prevenir colgado del hardware I²C, no solo timeout a nivel de aplicación
   Wire.setTimeOut(I2CCMDTIMEOUT_MS);
   
   Serial.printf("[I2CRecovery] I2C initialized at %u Hz\n", I2C_FREQUENCY);
