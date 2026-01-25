@@ -71,7 +71,7 @@ The firmware has been **completely migrated** to N16R8 because:
 2. **Voltage Stability**: 3.3V operation is more stable than 1.8V
 3. **Compatibility**: Better compatibility with development boards
 4. **Sufficient Memory**: 16MB Flash + 8MB PSRAM is adequate for this application
-5. **Proven Stability**: QIO/QSPI modes are well-tested and reliable
+5. **Proven Stability**: QIO Flash and OPI PSRAM modes are well-tested and reliable
 
 ### Why QIO/OPI is Required
 
