@@ -25,4 +25,9 @@ inline void update() {
   TCSSystem::update();
   ObstacleSafety::update();
 }
+
+// Enhanced functions for FreeRTOS multi-core operation
+void updateWithHeartbeat(); // Update with heartbeat failsafe monitoring
+bool isHeartbeatFailsafeActive(); // Check if heartbeat failsafe is active
+
 } // namespace SafetyManager
