@@ -152,6 +152,13 @@ void powerTask(void *parameter) {
   (void)parameter;
   TickType_t lastWakeTime = xTaskGetTickCount();
   const TickType_t frequency = pdMS_TO_TICKS(100); // 10 Hz
+  
+  // NOTE: Sensor update at 10 Hz while control runs at 100 Hz creates a 10x
+  // frequency mismatch. This is acceptable because:
+  // 1. Physical sensors don't change faster than 10 Hz
+  // 2. Control tasks use previous sensor values (SharedData caching)
+  // 3. Staleness detection ensures data freshness (<200ms)
+  // If faster sensor updates are needed, increase this frequency.
 
   Logger::info("PowerTask: Started on Core 0");
 

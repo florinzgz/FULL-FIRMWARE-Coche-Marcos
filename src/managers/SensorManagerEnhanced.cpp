@@ -24,7 +24,16 @@ void updateNonBlocking() {
 
   // Read current sensors with timeout protection
   uint32_t startTime = millis();
-  for (int i = 0; i < Sensors::NUM_CURRENTS && (millis() - startTime) < I2C_OPERATION_TIMEOUT_MS; i++) {
+  bool i2cTimedOut = false;
+  for (int i = 0; i < Sensors::NUM_CURRENTS; i++) {
+    if ((millis() - startTime) >= I2C_OPERATION_TIMEOUT_MS) {
+      // Mark remaining sensors as invalid if timeout occurs
+      for (int j = i; j < Sensors::NUM_CURRENTS; j++) {
+        sensorData.currentOk[j] = false;
+      }
+      i2cTimedOut = true;
+      break;
+    }
     sensorData.current[i] = Sensors::getCurrent(i);
     sensorData.voltage[i] = Sensors::getVoltage(i);
     sensorData.power[i] = Sensors::getPower(i);
@@ -33,7 +42,7 @@ void updateNonBlocking() {
   sensorData.currentTimestamp = millis();
 
   // Check for I2C timeout
-  if ((millis() - startTime) >= I2C_OPERATION_TIMEOUT_MS) {
+  if (i2cTimedOut) {
     consecutiveI2cErrors++;
     if (consecutiveI2cErrors >= MAX_CONSECUTIVE_I2C_ERRORS) {
       if (millis() - lastI2cError > 5000) { // Log every 5 seconds
@@ -68,7 +77,8 @@ void updateNonBlocking() {
   sensorData.pedalValue = Pedal::getValue();
   sensorData.steeringAngle = Steering::getAngle();
   sensorData.shifterPosition = Shifter::getPosition();
-  // Note: Buttons are handled separately
+  // Button states stored as bitfield: bit 0 = lights button
+  sensorData.buttonStates = Buttons::get().lights ? 0x01 : 0x00;
   sensorData.inputTimestamp = millis();
 
   // Write to shared data structure

@@ -24,8 +24,16 @@ bool init() {
     return false;
   }
 
-  // Initialize sensor data with safe defaults
+  // Initialize shared data with safe defaults
   memset(&sensorData, 0, sizeof(SensorData));
+  // Mark all sensors as initially invalid until first read
+  for (int i = 0; i < 6; i++) {
+    sensorData.currentOk[i] = false;
+  }
+  for (int i = 0; i < 4; i++) {
+    sensorData.tempOk[i] = false;
+    sensorData.wheelOk[i] = false;
+  }
   sensorData.i2cBusOk = true;
   sensorData.currentTimestamp = millis();
   sensorData.tempTimestamp = millis();

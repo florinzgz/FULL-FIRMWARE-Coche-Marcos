@@ -2,6 +2,7 @@
 #include "managers/SafetyManager.h"
 #include "logger.h"
 #include "shared_data.h"
+#include "steering_motor.h"
 #include "traction.h"
 
 namespace SafetyManager {
@@ -32,6 +33,7 @@ void updateWithHeartbeat() {
 
         // Emergency stop: Set all motor demands to 0
         Traction::setDemand(0.0f);
+        SteeringMotor::setDemandAngle(0.0f); // Also stop steering motor
 
         // Log detailed state for diagnostics
         Logger::errorf("SafetyManager: ControlManager not responding - failsafe "
@@ -57,6 +59,7 @@ void updateWithHeartbeat() {
           "SafetyManager: Cannot read control state - EMERGENCY MOTOR STOP");
       heartbeatFailsafeActive = true;
       Traction::setDemand(0.0f);
+      SteeringMotor::setDemandAngle(0.0f);
     }
   }
 }

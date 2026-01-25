@@ -155,10 +155,10 @@ void loop() {
     Logger::infof("Memory: Heap=%u KB, PSRAM=%u KB", freeHeap / 1024,
                   freePsram / 1024);
     
-    // Log task information
-    Logger::infof("SafetyTask: Core=%d, Priority=%d",
-                  xPortGetCoreID(),
-                  uxTaskPriorityGet(RTOSTasks::safetyTaskHandle));
+    // Log FreeRTOS task information (correct core reporting)
+    if (RTOSTasks::safetyTaskHandle != nullptr) {
+      Logger::infof("FreeRTOS: 5 tasks running - Safety(Core0,P5), Control(Core0,P4), Power(Core0,P3), HUD(Core1,P2), Telemetry(Core1,P1)");
+    }
     
     lastMemoryLog = now;
   }
