@@ -83,6 +83,13 @@ Ver [docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md) para 
 
 La documentación completa está disponible en el directorio [`docs/`](docs/):
 
+### 📖 Manuales de Usuario
+
+- **[MANUAL_USUARIO.md](MANUAL_USUARIO.md)** - 🚗 **MANUAL COMPLETO DE USUARIO** - Guía detallada de uso del vehículo terminado y montado
+- **[GUIA_RAPIDA_USUARIO.md](GUIA_RAPIDA_USUARIO.md)** - ⚡ **GUÍA RÁPIDA** - Referencia rápida para operación diaria
+
+### 📌 Documentación Técnica
+
 - **[HARDWARE.md](HARDWARE.md)** - 📌 **ESPECIFICACIÓN OFICIAL DEL HARDWARE** - Fuente única de verdad para N16R8
 - **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
 - **[CLEANUP_SUMMARY_N16R8.md](CLEANUP_SUMMARY_N16R8.md)** - Resumen de consolidación del repositorio
