@@ -7,10 +7,16 @@
  *
  * MECANISMOS DE ROBUSTEZ:
  * 1. Bus Recovery: Genera pulsos SCL para liberar líneas atascadas
- * 2. Timeout: Límite de tiempo para transacciones I²C
- * 3. Retry exponencial: 1, 2, 4, 8s (máx 30s)
- * 4. Skip sensor: Marca dispositivo como "offline" si falla repetidamente
- * 5. Re-init progresivo: Sensor → Canal multiplexor → Bus completo
+ * 2. Timeout Driver: Wire.setTimeOut() configura timeout a nivel de hardware I²C
+ * 3. Timeout Aplicación: Límite de tiempo para transacciones I²C a nivel de código
+ * 4. Retry exponencial: 1, 2, 4, 8s (máx 30s)
+ * 5. Skip sensor: Marca dispositivo como "offline" si falla repetidamente
+ * 6. Re-init progresivo: Sensor → Canal multiplexor → Bus completo
+ *
+ * CONFIGURACIÓN DE TIMEOUT:
+ * - I2CCMDTIMEOUT_MS: Timeout del driver I²C (hardware level)
+ *   Configurado con Wire.setTimeOut() para prevenir colgado del hardware I²C
+ * - Timeout de aplicación: 100ms para operaciones individuales de lectura/escritura
  *
  * USO CON TCA9548A:
  * - Llamar I2CRecovery::init() una vez
@@ -19,6 +25,11 @@
  */
 
 namespace I2CRecovery {
+
+// Configuración de timeout a nivel de driver I²C
+// ⚠️ CRÍTICO: Timeout del driver I²C (Wire.setTimeOut()) para prevenir colgado
+// del hardware I²C, no solo timeout a nivel de aplicación
+constexpr uint16_t I2CCMDTIMEOUT_MS = 100; // Timeout driver I²C en milisegundos
 
 // Configuración de retry
 constexpr uint8_t MAX_RETRIES = 3;         // Número máximo de reintentos
@@ -38,6 +49,8 @@ struct DeviceState {
  * @brief Inicializa el sistema de recuperación I²C
  *
  * Configura pines SDA/SCL para bus recovery y estados de dispositivos.
+ * Configura timeout a nivel de driver I²C usando Wire.setTimeOut() para
+ * prevenir colgado del hardware I²C (no solo timeout a nivel de aplicación).
  */
 void init();
 bool isInitialized();
