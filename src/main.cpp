@@ -1,5 +1,6 @@
 // main.cpp - Entry point for the vehicle firmware
 // Handles initialization, mode management, and main control loop
+// 🔒 v2.18.0: FreeRTOS multitasking with dual-core operation
 
 #include "SystemConfig.h"
 #include "hud_manager.h"
@@ -11,6 +12,8 @@
 #include "managers/SensorManager.h"
 #include "managers/TelemetryManager.h"
 #include "pins.h"
+#include "rtos_tasks.h"    // 🔒 v2.18.0: FreeRTOS task management
+#include "shared_data.h"   // 🔒 v2.18.0: Thread-safe data sharing
 #include "watchdog.h"
 #include <Arduino.h>
 
@@ -129,6 +132,9 @@ void setup() {
 }
 
 void loop() {
+  // 🔒 v2.18.0: FreeRTOS multitasking mode - loop runs minimal monitoring
+  // Main work is done by FreeRTOS tasks on both cores
+  
   Watchdog::feed();
 
   // 🔒 v2.17.1: Clear boot counter after successful first loop iteration
@@ -148,33 +154,43 @@ void loop() {
     uint32_t freePsram = ESP.getFreePsram();
     Logger::infof("Memory: Heap=%u KB, PSRAM=%u KB", freeHeap / 1024,
                   freePsram / 1024);
+    
+    // Log task information
+    Logger::infof("SafetyTask: Core=%d, Priority=%d",
+                  xPortGetCoreID(),
+                  uxTaskPriorityGet(RTOSTasks::safetyTaskHandle));
+    
     lastMemoryLog = now;
+  }
+
+  // 🔒 v2.18.0: Monitor heartbeat failsafe status
+  static uint32_t lastHeartbeatCheck = 0;
+  if (now - lastHeartbeatCheck >= 1000) {
+    if (SafetyManager::isHeartbeatFailsafeActive()) {
+      Logger::warn("Main loop: Heartbeat failsafe is ACTIVE");
+    }
+    lastHeartbeatCheck = now;
   }
 
 #ifdef STANDALONE_DISPLAY
   // ===========================
   // STANDALONE DISPLAY MODE
   // ===========================
+  // In standalone mode, we don't use FreeRTOS tasks
   HUDManager::update();
   delay(33); // ~30 FPS
 
 #else
   // ===========================
-  // FULL VEHICLE MODE
+  // FULL VEHICLE MODE - FreeRTOS
   // ===========================
-  PowerManager::update();
-  SensorManager::update();
-  SafetyManager::update();
-
+  // FreeRTOS tasks are running the managers
+  // Main loop only handles mode management which requires coordination
   VehicleMode currentMode = ModeManager::getCurrentMode();
   ModeManager::update();
 
-  ControlManager::update();
-
-  TelemetryManager::update();
-  HUDManager::update();
-
-  delay(SYSTEM_TICK_MS);
+  // Yield to FreeRTOS scheduler
+  vTaskDelay(pdMS_TO_TICKS(10));
 #endif
 }
 
@@ -291,6 +307,7 @@ void initializeSystem() {
   if (safeMode) {
     Serial.println("[SAFE MODE] Skipping Telemetry Manager (non-critical)");
     Serial.println("[SAFE MODE] Skipping Mode Manager (non-critical)");
+    Serial.println("[SAFE MODE] Skipping FreeRTOS tasks (non-critical)");
     Logger::warn("Safe Mode: Non-critical managers disabled");
   } else {
     Serial.println("[INIT] Telemetry Manager initialization...");
@@ -305,6 +322,23 @@ void initializeSystem() {
       handleCriticalError("Mode Manager initialization failed");
     }
     Logger::info("Mode Manager initialized");
+    Watchdog::feed();
+
+    // 🔒 v2.18.0: Initialize FreeRTOS multitasking infrastructure
+    Serial.println("[INIT] Initializing shared data structures...");
+    if (!SharedData::init()) {
+      handleCriticalError("SharedData initialization failed");
+    }
+    Logger::info("SharedData initialized");
+    Watchdog::feed();
+
+    Serial.println("[INIT] Creating FreeRTOS tasks...");
+    if (!RTOSTasks::init()) {
+      handleCriticalError("FreeRTOS task creation failed");
+    }
+    Logger::info("FreeRTOS tasks created and started");
+    Logger::info("Core 0 (critical): SafetyManager, ControlManager, PowerManager");
+    Logger::info("Core 1 (general): HUDManager, TelemetryManager");
     Watchdog::feed();
   }
 

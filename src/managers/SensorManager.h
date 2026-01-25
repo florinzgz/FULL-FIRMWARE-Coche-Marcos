@@ -52,4 +52,10 @@ inline void update() {
   Buttons::update();
 #endif
 }
+
+// Enhanced functions for FreeRTOS multi-core operation
+void updateNonBlocking(); // Non-blocking update with I2C timeout protection
+bool isI2cHealthy();      // Check I2C bus health
+uint8_t getI2cErrorCount(); // Get consecutive I2C error count
+
 } // namespace SensorManager
