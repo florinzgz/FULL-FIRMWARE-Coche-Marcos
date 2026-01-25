@@ -1,7 +1,7 @@
 // SensorManagerEnhanced.cpp - Enhanced sensor manager with non-blocking I2C
-#include "managers/SensorManager.h"
 #include "current.h"
 #include "logger.h"
+#include "managers/SensorManager.h"
 #include "shared_data.h"
 #include "temperature.h"
 #include "wheels.h"
@@ -9,7 +9,8 @@
 namespace SensorManager {
 
 // I2C timeout configuration
-constexpr uint32_t I2C_OPERATION_TIMEOUT_MS = 50; // 50ms timeout per I2C operation
+constexpr uint32_t I2C_OPERATION_TIMEOUT_MS =
+    50; // 50ms timeout per I2C operation
 static uint32_t lastI2cError = 0;
 static uint8_t consecutiveI2cErrors = 0;
 constexpr uint8_t MAX_CONSECUTIVE_I2C_ERRORS = 5;
@@ -46,8 +47,9 @@ void updateNonBlocking() {
     consecutiveI2cErrors++;
     if (consecutiveI2cErrors >= MAX_CONSECUTIVE_I2C_ERRORS) {
       if (millis() - lastI2cError > 5000) { // Log every 5 seconds
-        Logger::errorf("SensorManager: I2C operations timing out (%d consecutive errors)",
-                       consecutiveI2cErrors);
+        Logger::errorf(
+            "SensorManager: I2C operations timing out (%d consecutive errors)",
+            consecutiveI2cErrors);
         lastI2cError = millis();
       }
       sensorData.i2cBusOk = false;
@@ -83,7 +85,8 @@ void updateNonBlocking() {
 
   // Write to shared data structure
   if (!SharedData::writeSensorData(sensorData)) {
-    Logger::warn("SensorManager: Failed to write sensor data to shared structure");
+    Logger::warn(
+        "SensorManager: Failed to write sensor data to shared structure");
   }
 }
 
@@ -91,8 +94,6 @@ bool isI2cHealthy() {
   return consecutiveI2cErrors < MAX_CONSECUTIVE_I2C_ERRORS;
 }
 
-uint8_t getI2cErrorCount() {
-  return consecutiveI2cErrors;
-}
+uint8_t getI2cErrorCount() { return consecutiveI2cErrors; }
 
 } // namespace SensorManager

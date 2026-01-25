@@ -27,7 +27,7 @@ inline void update() {
 }
 
 // Enhanced functions for FreeRTOS multi-core operation
-void updateWithHeartbeat(); // Update with heartbeat failsafe monitoring
+void updateWithHeartbeat();       // Update with heartbeat failsafe monitoring
 bool isHeartbeatFailsafeActive(); // Check if heartbeat failsafe is active
 
 } // namespace SafetyManager

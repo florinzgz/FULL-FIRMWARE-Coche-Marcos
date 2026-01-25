@@ -12,8 +12,8 @@
 #include "managers/SensorManager.h"
 #include "managers/TelemetryManager.h"
 #include "pins.h"
-#include "rtos_tasks.h"    // 🔒 v2.18.0: FreeRTOS task management
-#include "shared_data.h"   // 🔒 v2.18.0: Thread-safe data sharing
+#include "rtos_tasks.h"  // 🔒 v2.18.0: FreeRTOS task management
+#include "shared_data.h" // 🔒 v2.18.0: Thread-safe data sharing
 #include "watchdog.h"
 #include <Arduino.h>
 
@@ -134,7 +134,7 @@ void setup() {
 void loop() {
   // 🔒 v2.18.0: FreeRTOS multitasking mode - loop runs minimal monitoring
   // Main work is done by FreeRTOS tasks on both cores
-  
+
   Watchdog::feed();
 
   // 🔒 v2.17.1: Clear boot counter after successful first loop iteration
@@ -154,12 +154,14 @@ void loop() {
     uint32_t freePsram = ESP.getFreePsram();
     Logger::infof("Memory: Heap=%u KB, PSRAM=%u KB", freeHeap / 1024,
                   freePsram / 1024);
-    
+
     // Log FreeRTOS task information (correct core reporting)
     if (RTOSTasks::safetyTaskHandle != nullptr) {
-      Logger::infof("FreeRTOS: 5 tasks running - Safety(Core0,P5), Control(Core0,P4), Power(Core0,P3), HUD(Core1,P2), Telemetry(Core1,P1)");
+      Logger::infof(
+          "FreeRTOS: 5 tasks running - Safety(Core0,P5), Control(Core0,P4), "
+          "Power(Core0,P3), HUD(Core1,P2), Telemetry(Core1,P1)");
     }
-    
+
     lastMemoryLog = now;
   }
 
@@ -337,7 +339,8 @@ void initializeSystem() {
       handleCriticalError("FreeRTOS task creation failed");
     }
     Logger::info("FreeRTOS tasks created and started");
-    Logger::info("Core 0 (critical): SafetyManager, ControlManager, PowerManager");
+    Logger::info(
+        "Core 0 (critical): SafetyManager, ControlManager, PowerManager");
     Logger::info("Core 1 (general): HUDManager, TelemetryManager");
     Watchdog::feed();
   }

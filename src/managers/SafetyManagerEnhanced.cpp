@@ -1,6 +1,6 @@
 // SafetyManagerEnhanced.cpp - Enhanced safety manager with heartbeat failsafe
-#include "managers/SafetyManager.h"
 #include "logger.h"
+#include "managers/SafetyManager.h"
 #include "shared_data.h"
 #include "steering_motor.h"
 #include "traction.h"
@@ -36,8 +36,9 @@ void updateWithHeartbeat() {
         SteeringMotor::setDemandAngle(0.0f); // Also stop steering motor
 
         // Log detailed state for diagnostics
-        Logger::errorf("SafetyManager: ControlManager not responding - failsafe "
-                       "activated");
+        Logger::errorf(
+            "SafetyManager: ControlManager not responding - failsafe "
+            "activated");
       }
 
       // Periodic warning (every 5 seconds while in failsafe)

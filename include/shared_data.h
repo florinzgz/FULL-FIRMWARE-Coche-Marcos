@@ -11,10 +11,10 @@ namespace SharedData {
 // Sensor data structure with timestamps for staleness detection
 struct SensorData {
   // Current sensors (INA226)
-  float current[6];    // 6 current sensors
-  float voltage[6];    // 6 voltage sensors
-  float power[6];      // 6 power calculations
-  bool currentOk[6];   // Sensor validity flags
+  float current[6];  // 6 current sensors
+  float voltage[6];  // 6 voltage sensors
+  float power[6];    // 6 power calculations
+  bool currentOk[6]; // Sensor validity flags
   uint32_t currentTimestamp;
 
   // Temperature sensors (DS18B20)

@@ -49,9 +49,7 @@ bool init() {
 }
 
 bool readSensorData(SensorData &data) {
-  if (sensorDataMutex == nullptr) {
-    return false;
-  }
+  if (sensorDataMutex == nullptr) { return false; }
 
   if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
     memcpy(&data, &sensorData, sizeof(SensorData));
@@ -64,9 +62,7 @@ bool readSensorData(SensorData &data) {
 }
 
 bool writeSensorData(const SensorData &data) {
-  if (sensorDataMutex == nullptr) {
-    return false;
-  }
+  if (sensorDataMutex == nullptr) { return false; }
 
   if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
     memcpy(&sensorData, &data, sizeof(SensorData));
@@ -79,9 +75,7 @@ bool writeSensorData(const SensorData &data) {
 }
 
 bool readControlState(ControlState &state) {
-  if (controlStateMutex == nullptr) {
-    return false;
-  }
+  if (controlStateMutex == nullptr) { return false; }
 
   if (xSemaphoreTake(controlStateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
     memcpy(&state, &controlState, sizeof(ControlState));
@@ -94,9 +88,7 @@ bool readControlState(ControlState &state) {
 }
 
 bool writeControlState(const ControlState &state) {
-  if (controlStateMutex == nullptr) {
-    return false;
-  }
+  if (controlStateMutex == nullptr) { return false; }
 
   if (xSemaphoreTake(controlStateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
     memcpy(&controlState, &state, sizeof(ControlState));
@@ -109,9 +101,7 @@ bool writeControlState(const ControlState &state) {
 }
 
 bool isSensorDataStale(uint32_t maxAgeMs) {
-  if (sensorDataMutex == nullptr) {
-    return true;
-  }
+  if (sensorDataMutex == nullptr) { return true; }
 
   bool stale = true;
   if (xSemaphoreTake(sensorDataMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
@@ -127,9 +117,7 @@ bool isSensorDataStale(uint32_t maxAgeMs) {
 }
 
 bool isControlStateStale(uint32_t maxAgeMs) {
-  if (controlStateMutex == nullptr) {
-    return true;
-  }
+  if (controlStateMutex == nullptr) { return true; }
 
   bool stale = true;
   if (xSemaphoreTake(controlStateMutex, pdMS_TO_TICKS(10)) == pdTRUE) {

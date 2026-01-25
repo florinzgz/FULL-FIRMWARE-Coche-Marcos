@@ -25,42 +25,39 @@ bool init() {
   BaseType_t result;
 
   // Core 0 tasks - Safety critical
-  result = xTaskCreatePinnedToCore(
-      safetyTask,           // Task function
-      "SafetyTask",         // Name
-      STACK_SIZE_SAFETY,    // Stack size
-      nullptr,              // Parameters
-      PRIORITY_SAFETY_MANAGER, // Priority
-      &safetyTaskHandle,    // Handle
-      CORE_CRITICAL         // Core 0
+  result = xTaskCreatePinnedToCore(safetyTask,              // Task function
+                                   "SafetyTask",            // Name
+                                   STACK_SIZE_SAFETY,       // Stack size
+                                   nullptr,                 // Parameters
+                                   PRIORITY_SAFETY_MANAGER, // Priority
+                                   &safetyTaskHandle,       // Handle
+                                   CORE_CRITICAL            // Core 0
   );
   if (result != pdPASS) {
     Logger::error("RTOSTasks: Failed to create SafetyTask");
     return false;
   }
 
-  result = xTaskCreatePinnedToCore(
-      controlTask,          // Task function
-      "ControlTask",        // Name
-      STACK_SIZE_CONTROL,   // Stack size
-      nullptr,              // Parameters
-      PRIORITY_CONTROL_MANAGER, // Priority
-      &controlTaskHandle,   // Handle
-      CORE_CRITICAL         // Core 0
+  result = xTaskCreatePinnedToCore(controlTask,              // Task function
+                                   "ControlTask",            // Name
+                                   STACK_SIZE_CONTROL,       // Stack size
+                                   nullptr,                  // Parameters
+                                   PRIORITY_CONTROL_MANAGER, // Priority
+                                   &controlTaskHandle,       // Handle
+                                   CORE_CRITICAL             // Core 0
   );
   if (result != pdPASS) {
     Logger::error("RTOSTasks: Failed to create ControlTask");
     return false;
   }
 
-  result = xTaskCreatePinnedToCore(
-      powerTask,            // Task function
-      "PowerTask",          // Name
-      STACK_SIZE_POWER,     // Stack size
-      nullptr,              // Parameters
-      PRIORITY_POWER_MANAGER, // Priority
-      &powerTaskHandle,     // Handle
-      CORE_CRITICAL         // Core 0
+  result = xTaskCreatePinnedToCore(powerTask,              // Task function
+                                   "PowerTask",            // Name
+                                   STACK_SIZE_POWER,       // Stack size
+                                   nullptr,                // Parameters
+                                   PRIORITY_POWER_MANAGER, // Priority
+                                   &powerTaskHandle,       // Handle
+                                   CORE_CRITICAL           // Core 0
   );
   if (result != pdPASS) {
     Logger::error("RTOSTasks: Failed to create PowerTask");
@@ -68,28 +65,26 @@ bool init() {
   }
 
   // Core 1 tasks - HUD and telemetry
-  result = xTaskCreatePinnedToCore(
-      hudTask,              // Task function
-      "HUDTask",            // Name
-      STACK_SIZE_HUD,       // Stack size
-      nullptr,              // Parameters
-      PRIORITY_HUD_MANAGER, // Priority
-      &hudTaskHandle,       // Handle
-      CORE_GENERAL          // Core 1
+  result = xTaskCreatePinnedToCore(hudTask,              // Task function
+                                   "HUDTask",            // Name
+                                   STACK_SIZE_HUD,       // Stack size
+                                   nullptr,              // Parameters
+                                   PRIORITY_HUD_MANAGER, // Priority
+                                   &hudTaskHandle,       // Handle
+                                   CORE_GENERAL          // Core 1
   );
   if (result != pdPASS) {
     Logger::error("RTOSTasks: Failed to create HUDTask");
     return false;
   }
 
-  result = xTaskCreatePinnedToCore(
-      telemetryTask,        // Task function
-      "TelemetryTask",      // Name
-      STACK_SIZE_TELEMETRY, // Stack size
-      nullptr,              // Parameters
-      PRIORITY_TELEMETRY_MANAGER, // Priority
-      &telemetryTaskHandle, // Handle
-      CORE_GENERAL          // Core 1
+  result = xTaskCreatePinnedToCore(telemetryTask,              // Task function
+                                   "TelemetryTask",            // Name
+                                   STACK_SIZE_TELEMETRY,       // Stack size
+                                   nullptr,                    // Parameters
+                                   PRIORITY_TELEMETRY_MANAGER, // Priority
+                                   &telemetryTaskHandle,       // Handle
+                                   CORE_GENERAL                // Core 1
   );
   if (result != pdPASS) {
     Logger::error("RTOSTasks: Failed to create TelemetryTask");
@@ -97,9 +92,10 @@ bool init() {
   }
 
   Logger::info("RTOSTasks: All tasks created successfully");
-  Logger::infof("RTOSTasks: Core 0 (critical): Safety(%d), Control(%d), Power(%d)",
-                PRIORITY_SAFETY_MANAGER, PRIORITY_CONTROL_MANAGER,
-                PRIORITY_POWER_MANAGER);
+  Logger::infof(
+      "RTOSTasks: Core 0 (critical): Safety(%d), Control(%d), Power(%d)",
+      PRIORITY_SAFETY_MANAGER, PRIORITY_CONTROL_MANAGER,
+      PRIORITY_POWER_MANAGER);
   Logger::infof("RTOSTasks: Core 1 (general): HUD(%d), Telemetry(%d)",
                 PRIORITY_HUD_MANAGER, PRIORITY_TELEMETRY_MANAGER);
 
@@ -152,7 +148,7 @@ void powerTask(void *parameter) {
   (void)parameter;
   TickType_t lastWakeTime = xTaskGetTickCount();
   const TickType_t frequency = pdMS_TO_TICKS(100); // 10 Hz
-  
+
   // NOTE: Sensor update at 10 Hz while control runs at 100 Hz creates a 10x
   // frequency mismatch. This is acceptable because:
   // 1. Physical sensors don't change faster than 10 Hz
@@ -207,22 +203,14 @@ void telemetryTask(void *parameter) {
 }
 
 void suspendNonCriticalTasks() {
-  if (hudTaskHandle != nullptr) {
-    vTaskSuspend(hudTaskHandle);
-  }
-  if (telemetryTaskHandle != nullptr) {
-    vTaskSuspend(telemetryTaskHandle);
-  }
+  if (hudTaskHandle != nullptr) { vTaskSuspend(hudTaskHandle); }
+  if (telemetryTaskHandle != nullptr) { vTaskSuspend(telemetryTaskHandle); }
   Logger::info("RTOSTasks: Non-critical tasks suspended");
 }
 
 void resumeNonCriticalTasks() {
-  if (hudTaskHandle != nullptr) {
-    vTaskResume(hudTaskHandle);
-  }
-  if (telemetryTaskHandle != nullptr) {
-    vTaskResume(telemetryTaskHandle);
-  }
+  if (hudTaskHandle != nullptr) { vTaskResume(hudTaskHandle); }
+  if (telemetryTaskHandle != nullptr) { vTaskResume(telemetryTaskHandle); }
   Logger::info("RTOSTasks: Non-critical tasks resumed");
 }
 

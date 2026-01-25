@@ -24,7 +24,7 @@ constexpr UBaseType_t PRIORITY_TELEMETRY_MANAGER = 1;
 constexpr uint32_t STACK_SIZE_SAFETY = 4096;
 constexpr uint32_t STACK_SIZE_CONTROL = 4096;
 constexpr uint32_t STACK_SIZE_POWER = 3072;
-constexpr uint32_t STACK_SIZE_HUD = 8192;      // Larger for display operations
+constexpr uint32_t STACK_SIZE_HUD = 8192; // Larger for display operations
 constexpr uint32_t STACK_SIZE_TELEMETRY = 3072;
 
 // Core assignments
