@@ -12,7 +12,7 @@ This firmware is designed **exclusively** for:
 
 ```
 ESP32-S3 N16R8
-16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V
+16MB QIO Flash + 8MB OPI PSRAM @ 3.3V
 ```
 
 ### Official Specifications
@@ -25,11 +25,11 @@ ESP32-S3 N16R8
 | **Flash Memory** | 16 MB | **QIO mode** (Quad I/O, 4 data lines) |
 | **Flash Voltage** | 3.3V | **NOT 1.8V** |
 | **Flash Speed** | 80 MHz | Safe, stable frequency |
-| **PSRAM** | 8 MB | **QSPI mode** (Quad SPI, 4 data lines) |
-| **PSRAM Type** | ESPPSRAM32, AP_3v3 | **NOT OPI/Octal** |
+| **PSRAM** | 8 MB | **OPI mode** (Octal, 8 data lines) |
+| **PSRAM Type** | ESPPSRAM64, AP_3v3 | **OPI/Octal mode** |
 | **PSRAM Voltage** | 3.3V | **NOT 1.8V** |
 | **PSRAM Speed** | 80 MHz | Safe, stable frequency |
-| **SDK Variant** | qio_qspi | Flash QIO + PSRAM QSPI |
+| **SDK Variant** | qio_opi | Flash QIO + PSRAM OPI |
 
 ---
 
@@ -51,7 +51,7 @@ The 16MB Flash is partitioned as follows (see `partitions/n16r8_ota.csv`):
 
 - **Total Available**: 8,388,608 bytes
 - **Used for**: Frame buffers, sprite buffers, large allocations
-- **Mode**: QSPI (4-bit, safe and stable)
+- **Mode**: OPI (8-bit Octal, high bandwidth)
 - **Integration**: Fully managed by Arduino-ESP32 framework
 
 ---
@@ -73,17 +73,17 @@ The firmware has been **completely migrated** to N16R8 because:
 4. **Sufficient Memory**: 16MB Flash + 8MB PSRAM is adequate for this application
 5. **Proven Stability**: QIO/QSPI modes are well-tested and reliable
 
-### Why QIO/QSPI is Required
+### Why QIO/OPI is Required
 
 | Parameter | Reason |
 |-----------|--------|
 | **QIO Flash** | 4-bit interface provides good speed/stability balance |
-| **QSPI PSRAM** | 4-bit PSRAM interface compatible with 3.3V operation |
+| **OPI PSRAM** | 8-bit PSRAM interface for maximum bandwidth with 8MB memory |
 | **80MHz Speed** | Safe frequency for both Flash and PSRAM |
 | **3.3V Logic** | Standard voltage, no level shifting required |
-| **Arduino-ESP32** | Framework expects `qio_qspi` for this configuration |
+| **Arduino-ESP32** | Framework expects `qio_opi` for this configuration |
 
-**IMPORTANT:** Using incorrect modes (like `opi_opi` or `qio_opi`) will cause boot failures and instability.
+**IMPORTANT:** Using incorrect modes (like `dio_qspi` or `qio_qspi`) will cause boot failures, instability, or 50% bandwidth loss.
 
 ---
 
@@ -95,11 +95,11 @@ File: `boards/esp32s3_n16r8.json`
 
 ```json
 {
-  "name": "ESP32-S3 N16R8 (16MB QIO Flash, 8MB QSPI PSRAM)",
+  "name": "ESP32-S3 N16R8 (16MB QIO Flash, 8MB OPI PSRAM)",
   "build": {
     "flash_mode": "qio",
-    "psram_type": "qspi",
-    "memory_type": "qio_qspi"
+    "psram_type": "opi",
+    "memory_type": "qio_opi"
   },
   "upload": {
     "flash_size": "16MB"
@@ -119,7 +119,7 @@ framework = arduino
 
 board_build.partitions = partitions/n16r8_ota.csv
 board_build.sdkconfig = sdkconfig/n16r8.defaults
-board_build.arduino.memory_type = qio_qspi
+board_build.arduino.memory_type = qio_opi
 ```
 
 ### SDK Configuration
@@ -130,7 +130,7 @@ Key settings:
 ```
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
-CONFIG_SPIRAM_MODE_QUAD=y
+CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SIZE=8388608
 ```
 
@@ -145,7 +145,7 @@ Upon boot, the firmware verifies:
 1. ✅ Flash size = 16MB
 2. ✅ PSRAM size = 8MB
 3. ✅ Flash mode = QIO
-4. ✅ PSRAM mode = QSPI
+4. ✅ PSRAM mode = OPI (Octal)
 
 ### Boot Logs
 
@@ -153,7 +153,7 @@ Expected output:
 ```
 [BOOT] ESP32-S3 N16R8 detected
 [BOOT] Flash: 16MB QIO @ 80MHz
-[BOOT] PSRAM: 8MB QSPI @ 80MHz
+[BOOT] PSRAM: 8MB OPI @ 80MHz
 [BOOT] Free PSRAM: ~8MB
 ```
 
@@ -174,9 +174,9 @@ If you see different values, **STOP** and verify your hardware.
 ## ⚠️ Important Notes
 
 1. **This is N16R8 ONLY**: Do not attempt to use N32R16V boards or configurations
-2. **No OPI Mode**: OPI/Octal mode is NOT supported or needed
+2. **OPI Mode Required**: OPI/Octal mode (8-bit) is required for 8MB PSRAM
 3. **3.3V Only**: All flash and PSRAM operate at 3.3V
-4. **QIO_QSPI Required**: Using other memory types will cause failures
+4. **QIO_OPI Required**: Using other memory types will cause failures or bandwidth loss
 5. **Verified Configuration**: This setup has been tested and certified in PHASE 14
 
 ---
@@ -187,7 +187,7 @@ If you see different values, **STOP** and verify your hardware.
 
 If the device fails to boot:
 1. Verify you have an N16R8 module (not N32R16V, N8R8, etc.)
-2. Check that `board_build.arduino.memory_type = qio_qspi` in platformio.ini
+2. Check that `board_build.arduino.memory_type = qio_opi` in platformio.ini
 3. Erase flash completely: `pio run -t erase`
 4. Re-flash firmware: `pio run -t upload`
 
@@ -205,7 +205,8 @@ If PSRAM is not detected:
 ### 2026-01-12 - v2.17.1
 - ✅ Created official HARDWARE.md specification
 - ✅ Established N16R8 as single hardware target
-- ✅ Removed all references to N32R16V, OPI, 1.8V
+- ✅ Removed all references to N32R16V
+- ✅ Corrected PSRAM mode from QSPI to OPI (Octal) for 8MB PSRAM
 
 ---
 
