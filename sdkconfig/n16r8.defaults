@@ -6,7 +6,7 @@
 # ================= PSRAM Configuration =================
 # PSRAM is physically present and should be initialized
 CONFIG_SPIRAM=y
-CONFIG_SPIRAM_MODE_QUAD=y
+CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_TYPE_AUTO=y
 CONFIG_SPIRAM_SPEED_80M=y
 
@@ -90,7 +90,7 @@ CONFIG_LOG_MAXIMUM_LEVEL_VERBOSE=y
 CONFIG_LOG_COLORS=y
 
 # ================= Flash Configuration =================
-CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 
