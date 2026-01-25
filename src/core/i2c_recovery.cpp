@@ -25,13 +25,15 @@ static constexpr uint32_t RECOVERY_FREQUENCY =
 void init() {
   Wire.begin(pinSDA, pinSCL);
   Wire.setClock(I2C_FREQUENCY);
-  
+
   // ⚠️ CRÍTICO: Configurar timeout a nivel de driver I²C (Wire.setTimeOut())
-  // para prevenir colgado del hardware I²C, no solo timeout a nivel de aplicación
+  // para prevenir colgado del hardware I²C, no solo timeout a nivel de
+  // aplicación
   Wire.setTimeOut(I2CCMDTIMEOUT_MS);
-  
+
   Serial.printf("[I2CRecovery] I2C initialized at %u Hz\n", I2C_FREQUENCY);
-  Serial.printf("[I2CRecovery] Driver timeout set to %u ms\n", I2CCMDTIMEOUT_MS);
+  Serial.printf("[I2CRecovery] Driver timeout set to %u ms\n",
+                I2CCMDTIMEOUT_MS);
   initialized = true;
 
   // Inicializar estados
