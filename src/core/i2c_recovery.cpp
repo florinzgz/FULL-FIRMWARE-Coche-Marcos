@@ -25,7 +25,14 @@ static constexpr uint32_t RECOVERY_FREQUENCY =
 void init() {
   Wire.begin(pinSDA, pinSCL);
   Wire.setClock(I2C_FREQUENCY);
+  
+  // ⚠️ CRÍTICO: Configurar timeout a nivel de driver I²C
+  // Esto previene colgado del hardware I²C (no solo timeout a nivel de aplicación)
+  // Wire.setTimeOut() configura el timeout del driver ESP32 I²C
+  Wire.setTimeOut(I2CCMDTIMEOUT_MS);
+  
   Serial.printf("[I2CRecovery] I2C initialized at %u Hz\n", I2C_FREQUENCY);
+  Serial.printf("[I2CRecovery] Driver timeout set to %u ms\n", I2CCMDTIMEOUT_MS);
   initialized = true;
 
   // Inicializar estados
@@ -107,6 +114,7 @@ bool recoverBus() {
   // 7. Re-inicializar Wire
   Wire.begin(pinSDA, pinSCL);
   Wire.setClock(RECOVERY_FREQUENCY); // 100 kHz (modo estándar)
+  Wire.setTimeOut(I2CCMDTIMEOUT_MS); // Restaurar timeout del driver
 
   if (recovered) {
     Serial.println("[I2CRecovery] Bus recovery exitoso");
