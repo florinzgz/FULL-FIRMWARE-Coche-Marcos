@@ -59,8 +59,8 @@ import os
 import re
 
 # Version-specific constants
-SCRIPT_VERSION = "2.17.3"
-TARGET_TIMEOUT_MS = 5000  # Target watchdog timeout
+SCRIPT_VERSION = "2.17.4"
+TARGET_TIMEOUT_MS = 10000  # Target watchdog timeout (increased for maximum safety)
 MIN_SAFE_TIMEOUT_MS = 3000  # Don't patch if already >= this value
 
 def _should_patch_legacy_timeout(content):
