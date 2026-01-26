@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Quick verification script for ESP32-S3 bootloop fix v2.17.4
 # This script verifies that all the bootloop fixes are properly configured
 
