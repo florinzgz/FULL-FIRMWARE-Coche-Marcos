@@ -68,13 +68,14 @@ CONFIG_ESP_SYSTEM_EVENT_QUEUE_SIZE=32
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=2304
 
 # 🔒 v2.17.3 BOOTLOOP FIX: Increase interrupt watchdog timeout
-# Increased from 3000ms to 5000ms to provide safety margin for:
+# Increased from 3000ms to 10000ms (10 seconds) to provide maximum safety margin for:
 # - PSRAM initialization variations across hardware batches
 # - Cold boot after power cycle (slower than warm reset)
 # - Debug builds with verbose logging
 # - Manufacturing variations in PSRAM chips
+# - Worst-case PSRAM test timing on some hardware batches
 CONFIG_ESP_INT_WDT=y
-CONFIG_ESP_INT_WDT_TIMEOUT_MS=5000
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=10000
 CONFIG_ESP_INT_WDT_CHECK_CPU1=y
 
 # Task watchdog
