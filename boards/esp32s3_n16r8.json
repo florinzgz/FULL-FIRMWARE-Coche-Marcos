@@ -20,6 +20,7 @@
     "arduino.memory_type": "qio_opi",
 
     "flash_size": "16MB",
+    "psram_type": "opi",
 
     "extra_flags": [
       "-DBOARD_HAS_PSRAM",
@@ -27,13 +28,15 @@
       "-DARDUINO_USB_CDC_ON_BOOT=1",
       "-DARDUINO_RUNNING_CORE=1",
       "-DARDUINO_EVENT_RUNNING_CORE=1"
-    ]
+    ],
+
+    "partitions": "partitions.csv"
   },
 
   "upload": {
     "protocol": "esptool",
     "flash_size": "16MB",
-    "maximum_size": 16777216,
+    "maximum_size": 10485760,
     "maximum_ram_size": 8388608,
     "speed": 921600
   },
