@@ -1,105 +1,42 @@
 # ============================================================================
-# ESP32-S3 N16R8 SDK Configuration - v2.17.3
-# Hardware: ESP32-S3 DevKitC-1 N16R8 (16MB Flash + 8MB PSRAM)
+# ESP32-S3 N16R8 SDK Configuration (Arduino-safe)
+# Hardware: ESP32-S3 DevKitC-1 N16R8 (16MB Flash + 8MB PSRAM OPI)
 # ============================================================================
 
-# ================= PSRAM Configuration =================
-# PSRAM is physically present and should be initialized
+# ================= PSRAM =================
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_TYPE_AUTO=y
 CONFIG_SPIRAM_SPEED_80M=y
-
-# 🔒 v2.17.3 BOOTLOOP FIX: Disable PSRAM memory test
-# ============================================================================
-# IMPORTANT: This setting disables the comprehensive PSRAM memory test
-#
-# WHY DISABLED:
-# - Memory test can take >3000ms on some hardware batches
-# - Exceeds interrupt watchdog timeout (CONFIG_ESP_INT_WDT_TIMEOUT_MS)
-# - Causes continuous resets: rst:0x3 (RTC_SW_SYS_RST) bootloop
-#
-# WHAT THIS MEANS:
-# - PSRAM is still initialized and fully functional
-# - Only the comprehensive test at boot is skipped
-# - Bad PSRAM will be detected during runtime (crashes/exceptions)
-# - Trade-off: Faster boot vs early defect detection
-#
-# TESTING PSRAM:
-# - Production code does NOT run PSRAM tests
-# - PSRAM health is monitored through normal operation
-# - Memory allocation failures are logged and handled
-# - See docs/ARDUINO_ESP32_API_GUIDELINES.md for PSRAM usage
-#
-# FUTURE:
-# - When bootloop issue is resolved, can re-enable test
-# - Arduino framework may fix default timeout in future versions
-# ============================================================================
 CONFIG_SPIRAM_MEMTEST=n
 
-# Malloc strategy
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
-
-# Ignore if PSRAM not found (for hardware without PSRAM)
 CONFIG_SPIRAM_IGNORE_NOTFOUND=y
 
-# ================= Bootloader Configuration =================
-CONFIG_BOOTLOADER_LOG_LEVEL_INFO=y
-CONFIG_BOOTLOADER_LOG_LEVEL=3
-
-# ================= Compiler Options =================
-CONFIG_COMPILER_OPTIMIZATION_SIZE=y
-CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_ENABLE=y
-CONFIG_COMPILER_STACK_CHECK_MODE_NONE=y
-
-# ================= FreeRTOS Configuration =================
-CONFIG_FREERTOS_HZ=1000
-CONFIG_FREERTOS_ASSERT_ON_UNTESTED_FUNCTION=y
-CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
-
-# Stack sizes (configured via platformio.ini board_build.arduino.*)
-# - loop_stack_size = 32768 (32KB)
-# - event_stack_size = 16384 (16KB)
-
-# ================= ESP System Settings =================
-CONFIG_ESP_SYSTEM_EVENT_QUEUE_SIZE=32
-CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=2304
-
-# 🔒 v2.17.3 BOOTLOOP FIX: Increase interrupt watchdog timeout
-# Increased from 3000ms to 10000ms (10 seconds) to provide maximum safety margin for:
-# - PSRAM initialization variations across hardware batches
-# - Cold boot after power cycle (slower than warm reset)
-# - Debug builds with verbose logging
-# - Manufacturing variations in PSRAM chips
-# - Worst-case PSRAM test timing on some hardware batches
-CONFIG_ESP_INT_WDT=y
-CONFIG_ESP_INT_WDT_TIMEOUT_MS=10000
-CONFIG_ESP_INT_WDT_CHECK_CPU1=y
-
-# Task watchdog
-CONFIG_ESP_TASK_WDT=y
-CONFIG_ESP_TASK_WDT_TIMEOUT_S=5
-CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=y
-CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=y
-
-# ================= Debug Configuration =================
-CONFIG_LOG_DEFAULT_LEVEL_INFO=y
-CONFIG_LOG_DEFAULT_LEVEL=3
-CONFIG_LOG_MAXIMUM_LEVEL_VERBOSE=y
-CONFIG_LOG_COLORS=y
-
-# ================= Flash Configuration =================
+# ================= Flash =================
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 
-# ================= Arduino Compatibility =================
+# ================= Watchdog =================
+CONFIG_ESP_INT_WDT=y
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=5000
+
+CONFIG_ESP_TASK_WDT=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=5
+
+# ================= Logging =================
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_DEFAULT_LEVEL=3
+CONFIG_LOG_COLORS=y
+
+# ================= Arduino =================
 CONFIG_ARDUINO_RUNNING_CORE=1
 CONFIG_ARDUINO_EVENT_RUNNING_CORE=1
 CONFIG_ARDUINO_UDP_RUNNING_CORE=1
 
 # ============================================================================
-# END OF CONFIGURATION
+# END
 # ============================================================================
