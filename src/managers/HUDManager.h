@@ -11,4 +11,3 @@
 // Note: We cannot use a namespace called HUDManager because that conflicts
 // with the HUDManager class. Code that uses "HUDManager::init()" will
 // now resolve to the static class method HUDManager::init() directly.
-
