@@ -18,8 +18,8 @@ struct SensorData {
   uint32_t currentTimestamp;
 
   // Temperature sensors (DS18B20)
-  float temperature[4]; // 4 temperature sensors
-  bool tempOk[4];       // Sensor validity flags
+  float temperature[5]; // 5 temperature sensors (4 motors + 1 ambient)
+  bool tempOk[5];       // Sensor validity flags
   uint32_t tempTimestamp;
 
   // Wheel sensors

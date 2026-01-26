@@ -1,23 +1,14 @@
 // managers/HUDManager.h
 // HUD management - integrates display system
-// 🔒 CRITICAL: This is a legacy wrapper namespace
+// 🔒 CRITICAL: This is a legacy wrapper for backwards compatibility
 // The actual implementation is in include/hud_manager.h (class-based)
 #pragma once
 
 #include "../../include/hud_manager.h"
 
-// Legacy namespace wrapper for backwards compatibility
-// Forwards calls to the class-based HUDManager
-namespace HUDManager {
+// Legacy free function wrappers for backwards compatibility
+// These forward calls to the class-based HUDManager
+// Note: We cannot use a namespace called HUDManager because that conflicts
+// with the HUDManager class. Code that uses "HUDManager::init()" will
+// now resolve to the static class method HUDManager::init() directly.
 
-// Forward to class-based HUDManager::init()
-inline bool init() { return ::HUDManager::init(); }
-
-// Forward to class-based HUDManager::update()
-inline void update() { ::HUDManager::update(); }
-
-// Forward to class-based HUDManager::showError()
-// Uses generic error message since old code doesn't provide details
-inline void showError() { ::HUDManager::showError("Critical error detected"); }
-
-} // namespace HUDManager

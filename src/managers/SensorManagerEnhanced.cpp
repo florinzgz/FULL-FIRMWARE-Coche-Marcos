@@ -76,9 +76,9 @@ void updateNonBlocking() {
   sensorData.wheelTimestamp = millis();
 
   // Update input devices (non-I2C)
-  sensorData.pedalValue = Pedal::getValue();
-  sensorData.steeringAngle = Steering::getAngle();
-  sensorData.shifterPosition = Shifter::getPosition();
+  sensorData.pedalValue = Pedal::get().percent;
+  sensorData.steeringAngle = Steering::get().angleDeg;
+  sensorData.shifterPosition = static_cast<uint8_t>(Shifter::get().gear);
   // Button states stored as bitfield: bit 0 = lights button
   sensorData.buttonStates = Buttons::get().lights ? 0x01 : 0x00;
   sensorData.inputTimestamp = millis();
