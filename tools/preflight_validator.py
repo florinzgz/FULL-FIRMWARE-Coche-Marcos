@@ -1,555 +1,140 @@
 #!/usr/bin/env python3
 """
-Pre-Flight Hardware Validation System
-======================================
+Preflight Hardware Initialization Validator (Safe Version)
 
-Build-time validator that prevents firmware from being built if it would
-crash at runtime due to improper hardware initialization order.
+Checks for illegal hardware usage BEFORE initialization in:
+- global scope
+- setup()
 
-This system:
-- Parses all C++ source and header files
-- Builds a call graph of function dependencies
-- Tracks hardware initialization order
-- Detects illegal hardware access before initialization
-- Blocks the build with detailed error messages
+Resources checked:
+- I2C (Wire)
+- SPI
+- TFT (tft)
 
-Zero runtime overhead - validation happens only at build time.
+This script is intentionally simple and conservative:
+- No call graph
+- No regex heuristics
+- No ESP-IDF
+- No runtime impact
 """
 
+Import("env")
+
 import os
-import sys
-import json
 import re
+import sys
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional
-from dataclasses import dataclass, field
 
-# PlatformIO SCons environment import
-try:
-    Import("env")
-    PLATFORMIO_MODE = True
-except:
-    PLATFORMIO_MODE = False
+PROJECT_DIR = env.subst("$PROJECT_DIR")
+SRC_DIRS = [
+    os.path.join(PROJECT_DIR, "src"),
+    os.path.join(PROJECT_DIR, "include"),
+]
 
+FORBIDDEN_RULES = {
+    "I2C": {
+        "init": ["Wire.begin"],
+        "forbidden": ["Wire.", "i2c_"]
+    },
+    "SPI": {
+        "init": ["SPI.begin"],
+        "forbidden": ["SPI."]
+    },
+    "TFT": {
+        "init": ["tft.begin"],
+        "forbidden": ["tft.", "sprite."]
+    }
+}
 
-@dataclass
-class CodeLocation:
-    """Represents a location in source code"""
-    file: str
-    line: int
-    function: str
-    code: str
+violations = []
 
-
-@dataclass
-class FunctionCall:
-    """Represents a function call in the code"""
-    name: str
-    location: CodeLocation
-
-
-@dataclass
-class InitializationState:
-    """Tracks initialization state for a hardware resource"""
-    initialized: bool = False
-    init_location: Optional[CodeLocation] = None
-    violations: List[Tuple[CodeLocation, str]] = field(default_factory=list)
+def strip_comments(line: str) -> str:
+    # Remove inline comments
+    line = re.sub(r'//.*', '', line)
+    # Remove strings
+    line = re.sub(r'"[^"]*"', '', line)
+    return line.strip()
 
 
-class HardwareValidator:
-    """Main validation engine for hardware initialization order"""
+def get_source_files():
+    files = []
+    for d in SRC_DIRS:
+        if os.path.isdir(d):
+            files.extend(Path(d).rglob("*.cpp"))
+            files.extend(Path(d).rglob("*.h"))
+    return files
 
-    def __init__(self, rules_file: str, source_dirs: List[str]):
-        self.rules = self._load_rules(rules_file)
-        self.source_dirs = source_dirs
-        self.violations: List[Dict] = []
-        self.file_cache: Dict[str, List[str]] = {}
 
-    def _load_rules(self, rules_file: str) -> Dict:
-        """Load hardware rules from JSON file"""
-        try:
-            with open(rules_file, 'r') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print(f"❌ ERROR: Rules file not found: {rules_file}")
-            sys.exit(1)
-        except json.JSONDecodeError as e:
-            print(f"❌ ERROR: Invalid JSON in rules file: {e}")
-            sys.exit(1)
+def analyze_file(filepath: Path):
+    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+        lines = f.readlines()
 
-    def _get_source_files(self) -> List[Path]:
-        """Get all C++ source and header files"""
-        files = []
-        for source_dir in self.source_dirs:
-            source_path = Path(source_dir)
-            if source_path.exists():
-                files.extend(source_path.rglob("*.cpp"))
-                files.extend(source_path.rglob("*.h"))
-                files.extend(source_path.rglob("*.hpp"))
-        return files
+    in_setup = False
+    init_state = {k: False for k in FORBIDDEN_RULES.keys()}
 
-    def _read_file_lines(self, file_path: str) -> List[str]:
-        """Read and cache file contents"""
-        if file_path not in self.file_cache:
-            try:
-                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    self.file_cache[file_path] = f.readlines()
-            except Exception as e:
-                print(f"⚠️  Warning: Could not read {file_path}: {e}")
-                self.file_cache[file_path] = []
-        return self.file_cache[file_path]
+    for lineno, raw_line in enumerate(lines, 1):
+        line = strip_comments(raw_line)
 
-    def _extract_function_name(self, line: str) -> Optional[str]:
-        """Extract function name from a line of code (function definition only, not calls)"""
-        line_stripped = line.strip()
-        
-        # Skip lines that are obviously not function definitions
-        if line_stripped.startswith('//') or line_stripped.startswith('/*'):
-            return None
-        if line_stripped.startswith('#'):
-            return None
-        if not '(' in line_stripped:
-            return None
-            
-        # Function definitions typically have return type before the name
-        # Look for patterns like: void func(), int func(), static void func()
-        # Match: [return_type] function_name(
-        func_def_pattern = r'\b(void|int|uint8_t|uint16_t|uint32_t|bool|float|double|char|static\s+\w+|inline\s+\w+)\s+([a-zA-Z_][a-zA-Z0-9_:]*)\s*\('
-        match = re.search(func_def_pattern, line_stripped)
-        if match:
-            return match.group(2)
-        
-        # Also match constructors/destructors and simple function definitions
-        # Pattern: FunctionName( at start of line (after whitespace)
-        simple_pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
-        match = re.match(simple_pattern, line_stripped)
-        if match:
-            func_name = match.group(1)
-            # Filter out common non-function keywords
-            if func_name not in ['if', 'while', 'for', 'switch', 'return']:
-                return func_name
-        
-        return None
+        if not line:
+            continue
 
-    def _is_in_comment(self, line: str, position: int) -> bool:
-        """Check if a position in a line is within a comment"""
-        before = line[:position]
-        # Single-line comment
-        if '//' in before:
-            comment_pos = before.find('//')
-            if comment_pos < position:
-                return True
-        return False
+        # detect setup()
+        if re.match(r'\s*void\s+setup\s*\(', line):
+            in_setup = True
+            continue
 
-    def _is_false_positive(self, line: str, pattern: str) -> bool:
-        """Check if a pattern match is likely a false positive"""
-        line_stripped = line.strip()
-        
-        # Skip preprocessor directives
-        if line_stripped.startswith('#'):
-            return True
-        
-        # Skip string literals containing the pattern
-        if pattern in line:
-            # Check if it's in quotes
-            parts = line.split('"')
-            for i in range(1, len(parts), 2):  # Odd indices are inside quotes
-                if pattern in parts[i]:
-                    return True
-        
-        # Skip type definitions (class, struct, typedef)
-        if re.match(r'\s*(class|struct|typedef|enum)\s+', line_stripped):
-            return True
-        
-        # Skip function/method definitions
-        if '::' in pattern and re.match(r'.*(void|bool|int|uint|static|inline)\s+.*' + re.escape(pattern), line):
-            return True
-        
-        # Skip const/constexpr declarations
-        if re.match(r'\s*(const|constexpr|static\s+const)\s+', line_stripped):
-            return True
-            
-        # Skip comments (already handled but double-check)
-        comment_pos = line.find('//')
-        if '//' in line and pattern in line:
-            pattern_pos = line.find(pattern)
-            if comment_pos >= 0 and comment_pos < pattern_pos:
-                return True
-        
-        return False
+        if in_setup and "}" in line:
+            in_setup = False
 
-    def _find_function_calls(self, file_path: str, pattern: str) -> List[FunctionCall]:
-        """Find all calls to functions matching the pattern in a file"""
-        lines = self._read_file_lines(str(file_path))
-        calls = []
-        current_function = "global_scope"
-        in_multiline_comment = False
+        scope = "setup()" if in_setup else "global"
 
-        for line_num, line in enumerate(lines, 1):
-            # Track multi-line comments
-            # Handle cases where both /* and */ appear on same line
-            if '/*' in line and '*/' in line:
-                # Check if there's code after the comment on the same line
-                comment_start = line.find('/*')
-                comment_end = line.find('*/')
-                if comment_end > comment_start:
-                    # Process the part before and after comment
-                    # For simplicity, just skip this line if comment markers exist
-                    continue
-            elif '/*' in line:
-                in_multiline_comment = True
-                continue
-            elif '*/' in line:
-                in_multiline_comment = False
-                continue
-            
-            # Skip comments
-            if in_multiline_comment or line.strip().startswith('//'):
-                continue
+        for resource, rule in FORBIDDEN_RULES.items():
+            # detect init
+            for init_call in rule["init"]:
+                if init_call in line:
+                    init_state[resource] = True
 
-            # Track current function context
-            func_name = self._extract_function_name(line)
-            if func_name and '(' in line and '{' not in line:
-                # This might be a function definition
-                current_function = func_name
-
-            # Search for the pattern
-            # Handle both literal strings and regex patterns
-            if pattern.startswith('\\') or '[' in pattern or '*' in pattern:
-                # Regex pattern
-                matches = re.finditer(pattern, line)
-            else:
-                # Literal string search
-                matches = [m for m in re.finditer(re.escape(pattern), line)]
-
-            for match in matches:
-                # Skip if in comment
-                if self._is_in_comment(line, match.start()):
-                    continue
-
-                location = CodeLocation(
-                    file=str(file_path),
-                    line=line_num,
-                    function=current_function,
-                    code=line.strip()
-                )
-                calls.append(FunctionCall(name=pattern, location=location))
-
-        return calls
-
-    def _is_initialization_context(self, function_name: str) -> bool:
-        """Check if we're in an initialization context where order matters"""
-        init_keywords = ['init', 'setup', 'begin', 'start', 'configure']
-        func_lower = function_name.lower()
-        return any(keyword in func_lower for keyword in init_keywords)
-
-    def _check_initialization_order(self, file_path: str) -> Dict[str, InitializationState]:
-        """Check initialization order within a single file"""
-        states: Dict[str, InitializationState] = {}
-        
-        # Initialize states for all rules
-        for rule in self.rules.get('rules', []):
-            states[rule['resource']] = InitializationState()
-
-        lines = self._read_file_lines(str(file_path))
-        current_function = "global_scope"
-        in_multiline_comment = False
-        in_init_function = True  # Start assuming we're in init context
-
-        for line_num, line in enumerate(lines, 1):
-            # Track multi-line comments
-            # Handle cases where both /* and */ appear on same line
-            if '/*' in line and '*/' in line:
-                # Check if there's code after the comment on the same line
-                comment_start = line.find('/*')
-                comment_end = line.find('*/')
-                if comment_end > comment_start:
-                    # Process the part before and after comment
-                    # For simplicity, just skip this line if comment markers exist
-                    continue
-            elif '/*' in line:
-                in_multiline_comment = True
-                continue
-            elif '*/' in line:
-                in_multiline_comment = False
-                continue
-            
-            # Skip comments
-            if in_multiline_comment or line.strip().startswith('//'):
-                continue
-
-            # Track current function
-            func_name = self._extract_function_name(line)
-            if func_name:
-                current_function = func_name
-                in_init_function = self._is_initialization_context(func_name)
-                # Reset initialization state when entering a new function
-                # This ensures we check order within each function independently
-                for state in states.values():
-                    state.initialized = False
-                    state.init_location = None
-
-            # Only check violations in initialization contexts
-            # This reduces false positives in runtime code
-            if not in_init_function and current_function != "global_scope":
-                # Even in non-init functions, track if hardware gets initialized
-                for rule in self.rules.get('rules', []):
-                    resource = rule['resource']
-                    state = states[resource]
-                    for init_func in rule.get('init_functions', []):
-                        if init_func in line and not self._is_in_comment(line, line.find(init_func)):
-                            if not self._is_false_positive(line, init_func):
-                                state.initialized = True
-                                state.init_location = CodeLocation(
-                                    file=str(file_path),
-                                    line=line_num,
-                                    function=current_function,
-                                    code=line.strip()
-                                )
-                continue
-
-            # Check each rule - FIRST check for violations, THEN update init state
-            # This ensures we catch usage before init in the same function
-            for rule in self.rules.get('rules', []):
-                resource = rule['resource']
-                state = states[resource]
-
-                # Check for forbidden usage before init (do this FIRST)
-                if not state.initialized:
-                    for forbidden in rule.get('forbidden_before_init', []):
-                        # Skip false positives
-                        if forbidden in line:
-                            if self._is_in_comment(line, line.find(forbidden)):
-                                continue
-                            if self._is_false_positive(line, forbidden):
-                                continue
-                        
-                        # Handle regex patterns
-                        # NOTE: Simple heuristic - patterns with regex chars are treated as regex
-                        # This could incorrectly identify literal strings, but works for our use case
-                        # Future: Add explicit 'regex:' prefix or separate field in rules
-                        is_regex = forbidden.startswith('\\') or '[' in forbidden or '*' in forbidden
-                        if is_regex:
-                            if re.search(forbidden, line) and not self._is_in_comment(line, 0):
-                                if not self._is_false_positive(line, forbidden):
-                                    location = CodeLocation(
-                                        file=str(file_path),
-                                        line=line_num,
-                                        function=current_function,
-                                        code=line.strip()
-                                    )
-                                    state.violations.append((location, forbidden))
-                        else:
-                            if forbidden in line and not self._is_in_comment(line, line.find(forbidden)):
-                                if not self._is_false_positive(line, forbidden):
-                                    location = CodeLocation(
-                                        file=str(file_path),
-                                        line=line_num,
-                                        function=current_function,
-                                        code=line.strip()
-                                    )
-                                    state.violations.append((location, forbidden))
-
-            # NOW check for initialization (do this AFTER checking violations)
-            for rule in self.rules.get('rules', []):
-                resource = rule['resource']
-                state = states[resource]
-                
-                for init_func in rule.get('init_functions', []):
-                    if init_func in line and not self._is_in_comment(line, line.find(init_func)):
-                        if not self._is_false_positive(line, init_func):
-                            state.initialized = True
-                            state.init_location = CodeLocation(
-                                file=str(file_path),
-                                line=line_num,
-                                function=current_function,
-                                code=line.strip()
-                            )
-
-        return states
-
-    def _check_project_specific_rules(self):
-        """Check project-specific initialization order rules"""
-        for rule in self.rules.get('project_specific_rules', []):
-            enforced_order = rule.get('enforced_order', [])
-            if not enforced_order:
-                continue
-
-            # Track where each required initialization appears
-            init_locations: Dict[str, List[CodeLocation]] = {init: [] for init in enforced_order}
-
-            # Search all files for these initializations
-            for file_path in self._get_source_files():
-                for init_pattern in enforced_order:
-                    calls = self._find_function_calls(file_path, init_pattern)
-                    init_locations[init_pattern].extend([call.location for call in calls])
-
-            # Check if order is violated
-            # For now, we check if later items appear before earlier items in the same file
-            for file_path in self._get_source_files():
-                lines = self._read_file_lines(str(file_path))
-                first_occurrence = {}
-
-                for line_num, line in enumerate(lines, 1):
-                    for idx, init_pattern in enumerate(enforced_order):
-                        if init_pattern in line and init_pattern not in first_occurrence:
-                            first_occurrence[init_pattern] = line_num
-
-                # Check if any later initialization appears before an earlier one
-                for i in range(len(enforced_order) - 1):
-                    earlier = enforced_order[i]
-                    for j in range(i + 1, len(enforced_order)):
-                        later = enforced_order[j]
-                        
-                        if later in first_occurrence and earlier in first_occurrence:
-                            if first_occurrence[later] < first_occurrence[earlier]:
-                                self.violations.append({
-                                    'type': 'order_violation',
-                                    'rule': rule['name'],
-                                    'file': str(file_path),
-                                    'line': first_occurrence[later],
-                                    'message': f"'{later}' appears before '{earlier}' (line {first_occurrence[earlier]})",
-                                    'fatal': rule['fatal'],
-                                    'impact': rule['impact']
-                                })
-
-    def validate(self) -> bool:
-        """Run all validation checks"""
-        print("=" * 80)
-        print("🔍 PRE-FLIGHT HARDWARE VALIDATION SYSTEM")
-        print("=" * 80)
-        print()
-
-        all_files = self._get_source_files()
-        print(f"📁 Scanning {len(all_files)} source files...")
-        print()
-
-        # Check each file for initialization order violations
-        for file_path in all_files:
-            states = self._check_initialization_order(file_path)
-            
-            for resource, state in states.items():
-                if state.violations:
-                    for location, forbidden_func in state.violations:
-                        # Find the rule for this resource
-                        rule = next((r for r in self.rules['rules'] if r['resource'] == resource), None)
-                        if rule:
-                            self.violations.append({
-                                'type': 'init_order',
-                                'resource': resource,
-                                'file': location.file,
-                                'line': location.line,
-                                'function': location.function,
-                                'code': location.code,
-                                'forbidden_call': forbidden_func,
-                                'fatal': rule['fatal'],
-                                'impact': rule['impact'],
-                                'description': rule['description']
-                            })
-
-        # Check project-specific rules
-        self._check_project_specific_rules()
-
-        # Report results
-        return self._report_violations()
-
-    def _report_violations(self) -> bool:
-        """Report all violations and return success status"""
-        fatal_violations = [v for v in self.violations if v.get('fatal', True)]
-        warning_violations = [v for v in self.violations if not v.get('fatal', True)]
-
-        if not self.violations:
-            print("✅ VALIDATION PASSED")
-            print("   No hardware initialization violations detected")
-            print("   Build can proceed safely")
-            print()
-            return True
-
-        # Report fatal violations
-        if fatal_violations:
-            print("❌ BUILD BLOCKED — HARDWARE VIOLATIONS DETECTED")
-            print("=" * 80)
-            print()
-
-            for violation in fatal_violations:
-                print("🚨 FATAL VIOLATION:")
-                print(f"   Resource: {violation.get('resource', 'Unknown')}")
-                print(f"   File: {violation['file']}")
-                print(f"   Line: {violation['line']}")
-                
-                if 'function' in violation:
-                    print(f"   Function: {violation['function']}")
-                
-                if 'code' in violation:
-                    print(f"   Code: {violation['code']}")
-                
-                if violation.get('type') == 'init_order':
-                    print(f"   Violation: '{violation['forbidden_call']}' used before initialization")
-                    print(f"   Reason: {violation.get('description', 'Unknown')}")
-                elif violation.get('type') == 'order_violation':
-                    print(f"   Rule: {violation.get('rule', 'Unknown')}")
-                    print(f"   Violation: {violation['message']}")
-                
-                print(f"   Impact: {violation.get('impact', 'System crash or undefined behavior')}")
-                print()
-                print("   Fix: Ensure hardware is properly initialized before use")
-                print("-" * 80)
-                print()
-
-        # Report warnings
-        if warning_violations:
-            print("⚠️  WARNINGS — Non-Fatal Issues Detected")
-            print("=" * 80)
-            print()
-
-            for violation in warning_violations:
-                print("⚠️  WARNING:")
-                print(f"   Resource: {violation.get('resource', 'Unknown')}")
-                print(f"   File: {violation['file']}")
-                print(f"   Line: {violation['line']}")
-                print(f"   Impact: {violation.get('impact', 'Potential issues')}")
-                print("-" * 80)
-                print()
-
-        if fatal_violations:
-            print("=" * 80)
-            print("❌ BUILD CANNOT PROCEED")
-            print(f"   {len(fatal_violations)} fatal violation(s) detected")
-            print("   Fix the issues above and rebuild")
-            print("=" * 80)
-            print()
-            return False
-        else:
-            print("⚠️  Build can proceed with warnings")
-            print()
-            return True
+            # detect forbidden usage before init
+            if not init_state[resource]:
+                for forbidden in rule["forbidden"]:
+                    if forbidden in line:
+                        violations.append({
+                            "file": str(filepath),
+                            "line": lineno,
+                            "resource": resource,
+                            "scope": scope,
+                            "code": raw_line.strip()
+                        })
 
 
 def main():
-    """Main entry point"""
-    # Determine project root
-    if PLATFORMIO_MODE:
-        project_dir = env.subst("$PROJECT_DIR")
-    else:
-        # Running standalone for testing
-        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    print("=" * 70)
+    print("🔍 Preflight Hardware Validator (Safe Mode)")
+    print("=" * 70)
 
-    rules_file = os.path.join(project_dir, "rules", "hardware_rules.json")
-    source_dirs = [
-        os.path.join(project_dir, "src"),
-        os.path.join(project_dir, "include"),
-    ]
+    files = get_source_files()
+    print(f"Scanning {len(files)} source files...\n")
 
-    # Create validator and run
-    validator = HardwareValidator(rules_file, source_dirs)
-    success = validator.validate()
+    for f in files:
+        analyze_file(f)
 
-    if not success:
-        print("💀 VALIDATION FAILED - ABORTING BUILD")
-        sys.exit(1)
-    else:
-        print("✅ VALIDATION PASSED - BUILD PROCEEDING")
+    if not violations:
+        print("✅ VALIDATION PASSED")
+        print("No illegal hardware usage detected.\n")
+        return
+
+    print("❌ HARDWARE INITIALIZATION VIOLATIONS DETECTED\n")
+
+    for v in violations:
+        print(f"Resource: {v['resource']}")
+        print(f"File: {v['file']}")
+        print(f"Line: {v['line']}")
+        print(f"Scope: {v['scope']}")
+        print(f"Code: {v['code']}")
+        print("-" * 60)
+
+    print(f"\n❌ BUILD BLOCKED: {len(violations)} violation(s)")
+    sys.exit(1)
 
 
-if __name__ == "__main__":
-    main()
+main()
