@@ -30,7 +30,7 @@
       "-DARDUINO_EVENT_RUNNING_CORE=1"
     ],
 
-    "partitions": "partitions.csv"
+    "partitions": "partitions/partitions.csv"
   },
 
   "upload": {
