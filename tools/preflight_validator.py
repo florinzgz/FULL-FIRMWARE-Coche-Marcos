@@ -11,11 +11,7 @@ Resources checked:
 - SPI
 - TFT (tft)
 
-This script is intentionally simple and conservative:
-- No call graph
-- No regex heuristics
-- No ESP-IDF
-- No runtime impact
+Simple, conservative, build-time only.
 """
 
 Import("env")
@@ -34,7 +30,7 @@ SRC_DIRS = [
 FORBIDDEN_RULES = {
     "I2C": {
         "init": ["Wire.begin"],
-        "forbidden": ["Wire.", "i2c_"]
+        "forbidden": ["Wire."]
     },
     "SPI": {
         "init": ["SPI.begin"],
@@ -48,12 +44,24 @@ FORBIDDEN_RULES = {
 
 violations = []
 
-def strip_comments(line: str) -> str:
-    # Remove inline comments
+
+def strip_comments(line: str, in_block_comment: bool):
+    # handle block comments
+    if in_block_comment:
+        if "*/" in line:
+            return strip_comments(line.split("*/", 1)[1], False), False
+        return "", True
+
+    if "/*" in line:
+        before, after = line.split("/*", 1)
+        cleaned, new_state = strip_comments(after, True)
+        return before, new_state
+
+    # remove // comments
     line = re.sub(r'//.*', '', line)
-    # Remove strings
+    # remove strings
     line = re.sub(r'"[^"]*"', '', line)
-    return line.strip()
+    return line.strip(), False
 
 
 def get_source_files():
@@ -70,23 +78,33 @@ def analyze_file(filepath: Path):
         lines = f.readlines()
 
     in_setup = False
+    brace_depth = 0
+    in_block_comment = False
     init_state = {k: False for k in FORBIDDEN_RULES.keys()}
 
     for lineno, raw_line in enumerate(lines, 1):
-        line = strip_comments(raw_line)
-
+        line, in_block_comment = strip_comments(raw_line, in_block_comment)
         if not line:
             continue
 
         # detect setup()
-        if re.match(r'\s*void\s+setup\s*\(', line):
+        if not in_setup and re.match(r'\s*void\s+setup\s*\(', line):
             in_setup = True
+            brace_depth = 0
             continue
 
-        if in_setup and "}" in line:
-            in_setup = False
+        if in_setup:
+            brace_depth += line.count("{")
+            brace_depth -= line.count("}")
+            if brace_depth <= 0 and "}" in line:
+                in_setup = False
+                continue
 
         scope = "setup()" if in_setup else "global"
+
+        # skip declarations
+        if line.endswith(";") and "(" not in line:
+            continue
 
         for resource, rule in FORBIDDEN_RULES.items():
             # detect init
@@ -97,7 +115,7 @@ def analyze_file(filepath: Path):
             # detect forbidden usage before init
             if not init_state[resource]:
                 for forbidden in rule["forbidden"]:
-                    if forbidden in line:
+                    if forbidden in line and "(" in line:
                         violations.append({
                             "file": str(filepath),
                             "line": lineno,
