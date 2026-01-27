@@ -218,11 +218,13 @@ void initializeSystem() {
   yield();
 
   Serial.println("[INIT] HUD Manager initialization...");
-  Serial.flush();
+  // 🔒 v2.18.1: Allow task switching before HUD init
+  yield();
 
   if (!HUDManager::init()) {
     Serial.println("[ERROR] HUD Manager initialization failed");
-    Serial.flush();
+    // 🔒 v2.18.1: Use yield() instead of blocking flush
+    yield();
     handleCriticalError("HUD Manager initialization failed");
   }
 
@@ -240,7 +242,8 @@ void initializeSystem() {
   }
 
   Serial.println("🧪 STANDALONE: Skipping other managers");
-  Serial.flush();
+  // 🔒 v2.18.1: yield() before return
+  yield();
   return; // ¡MUY IMPORTANTE!
 
 #else
