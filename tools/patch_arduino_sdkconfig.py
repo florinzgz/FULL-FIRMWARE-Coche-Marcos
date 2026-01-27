@@ -2,9 +2,10 @@ Import("env")
 import os
 import re
 
-SCRIPT_VERSION = "2.18.0"
+SCRIPT_VERSION = "2.18.1"
 TARGET_TIMEOUT_MS = 5000
 MIN_SAFE_TIMEOUT_MS = 3000
+
 
 def _should_patch_legacy_timeout(content):
     for line in content.splitlines():
@@ -47,18 +48,30 @@ def patch_arduino_sdkconfig(env):
     skipped = 0
 
     for filepath in sdkconfig_files:
-        variant = os.path.basename(os.path.dirname(filepath))
+        variant = os.path.basename(os.path.dirname(os.path.dirname(filepath)))
+
         try:
             with open(filepath, "r") as f:
                 content = f.read()
 
-            match = re.search(r'^#define\s+CONFIG_ESP_INT_WDT_TIMEOUT_MS\s+(\d+)', content, re.MULTILINE)
+            match = re.search(
+                r'^#define\s+CONFIG_ESP_INT_WDT_TIMEOUT_MS\s+(\d+)',
+                content,
+                re.MULTILINE
+            )
+
             if not match:
-                print(f"⚠️ {variant}: not found")
+                print(f"⚠️ {variant}: CONFIG_ESP_INT_WDT_TIMEOUT_MS not found")
                 skipped += 1
                 continue
 
-            current = int(match.group(1))
+            try:
+                current = int(match.group(1))
+            except ValueError:
+                print(f"⚠️ {variant}: invalid timeout value")
+                skipped += 1
+                continue
+
             if current >= MIN_SAFE_TIMEOUT_MS:
                 print(f"✅ {variant}: already safe ({current}ms)")
                 continue
@@ -70,7 +83,7 @@ def patch_arduino_sdkconfig(env):
                 flags=re.MULTILINE
             )
 
-            if _should_patch_legacy_timeout(content):
+            if _should_patch_legacy_timeout(new_content):
                 new_content = re.sub(
                     r'^#define\s+CONFIG_INT_WDT_TIMEOUT_MS\s+\d+',
                     f'#define CONFIG_INT_WDT_TIMEOUT_MS {TARGET_TIMEOUT_MS}',
