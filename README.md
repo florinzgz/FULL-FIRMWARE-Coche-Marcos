@@ -113,6 +113,8 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 - **[HARDWARE.md](HARDWARE.md)** - 📌 **ESPECIFICACIÓN OFICIAL DEL HARDWARE** - Fuente única de verdad para N16R8
 - **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
+- **[PARTITION_SCHEME_FIX.md](PARTITION_SCHEME_FIX.md)** - 🔧 **Fix de Esquema de Partición** - Solución para bootloop por particiones al 100%
+- **[SOLUCION_BOOTLOOP_ESP32S3.md](SOLUCION_BOOTLOOP_ESP32S3.md)** - 🔧 **Fix de Watchdog Timeout** - Solución para bootloop por timeout
 - **[CLEANUP_SUMMARY_N16R8.md](CLEANUP_SUMMARY_N16R8.md)** - Resumen de consolidación del repositorio
 - **[docs/README.md](docs/README.md)** - Índice completo de documentación
 - **[docs/PLAN_SEPARACION_STM32_CAN.md](docs/PLAN_SEPARACION_STM32_CAN.md)** - Plan de separación ESP32 HMI + STM32 control
@@ -190,7 +192,9 @@ CONFIG_ESP_IPC_TASK_STACK_SIZE=3072    ; 3 KB
 
 1. **Revisar logs:** Monitor serial a 115200 baud
 2. **Verificar conexiones:** Especialmente I2C (SDA=8, SCL=9)
-3. **Consultar:** [docs/INFORME_AUDITORIA_2025-12-07.md](docs/INFORME_AUDITORIA_2025-12-07.md)
+3. **Partition scheme:** Si ves `rst:0x3 (SW_RESET)` repetido, consultar [PARTITION_SCHEME_FIX.md](PARTITION_SCHEME_FIX.md)
+4. **Watchdog timeout:** Ver [SOLUCION_BOOTLOOP_ESP32S3.md](SOLUCION_BOOTLOOP_ESP32S3.md)
+5. **Consultar:** [docs/INFORME_AUDITORIA_2025-12-07.md](docs/INFORME_AUDITORIA_2025-12-07.md)
 
 ## 📊 Estado del Proyecto
 
