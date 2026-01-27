@@ -2,8 +2,8 @@ Import("env")
 import os
 import re
 
-SCRIPT_VERSION = "2.18.1"
-TARGET_TIMEOUT_MS = 5000
+SCRIPT_VERSION = "2.18.2"
+TARGET_TIMEOUT_MS = 3000  # From BOOTLOOP_STATUS_2026-01-18.md proven configuration
 MIN_SAFE_TIMEOUT_MS = 3000
 
 

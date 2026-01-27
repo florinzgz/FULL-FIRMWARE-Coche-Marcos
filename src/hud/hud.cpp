@@ -1458,10 +1458,15 @@ void HUD::update(TFT_eSprite *sprite) {
         batteryTouch = true;
         break;
       // v2.14.0: Lights and Multimedia removed - cleaner interface
-      case TouchAction::Mode4x4:
-        Logger::info("Toque en icono 4x4 - toggle via traction system");
-        // Mode4x4 is controlled via traction system, not directly here
+      case TouchAction::Mode4x4: {
+        Logger::info("Toque en icono 4x4 - toggling traction mode");
+        // Toggle between 4x4 and 4x2 mode
+        const Traction::State &currentTraction = Traction::get();
+        bool newMode = !currentTraction.enabled4x4;
+        Traction::setMode4x4(newMode);
+        Logger::infof("Mode switched to: %s", newMode ? "4x4" : "4x2");
         break;
+      }
       case TouchAction::Warning:
         Logger::info("Toque en icono warning");
         break;
