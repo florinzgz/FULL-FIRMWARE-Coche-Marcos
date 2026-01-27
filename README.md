@@ -39,15 +39,37 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 git clone https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos.git
 cd FULL-FIRMWARE-Coche-Marcos
 
-# Compilar (entorno de desarrollo)
-pio run -e esp32-s3-n16r8
+# Compilar (entorno por defecto: esp32-s3-devkitc1-n16r8)
+pio run
 
-# Compilar y flashear (producción)
-pio run -e esp32-s3-n16r8-release -t upload
+# Compilar y flashear
+pio run -t upload
 
-# Monitor serial
+# Monitor serial (con exception decoder funcionando correctamente)
 pio device monitor
 ```
+
+### 🔧 Configuración del Board
+
+El firmware usa un **board manifest personalizado** ubicado en `boards/esp32-s3-devkitc1-n16r8.json` que configura correctamente:
+- **Flash:** 16MB QIO @ 80MHz
+- **PSRAM:** 8MB OPI (Octal)
+- **USB Serial:** Configuración por defecto del framework Arduino (ARDUINO_USB_CDC_ON_BOOT=0)
+
+#### USB Serial Configuration
+
+El comportamiento del puerto serial depende del flag de compilación `ARDUINO_USB_CDC_ON_BOOT`. Por defecto, el board manifest **no establece este flag**, por lo que usa el valor por defecto del framework Arduino (típicamente 0):
+
+| ARDUINO_USB_CDC_ON_BOOT | UART 0 (RX/TX) | OTG (USB nativo) |
+|-------------------------|----------------|------------------|
+| 0 (Default) | `Serial` | `USBSerial` |
+| 1 | `Serial0` | `Serial` |
+
+**Configuración actual:** Con el valor por defecto (0):
+- `Serial` está conectado a UART 0 (pines RX/TX físicos)
+- `USBSerial` está conectado al puerto USB nativo (OTG)
+
+Si necesitas cambiar este comportamiento, puedes agregar `-DARDUINO_USB_CDC_ON_BOOT=1` a los `build_flags` en `platformio.ini`.
 
 ### 🔒 Sistema de Validación Pre-Vuelo
 
@@ -72,12 +94,11 @@ Ver [docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md) para 
 
 | Entorno | Descripción |
 |---------|-------------|
-| `esp32-s3-n16r8` | Desarrollo con debug (CORE_DEBUG_LEVEL=3) |
-| `esp32-s3-n16r8-release` | **Producción** - Optimizado (-O3, sin debug) |
-| `esp32-s3-n16r8-touch-debug` | Debug de touch (logs verbosos) |
-| `esp32-s3-n16r8-no-touch` | Sin touch (diagnóstico SPI) |
-| `esp32-s3-n16r8-standalone` | Display standalone sin sensores |
-| `esp32-s3-n16r8-standalone-debug` | Standalone con debug verboso |
+| `esp32-s3-devkitc1-n16r8` | **🎯 DEFAULT** - Board personalizado con configuración USB Serial correcta |
+
+**Nota:** Los entornos alternativos han sido desactivados. Solo se usa `esp32-s3-devkitc1-n16r8` con el board manifest personalizado que resuelve todos los problemas de reinicios y configuración USB.
+
+**⚠️ IMPORTANTE:** El entorno por defecto es `esp32-s3-devkitc1-n16r8`, que usa el board manifest personalizado en `boards/esp32-s3-devkitc1-n16r8.json`. Este resuelve problemas de reinicios y asegura que el exception decoder funcione correctamente. Ver [FIX_EXCEPTION_DECODER_PATH.md](FIX_EXCEPTION_DECODER_PATH.md) para más detalles.
 
 ## 📚 Documentación
 
