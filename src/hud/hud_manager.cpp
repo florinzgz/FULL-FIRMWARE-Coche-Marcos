@@ -155,20 +155,17 @@ bool HUDManager::init() {
   // Aquí solo verificamos que ya están configurados y procedemos con TFT init.
 
   Serial.println("[HUD] Starting HUDManager initialization...");
-  Serial.flush();
-  delay(50); // 🔒 v2.11.6: Ensure UART output is sent before potential crash
-
-  // 🔍 DIAGNOSTIC MARKER F: HUD init started
-  Serial.write('F');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: Replaced delay() with yield() to allow FreeRTOS task switching
+  // This prevents blocking other critical tasks during initialization
+  yield();
 
   // 🔒 v2.17.4: CRITICAL BOOTLOOP FIX - Allocate TFT object NOW (not in global
   // constructor) This prevents "Stack canary watchpoint triggered (ipc0)" by
   // deferring all TFT initialization until after FreeRTOS and heap are ready
   if (tft == nullptr) {
     Serial.println("[HUD] Allocating TFT_eSPI object...");
-    Serial.flush();
+    // 🔒 v2.18.1: yield() instead of blocking flush
+    yield();
     tft = new (std::nothrow) TFT_eSPI();
     if (tft == nullptr) {
       Serial.println("[HUD] CRITICAL: Failed to allocate TFT_eSPI object!");
@@ -177,11 +174,15 @@ bool HUDManager::init() {
       return false;
     }
     Serial.println("[HUD] TFT_eSPI object allocated successfully");
-    Serial.flush();
+    // 🔒 v2.18.1: yield() instead of blocking flush
+    yield();
   }
 
   // 🔒 THREAD SAFETY: Create render event queue
   // Queue size: 10 events (enough for error bursts without blocking)
+  // 🔒 v2.18.1: Ensure FreeRTOS scheduler is running before queue creation
+  yield(); // Allow any pending FreeRTOS initialization to complete
+  
   constexpr size_t RENDER_QUEUE_SIZE = 10;
   renderEventQueue =
       xQueueCreate(RENDER_QUEUE_SIZE, sizeof(RenderEvent::Event));
@@ -191,14 +192,11 @@ bool HUDManager::init() {
     System::logError(603);
     // Continue anyway - will log errors but won't queue events
   } else {
-    Serial.println("[HUD] Render event queue created (size=10)");
+    Serial.println("[HUD] Render event queue created successfully");
     Logger::info("HUD: Render event queue initialized");
   }
-
-  // 🔍 DIAGNOSTIC MARKER G: Queue created
-  Serial.write('G');
-  Serial.flush();
-  delay(10);
+  
+  yield(); // Allow queue creation to settle
 
   // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en
   // main.cpp) La configuración de OUTPUT/HIGH se realiza únicamente en
@@ -207,32 +205,25 @@ bool HUDManager::init() {
   // 🔒 CORRECCIÓN CRÍTICA: Validar inicialización TFT con protección ante
   // fallos
   Serial.println("[HUD] Initializing TFT_eSPI...");
-  Serial.flush();
-  delay(50); // 🔒 v2.11.6: Critical delay to ensure message is visible before
-             // crash
-
-  // 🔍 DIAGNOSTIC MARKER H: Before tft->init()
-  Serial.write('H');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: Use yield() instead of delay() to prevent blocking FreeRTOS
+  yield();
 
   // 🔒 v2.11.5: FAULT TOLERANCE - Proteger inicialización del display
   // Si el display falla, el coche debe poder seguir funcionando
   // NOTE: Catching general exception because TFT_eSPI may throw various types
   // We want to ensure vehicle operation continues regardless of display failure
+  // 🔒 v2.18.1: Add yield before TFT init to allow task switching
+  yield();
+  
   try {
     tft->init();
     // Set initialized flag immediately after successful tft->init()
     // This ensures the flag reflects TFT initialization state accurately
     initialized = true;
-
-    // 🔍 DIAGNOSTIC MARKER I: tft->init() SUCCESS
-    Serial.write('I');
-    Serial.flush();
-    delay(10);
-
+    
     Serial.println("[HUD] TFT_eSPI init SUCCESS");
-    Serial.flush();
+    // 🔒 v2.18.1: yield() after TFT init to allow other tasks to run
+    yield();
   } catch (const std::exception &e) {
     Logger::errorf("HUD: TFT init exception: %s - continuing in degraded mode",
                    e.what());
@@ -241,7 +232,6 @@ bool HUDManager::init() {
     Serial.printf("[HUD] CRITICAL: Display init failed: %s, vehicle will "
                   "operate without UI\n",
                   e.what());
-    Serial.flush();
     return false; // Salir sin bloquear el sistema
   } catch (...) {
     Logger::error(
@@ -250,7 +240,6 @@ bool HUDManager::init() {
     initialized = false;
     Serial.println(
         "[HUD] CRITICAL: Display init failed, vehicle will operate without UI");
-    Serial.flush();
     return false; // Salir sin bloquear el sistema
   }
 
@@ -259,26 +248,23 @@ bool HUDManager::init() {
   // causing the screen to appear vertically inverted (half blue/half white).
   // Rotation 3 provides landscape mode (480x320) for ST7796S display.
   tft->setRotation(3); // Landscape mode: 480x320
-
-  // 🔍 DIAGNOSTIC MARKER J: Rotation set
-  Serial.write('J');
-  Serial.flush();
-  delay(10);
+  
+  // 🔒 v2.18.1: yield() after rotation to allow task switching
+  yield();
 
   // 🔒 CRITICAL: Initialize dashboard components IMMEDIATELY after rotation
   // This ensures TFT is fully initialized before any drawing functions execute
   // SAFETY REQUIREMENT: Components must initialize in this exact order
   Serial.println("[HUD] Initializing dashboard components...");
   Icons::init(tft);
+  yield(); // Allow task switching between component inits
   Gauges::init(tft);
+  yield();
   WheelsDisplay::init(tft);
+  yield();
   MenuHidden::init(tft);
+  yield();
   Serial.println("[HUD] Dashboard components initialized");
-
-  // 🔍 DIAGNOSTIC MARKER K: Dashboard components initialized
-  Serial.write('K');
-  Serial.flush();
-  delay(10);
 
   // 🔒 v2.8.3: Eliminada pantalla azul de boot - directo a dashboard
   // El boot screen anterior era innecesario y causaba parpadeo visual
@@ -354,14 +340,15 @@ bool HUDManager::init() {
   // This prevents any race conditions or timing issues that could cause the
   // backlight to turn off
   ledcWrite(0, brightness);
+  // 🔒 v2.18.1: Keep delayMicroseconds for hardware PWM settling - NOT replaced
+  // This is a hardware timing requirement for PWM signal stabilization, not a
+  // diagnostic delay. Must be preserved for proper backlight operation.
   delayMicroseconds(100);   // Brief delay to ensure first write completes
   ledcWrite(0, brightness); // Write again to be absolutely certain
   Serial.printf("[HUD] Backlight PWM configured, brightness: %d\n", brightness);
 
-  // 🔒 v2.9.9: Brief delay to ensure PWM signal stabilizes
-  // Without this, there may be a momentary flicker or the backlight may not
-  // turn on
-  delay(10);
+  // 🔒 v2.18.1: Use yield() instead of delay() to allow FreeRTOS task switching
+  yield();
   Serial.println("[HUD] Backlight PWM stabilized");
 
   // Initialize RenderEngine with sprite support

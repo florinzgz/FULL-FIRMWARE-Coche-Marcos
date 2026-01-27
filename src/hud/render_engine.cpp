@@ -9,6 +9,10 @@ static constexpr int SPRITE_WIDTH = 480;
 static constexpr int SPRITE_HEIGHT = 320;
 static constexpr uint32_t SPRITE_TOTAL_PIXELS = SPRITE_WIDTH * SPRITE_HEIGHT;
 
+// 🔒 v2.18.1: Memory management constants for PSRAM-less operation
+static constexpr uint32_t HEAP_SAFETY_MARGIN_BYTES = 50000; // 50KB margin for heap allocations
+static constexpr float ALLOCATION_VALIDATION_THRESHOLD = 0.9f; // 90% of expected allocation
+
 #ifdef RENDER_SHADOW_MODE
 static constexpr uint32_t SHADOW_MISMATCH_LOG_THRESHOLD = 100;
 #endif
@@ -79,18 +83,36 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   }
 
   uint32_t expectedSize = w * h * 2; // 16-bit color = 2 bytes per pixel
-  if (!psramFound()) {
-    Logger::errorf("RenderEngine: PSRAM not detected - cannot allocate sprite "
-                   "%d",
-                   id);
-    return false;
-  }
-  uint32_t freePsram = ESP.getFreePsram();
-  if (freePsram < expectedSize) {
-    Logger::errorf("RenderEngine: Insufficient PSRAM for sprite %d (need %u "
-                   "bytes, have %u bytes)",
-                   id, expectedSize, freePsram);
-    return false;
+  
+  // 🔒 v2.18.1: Allow operation without PSRAM for hardware compatibility
+  // Some hardware batches have bootloop issues with OPI PSRAM enabled
+  // System must be able to operate using internal SRAM only
+  bool usePsram = psramFound();
+  
+  if (!usePsram) {
+    Logger::warnf("RenderEngine: PSRAM not detected - using heap for sprite %d "
+                   "(may impact performance)", id);
+    Logger::warnf("  Sprite size: %dx%d = %u KB", w, h, expectedSize / 1024);
+    
+    // Check if we have enough heap
+    uint32_t freeHeap = ESP.getFreeHeap();
+    if (freeHeap < expectedSize + HEAP_SAFETY_MARGIN_BYTES) {
+      Logger::errorf("RenderEngine: Insufficient heap for sprite %d (need %u KB, "
+                     "have %u KB, margin %u KB)",
+                     id, expectedSize / 1024, freeHeap / 1024, 
+                     HEAP_SAFETY_MARGIN_BYTES / 1024);
+      return false;
+    }
+    Logger::infof("  Using heap (free: %u KB, need: %u KB)", freeHeap / 1024,
+                  expectedSize / 1024);
+  } else {
+    uint32_t freePsram = ESP.getFreePsram();
+    if (freePsram < expectedSize) {
+      Logger::errorf("RenderEngine: Insufficient PSRAM for sprite %d (need %u "
+                     "bytes, have %u bytes)",
+                     id, expectedSize, freePsram);
+      return false;
+    }
   }
 
   if (sprites[id]) {
@@ -106,22 +128,30 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   }
 
   // 🔒 CRITICAL FIX: Force sprite buffers to PSRAM to prevent heap corruption
-  // Large full-screen sprites (480×320×16bit = ~300KB each) MUST be in PSRAM
-  // to avoid heap fragmentation causing "Stack canary watchpoint triggered
-  // (ipc0)" PSRAM_ENABLE (defined in TFT_eSPI.h as 3) ensures sprites use PSRAM
-  // if available
-  sprites[id]->setAttribute(PSRAM_ENABLE, 1);
+  // Large full-screen sprites (480×320×16bit = ~300KB each) should use PSRAM
+  // to avoid heap fragmentation causing "Stack canary watchpoint triggered (ipc0)"
+  // 🔒 v2.18.1: Only enable PSRAM if available (some hardware has bootloop with OPI)
+  if (usePsram) {
+    sprites[id]->setAttribute(PSRAM_ENABLE, 1);
+  } else {
+    // Without PSRAM, sprite will use heap - this may cause memory pressure
+    Logger::warn("  Sprite will use heap (no PSRAM) - monitor memory usage");
+  }
 
   sprites[id]->setColorDepth(16);
   sprites[id]->setSwapBytes(true);
 
   // 🔍 VERIFICATION: Log memory state before sprite allocation
   uint32_t heapBefore = ESP.getFreeHeap();
-  uint32_t psramBefore = ESP.getFreePsram();
+  uint32_t psramBefore = usePsram ? ESP.getFreePsram() : 0;
   Logger::infof("RenderEngine: Creating sprite %d (%dx%d, ~%u KB)", id, w, h,
                 expectedSize / 1024);
-  Logger::infof("  Before: Heap=%u KB, PSRAM=%u KB", heapBefore / 1024,
-                psramBefore / 1024);
+  if (usePsram) {
+    Logger::infof("  Before: Heap=%u KB, PSRAM=%u KB", heapBefore / 1024,
+                  psramBefore / 1024);
+  } else {
+    Logger::infof("  Before: Heap=%u KB (no PSRAM)", heapBefore / 1024);
+  }
 
   if (!sprites[id]->createSprite(w, h)) {
     Logger::errorf("RenderEngine: Sprite %d allocation failed", id);
@@ -132,27 +162,37 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
 
   // 🔍 VERIFICATION: Log memory state after sprite allocation
   uint32_t heapAfter = ESP.getFreeHeap();
-  uint32_t psramAfter = ESP.getFreePsram();
+  uint32_t psramAfter = usePsram ? ESP.getFreePsram() : 0;
   int32_t heapDelta = (int32_t)heapBefore - (int32_t)heapAfter;
-  int32_t psramDelta = (int32_t)psramBefore - (int32_t)psramAfter;
+  int32_t psramDelta = usePsram ? ((int32_t)psramBefore - (int32_t)psramAfter) : 0;
 
-  Logger::infof("  After:  Heap=%u KB, PSRAM=%u KB", heapAfter / 1024,
-                psramAfter / 1024);
-  Logger::infof("  Delta:  Heap=%d KB, PSRAM=%d KB", heapDelta / 1024,
-                psramDelta / 1024);
+  if (usePsram) {
+    Logger::infof("  After:  Heap=%u KB, PSRAM=%u KB", heapAfter / 1024,
+                  psramAfter / 1024);
+    Logger::infof("  Delta:  Heap=%d KB, PSRAM=%d KB", heapDelta / 1024,
+                  psramDelta / 1024);
+  } else {
+    Logger::infof("  After:  Heap=%u KB (no PSRAM)", heapAfter / 1024);
+    Logger::infof("  Delta:  Heap=%d KB", heapDelta / 1024);
+  }
 
   // 🔍 VERIFICATION: Check sprite attributes
-  uint8_t psramAttr = sprites[id]->getAttribute(PSRAM_ENABLE);
-  Logger::infof("  PSRAM_ENABLE attribute: %u", psramAttr);
+  if (usePsram) {
+    uint8_t psramAttr = sprites[id]->getAttribute(PSRAM_ENABLE);
+    Logger::infof("  PSRAM_ENABLE attribute: %u", psramAttr);
+  }
 
   // 🔍 VERIFICATION: Validate allocation location
-  if (psramDelta < (int32_t)(expectedSize * 0.9)) {
+  if (usePsram && psramDelta < (int32_t)(expectedSize * ALLOCATION_VALIDATION_THRESHOLD)) {
     Logger::errorf("  ⚠️  WARNING: Sprite %d may NOT be in PSRAM!", id);
     Logger::errorf("  Expected PSRAM delta ~%u KB, got %d KB",
                    expectedSize / 1024, psramDelta / 1024);
-  } else {
+  } else if (usePsram) {
     Logger::infof("  ✅ Sprite %d confirmed in PSRAM (%d KB allocated)", id,
                   psramDelta / 1024);
+  } else if (heapDelta >= (int32_t)(expectedSize * ALLOCATION_VALIDATION_THRESHOLD)) {
+    Logger::infof("  ✅ Sprite %d allocated in heap (%d KB)", id,
+                  heapDelta / 1024);
   }
 
   if (heapDelta > (int32_t)(expectedSize / 10)) {

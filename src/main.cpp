@@ -75,8 +75,8 @@ void setup() {
 
   // 🔍 DIAGNOSTIC MARKER A: Serial initialized
   Serial.write('A');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching instead of blocking delay
+  yield();
 
   Serial.println("[BOOT] Starting vehicle firmware...");
   Serial.print("[BOOT] Firmware version: ");
@@ -96,8 +96,8 @@ void setup() {
 
   // 🔍 DIAGNOSTIC MARKER B: Boot counter initialized
   Serial.write('B');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: yield() to allow other tasks to run
+  yield();
 
   // Critical boot sequence
   System::init();
@@ -108,8 +108,8 @@ void setup() {
 
   // 🔍 DIAGNOSTIC MARKER C: Core systems initialized
   Serial.write('C');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: yield() between initialization stages
+  yield();
 
   Logger::init();
   Logger::info("Boot sequence started");
@@ -117,15 +117,15 @@ void setup() {
 
   // 🔍 DIAGNOSTIC MARKER D: Before initializeSystem (includes HUD init)
   Serial.write('D');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: yield() before system initialization
+  yield();
 
   initializeSystem();
 
   // 🔍 DIAGNOSTIC MARKER E: System initialization complete
   Serial.write('E');
-  Serial.flush();
-  delay(10);
+  // 🔒 v2.18.1: yield() after initialization
+  yield();
 
   Serial.println("[BOOT] System initialization complete");
   Logger::info("Vehicle firmware ready");
@@ -214,15 +214,17 @@ void initializeSystem() {
   // STANDALONE DISPLAY INIT
   // ===========================
   Serial.println("🧪 STANDALONE DISPLAY MODE");
-  Serial.flush();
-  delay(100); // Ensure UART message is sent
+  // 🔒 v2.18.1: Use yield() instead of delay to allow task switching
+  yield();
 
   Serial.println("[INIT] HUD Manager initialization...");
-  Serial.flush();
+  // 🔒 v2.18.1: Allow task switching before HUD init
+  yield();
 
   if (!HUDManager::init()) {
     Serial.println("[ERROR] HUD Manager initialization failed");
-    Serial.flush();
+    // 🔒 v2.18.1: Use yield() instead of blocking flush
+    yield();
     handleCriticalError("HUD Manager initialization failed");
   }
 
@@ -235,11 +237,13 @@ void initializeSystem() {
   unsigned long logoStart = millis();
   while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
     Watchdog::feed();
-    delay(10);
+    // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching during logo display
+    yield();
   }
 
   Serial.println("🧪 STANDALONE: Skipping other managers");
-  Serial.flush();
+  // 🔒 v2.18.1: yield() before return
+  yield();
   return; // ¡MUY IMPORTANTE!
 
 #else
@@ -293,7 +297,8 @@ void initializeSystem() {
     while (millis() - logoStart <
            BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
       Watchdog::feed();
-      delay(10);
+      // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching
+      yield();
     }
   }
 
