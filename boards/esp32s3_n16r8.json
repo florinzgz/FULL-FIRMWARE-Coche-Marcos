@@ -10,7 +10,6 @@
     "core": "esp32",
     "mcu": "esp32s3",
     "variant": "esp32s3",
-    "variant_path": "variants/esp32s3",
 
     "f_cpu": "240000000L",
     "f_flash": "80000000L",
@@ -36,7 +35,7 @@
     "protocol": "esptool",
     "flash_size": "16MB",
     "maximum_size": 16777216,
-    "maximum_ram_size": 8388608,
+    "maximum_ram_size": 327680,
     "speed": 921600,
     "require_upload_port": true
   },
