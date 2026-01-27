@@ -164,7 +164,8 @@ bool HUDManager::init() {
   // deferring all TFT initialization until after FreeRTOS and heap are ready
   if (tft == nullptr) {
     Serial.println("[HUD] Allocating TFT_eSPI object...");
-    Serial.flush();
+    // 🔒 v2.18.1: yield() instead of blocking flush
+    yield();
     tft = new (std::nothrow) TFT_eSPI();
     if (tft == nullptr) {
       Serial.println("[HUD] CRITICAL: Failed to allocate TFT_eSPI object!");
@@ -173,7 +174,8 @@ bool HUDManager::init() {
       return false;
     }
     Serial.println("[HUD] TFT_eSPI object allocated successfully");
-    Serial.flush();
+    // 🔒 v2.18.1: yield() instead of blocking flush
+    yield();
   }
 
   // 🔒 THREAD SAFETY: Create render event queue
@@ -338,6 +340,9 @@ bool HUDManager::init() {
   // This prevents any race conditions or timing issues that could cause the
   // backlight to turn off
   ledcWrite(0, brightness);
+  // 🔒 v2.18.1: Keep delayMicroseconds for hardware PWM settling - NOT replaced
+  // This is a hardware timing requirement for PWM signal stabilization, not a
+  // diagnostic delay. Must be preserved for proper backlight operation.
   delayMicroseconds(100);   // Brief delay to ensure first write completes
   ledcWrite(0, brightness); // Write again to be absolutely certain
   Serial.printf("[HUD] Backlight PWM configured, brightness: %d\n", brightness);
