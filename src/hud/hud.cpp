@@ -1461,7 +1461,7 @@ void HUD::update(TFT_eSprite *sprite) {
       case TouchAction::Mode4x4: {
         Logger::info("Toque en icono 4x4 - toggling traction mode");
         // Toggle between 4x4 and 4x2 mode
-        TractionStatus currentTraction = Traction::get();
+        const Traction::State &currentTraction = Traction::get();
         bool newMode = !currentTraction.enabled4x4;
         Traction::setMode4x4(newMode);
         Logger::infof("Mode switched to: %s", newMode ? "4x4" : "4x2");

@@ -45,7 +45,9 @@ CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=2304
 # Interrupt watchdog - increased timeout for PSRAM initialization
 # PSRAM memory test and initialization can take over 800ms, especially during
 # cold boot or on certain PSRAM chip batches, causing watchdog reset before
-# boot completes. 3000ms timeout provides safe margin.
+# boot completes. 3000ms timeout provides safe margin (3.75x the max observed time).
+# NOTE: This is the proven value from v2.17.2 bootloop fix - do not increase further
+# as it may mask genuine ISR hangs. Value was tested stable for 60+ minutes.
 CONFIG_ESP_INT_WDT=y
 CONFIG_ESP_INT_WDT_TIMEOUT_MS=3000
 CONFIG_ESP_INT_WDT_CHECK_CPU1=y
