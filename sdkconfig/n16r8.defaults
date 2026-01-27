@@ -4,25 +4,27 @@
 # ============================================================================
 
 # ================= PSRAM =================
-# 🔒 v2.18.1: PSRAM disabled for hardware compatibility
-# User confirmed bootloop with OPI PSRAM enabled on some hardware batches
-# System must work with internal SRAM only (320KB)
-CONFIG_SPIRAM=n
-# CONFIG_SPIRAM_MODE_OCT=y
-# CONFIG_SPIRAM_TYPE_AUTO=y
-# CONFIG_SPIRAM_SPEED_80M=y
-CONFIG_SPIRAM_MEMTEST=n
-
-# CONFIG_SPIRAM_USE_MALLOC=y
-# CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
-# CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
+# 🔒 v2.18.2: PSRAM re-enabled with correct configuration
+# Based on BOOTLOOP_STATUS_2026-01-18.md: bootloop was RESOLVED with PSRAM enabled
+# Using QSPI mode (NOT OPI) to avoid Arduino-ESP32 Flash routing confusion
+# Hardware: ESP32-S3 N16R8 has 8MB PSRAM QSPI @ 80MHz
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_TYPE_AUTO=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_USE_MALLOC=y
+CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
+CONFIG_SPIRAM_MEMTEST=y
+# CRITICAL: Do NOT use CONFIG_SPIRAM_MODE_OCT in Arduino-ESP32!
+# It enables OPI Flash routes (not PSRAM) causing bootloop
+# QSPI PSRAM works automatically without MODE_OCT flag
 CONFIG_SPIRAM_IGNORE_NOTFOUND=y
 
 # ================= Flash =================
-# 🔒 v2.18.1: DIO mode for better hardware compatibility
-# User confirmed QIO mode causes bootloop on some hardware
-# DIO (Dual I/O) is slower but more reliable across flash chip batches
-CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+# 🔒 v2.18.2: QIO mode for optimal performance
+# QIO Flash works correctly when PSRAM is properly configured
+# (Not using CONFIG_SPIRAM_MODE_OCT avoids Arduino-ESP32 OPI Flash confusion)
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 
@@ -39,8 +41,12 @@ CONFIG_ESP_SYSTEM_EVENT_QUEUE_SIZE=32
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=2304
 
 # ================= Watchdog =================
+# 🔒 v2.18.2: From BOOTLOOP_STATUS_2026-01-18.md proven configuration
+# Interrupt watchdog - increased timeout for PSRAM initialization
+# PSRAM memory test + initialization can take >800ms (especially during cold boot
+# or on certain PSRAM chip batches), causing watchdog reset before boot completes
 CONFIG_ESP_INT_WDT=y
-CONFIG_ESP_INT_WDT_TIMEOUT_MS=5000
+CONFIG_ESP_INT_WDT_TIMEOUT_MS=3000
 CONFIG_ESP_INT_WDT_CHECK_CPU1=y
 
 CONFIG_ESP_TASK_WDT=y
