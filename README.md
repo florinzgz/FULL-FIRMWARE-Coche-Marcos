@@ -48,7 +48,7 @@ pio run -t upload
 # Monitor serial (con exception decoder funcionando correctamente)
 pio device monitor
 
-# Nota: También puedes usar otros entornos específicamente:
+# Nota: también puedes usar otros entornos específicamente:
 # pio run -e esp32-s3-n16r8
 # pio run -e esp32-s3-n16r8-release -t upload
 ```

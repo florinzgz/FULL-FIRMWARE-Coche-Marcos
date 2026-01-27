@@ -18,9 +18,9 @@ rst:0x3 (RTC_SW_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
 
 **Path Mismatch Between Build and Monitor:**
 - The firmware was built for environment `esp32-s3-devkitc-1`
-  - Build output: `.pio\build\esp32-s3-devkitc-1\firmware.elf`
+  - Build output: `.pio/build/esp32-s3-devkitc-1/firmware.elf`
 - But the serial monitor (without `-e` flag) defaulted to the first environment in `platformio.ini`: `esp32-s3-n16r8`
-  - Expected path: `.pio\build\esp32-s3-n16r8\firmware.elf` ❌
+  - Expected path: `.pio/build/esp32-s3-n16r8/firmware.elf` ❌
 
 This caused the exception decoder to fail, making it impossible to debug crashes causing the boot loop.
 
@@ -41,7 +41,7 @@ According to the platformio.ini configuration (line 143):
 ; ===================================================================
 ; STANDARD ESP32-S3 DEVKITC-1 BOARD
 ; Flash: 16MB QD, PSRAM: 8MB OT
-; Solution for reboot issues - esta es la solucion para los reinicios
+; Solution for reboot issues - esta es la solución para los reinicios
 ; ===================================================================
 [env:esp32-s3-devkitc-1]
 ```
@@ -59,7 +59,7 @@ pio run
 # Build and upload
 pio run -t upload
 
-# Monitor (will correctly find firmware at .pio\build\esp32-s3-devkitc-1\firmware.elf)
+# Monitor (will correctly find firmware at .pio/build/esp32-s3-devkitc-1/firmware.elf)
 pio device monitor
 ```
 
