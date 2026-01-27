@@ -1,7 +1,7 @@
 {
   "build": {
     "arduino": {
-      "partitions": "default_16MB.csv",
+      "partitions": "partitions/default_16MB.csv",
       "memory_type": "qio_opi"
     },
     "core": "esp32",

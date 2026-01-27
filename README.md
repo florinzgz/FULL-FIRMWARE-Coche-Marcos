@@ -54,19 +54,22 @@ pio device monitor
 El firmware usa un **board manifest personalizado** ubicado en `boards/esp32-s3-devkitc1-n16r8.json` que configura correctamente:
 - **Flash:** 16MB QIO @ 80MHz
 - **PSRAM:** 8MB OPI (Octal)
-- **USB Serial:** Configuración automática según `ARDUINO_USB_CDC_ON_BOOT`
+- **USB Serial:** Configuración por defecto del framework Arduino (ARDUINO_USB_CDC_ON_BOOT=0)
 
 #### USB Serial Configuration
 
-El comportamiento del puerto serial depende del flag de compilación `ARDUINO_USB_CDC_ON_BOOT`:
+El comportamiento del puerto serial depende del flag de compilación `ARDUINO_USB_CDC_ON_BOOT`. Por defecto, el board manifest **no establece este flag**, por lo que usa el valor por defecto del framework Arduino (típicamente 0):
 
 | ARDUINO_USB_CDC_ON_BOOT | UART 0 (RX/TX) | OTG (USB nativo) |
 |-------------------------|----------------|------------------|
-| 0 | `Serial` | `USBSerial` |
+| 0 (Default) | `Serial` | `USBSerial` |
 | 1 | `Serial0` | `Serial` |
 
-- Si `ARDUINO_USB_CDC_ON_BOOT = 0`: `Serial` → UART, `USBSerial` → OTG
-- Si `ARDUINO_USB_CDC_ON_BOOT = 1`: `Serial0` → UART, `Serial` → OTG
+**Configuración actual:** Con el valor por defecto (0):
+- `Serial` está conectado a UART 0 (pines RX/TX físicos)
+- `USBSerial` está conectado al puerto USB nativo (OTG)
+
+Si necesitas cambiar este comportamiento, puedes agregar `-DARDUINO_USB_CDC_ON_BOOT=1` a los `build_flags` en `platformio.ini`.
 
 ### 🔒 Sistema de Validación Pre-Vuelo
 

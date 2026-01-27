@@ -72,14 +72,18 @@ pio device monitor
 
 ### USB Serial Configuration
 
-The board manifest handles USB Serial routing automatically based on `ARDUINO_USB_CDC_ON_BOOT`:
+The board manifest uses the Arduino framework default for USB Serial routing (ARDUINO_USB_CDC_ON_BOOT=0):
 
 | ARDUINO_USB_CDC_ON_BOOT | UART 0 (RX/TX) | OTG (USB nativo) |
 |-------------------------|----------------|------------------|
-| 0 | `Serial` | `USBSerial` |
+| 0 (Default) | `Serial` | `USBSerial` |
 | 1 | `Serial0` | `Serial` |
 
-The current configuration has `ARDUINO_USB_CDC_ON_BOOT` **not explicitly set** in the board manifest, so it uses the Arduino framework default.
+**Current configuration (default=0):**
+- `Serial` → UART 0 (physical RX/TX pins)
+- `USBSerial` → Native USB OTG port
+
+To change this behavior, add `-DARDUINO_USB_CDC_ON_BOOT=1` to `build_flags` in platformio.ini.
 
 ## 🔍 What This Fix Enables
 
