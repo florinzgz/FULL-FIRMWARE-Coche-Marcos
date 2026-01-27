@@ -39,14 +39,18 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
 git clone https://github.com/florinzgz/FULL-FIRMWARE-Coche-Marcos.git
 cd FULL-FIRMWARE-Coche-Marcos
 
-# Compilar (entorno de desarrollo)
-pio run -e esp32-s3-n16r8
+# Compilar (entorno por defecto: esp32-s3-devkitc-1 - solución para reinicios)
+pio run
 
-# Compilar y flashear (producción)
-pio run -e esp32-s3-n16r8-release -t upload
+# Compilar y flashear
+pio run -t upload
 
-# Monitor serial
+# Monitor serial (con exception decoder funcionando correctamente)
 pio device monitor
+
+# Nota: También puedes usar otros entornos específicamente:
+# pio run -e esp32-s3-n16r8
+# pio run -e esp32-s3-n16r8-release -t upload
 ```
 
 ### 🔒 Sistema de Validación Pre-Vuelo
@@ -72,12 +76,15 @@ Ver [docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md) para 
 
 | Entorno | Descripción |
 |---------|-------------|
-| `esp32-s3-n16r8` | Desarrollo con debug (CORE_DEBUG_LEVEL=3) |
-| `esp32-s3-n16r8-release` | **Producción** - Optimizado (-O3, sin debug) |
+| `esp32-s3-devkitc-1` | **🎯 DEFAULT** - Solución para reinicios (recomendado) |
+| `esp32-s3-n16r8` | Desarrollo custom board con debug (CORE_DEBUG_LEVEL=3) |
+| `esp32-s3-n16r8-release` | Producción - Optimizado (-O3, sin debug) |
 | `esp32-s3-n16r8-touch-debug` | Debug de touch (logs verbosos) |
 | `esp32-s3-n16r8-no-touch` | Sin touch (diagnóstico SPI) |
 | `esp32-s3-n16r8-standalone` | Display standalone sin sensores |
 | `esp32-s3-n16r8-standalone-debug` | Standalone con debug verboso |
+
+**⚠️ IMPORTANTE:** El entorno por defecto es ahora `esp32-s3-devkitc-1`, que resuelve problemas de reinicios y asegura que el exception decoder funcione correctamente. Ver [FIX_EXCEPTION_DECODER_PATH.md](FIX_EXCEPTION_DECODER_PATH.md) para más detalles.
 
 ## 📚 Documentación
 
