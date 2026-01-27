@@ -7,7 +7,8 @@
 // 🔒 v2.18.1: Memory management constants for PSRAM-less operation
 // ============================================================================
 namespace {
-constexpr uint32_t HEAP_SAFETY_MARGIN_BYTES = 50000; // 50KB margin for heap allocations
+constexpr uint32_t HEAP_SAFETY_MARGIN_BYTES =
+    50000; // 50KB margin for heap allocations
 }
 
 // Forward declaration for RenderContext::markDirty()
@@ -102,7 +103,7 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   // Each sprite needs SCREEN_WIDTH * SCREEN_HEIGHT * 2 bytes (16-bit color)
   size_t spriteSize = SCREEN_WIDTH * SCREEN_HEIGHT * 2;
   bool usePsram = psramFound();
-  
+
   if (usePsram) {
     if (ESP.getFreePsram() < spriteSize) {
       Logger::errorf("HudCompositor: Insufficient PSRAM for layer %d (need %u "
@@ -111,13 +112,15 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
       return false;
     }
   } else {
-    Logger::warnf("HudCompositor: PSRAM not available - using heap for layer %d", idx);
+    Logger::warnf(
+        "HudCompositor: PSRAM not available - using heap for layer %d", idx);
     uint32_t freeHeap = ESP.getFreeHeap();
     if (freeHeap < spriteSize + HEAP_SAFETY_MARGIN_BYTES) {
-      Logger::errorf("HudCompositor: Insufficient heap for layer %d (need %u KB, "
-                     "have %u KB, margin %u KB)",
-                     idx, spriteSize / 1024, freeHeap / 1024,
-                     HEAP_SAFETY_MARGIN_BYTES / 1024);
+      Logger::errorf(
+          "HudCompositor: Insufficient heap for layer %d (need %u KB, "
+          "have %u KB, margin %u KB)",
+          idx, spriteSize / 1024, freeHeap / 1024,
+          HEAP_SAFETY_MARGIN_BYTES / 1024);
       return false;
     }
   }
@@ -154,9 +157,9 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   layerSprites[idx]->fillSprite(TFT_BLACK);
 
   if (usePsram) {
-    Logger::infof(
-        "HudCompositor: Created sprite for layer %d (PSRAM remaining: %u bytes)",
-        idx, ESP.getFreePsram());
+    Logger::infof("HudCompositor: Created sprite for layer %d (PSRAM "
+                  "remaining: %u bytes)",
+                  idx, ESP.getFreePsram());
   } else {
     Logger::infof(
         "HudCompositor: Created sprite for layer %d (Heap remaining: %u bytes)",
@@ -473,7 +476,7 @@ bool HudCompositor::createShadowSprite() {
   // 🔒 v2.18.1: Check memory availability (PSRAM or heap)
   size_t spriteSize = SCREEN_WIDTH * SCREEN_HEIGHT * 2;
   bool usePsram = psramFound();
-  
+
   if (usePsram) {
     if (ESP.getFreePsram() < spriteSize) {
       Logger::errorf(
@@ -483,13 +486,14 @@ bool HudCompositor::createShadowSprite() {
       return false;
     }
   } else {
-    Logger::warn("HudCompositor: PSRAM not available - using heap for shadow sprite");
+    Logger::warn(
+        "HudCompositor: PSRAM not available - using heap for shadow sprite");
     uint32_t freeHeap = ESP.getFreeHeap();
     if (freeHeap < spriteSize + HEAP_SAFETY_MARGIN_BYTES) {
-      Logger::errorf("HudCompositor: Insufficient heap for shadow sprite (need %u KB, "
-                     "have %u KB, margin %u KB)",
-                     spriteSize / 1024, freeHeap / 1024,
-                     HEAP_SAFETY_MARGIN_BYTES / 1024);
+      Logger::errorf(
+          "HudCompositor: Insufficient heap for shadow sprite (need %u KB, "
+          "have %u KB, margin %u KB)",
+          spriteSize / 1024, freeHeap / 1024, HEAP_SAFETY_MARGIN_BYTES / 1024);
       return false;
     }
   }

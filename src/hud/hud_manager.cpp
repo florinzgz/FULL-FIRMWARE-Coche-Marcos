@@ -182,7 +182,7 @@ bool HUDManager::init() {
   // Queue size: 10 events (enough for error bursts without blocking)
   // 🔒 v2.18.1: Ensure FreeRTOS scheduler is running before queue creation
   yield(); // Allow any pending FreeRTOS initialization to complete
-  
+
   constexpr size_t RENDER_QUEUE_SIZE = 10;
   renderEventQueue =
       xQueueCreate(RENDER_QUEUE_SIZE, sizeof(RenderEvent::Event));
@@ -195,7 +195,7 @@ bool HUDManager::init() {
     Serial.println("[HUD] Render event queue created successfully");
     Logger::info("HUD: Render event queue initialized");
   }
-  
+
   yield(); // Allow queue creation to settle
 
   // 🔒 v2.8.1: Asegurar que backlight está habilitado (ya configurado en
@@ -214,13 +214,13 @@ bool HUDManager::init() {
   // We want to ensure vehicle operation continues regardless of display failure
   // 🔒 v2.18.1: Add yield before TFT init to allow task switching
   yield();
-  
+
   try {
     tft->init();
     // Set initialized flag immediately after successful tft->init()
     // This ensures the flag reflects TFT initialization state accurately
     initialized = true;
-    
+
     Serial.println("[HUD] TFT_eSPI init SUCCESS");
     // 🔒 v2.18.1: yield() after TFT init to allow other tasks to run
     yield();
@@ -248,7 +248,7 @@ bool HUDManager::init() {
   // causing the screen to appear vertically inverted (half blue/half white).
   // Rotation 3 provides landscape mode (480x320) for ST7796S display.
   tft->setRotation(3); // Landscape mode: 480x320
-  
+
   // 🔒 v2.18.1: yield() after rotation to allow task switching
   yield();
 

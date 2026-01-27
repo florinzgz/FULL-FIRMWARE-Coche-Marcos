@@ -75,7 +75,8 @@ void setup() {
 
   // 🔍 DIAGNOSTIC MARKER A: Serial initialized
   Serial.write('A');
-  // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching instead of blocking delay
+  // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching instead of
+  // blocking delay
   yield();
 
   Serial.println("[BOOT] Starting vehicle firmware...");
@@ -237,7 +238,8 @@ void initializeSystem() {
   unsigned long logoStart = millis();
   while (millis() - logoStart < BootSequenceConfig::LOGO_DISPLAY_DURATION_MS) {
     Watchdog::feed();
-    // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching during logo display
+    // 🔒 v2.18.1: Use yield() to allow FreeRTOS task switching during logo
+    // display
     yield();
   }
 
