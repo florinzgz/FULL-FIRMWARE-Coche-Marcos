@@ -123,8 +123,8 @@ To verify the fix is working:
 # Build
 pio run
 
-# Check that firmware exists at the correct path
-ls .pio/build/esp32-s3-devkitc-1/firmware.elf
+# The firmware should now exist at the correct path:
+# .pio/build/esp32-s3-devkitc-1/firmware.elf
 
 # Monitor should now find the firmware
 pio device monitor
