@@ -48,6 +48,9 @@ Thumbs.db
 *~
 *.log
 
+# Validation scripts (temporary tools)
+validate_board_config.py
+
 # =====================================================================
 # Deprecated hardware configs
 # =====================================================================
