@@ -9,6 +9,10 @@ static constexpr int SPRITE_WIDTH = 480;
 static constexpr int SPRITE_HEIGHT = 320;
 static constexpr uint32_t SPRITE_TOTAL_PIXELS = SPRITE_WIDTH * SPRITE_HEIGHT;
 
+// 🔒 v2.18.1: Memory management constants for PSRAM-less operation
+static constexpr uint32_t HEAP_SAFETY_MARGIN_BYTES = 50000; // 50KB margin for heap allocations
+static constexpr float ALLOCATION_VALIDATION_THRESHOLD = 0.9f; // 90% of expected allocation
+
 #ifdef RENDER_SHADOW_MODE
 static constexpr uint32_t SHADOW_MISMATCH_LOG_THRESHOLD = 100;
 #endif
@@ -92,10 +96,11 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
     
     // Check if we have enough heap
     uint32_t freeHeap = ESP.getFreeHeap();
-    if (freeHeap < expectedSize + 50000) { // Keep 50KB margin
+    if (freeHeap < expectedSize + HEAP_SAFETY_MARGIN_BYTES) {
       Logger::errorf("RenderEngine: Insufficient heap for sprite %d (need %u KB, "
-                     "have %u KB, margin 50KB)",
-                     id, expectedSize / 1024, freeHeap / 1024);
+                     "have %u KB, margin %u KB)",
+                     id, expectedSize / 1024, freeHeap / 1024, 
+                     HEAP_SAFETY_MARGIN_BYTES / 1024);
       return false;
     }
     Logger::infof("  Using heap (free: %u KB, need: %u KB)", freeHeap / 1024,
@@ -178,14 +183,14 @@ bool RenderEngine::createSprite(SpriteID id, int w, int h) {
   }
 
   // 🔍 VERIFICATION: Validate allocation location
-  if (usePsram && psramDelta < (int32_t)(expectedSize * 0.9)) {
+  if (usePsram && psramDelta < (int32_t)(expectedSize * ALLOCATION_VALIDATION_THRESHOLD)) {
     Logger::errorf("  ⚠️  WARNING: Sprite %d may NOT be in PSRAM!", id);
     Logger::errorf("  Expected PSRAM delta ~%u KB, got %d KB",
                    expectedSize / 1024, psramDelta / 1024);
   } else if (usePsram) {
     Logger::infof("  ✅ Sprite %d confirmed in PSRAM (%d KB allocated)", id,
                   psramDelta / 1024);
-  } else if (heapDelta >= (int32_t)(expectedSize * 0.9)) {
+  } else if (heapDelta >= (int32_t)(expectedSize * ALLOCATION_VALIDATION_THRESHOLD)) {
     Logger::infof("  ✅ Sprite %d allocated in heap (%d KB)", id,
                   heapDelta / 1024);
   }

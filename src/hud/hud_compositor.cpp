@@ -3,6 +3,13 @@
 #include "logger.h"
 #include <cstring>
 
+// ============================================================================
+// 🔒 v2.18.1: Memory management constants for PSRAM-less operation
+// ============================================================================
+namespace {
+constexpr uint32_t HEAP_SAFETY_MARGIN_BYTES = 50000; // 50KB margin for heap allocations
+}
+
 // Forward declaration for RenderContext::markDirty()
 namespace HudLayer {
 void RenderContext::markDirty(int16_t x, int16_t y, int16_t w, int16_t h) {
@@ -106,10 +113,11 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   } else {
     Logger::warnf("HudCompositor: PSRAM not available - using heap for layer %d", idx);
     uint32_t freeHeap = ESP.getFreeHeap();
-    if (freeHeap < spriteSize + 50000) { // Keep 50KB margin
+    if (freeHeap < spriteSize + HEAP_SAFETY_MARGIN_BYTES) {
       Logger::errorf("HudCompositor: Insufficient heap for layer %d (need %u KB, "
-                     "have %u KB, margin 50KB)",
-                     idx, spriteSize / 1024, freeHeap / 1024);
+                     "have %u KB, margin %u KB)",
+                     idx, spriteSize / 1024, freeHeap / 1024,
+                     HEAP_SAFETY_MARGIN_BYTES / 1024);
       return false;
     }
   }
@@ -477,10 +485,11 @@ bool HudCompositor::createShadowSprite() {
   } else {
     Logger::warn("HudCompositor: PSRAM not available - using heap for shadow sprite");
     uint32_t freeHeap = ESP.getFreeHeap();
-    if (freeHeap < spriteSize + 50000) {
+    if (freeHeap < spriteSize + HEAP_SAFETY_MARGIN_BYTES) {
       Logger::errorf("HudCompositor: Insufficient heap for shadow sprite (need %u KB, "
-                     "have %u KB, margin 50KB)",
-                     spriteSize / 1024, freeHeap / 1024);
+                     "have %u KB, margin %u KB)",
+                     spriteSize / 1024, freeHeap / 1024,
+                     HEAP_SAFETY_MARGIN_BYTES / 1024);
       return false;
     }
   }
