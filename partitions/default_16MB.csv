@@ -1,6 +1,7 @@
 # ESP32-S3 16MB - Default Configuration
 # Flash: 16MB QD, PSRAM: 8MB OT
 # Partition table for standard ESP32-S3 DevKitC-1
+# NOTE: Top 1.17% of flash left unused to prevent bootloop issues (0x30000 bytes)
 
 nvs,        data, nvs,      0x9000,   0x5000
 coredump,   data, coredump, 0xE000,   0x10000
@@ -8,5 +9,5 @@ coredump,   data, coredump, 0xE000,   0x10000
 # Factory app (10MB)
 app0,       app,  factory,  0x20000,  0xA00000
 
-# SPIFFS (~5.9MB)
-spiffs,     data, spiffs,   0xA20000, 0x5E0000
+# SPIFFS (~5.69MB) - Reduced to avoid top 1% of flash
+spiffs,     data, spiffs,   0xA20000, 0x5B0000
