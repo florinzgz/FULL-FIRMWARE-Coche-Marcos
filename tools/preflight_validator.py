@@ -49,7 +49,8 @@ def strip_comments(line: str, in_block_comment: bool):
     # handle block comments
     if in_block_comment:
         if "*/" in line:
-            return strip_comments(line.split("*/", 1)[1], False), False
+            cleaned, _ = strip_comments(line.split("*/", 1)[1], False)
+            return cleaned, False
         return "", True
 
     if "/*" in line:
