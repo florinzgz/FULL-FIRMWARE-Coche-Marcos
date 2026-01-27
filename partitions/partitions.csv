@@ -1,12 +1,12 @@
 # ESP32-S3 16MB - Standalone (sin OTA)
 # Firmware único + SPIFFS grande
-# Flash total: 16MB
 
-nvs,      data, nvs,      0x9000,   0x5000
-coredump, data, coredump, 0xE000,   0x10000
+nvs,        data, nvs,      0x9000,   0x5000
+otadata,    data, ota,      0xE000,   0x2000
+coredump,   data, coredump, 0x10000,  0x10000
 
-# Firmware único (10 MB)
-app0,     app,  factory,  0x20000,  0xA00000
+# Firmware (10MB)
+app0,       app,  factory,  0x20000,  0xA00000
 
-# SPIFFS (~5.8 MB)
-spiffs,   data, spiffs,   0xA20000, 0x5E0000
+# SPIFFS (~5.75MB)
+spiffs,     data, spiffs,   0xA20000, 0x5E0000
