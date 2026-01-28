@@ -89,13 +89,15 @@
 // COMUNICACIONES SPI - PANTALLA TFT ST7796S 480x320
 // ============================================================================
 
-// Bus SPI ordenado en pines consecutivos (10-14)
-#define PIN_TFT_SCK 10  // GPIO 10 - SPI Clock
-#define PIN_TFT_MOSI 11 // GPIO 11 - SPI MOSI (Master Out)
-#define PIN_TFT_MISO 12 // GPIO 12 - SPI MISO (Master In)
-#define PIN_TFT_DC 13   // GPIO 13 - Data/Command
-#define PIN_TFT_RST 14  // GPIO 14 - Reset
-#define PIN_TFT_CS 16   // GPIO 16 - Chip Select TFT
+// 🔒 N16R8 ARCHITECTURE FIX: TFT SPI pins moved to SAFE ZONE
+// CRITICAL: GPIO 10-12 are part of SPI Flash bus and MUST NOT be used
+// New allocation in safe zone GPIO 13-17 (no conflicts with strapping or PSRAM)
+#define PIN_TFT_SCK 14  // GPIO 14 - SPI Clock (moved from GPIO 10)
+#define PIN_TFT_MOSI 13 // GPIO 13 - SPI MOSI (moved from GPIO 11)
+#define PIN_TFT_MISO -1 // Not used for ST7796S (was GPIO 12)
+#define PIN_TFT_DC 16   // GPIO 16 - Data/Command (moved from GPIO 13)
+#define PIN_TFT_RST 17  // GPIO 17 - Reset (moved from GPIO 14)
+#define PIN_TFT_CS 15   // GPIO 15 - Chip Select TFT (moved from GPIO 16)
 #define PIN_TFT_BL 42   // GPIO 42 - Backlight PWM (LEDC)
 
 // -----------------------
