@@ -45,6 +45,7 @@
   "name": "Espressif ESP32-S3-DevKitC-1-N16R8 (16 MB QIO Flash, 8 MB OPI PSRAM)",
   "upload": {
     "flash_size": "16MB",
+    "flash_mode": "qio",
     "maximum_ram_size": 327680,
     "maximum_size": 16777216,
     "require_upload_port": true,
