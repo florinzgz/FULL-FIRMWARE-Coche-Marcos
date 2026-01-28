@@ -18,10 +18,10 @@ This document provides recovery steps to transition the ESP32-S3 N16R8 device fr
 - ✅ Kept only `boards/esp32-s3-devkitc1-n16r8.json` with strict QIO configuration
 
 ### 2. Board JSON Hardening (`boards/esp32-s3-devkitc1-n16r8.json`)
-- ✅ `"flash_mode": "qio"` in build section
-- ✅ `"flash_mode": "qio"` in upload section
-- ✅ `"arduino.memory_type": "qio_opi"` (QIO Flash + OPI PSRAM)
-- ✅ `"psram_type": "opi"` (Octal PSRAM)
+- ✅ **ADDED**: `"flash_mode": "qio"` in upload section (NEW)
+- ℹ️ **RETAINED**: `"flash_mode": "qio"` in build section (already present)
+- ℹ️ **RETAINED**: `"arduino.memory_type": "qio_opi"` (already present)
+- ℹ️ **RETAINED**: `"psram_type": "opi"` (already present)
 
 ### 3. PlatformIO Configuration Hardening (`platformio.ini`)
 Added explicit overrides to bypass any JSON ambiguity:
@@ -31,18 +31,16 @@ board_upload.flash_mode = qio
 board_build.arduino.memory_type = qio_opi
 ```
 
-Added critical PSRAM stability flag:
-```ini
--mfix-esp32-psram-cache-issue
-```
+Note: The ESP32-S3 architecture handles PSRAM cache correctly without additional compiler flags (unlike the original ESP32).
 
 ### 4. SDK Configuration (`sdkconfig/n16r8.defaults`)
 Critical changes to force Octal PSRAM mode:
-- ✅ `CONFIG_SPIRAM_TYPE_AUTO=n` (Disable auto-detect)
-- ✅ `CONFIG_SPIRAM_MODE_OCT=y` (Force Octal Mode)
-- ✅ `CONFIG_SPIRAM_MEMTEST=n` (Disable startup memory test to prevent WDT reset)
-- ✅ `CONFIG_SPIRAM_SPEED_80M=y` (80MHz PSRAM speed)
-- ✅ `CONFIG_ESPTOOLPY_FLASHMODE_QIO=y` (QIO flash mode)
+- ✅ **CHANGED**: `CONFIG_SPIRAM_TYPE_AUTO=n` (was y - now disables auto-detect)
+- ✅ **ADDED**: `CONFIG_SPIRAM_MODE_OCT=y` (Force Octal Mode - NEW)
+- ✅ **CHANGED**: `CONFIG_SPIRAM_MEMTEST=n` (was y - now disabled to prevent WDT reset)
+- ✅ **CHANGED**: `CONFIG_SPIRAM_IGNORE_NOTFOUND=n` (was y - now fails if PSRAM not found)
+- ℹ️ **RETAINED**: `CONFIG_SPIRAM_SPEED_80M=y` (already present)
+- ℹ️ **RETAINED**: `CONFIG_ESPTOOLPY_FLASHMODE_QIO=y` (already present)
 
 ### 5. Scripts Verified
 - ✅ `tools/patch_arduino_sdkconfig.py` - Only touches watchdog timeout (3000ms), does NOT modify SPIRAM flags
@@ -104,7 +102,7 @@ RTC_SW_SYS_RST
 After applying these changes and performing the recovery steps:
 
 1. ✅ Boot log shows `mode:QIO` (NOT `mode:DIO`)
-2. ✅ PSRAM successfully mapped at address `0x403cdb0a` or similar
+2. ✅ PSRAM successfully initialized and mapped (check for "opi psram" messages)
 3. ✅ Boot log shows `PSRAM: 8192 KB` (8MB)
 4. ✅ No RTC_SW_SYS_RST bootloop
 5. ✅ System boots successfully into main application
