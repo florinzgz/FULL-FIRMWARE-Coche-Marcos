@@ -89,23 +89,25 @@
 // COMUNICACIONES SPI - PANTALLA TFT ST7796S 480x320
 // ============================================================================
 
-// Bus SPI ordenado en pines consecutivos (10-14)
-#define PIN_TFT_SCK 10  // GPIO 10 - SPI Clock
-#define PIN_TFT_MOSI 11 // GPIO 11 - SPI MOSI (Master Out)
-#define PIN_TFT_MISO 12 // GPIO 12 - SPI MISO (Master In)
-#define PIN_TFT_DC 13   // GPIO 13 - Data/Command
-#define PIN_TFT_RST 14  // GPIO 14 - Reset
-#define PIN_TFT_CS 16   // GPIO 16 - Chip Select TFT
+// 🔒 N16R8 ARCHITECTURE FIX: TFT SPI pins moved to SAFE ZONE
+// CRITICAL: GPIO 10-12 are part of SPI Flash bus and MUST NOT be used
+// New allocation in safe zone GPIO 13-17 (no conflicts with strapping or PSRAM)
+#define PIN_TFT_SCK 14  // GPIO 14 - SPI Clock (moved from GPIO 10)
+#define PIN_TFT_MOSI 13 // GPIO 13 - SPI MOSI (moved from GPIO 11)
+#define PIN_TFT_MISO -1 // Not used for ST7796S (was GPIO 12)
+#define PIN_TFT_DC 16   // GPIO 16 - Data/Command (moved from GPIO 13)
+#define PIN_TFT_RST 17  // GPIO 17 - Reset (moved from GPIO 14)
+#define PIN_TFT_CS 15   // GPIO 15 - Chip Select TFT (moved from GPIO 16)
 #define PIN_TFT_BL 42   // GPIO 42 - Backlight PWM (LEDC)
 
 // -----------------------
 // Táctil (XPT2046 SPI) - ✅ OPTIMIZADO v2.3.0
 // CS movido de GPIO 3 (strapping) → GPIO 21 (seguro)
+// 🔒 N16R8 ARCHITECTURE FIX: TOUCH_IRQ removed (polling mode instead of interrupt)
 // -----------------------
 #define PIN_TOUCH_CS                                                           \
-  21 // GPIO 21 - Chip Select Touch ✅ Pin seguro (antes GPIO 3)
-#define PIN_TOUCH_IRQ                                                          \
-  47 // GPIO 47 - Interrupción Touch (antes GPIO 46 strapping)
+  21 // GPIO 21 - Chip Select Touch
+// PIN_TOUCH_IRQ removed - touchscreen will use polling mode instead
 
 // ============================================================================
 // COMUNICACIONES UART
@@ -115,33 +117,36 @@
 // UART0 (TOFSense-M S - Obstacle Detection LiDAR)
 // Baudrate: 115200, protocolo de 9 bytes (header 0x57)
 // El sensor solo tiene TX (salida), se conecta a GPIO44 RX del ESP32
-// GPIO43 TX no se usa pero se asigna para completar el par UART0
+// GPIO43 TX no se usa porque el sensor es unidireccional (solo transmite)
+// 🔒 N16R8 ARCHITECTURE FIX: TX pin not assigned (sensor doesn't have RX)
 // -----------------------
 #define PIN_TOFSENSE_TX                                                        \
-  43 // GPIO 43 - TX UART0 (ESP32 → Sensor RX, bidireccional)
+  -1 // Not used - sensor is TX-only (no RX input)
 #define PIN_TOFSENSE_RX                                                        \
   44 // GPIO 44 - RX UART0 (Sensor TX → ESP32, recibe datos)
 
 // -----------------------
 // UART1 (DFPlayer Mini - Audio)
-// Movido de UART0 a UART1 para liberar los pines nativos para TOFSense
+// 🔒 N16R8 ARCHITECTURE FIX: Moved from GPIO 17-18 (displaced by TFT_RST and RELAY_SPARE)
+// New location: GPIO 19-20 (LED_FRONT and ONEWIRE relocated to make room)
 // -----------------------
-#define PIN_DFPLAYER_TX 18 // GPIO 18 - TX UART1 (envía comandos al DFPlayer)
+#define PIN_DFPLAYER_TX 19 // GPIO 19 - TX UART1 🔒 Moved from GPIO 18 (displaced by RELAY_SPARE)
 #define PIN_DFPLAYER_RX                                                        \
-  17 // GPIO 17 - RX UART1 (recibe respuestas del DFPlayer)
+  20 // GPIO 20 - RX UART1 🔒 Moved from GPIO 17 (displaced by TFT_RST)
 
 // ============================================================================
 // RELÉS DE POTENCIA (4x SRD-05VDC-SL-C)
-// ✅ v2.9.1: RELAY_MAIN movido de GPIO 4 → GPIO 35 (GPIO 4 ahora es ADC para
-// pedal)
+// 🔒 N16R8 ARCHITECTURE FIX: Moved away from OPI PSRAM bus (GPIO 33-37) and strapping pins
+// GPIO 35 was in forbidden PSRAM range, moved to GPIO 38
+// GPIO 46 is strapping pin, moved to GPIO 18
 // ============================================================================
 
 #define PIN_RELAY_MAIN                                                         \
-  35 // GPIO 35 - Relé principal (Power Hold) ✅ Movido de GPIO 4
+  38 // GPIO 38 - Relé principal (Power Hold) 🔒 Moved from GPIO 35 (OPI PSRAM conflict)
 #define PIN_RELAY_TRAC 5 // GPIO 5  - Relé tracción 24V
 #define PIN_RELAY_DIR 6  // GPIO 6  - Relé dirección 12V
 #define PIN_RELAY_SPARE                                                        \
-  46 // GPIO 46 - Relé auxiliar (luces/media) ✅ Movido de GPIO 7
+  18 // GPIO 18 - Relé auxiliar (luces/media) 🔒 Moved from GPIO 46 (strapping pin)
 
 // ============================================================================
 // ENTRADA SISTEMA - CONTROL DE ALIMENTACIÓN
@@ -215,14 +220,15 @@
 
 // ============================================================================
 // SENSORES - ENCODER DIRECCIÓN
-// Pines consecutivos 37-39 para encoder cuadratura
+// 🔒 N16R8 ARCHITECTURE FIX: Moved away from OPI PSRAM bus (GPIO 33-37)
+// New allocation: GPIO 1, 39, 3 (grouped together, avoiding forbidden zones)
 // ============================================================================
 
 // Encoder E6B2-CWZ6C 1200PR (dirección)
 // Conectado vía HY-M158 optoacopladores (12V → 3.3V)
-#define PIN_ENCODER_A 37 // GPIO 37 - Canal A (cuadratura)
-#define PIN_ENCODER_B 38 // GPIO 38 - Canal B (cuadratura)
-#define PIN_ENCODER_Z 39 // GPIO 39 - Señal Z (centrado, 1 pulso/vuelta)
+#define PIN_ENCODER_A 1 // GPIO 1 - Canal A (cuadratura) 🔒 Moved from GPIO 37 (OPI PSRAM)
+#define PIN_ENCODER_B 39 // GPIO 39 - Canal B (cuadratura) 🔒 Moved from GPIO 38
+#define PIN_ENCODER_Z 3 // GPIO 3 - Señal Z (centrado, 1 pulso/vuelta) 🔒 Moved from GPIO 39
 
 // ============================================================================
 // SENSORES - PEDAL Y RUEDAS
@@ -241,24 +247,21 @@
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // 6 tornillos por rueda = 6 pulsos/revolución
 // Ordenados: FL, FR, RL, RR
-// ✅ v2.16.0: FIX CRÍTICO - WHEEL_RR movido GPIO 16 → GPIO 1
-// GPIO 16 causaba conflicto con PIN_TFT_CS (SPI display)
-// GPIO 46 es strapping pin (Boot mode/ROM log) - evitado
-// GPIO 1 es seguro, estable, no afecta boot (antes libre)
+// 🔒 N16R8 ARCHITECTURE FIX: Moved away from OPI PSRAM bus (GPIO 33-37)
 // -----------------------
 #define PIN_WHEEL_FL                                                           \
-  7 // GPIO 7  - Wheel Front Left ✅ v2.17.2: Movido de GPIO 3 (strapping JTAG)
-#define PIN_WHEEL_FR 36 // GPIO 36 - Wheel Front Right
-#define PIN_WHEEL_RL 15 // GPIO 15 - Wheel Rear Left
+  7 // GPIO 7  - Wheel Front Left
+#define PIN_WHEEL_FR 2 // GPIO 2 - Wheel Front Right 🔒 Moved from GPIO 36 (OPI PSRAM)
+#define PIN_WHEEL_RL 45 // GPIO 45 - Wheel Rear Left 🔒 Moved from GPIO 15 (conflict with TFT_CS)
 #define PIN_WHEEL_RR                                                           \
-  1 // GPIO 1  - Wheel Rear Right ✅ v2.16.0: Movido GPIO 16→46→1 (evitar
-    // strapping)
+  46 // GPIO 46 - Wheel Rear Right 🔒 Moved from GPIO 1 (displaced by ENCODER_A)
 
 // -----------------------
 // Temperatura motores (4x DS18B20 OneWire)
 // Un sensor por motor de tracción, todos en bus paralelo
+// 🔒 N16R8 ARCHITECTURE FIX: Moved from GPIO 20, then from GPIO 45 (needed for WHEEL_RL)
 // -----------------------
-#define PIN_ONEWIRE 20 // GPIO 20 - Bus OneWire (4 sensores en paralelo)
+#define PIN_ONEWIRE 48 // GPIO 48 - Bus OneWire 🔒 Moved from GPIO 45 (INPUT/OUTPUT safe)
 
 // ============================================================================
 // ENTRADAS DIGITALES - SHIFTER (vía MCP23017)
@@ -292,11 +295,12 @@
 // Conectados vía HY-M158 optoacopladores (12V → 3.3V)
 // v2.14.0: Botones multimedia y 4x4 eliminados, control por touch screen
 // v2.15.0: GPIO 40/41 reasignados a control de alimentación (PIN_KEY_ON/OFF)
+// 🔒 N16R8 ARCHITECTURE FIX: BTN_LIGHTS moved from GPIO 2 (displaced by WHEEL_FR)
 // -----------------------
 // #define PIN_BTN_MEDIA     40  // GPIO 40 - Ahora PIN_KEY_ON (power on
 // detection) #define PIN_BTN_4X4       41  // GPIO 41 - Ahora PIN_KEY_OFF
 // (shutdown request)
-#define PIN_BTN_LIGHTS 2 // GPIO 2  - Botón luces ✅ Movido de GPIO 45
+#define PIN_BTN_LIGHTS 0 // GPIO 0 - Botón luces 🔒 Moved from GPIO 2 (displaced by WHEEL_FR)
 
 // ============================================================================
 // SALIDAS - LEDs WS2812B (Iluminación Inteligente)
@@ -307,10 +311,11 @@
 // - v2.12.0: GPIO 18 liberado (UART1 para DFPlayer), PIN_LED_FRONT mantiene
 // GPIO 19
 // - v2.13.0: Confirmado GPIO 19 para LED_FRONT (8x8 matrix migration)
+// - 🔒 N16R8 FIX: PIN_LED_FRONT moved from GPIO 19, PIN_LED_REAR moved from GPIO 48
 
-#define PIN_LED_FRONT 19 // GPIO 19 - LEDs frontales (28 LEDs)
+#define PIN_LED_FRONT 47 // GPIO 47 - LEDs frontales (28 LEDs) 🔒 Moved from GPIO 19
 #define PIN_LED_REAR                                                           \
-  48 // GPIO 48 - LEDs traseros (16 LEDs) ✅ v2.3.0: movido desde GPIO 19
+  43 // GPIO 43 - LEDs traseros (16 LEDs) 🔒 Moved from GPIO 48 (displaced by ONEWIRE)
 #define NUM_LEDS_FRONT 28 // Cantidad LEDs frontales (sin cambio)
 #define NUM_LEDS_REAR 16  // Cantidad LEDs traseros (sin cambio)
 
@@ -337,48 +342,55 @@
 // 2. PCA9548A @ 0x71: ELIMINADO (era para VL53L5X, ya no se usa)
 
 // ============================================================================
-// TABLA RESUMEN DE USO DE PINES v2.13.0 (8x8 Matrix Update)
+// TABLA RESUMEN DE USO DE PINES - 🔒 N16R8 ARCHITECTURE FIX
 // ============================================================================
 /*
 ┌──────┬─────────────────────────┬───────────┬─────────────────────────────────┐
 │ GPIO │ Función                 │ Tipo      │ Notas                           │
 ├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
-│  0   │ KEY_SYSTEM              │ Input     │ ⚠️ Strapping (Boot), pull-up ext │
-│  1   │ WHEEL_RR                │ Input     │ ✅ v2.16.1: Rueda trasera der   │
-│  2   │ BTN_LIGHTS              │ Input     │ Botón luces                     │
-│  3   │ 🆓 LIBRE                │ -         │ ✅ v2.17.2: WHEEL_FL→GPIO 7     │
-│  4   │ PEDAL (ADC)             │ Analog In │ ✅ v2.9.1: Sensor Hall pedal │ │
-5   │ RELAY_TRAC              │ Output    │ Relé tracción 24V               │ │
-6   │ RELAY_DIR               │ Output    │ Relé dirección 12V              │ │
-7   │ WHEEL_FL                │ Input     │ ✅ v2.17.2: Movido desde GPIO 3 │ │
-8   │ I2C_SDA                 │ I/O       │ Bus I²C Data                    │ │
-9   │ I2C_SCL                 │ I/O       │ Bus I²C Clock                   │ │
-10   │ TFT_SCK                 │ Output    │ SPI Clock                       │
-│ 11   │ TFT_MOSI                │ Output    │ SPI MOSI                        │
-│ 12   │ TFT_MISO                │ Input     │ SPI MISO                        │
-│ 13   │ TFT_DC                  │ Output    │ Data/Command                    │
-│ 14   │ TFT_RST                 │ Output    │ Reset pantalla                  │
-│ 15   │ WHEEL_RL                │ Input     │ ✅ v2.12.0: Rueda trasera izq   │
-│ 16   │ TFT_CS (SPI)            │ Output    │ ✅ Chip Select display          │
-│ 17   │ DFPLAYER_RX (UART1)     │ Input     │ ✅ v2.12.0: Mini Audio RX       │
-│ 18   │ DFPLAYER_TX (UART1)     │ Output    │ ✅ v2.12.0: Mini Audio TX       │
-│ 19   │ LED_FRONT (WS2812B)     │ Output    │ 28 LEDs frontales               │
-│ 20   │ ONEWIRE                 │ I/O       │ 4x DS18B20 temperatura          │
-│ 21   │ TOUCH_CS                │ Output    │ ✅ CS Touch (seguro) │ │ 35   │
-RELAY_MAIN              │ Output    │ ✅ v2.9.1: Relé principal        │ │ 36 │
-WHEEL_FR                │ Input     │ Sensor rueda delantera derecha  │ │ 37   │
-ENCODER_A               │ Input     │ Encoder dirección A             │ │ 38   │
-ENCODER_B               │ Input     │ Encoder dirección B             │ │ 39   │
-ENCODER_Z               │ Input     │ Encoder dirección Z             │ │ 40   │
-🆓 LIBRE                │ -         │ ✅ v2.14.0: BTN_MEDIA eliminado │ │ 41   │
-🆓 LIBRE                │ -         │ ✅ v2.14.0: BTN_4X4 eliminado   │ │ 42   │
-TFT_BL (PWM)            │ Output    │ Backlight pantalla              │ │ 43   │
-TOFSENSE_TX (UART0)     │ Output    │ ✅ v2.12.0: TOFSense (no usado) │ │ 44   │
-TOFSENSE_RX (UART0)     │ Input     │ ✅ v2.12.0: TOFSense RX LiDAR   │ │ 45   │
-KEY_DETECT (power_mgmt) │ Input     │ ⚠️ STRAPPING PIN: VDD_SPI       │ │ 46   │
-RELAY_SPARE             │ Output    │ ⚠️ STRAPPING: Relé auxiliar     │ │ 47   │
-TOUCH_IRQ               │ Input     │ Interrupción táctil             │ │ 48   │
-LED_REAR (WS2812B)      │ Output    │ 16 LEDs traseros                │
+│  0   │ BTN_LIGHTS              │ Input     │ 🔒 Moved from GPIO 2            │
+│  1   │ ENCODER_A               │ Input     │ 🔒 Moved from GPIO 37 (OPI PSRAM)│
+│  2   │ WHEEL_FR                │ Input     │ 🔒 Moved from GPIO 36 (OPI PSRAM)│
+│  3   │ ENCODER_Z               │ Input     │ 🔒 Moved from GPIO 39           │
+│  4   │ PEDAL (ADC)             │ Analog In │ Sensor Hall pedal               │
+│  5   │ RELAY_TRAC              │ Output    │ Relé tracción 24V               │
+│  6   │ RELAY_DIR               │ Output    │ Relé dirección 12V              │
+│  7   │ WHEEL_FL                │ Input     │ Rueda delantera izquierda       │
+│  8   │ I2C_SDA                 │ I/O       │ Bus I²C Data                    │
+│  9   │ I2C_SCL                 │ I/O       │ Bus I²C Clock                   │
+│ 10   │ ⛔ FORBIDDEN            │ -         │ SPI Flash bus - DO NOT USE      │
+│ 11   │ ⛔ FORBIDDEN            │ -         │ SPI Flash bus - DO NOT USE      │
+│ 12   │ ⛔ FORBIDDEN            │ -         │ SPI Flash bus - DO NOT USE      │
+│ 13   │ TFT_MOSI                │ Output    │ 🔒 Moved from GPIO 11           │
+│ 14   │ TFT_SCK                 │ Output    │ 🔒 Moved from GPIO 10           │
+│ 15   │ TFT_CS                  │ Output    │ 🔒 Moved from GPIO 16           │
+│ 16   │ TFT_DC                  │ Output    │ 🔒 Moved from GPIO 13           │
+│ 17   │ TFT_RST                 │ Output    │ 🔒 Moved from GPIO 14           │
+│ 18   │ RELAY_SPARE             │ Output    │ 🔒 Moved from GPIO 46           │
+│ 19   │ DFPLAYER_TX             │ Output    │ 🔒 Moved from GPIO 18           │
+│ 20   │ DFPLAYER_RX             │ Input     │ 🔒 Moved from GPIO 17           │
+│ 21   │ TOUCH_CS                │ Output    │ Touch chip select               │
+│ 33   │ ⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │
+│ 34   │ ⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │
+│ 35   │ ⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │
+│ 36   │ ⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │
+│ 37   │ ⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │
+│ 38   │ RELAY_MAIN              │ Output    │ 🔒 Moved from GPIO 35 (OPI PSRAM)│
+│ 39   │ ENCODER_B               │ Input     │ 🔒 Moved from GPIO 38           │
+│ 40   │ KEY_ON                  │ Input     │ Ignition ON detection           │
+│ 41   │ KEY_OFF                 │ Input     │ Shutdown request                │
+│ 42   │ TFT_BL                  │ Output    │ Backlight PWM                   │
+│ 43   │ LED_REAR                │ Output    │ 🔒 Moved from GPIO 48           │
+│ 44   │ TOFSENSE_RX             │ Input     │ TOFSense RX LiDAR data          │
+│ 45   │ WHEEL_RL                │ Input     │ 🔒 Moved from GPIO 15           │
+│ 46   │ WHEEL_RR                │ Input     │ 🔒 Moved from GPIO 1            │
+│ 47   │ LED_FRONT               │ Output    │ 🔒 Moved from GPIO 19           │
+│ 48   │ ONEWIRE                 │ I/O       │ 🔒 Moved from GPIO 20, then 45  │
+└──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
+
+Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
+      PIN_TOUCH_IRQ removed (using polling mode instead of interrupt)
+*/
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
 
 MCP23017 (I²C 0x20) - Expansor GPIO:
@@ -444,8 +456,9 @@ TOTAL MCP23017: 13/16 pines utilizados (81% eficiencia)
  * @brief Verifica si un GPIO está asignado en el sistema
  * @param gpio Número de GPIO a verificar
  * @return true si el pin está en uso, false si está libre
- * @note El shifter ahora usa MCP23017, no GPIOs directos
- * @note v2.12.0: Eliminados XSHUT pins (VL53L5X), añadidos pines UART
+ * @note 🔒 N16R8 ARCHITECTURE FIX: Updated for new pin mappings
+ * @note GPIO 33-37 are FORBIDDEN (OPI PSRAM internal bus)
+ * @note GPIO 10-12 are FORBIDDEN (SPI Flash bus)
  */
 static inline bool pin_is_assigned(uint8_t gpio) {
   switch (gpio) {
@@ -457,8 +470,6 @@ static inline bool pin_is_assigned(uint8_t gpio) {
   case PIN_LED_REAR:
   // Botones
   case PIN_BTN_LIGHTS:
-  // case PIN_BTN_MEDIA:  // v2.14.0: FREED
-  // case PIN_BTN_4X4:    // v2.14.0: FREED
   // Relés
   case PIN_RELAY_MAIN:
   case PIN_RELAY_TRAC:
@@ -470,19 +481,18 @@ static inline bool pin_is_assigned(uint8_t gpio) {
   // SPI TFT
   case PIN_TFT_SCK:
   case PIN_TFT_MOSI:
-  case PIN_TFT_MISO:
+  // PIN_TFT_MISO is -1, not a real GPIO
   case PIN_TFT_DC:
   case PIN_TFT_RST:
-  case PIN_TFT_CS: // GPIO 16 - SPI Chip Select (no conflict now)
+  case PIN_TFT_CS:
   case PIN_TFT_BL:
-  // Touch
+  // Touch (PIN_TOUCH_IRQ removed - polling mode)
   case PIN_TOUCH_CS:
-  case PIN_TOUCH_IRQ:
   // Sensores ruedas
   case PIN_WHEEL_FL:
   case PIN_WHEEL_FR:
   case PIN_WHEEL_RL:
-  case PIN_WHEEL_RR: // GPIO 1 - ✅ v2.16.1: Safe pin, avoids strapping pins
+  case PIN_WHEEL_RR:
   // Encoder
   case PIN_ENCODER_A:
   case PIN_ENCODER_B:
@@ -495,8 +505,6 @@ static inline bool pin_is_assigned(uint8_t gpio) {
   case PIN_DFPLAYER_RX:
   case PIN_TOFSENSE_TX:
   case PIN_TOFSENSE_RX:
-    // NOTA: Shifter ahora en MCP23017, no en GPIOs directos
-    // NOTA: XSHUT pins eliminados (VL53L5X ya no se usa)
     return true;
   default:
     return false;
