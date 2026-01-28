@@ -4,6 +4,7 @@
 #include "logger.h"
 #include "mcp23017_manager.h"
 #include "pins.h"
+#include "sensors.h" // 🔒 CRITICAL v2.18.3: For wheel speed validation
 
 static Shifter::State s = {Shifter::P, false};
 
@@ -15,6 +16,10 @@ static constexpr uint32_t DEBOUNCE_MS = 50;
 static uint32_t lastChangeMs = 0;
 static uint8_t stableReadings = 0;
 static Shifter::Gear pendingGear = Shifter::P;
+
+// 🔒 CRITICAL v2.18.3: Reverse safety threshold
+// No permitir cambio a R si la velocidad supera 3 km/h (protección mecánica)
+static constexpr float MAX_SPEED_FOR_REVERSE = 3.0f;
 
 // ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4, pines 8-12
 // consecutivos)
@@ -112,6 +117,26 @@ void Shifter::update() {
   } else if (detectedGear != s.gear) {
     // La lectura coincide con pending pero aún no es el gear actual
     if (now - lastChangeMs >= DEBOUNCE_MS) {
+      
+      // 🔒 CRITICAL v2.18.3: PROTECCIÓN DE REVERSA (Failsafe mecánico)
+      // Evita engranar reversa a alta velocidad para proteger engranajes y drivers BTS7960
+      if (detectedGear == Shifter::R) {
+        // Calcular velocidad promedio de las 4 ruedas
+        float avgSpeed = 0.0f;
+        for (int i = 0; i < 4; i++) {
+          avgSpeed += Sensors::getWheelSpeed(i);
+        }
+        avgSpeed /= 4.0f;
+
+        // Validar umbral de seguridad
+        if (avgSpeed > MAX_SPEED_FOR_REVERSE) {
+          Logger::errorf("BLOQUEO SEGURIDAD: Intento de R a %.1f km/h (max %.1f km/h)", 
+                        avgSpeed, MAX_SPEED_FOR_REVERSE);
+          Alerts::play(Audio::AUDIO_ERROR);
+          detectedGear = Shifter::N; // Forzar Neutro por seguridad
+        }
+      }
+
       // Debounce completado, aceptar cambio
       s.gear = detectedGear;
       s.changed = true;
