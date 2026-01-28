@@ -59,6 +59,22 @@ void setup() {
     ;
   }
 
+  // 🔒 N16R8 CRITICAL: Initialize and verify PSRAM BEFORE any UI allocation
+  // The Octal PSRAM bus MUST be ready before TFT or HUD initialization
+  Serial.println("[BOOT] Initializing PSRAM (Octal mode)...");
+  if (!psramInit()) {
+    Serial.println("[BOOT] ❌ PSRAM INIT FAILED - SYSTEM HALTED");
+    Serial.println("[BOOT] This is CRITICAL for ESP32-S3 N16R8 (8MB OPI PSRAM)");
+    Serial.println("[BOOT] Check hardware configuration and memory_type=qio_opi");
+    Serial.flush();
+    // Halt system - cannot proceed without PSRAM
+    while (1) {
+      delay(1000);
+    }
+  }
+  Serial.printf("[BOOT] ✓ PSRAM initialized: %u bytes available\n", ESP.getPsramSize());
+  Serial.printf("[BOOT]   Free PSRAM: %u bytes\n", ESP.getFreePsram());
+
   Serial.println("[BOOT] Enabling TFT backlight...");
   pinMode(PIN_TFT_BL, OUTPUT);
   digitalWrite(PIN_TFT_BL, HIGH);

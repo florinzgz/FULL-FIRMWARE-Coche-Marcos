@@ -146,6 +146,11 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
   void *spriteBuffer =
       layerSprites[idx]->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
+    // 🔒 N16R8 CRITICAL: PSRAM allocation failed - diagnostic output
+    Serial.printf("[HudCompositor] PSRAM FAIL Layer %d - buffer is NULL\n", idx);
+    Serial.printf("  PSRAM found: %s\n", psramFound() ? "YES" : "NO");
+    Serial.printf("  Free PSRAM: %u bytes\n", ESP.getFreePsram());
+    Serial.printf("  Free Heap: %u bytes\n", ESP.getFreeHeap());
     Logger::errorf("HudCompositor: Failed to create sprite buffer for layer %d",
                    idx);
     delete layerSprites[idx];
@@ -517,6 +522,11 @@ bool HudCompositor::createShadowSprite() {
   // Create sprite buffer (16-bit color)
   void *spriteBuffer = shadowSprite->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
+    // 🔒 N16R8 CRITICAL: PSRAM allocation failed - diagnostic output
+    Serial.printf("[HudCompositor] PSRAM FAIL Shadow Sprite - buffer is NULL\n");
+    Serial.printf("  PSRAM found: %s\n", psramFound() ? "YES" : "NO");
+    Serial.printf("  Free PSRAM: %u bytes\n", ESP.getFreePsram());
+    Serial.printf("  Free Heap: %u bytes\n", ESP.getFreeHeap());
     BootGuard::setResetMarker(BootGuard::RESET_MARKER_NULL_POINTER);
     Logger::error("HudCompositor: Failed to create shadow sprite buffer");
     delete shadowSprite;
