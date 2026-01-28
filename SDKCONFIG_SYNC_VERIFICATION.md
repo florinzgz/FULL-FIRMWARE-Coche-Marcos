@@ -144,7 +144,7 @@ Los archivos de configuración tenían información **contradictoria** sobre el 
 #### default_16MB.csv ✅
 ```csv
 # ESP32-S3 16MB - Default Configuration
-# Flash: 16MB QD, PSRAM: 8MB OT  ← "OT" = Octal
+# Flash: 16MB QD, PSRAM: 8MB OT  ← Note: "OT" in partition comments = Octal
 nvs,        data, nvs,      0x9000,   0x5000
 coredump,   data, coredump, 0xE000,   0x10000
 app0,       app,  factory,  0x20000,  0xA00000
@@ -154,7 +154,7 @@ spiffs,     data, spiffs,   0xA20000, 0x5B0000
 #### partitions.csv ✅
 ```csv
 # ESP32-S3 16MB - Standalone (sin OTA)
-# Flash: 16MB QD, PSRAM: 8MB OT  ← "OT" = Octal
+# Flash: 16MB QD, PSRAM: 8MB OT  ← Note: "OT" in partition comments = Octal
 nvs,        data, nvs,      0x9000,   0x5000
 coredump,   data, coredump, 0xE000,   0x10000
 app0,       app,  factory,  0x20000,  0xA00000
