@@ -10,6 +10,9 @@ static constexpr uint32_t I2C_RETRY_INTERVAL_MS =
 static constexpr uint8_t MAX_RETRY_ATTEMPTS =
     3; // Maximum retry attempts before permanent failure
 
+// 🔒 CRITICAL v2.18.3: Spinlock for thread-safe mutex creation
+static portMUX_TYPE mcp_spinlock = portMUX_INITIALIZER_UNLOCKED;
+
 // Get singleton instance
 MCP23017Manager &MCP23017Manager::getInstance() {
   static MCP23017Manager instance;
@@ -25,14 +28,20 @@ bool MCP23017Manager::init() {
   mcpOK = false;
   return true;
 #else
-  // 🔒 CRITICAL v2.18.3: Create I2C mutex on first initialization
+  // 🔒 CRITICAL v2.18.3: Create I2C mutex on first initialization (thread-safe)
+  // Use critical section to prevent race condition if both cores call init simultaneously
   if (i2cMutex == nullptr) {
-    i2cMutex = xSemaphoreCreateMutex();
-    if (i2cMutex == nullptr) {
-      Logger::error("MCP23017Manager: Failed to create I2C mutex!");
-      return false;
+    portENTER_CRITICAL(&mcp_spinlock);
+    if (i2cMutex == nullptr) { // Double-check after acquiring lock
+      i2cMutex = xSemaphoreCreateMutex();
+      if (i2cMutex == nullptr) {
+        portEXIT_CRITICAL(&mcp_spinlock);
+        Logger::error("MCP23017Manager: Failed to create I2C mutex!");
+        return false;
+      }
+      Logger::info("MCP23017Manager: I2C mutex created for dual-core protection");
     }
-    Logger::info("MCP23017Manager: I2C mutex created for dual-core protection");
+    portEXIT_CRITICAL(&mcp_spinlock);
   }
 
   // Static variables persist across calls for retry state
@@ -45,7 +54,14 @@ bool MCP23017Manager::init() {
 
   // First attempt or not currently retrying
   if (!retrying) {
-    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+    // 🔒 CRITICAL v2.18.3: Protect I2C bus access during initialization
+    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+      mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+      xSemaphoreGive(i2cMutex);
+    } else {
+      Logger::error("MCP23017Manager: Init - I2C mutex timeout");
+      mcpOK = false;
+    }
 
     if (!mcpOK) {
       Logger::error("MCP23017Manager: Init FAIL - will retry asynchronously");
@@ -62,7 +78,14 @@ bool MCP23017Manager::init() {
 
   // Handle scheduled retry
   if (retrying && (millis() - retryTime >= I2C_RETRY_INTERVAL_MS)) {
-    mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+    // 🔒 CRITICAL v2.18.3: Protect I2C bus access during retry
+    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+      mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
+      xSemaphoreGive(i2cMutex);
+    } else {
+      Logger::error("MCP23017Manager: Retry - I2C mutex timeout");
+      mcpOK = false;
+    }
 
     if (mcpOK) {
       Logger::info("MCP23017Manager: Init successful on retry");
@@ -171,12 +194,15 @@ uint8_t MCP23017Manager::digitalRead(uint8_t pin) {
   }
   
   // 🔒 CRITICAL v2.18.3: Protect I2C access with mutex
+  // NOTE: On timeout, returns 0 (LOW) as fail-safe default
+  // This is intentional for safety-critical operations like shifter inputs
+  // where a timeout should default to the safe/inactive state
   uint8_t result = 0;
   if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     result = mcp.digitalRead(pin);
     xSemaphoreGive(i2cMutex);
   } else {
-    Logger::errorf("MCP23017Manager: digitalRead() I2C mutex timeout (pin=%d)", pin);
+    Logger::errorf("MCP23017Manager: digitalRead() I2C mutex timeout (pin=%d), returning fail-safe LOW", pin);
   }
   return result;
 #endif

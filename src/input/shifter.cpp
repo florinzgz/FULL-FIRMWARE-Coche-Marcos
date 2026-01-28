@@ -21,6 +21,10 @@ static Shifter::Gear pendingGear = Shifter::P;
 // No permitir cambio a R si la velocidad supera 3 km/h (protección mecánica)
 static constexpr float MAX_SPEED_FOR_REVERSE = 3.0f;
 
+// 🔒 v2.18.3: Cooldown para prevenir spam de alertas de seguridad
+static uint32_t lastSafetyBlockMs = 0;
+static constexpr uint32_t SAFETY_BLOCK_COOLDOWN_MS = 2000; // 2 segundos
+
 // ✅ v2.3.0: Todo el shifter ahora vía MCP23017 (GPIOB0-B4, pines 8-12
 // consecutivos)
 static MCP23017Manager *mcpManager = nullptr;
@@ -121,19 +125,39 @@ void Shifter::update() {
       // 🔒 CRITICAL v2.18.3: PROTECCIÓN DE REVERSA (Failsafe mecánico)
       // Evita engranar reversa a alta velocidad para proteger engranajes y drivers BTS7960
       if (detectedGear == Shifter::R) {
-        // Calcular velocidad promedio de las 4 ruedas
+        // Calcular velocidad promedio solo de ruedas funcionales
         float avgSpeed = 0.0f;
+        int validWheels = 0;
         for (int i = 0; i < 4; i++) {
-          avgSpeed += Sensors::getWheelSpeed(i);
+          if (Sensors::isWheelSensorOk(i)) {
+            avgSpeed += Sensors::getWheelSpeed(i);
+            validWheels++;
+          }
         }
-        avgSpeed /= 4.0f;
+        
+        // Requerir al menos 2 sensores válidos para validación confiable
+        if (validWheels >= 2) {
+          avgSpeed /= (float)validWheels;
 
-        // Validar umbral de seguridad
-        if (avgSpeed > MAX_SPEED_FOR_REVERSE) {
-          Logger::errorf("BLOQUEO SEGURIDAD: Intento de R a %.1f km/h (max %.1f km/h)", 
-                        avgSpeed, MAX_SPEED_FOR_REVERSE);
+          // Validar umbral de seguridad
+          if (avgSpeed > MAX_SPEED_FOR_REVERSE) {
+            uint32_t now = millis();
+            // Solo loggear/alertar si ha pasado el cooldown
+            if (now - lastSafetyBlockMs >= SAFETY_BLOCK_COOLDOWN_MS) {
+              Logger::errorf("BLOQUEO SEGURIDAD: Intento de R a %.1f km/h (max %.1f km/h)", 
+                            avgSpeed, MAX_SPEED_FOR_REVERSE);
+              Alerts::play(Audio::AUDIO_ERROR);
+              lastSafetyBlockMs = now;
+            }
+            detectedGear = Shifter::N; // Forzar Neutro por seguridad
+            pendingGear = Shifter::N;  // También actualizar pending para evitar re-detección
+          }
+        } else {
+          // Menos de 2 sensores funcionando: seguridad failsafe, bloquear reversa
+          Logger::error("BLOQUEO SEGURIDAD: Sensores de rueda insuficientes para reversa");
           Alerts::play(Audio::AUDIO_ERROR);
-          detectedGear = Shifter::N; // Forzar Neutro por seguridad
+          detectedGear = Shifter::N;
+          pendingGear = Shifter::N;
         }
       }
 

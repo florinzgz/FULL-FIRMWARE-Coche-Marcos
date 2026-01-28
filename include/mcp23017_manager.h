@@ -36,7 +36,9 @@ public:
   // Digital read (wraps mcp.digitalRead)
   uint8_t digitalRead(uint8_t pin);
 
-  // 🔒 v2.18.3: Get mutex handle for advanced operations (use with caution)
+  // 🔒 v2.18.3: Get mutex handle for advanced operations
+  // IMPORTANT: Only call this after successful init(). Returns nullptr if not initialized.
+  // Use with extreme caution - prefer using the wrapped pinMode/digitalWrite/digitalRead methods.
   SemaphoreHandle_t getMutex() const { return i2cMutex; }
 
 private:
