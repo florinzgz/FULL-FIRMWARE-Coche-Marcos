@@ -12,7 +12,7 @@
 The board configuration file `boards/esp32-s3-devkitc1-n16r8.json` was incorrectly configured with **QSPI PSRAM** settings, but the actual hardware eFuse data shows the device has **OPI PSRAM** (AP_3v3 vendor).
 
 This mismatch could cause:
-- ❌ Reduced PSRAM bandwidth (50% performance loss)
+- ❌ Reduced PSRAM bandwidth (50% performance loss: 40 MB/s vs 80 MB/s)
 - ❌ Potential boot failures or instability
 - ❌ Incorrect SDK variant selection
 
@@ -162,10 +162,10 @@ PlatformIO/ESP-IDF selects the SDK variant based on `memory_type`:
 **Wrong Configuration Impact:**
 ```c
 // With qio_qspi (WRONG):
-PSRAM bandwidth = 80 MHz × 4 bits = 320 Mbps
+PSRAM bandwidth = 80 MHz × 4 bits = 320 Mbit/s (40 MB/s)
 
 // With qio_opi (CORRECT):
-PSRAM bandwidth = 80 MHz × 8 bits = 640 Mbps
+PSRAM bandwidth = 80 MHz × 8 bits = 640 Mbit/s (80 MB/s)
 ```
 
 ---
@@ -261,7 +261,7 @@ The board configuration has been corrected to accurately reflect the **actual ha
 
 **Result:**
 - Configuration now matches eFuse data
-- Full PSRAM bandwidth available (640 Mbps vs 320 Mbps)
+- Full PSRAM bandwidth available (640 Mbit/s = 80 MB/s vs 320 Mbit/s = 40 MB/s)
 - Correct ESP-IDF SDK variant selection
 - Better performance for graphics and multitasking
 
