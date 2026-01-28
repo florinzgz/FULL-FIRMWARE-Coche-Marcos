@@ -117,10 +117,11 @@
 // UART0 (TOFSense-M S - Obstacle Detection LiDAR)
 // Baudrate: 115200, protocolo de 9 bytes (header 0x57)
 // El sensor solo tiene TX (salida), se conecta a GPIO44 RX del ESP32
-// GPIO43 TX no se usa pero se asigna para completar el par UART0
+// GPIO43 TX no se usa porque el sensor es unidireccional (solo transmite)
+// 🔒 N16R8 ARCHITECTURE FIX: TX pin not assigned (sensor doesn't have RX)
 // -----------------------
 #define PIN_TOFSENSE_TX                                                        \
-  43 // GPIO 43 - TX UART0 (ESP32 → Sensor RX, bidireccional)
+  -1 // Not used - sensor is TX-only (no RX input)
 #define PIN_TOFSENSE_RX                                                        \
   44 // GPIO 44 - RX UART0 (Sensor TX → ESP32, recibe datos)
 
@@ -251,16 +252,16 @@
 #define PIN_WHEEL_FL                                                           \
   7 // GPIO 7  - Wheel Front Left
 #define PIN_WHEEL_FR 2 // GPIO 2 - Wheel Front Right 🔒 Moved from GPIO 36 (OPI PSRAM)
-#define PIN_WHEEL_RL 15 // GPIO 15 - Wheel Rear Left
+#define PIN_WHEEL_RL 45 // GPIO 45 - Wheel Rear Left 🔒 Moved from GPIO 15 (conflict with TFT_CS)
 #define PIN_WHEEL_RR                                                           \
   46 // GPIO 46 - Wheel Rear Right 🔒 Moved from GPIO 1 (displaced by ENCODER_A)
 
 // -----------------------
 // Temperatura motores (4x DS18B20 OneWire)
 // Un sensor por motor de tracción, todos en bus paralelo
-// 🔒 N16R8 ARCHITECTURE FIX: Moved from GPIO 20 (needed for DFPLAYER)
+// 🔒 N16R8 ARCHITECTURE FIX: Moved from GPIO 20, then from GPIO 45 (needed for WHEEL_RL)
 // -----------------------
-#define PIN_ONEWIRE 45 // GPIO 45 - Bus OneWire 🔒 Moved from GPIO 20 (INPUT safe on strapping pin)
+#define PIN_ONEWIRE 48 // GPIO 48 - Bus OneWire 🔒 Moved from GPIO 45 (INPUT/OUTPUT safe)
 
 // ============================================================================
 // ENTRADAS DIGITALES - SHIFTER (vía MCP23017)
@@ -310,11 +311,11 @@
 // - v2.12.0: GPIO 18 liberado (UART1 para DFPlayer), PIN_LED_FRONT mantiene
 // GPIO 19
 // - v2.13.0: Confirmado GPIO 19 para LED_FRONT (8x8 matrix migration)
-// - 🔒 N16R8 FIX: PIN_LED_FRONT moved from GPIO 19 (needed for DFPLAYER)
+// - 🔒 N16R8 FIX: PIN_LED_FRONT moved from GPIO 19, PIN_LED_REAR moved from GPIO 48
 
 #define PIN_LED_FRONT 47 // GPIO 47 - LEDs frontales (28 LEDs) 🔒 Moved from GPIO 19
 #define PIN_LED_REAR                                                           \
-  48 // GPIO 48 - LEDs traseros (16 LEDs)
+  43 // GPIO 43 - LEDs traseros (16 LEDs) 🔒 Moved from GPIO 48 (displaced by ONEWIRE)
 #define NUM_LEDS_FRONT 28 // Cantidad LEDs frontales (sin cambio)
 #define NUM_LEDS_REAR 16  // Cantidad LEDs traseros (sin cambio)
 
@@ -379,13 +380,17 @@
 │ 40   │ KEY_ON                  │ Input     │ Ignition ON detection           │
 │ 41   │ KEY_OFF                 │ Input     │ Shutdown request                │
 │ 42   │ TFT_BL                  │ Output    │ Backlight PWM                   │
-│ 43   │ TOFSENSE_TX             │ Output    │ TOFSense TX (not used)          │
+│ 43   │ LED_REAR                │ Output    │ 🔒 Moved from GPIO 48           │
 │ 44   │ TOFSENSE_RX             │ Input     │ TOFSense RX LiDAR data          │
-│ 45   │ ONEWIRE                 │ I/O       │ 🔒 Moved from GPIO 20 (INPUT safe)│
+│ 45   │ WHEEL_RL                │ Input     │ 🔒 Moved from GPIO 15           │
 │ 46   │ WHEEL_RR                │ Input     │ 🔒 Moved from GPIO 1            │
 │ 47   │ LED_FRONT               │ Output    │ 🔒 Moved from GPIO 19           │
-│ 48   │ LED_REAR                │ Output    │ 16 LEDs traseros                │
+│ 48   │ ONEWIRE                 │ I/O       │ 🔒 Moved from GPIO 20, then 45  │
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
+
+Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
+      PIN_TOUCH_IRQ removed (using polling mode instead of interrupt)
+*/
 └──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
 
 MCP23017 (I²C 0x20) - Expansor GPIO:
