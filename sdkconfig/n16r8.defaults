@@ -1,6 +1,6 @@
 # ============================================================================
 # ESP32-S3 N16R8 SDK Configuration (Arduino-safe)
-# Hardware: ESP32-S3 DevKitC-1 N16R8 (16MB Flash + 8MB PSRAM OPI)
+# Hardware: ESP32-S3 DevKitC-1 N16R8 (16MB Flash + 8MB PSRAM QSPI)
 # ============================================================================
 
 # ================= PSRAM =================
