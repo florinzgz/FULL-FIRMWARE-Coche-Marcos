@@ -4,21 +4,18 @@
 # ============================================================================
 
 # ================= PSRAM =================
-# 🔒 v2.18.2: PSRAM re-enabled with correct configuration
-# Based on BOOTLOOP_STATUS_2026-01-18.md: bootloop was RESOLVED with PSRAM enabled
+# 🔒 v2.18.2+: CRITICAL BOOTLOOP FIX - Force OPI mode for N16R8 hardware
 # Hardware: ESP32-S3 N16R8 has 8MB PSRAM OPI (Octal, 8-bit) @ 80MHz - AP_3v3 vendor
-# Note: OPI PSRAM is configured via board JSON (memory_type: qio_opi, psram_type: opi)
-# The SDK configuration below enables PSRAM support without forcing specific mode
+# CRITICAL: Auto-detect disabled, Octal mode forced, memtest disabled to prevent WDT reset
 CONFIG_SPIRAM=y
-CONFIG_SPIRAM_TYPE_AUTO=y
+CONFIG_SPIRAM_TYPE_AUTO=n
+CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
-CONFIG_SPIRAM_MEMTEST=y
-# CRITICAL: Do NOT use CONFIG_SPIRAM_MODE_OCT here - mode is set by board JSON
-# Board memory_type (qio_opi) controls Flash QIO + PSRAM OPI configuration
-CONFIG_SPIRAM_IGNORE_NOTFOUND=y
+CONFIG_SPIRAM_MEMTEST=n
+CONFIG_SPIRAM_IGNORE_NOTFOUND=n
 
 # ================= Flash =================
 # 🔒 v2.18.2: QIO mode for optimal performance
