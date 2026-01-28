@@ -29,6 +29,11 @@ CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 
 # ================= Bootloader =================
+# 🔒 v2.18.2: Bootloader RTC watchdog - critical for slow PSRAM init
+# Default 9s can be too short for QIO Flash + QSPI PSRAM init
+# Increased to 40s to prevent bootloop during initialization
+CONFIG_BOOTLOADER_WDT_ENABLE=y
+CONFIG_BOOTLOADER_WDT_TIME_MS=40000
 CONFIG_BOOTLOADER_LOG_LEVEL_INFO=y
 CONFIG_BOOTLOADER_LOG_LEVEL=3
 
