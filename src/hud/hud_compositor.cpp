@@ -147,7 +147,8 @@ bool HudCompositor::createLayerSprite(HudLayer::Layer layer) {
       layerSprites[idx]->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
     // 🔒 N16R8 CRITICAL: PSRAM allocation failed - diagnostic output
-    Serial.printf("[HudCompositor] PSRAM FAIL Layer %d - buffer is NULL\n", idx);
+    Serial.printf("[HudCompositor] PSRAM FAIL Layer %d - buffer is NULL\n",
+                  idx);
     Serial.printf("  PSRAM found: %s\n", psramFound() ? "YES" : "NO");
     Serial.printf("  Free PSRAM: %u bytes\n", ESP.getFreePsram());
     Serial.printf("  Free Heap: %u bytes\n", ESP.getFreeHeap());
@@ -523,7 +524,8 @@ bool HudCompositor::createShadowSprite() {
   void *spriteBuffer = shadowSprite->createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
   if (!spriteBuffer) {
     // 🔒 N16R8 CRITICAL: PSRAM allocation failed - diagnostic output
-    Serial.printf("[HudCompositor] PSRAM FAIL Shadow Sprite - buffer is NULL\n");
+    Serial.printf(
+        "[HudCompositor] PSRAM FAIL Shadow Sprite - buffer is NULL\n");
     Serial.printf("  PSRAM found: %s\n", psramFound() ? "YES" : "NO");
     Serial.printf("  Free PSRAM: %u bytes\n", ESP.getFreePsram());
     Serial.printf("  Free Heap: %u bytes\n", ESP.getFreeHeap());
