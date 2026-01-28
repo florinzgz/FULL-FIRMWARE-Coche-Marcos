@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-08  
 **Status:** 📜 **HISTORICAL** - This document describes a fix for previous N32R16V hardware  
-**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB QSPI PSRAM @ 3.3V)
+**Current Hardware:** ESP32-S3 N16R8 (16MB QIO Flash + 8MB OPI PSRAM @ 3.3V)
 
 ---
 
@@ -12,8 +12,8 @@
 
 The firmware has been fully migrated to **ESP32-S3 N16R8** which uses:
 - 16MB QIO Flash (4-bit, 3.3V)
-- 8MB QSPI PSRAM (4-bit, 3.3V)
-- **No OPI mode** - standard QIO/QSPI only
+- 8MB OPI PSRAM (8-bit, 3.3V, AP_3v3 vendor)
+- **No OPI mode for Flash** - standard QIO only
 - **No eFuse issues** - uses standard configuration
 
 See [HARDWARE.md](HARDWARE.md) for current hardware specification.
