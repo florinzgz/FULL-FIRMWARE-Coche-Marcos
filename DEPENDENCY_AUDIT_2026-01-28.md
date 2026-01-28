@@ -87,12 +87,13 @@ Se ha realizado una auditoría completa de las dependencias del proyecto para ve
 - **Compatibilidad:** ✅ ESP32-S3 soportado
 - **Cambio Realizado:** 
   - ❌ **ANTES:** `https://github.com/WifWaf/TCA9548A` (Git URL sin versión)
-  - ✅ **AHORA:** `wifwaf/TCA9548A @ 1.1.3` (Versión pinneada)
+  - ✅ **AHORA:** `TCA9548A @ 1.1.3` (Versión pinneada)
 - **Impacto:** 
   - ✅ Builds reproducibles
   - ✅ No más cambios inesperados
   - ✅ Mejor gestión de dependencias
-- **Fuente:** wifwaf/TCA9548A
+- **Fuente:** TCA9548A (PlatformIO Registry)
+- **Nota:** La versión 1.1.3 es estable desde 2021. La biblioteca es madura y no requiere actualizaciones frecuentes para el caso de uso del proyecto (multiplexor I2C básico).
 
 ---
 
@@ -106,19 +107,19 @@ Se ha realizado una auditoría completa de las dependencias del proyecto para ve
 
 + lib_deps =
 +     ...
-+     wifwaf/TCA9548A @ 1.1.3
++     TCA9548A @ 1.1.3
 ```
 
 ### project_config.ini
 ```diff
 - i2c_mux = https://github.com/WifWaf/TCA9548A
-+ i2c_mux = wifwaf/TCA9548A @ 1.1.3
++ i2c_mux = TCA9548A @ 1.1.3
 ```
 
 ### docs/PROJECT_CONFIG.ini
 ```diff
 - i2c_mux = https://github.com/WifWaf/TCA9548A
-+ i2c_mux = wifwaf/TCA9548A @ 1.1.3
++ i2c_mux = TCA9548A @ 1.1.3
 ```
 
 ---
