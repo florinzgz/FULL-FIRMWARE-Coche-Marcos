@@ -1,7 +1,7 @@
 # ESP32-S3 Car Control System - FULL FIRMWARE
 
 **Versión:** 2.17.1 (PHASE 14)  
-**Hardware:** ESP32-S3 N16R8 (16MB Flash QIO + 8MB PSRAM QSPI @ 3.3V)  
+**Hardware:** ESP32-S3 N16R8 (16MB Flash QIO + 8MB PSRAM OPI @ 3.3V)  
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
 **Última actualización:** 2026-01-12
 
@@ -30,7 +30,7 @@ Sistema completo de control para vehículo eléctrico inteligente basado en ESP3
   - Compatible con placa de desarrollo ESP32-S3-DevKitC-1 (44 pines)
 - Cable USB para programación
 
-**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3 N16R8** con 16MB Flash QIO y 8MB PSRAM QSPI @ 3.3V. Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles de hardware.
+**⚠️ IMPORTANTE:** Este firmware está configurado específicamente para **ESP32-S3 N16R8** con 16MB Flash QIO y 8MB PSRAM OPI @ 3.3V. Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles de hardware.
 
 ### Compilación
 
@@ -143,7 +143,7 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 **Placa de desarrollo:** ESP32-S3-DevKitC-1 (44 pines)  
 **Memoria:**
 - Flash: 16MB (QIO mode, 4-bit, 3.3V)
-- PSRAM: 8MB (QSPI mode, 4-bit, 3.3V, AP_3v3)
+- PSRAM: 8MB (OPI mode, 8-bit, 3.3V, AP_3v3)
 
 ⚠️ **IMPORTANTE:** Ver [PHASE14_N16R8_BOOT_CERTIFICATION.md](PHASE14_N16R8_BOOT_CERTIFICATION.md) para detalles completos de hardware y certificación de boot.
 
@@ -215,7 +215,7 @@ CONFIG_ESP_IPC_TASK_STACK_SIZE=3072    ; 3 KB
 
 - ✅ **Hardware Migrado:** Firmware ahora ejecuta exclusivamente en ESP32-S3 N16R8
   - 16MB Flash QIO (4-bit, 3.3V)
-  - 8MB PSRAM QSPI (4-bit, 3.3V)
+  - 8MB PSRAM OPI (8-bit, 3.3V, AP_3v3 vendor)
 - 🔄 **Configuración Unificada:** Eliminados todos los restos de N32R16V (32MB OPI)
 - ⚡ **Mayor Confiabilidad:** Dominio único de voltaje 3.3V (no más 1.8V)
 - 📦 **Nuevas Particiones:** Tablas de partición optimizadas para 16MB flash
