@@ -121,9 +121,10 @@ void Shifter::update() {
   } else if (detectedGear != s.gear) {
     // La lectura coincide con pending pero aún no es el gear actual
     if (now - lastChangeMs >= DEBOUNCE_MS) {
-      
+
       // 🔒 CRITICAL v2.18.3: PROTECCIÓN DE REVERSA (Failsafe mecánico)
-      // Evita engranar reversa a alta velocidad para proteger engranajes y drivers BTS7960
+      // Evita engranar reversa a alta velocidad para proteger engranajes y
+      // drivers BTS7960
       if (detectedGear == Shifter::R) {
         // Calcular velocidad promedio solo de ruedas funcionales
         float avgSpeed = 0.0f;
@@ -134,7 +135,7 @@ void Shifter::update() {
             validWheels++;
           }
         }
-        
+
         // Requerir al menos 2 sensores válidos para validación confiable
         if (validWheels >= 2) {
           avgSpeed /= (float)validWheels;
@@ -144,17 +145,21 @@ void Shifter::update() {
             uint32_t now = millis();
             // Solo loggear/alertar si ha pasado el cooldown
             if (now - lastSafetyBlockMs >= SAFETY_BLOCK_COOLDOWN_MS) {
-              Logger::errorf("BLOQUEO SEGURIDAD: Intento de R a %.1f km/h (max %.1f km/h)", 
-                            avgSpeed, MAX_SPEED_FOR_REVERSE);
+              Logger::errorf(
+                  "BLOQUEO SEGURIDAD: Intento de R a %.1f km/h (max %.1f km/h)",
+                  avgSpeed, MAX_SPEED_FOR_REVERSE);
               Alerts::play(Audio::AUDIO_ERROR);
               lastSafetyBlockMs = now;
             }
             detectedGear = Shifter::N; // Forzar Neutro por seguridad
-            pendingGear = Shifter::N;  // También actualizar pending para evitar re-detección
+            pendingGear = Shifter::N; // También actualizar pending para evitar
+                                      // re-detección
           }
         } else {
-          // Menos de 2 sensores funcionando: seguridad failsafe, bloquear reversa
-          Logger::error("BLOQUEO SEGURIDAD: Sensores de rueda insuficientes para reversa");
+          // Menos de 2 sensores funcionando: seguridad failsafe, bloquear
+          // reversa
+          Logger::error("BLOQUEO SEGURIDAD: Sensores de rueda insuficientes "
+                        "para reversa");
           Alerts::play(Audio::AUDIO_ERROR);
           detectedGear = Shifter::N;
           pendingGear = Shifter::N;

@@ -9,10 +9,11 @@
  *
  * Prevents I2C conflicts by ensuring only ONE instance manages the device.
  * Multiple modules (shifter, traction, steering) share access via this manager.
- * 
+ *
  * 🔒 CRITICAL v2.18.3: I2C mutex protection for dual-core concurrency
  * Core 0 (sensors/control) and Core 1 (HUD) both access the I2C bus.
- * Without mutex protection, concurrent access causes bus collapse and system freeze.
+ * Without mutex protection, concurrent access causes bus collapse and system
+ * freeze.
  */
 class MCP23017Manager {
 public:
@@ -37,8 +38,9 @@ public:
   uint8_t digitalRead(uint8_t pin);
 
   // 🔒 v2.18.3: Get mutex handle for advanced operations
-  // IMPORTANT: Only call this after successful init(). Returns nullptr if not initialized.
-  // Use with extreme caution - prefer using the wrapped pinMode/digitalWrite/digitalRead methods.
+  // IMPORTANT: Only call this after successful init(). Returns nullptr if not
+  // initialized. Use with extreme caution - prefer using the wrapped
+  // pinMode/digitalWrite/digitalRead methods.
   SemaphoreHandle_t getMutex() const { return i2cMutex; }
 
 private:
@@ -59,6 +61,7 @@ private:
   bool initialized = false;
 
   // 🔒 CRITICAL v2.18.3: I2C bus mutex for dual-core protection
-  // Protects MCP23017 I2C operations from concurrent access by Core 0 and Core 1
+  // Protects MCP23017 I2C operations from concurrent access by Core 0 and Core
+  // 1
   SemaphoreHandle_t i2cMutex = nullptr;
 };

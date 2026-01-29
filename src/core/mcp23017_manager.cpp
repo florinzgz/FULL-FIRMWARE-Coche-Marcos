@@ -29,7 +29,8 @@ bool MCP23017Manager::init() {
   return true;
 #else
   // 🔒 CRITICAL v2.18.3: Create I2C mutex on first initialization (thread-safe)
-  // Use critical section to prevent race condition if both cores call init simultaneously
+  // Use critical section to prevent race condition if both cores call init
+  // simultaneously
   if (i2cMutex == nullptr) {
     portENTER_CRITICAL(&mcp_spinlock);
     if (i2cMutex == nullptr) { // Double-check after acquiring lock
@@ -39,7 +40,8 @@ bool MCP23017Manager::init() {
         Logger::error("MCP23017Manager: Failed to create I2C mutex!");
         return false;
       }
-      Logger::info("MCP23017Manager: I2C mutex created for dual-core protection");
+      Logger::info(
+          "MCP23017Manager: I2C mutex created for dual-core protection");
     }
     portEXIT_CRITICAL(&mcp_spinlock);
   }
@@ -55,7 +57,8 @@ bool MCP23017Manager::init() {
   // First attempt or not currently retrying
   if (!retrying) {
     // 🔒 CRITICAL v2.18.3: Protect I2C bus access during initialization
-    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    if (i2cMutex != nullptr &&
+        xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
       mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
       xSemaphoreGive(i2cMutex);
     } else {
@@ -79,7 +82,8 @@ bool MCP23017Manager::init() {
   // Handle scheduled retry
   if (retrying && (millis() - retryTime >= I2C_RETRY_INTERVAL_MS)) {
     // 🔒 CRITICAL v2.18.3: Protect I2C bus access during retry
-    if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    if (i2cMutex != nullptr &&
+        xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
       mcpOK = mcp.begin_I2C(I2C_ADDR_MCP23017);
       xSemaphoreGive(i2cMutex);
     } else {
@@ -146,13 +150,15 @@ void MCP23017Manager::pinMode(uint8_t pin, uint8_t mode) {
         "MCP23017Manager: pinMode() called but device not ready (pin=%d)", pin);
     return;
   }
-  
+
   // 🔒 CRITICAL v2.18.3: Protect I2C access with mutex
-  if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+  if (i2cMutex != nullptr &&
+      xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     mcp.pinMode(pin, mode);
     xSemaphoreGive(i2cMutex);
   } else {
-    Logger::errorf("MCP23017Manager: pinMode() I2C mutex timeout (pin=%d)", pin);
+    Logger::errorf("MCP23017Manager: pinMode() I2C mutex timeout (pin=%d)",
+                   pin);
   }
 #endif
 }
@@ -169,13 +175,15 @@ void MCP23017Manager::digitalWrite(uint8_t pin, uint8_t value) {
         pin);
     return;
   }
-  
+
   // 🔒 CRITICAL v2.18.3: Protect I2C access with mutex
-  if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+  if (i2cMutex != nullptr &&
+      xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     mcp.digitalWrite(pin, value);
     xSemaphoreGive(i2cMutex);
   } else {
-    Logger::errorf("MCP23017Manager: digitalWrite() I2C mutex timeout (pin=%d)", pin);
+    Logger::errorf("MCP23017Manager: digitalWrite() I2C mutex timeout (pin=%d)",
+                   pin);
   }
 #endif
 }
@@ -192,17 +200,20 @@ uint8_t MCP23017Manager::digitalRead(uint8_t pin) {
         pin);
     return 0;
   }
-  
+
   // 🔒 CRITICAL v2.18.3: Protect I2C access with mutex
   // NOTE: On timeout, returns 0 (LOW) as fail-safe default
   // This is intentional for safety-critical operations like shifter inputs
   // where a timeout should default to the safe/inactive state
   uint8_t result = 0;
-  if (i2cMutex != nullptr && xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+  if (i2cMutex != nullptr &&
+      xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     result = mcp.digitalRead(pin);
     xSemaphoreGive(i2cMutex);
   } else {
-    Logger::errorf("MCP23017Manager: digitalRead() I2C mutex timeout (pin=%d), returning fail-safe LOW", pin);
+    Logger::errorf("MCP23017Manager: digitalRead() I2C mutex timeout (pin=%d), "
+                   "returning fail-safe LOW",
+                   pin);
   }
   return result;
 #endif

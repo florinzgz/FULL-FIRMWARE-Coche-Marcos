@@ -253,13 +253,14 @@
 // 6 tornillos por rueda = 6 pulsos/revolución
 // Ordenados: FL, FR, RL, RR
 // 🔒 N16R8 ARCHITECTURE FIX: Moved away from OPI PSRAM bus (GPIO 33-37)
-// 
+//
 // ⚠️ CRITICAL v2.18.3: GPIO 45/46 STRAPPING PIN HARDWARE REQUIREMENT
 // PIN_WHEEL_RL (GPIO 45) y PIN_WHEEL_RR (GPIO 46) son pines de booteo.
 // OBLIGATORIO: Instalar pull-up resistor externo de 4.7kΩ a 3.3V en cada pin
 // para forzar nivel HIGH durante el arranque del ESP32, evitando que el sensor
-// inductivo active el pin a GND y cause boot en modo VDD_SPI voltage select o ROM log.
-// Sin estos pull-ups, el coche podría NO ARRANCAR si hay metal cerca de los sensores.
+// inductivo active el pin a GND y cause boot en modo VDD_SPI voltage select o
+// ROM log. Sin estos pull-ups, el coche podría NO ARRANCAR si hay metal cerca
+// de los sensores.
 // -----------------------
 #define PIN_WHEEL_FL 7 // GPIO 7  - Wheel Front Left
 #define PIN_WHEEL_FR                                                           \
