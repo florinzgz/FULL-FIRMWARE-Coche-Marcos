@@ -8,6 +8,67 @@
 
 ---
 
+## 📄 RESUMEN EJECUTIVO
+
+### Visión General
+
+Este documento define la arquitectura de migración de un sistema monolítico basado en ESP32-S3 hacia una arquitectura distribuida dual-MCU que incorpora un STM32G474RE como controlador de seguridad dedicado. La migración está diseñada para mejorar el determinismo del sistema, la seguridad funcional y la escalabilidad del firmware del vehículo eléctrico, manteniendo la compatibilidad total con el firmware existente durante todas las fases.
+
+### Arquitectura Objetivo: División de Responsabilidades
+
+**ESP32-S3 N16R8 (Subsistema de Interfaz Humano-Máquina):**
+- Gestión completa de la interfaz de usuario: Display TFT 480×320, touchscreen capacitivo XPT2046, reproducción de audio mediante DFPlayer Mini, y control de 44 LEDs WS2812B para realimentación visual
+- Funciones de supervisión del sistema: detección de obstáculos mediante sensores ultrasónicos, diagnóstico en tiempo real, gestión de configuración persistente en memoria NVS
+- Comunicación inalámbrica: capacidad WiFi/BLE (reservada para fases futuras)
+- Rol en la arquitectura: **Periférico de visualización y configuración**, sin autoridad sobre funciones críticas de seguridad
+
+**STM32G474RE (Subsistema de Control y Seguridad):**
+- Control en tiempo real estricto de cinco motores: cuatro motores de tracción independientes con control FOC (Field-Oriented Control) y un motor de dirección con retroalimentación encoder (360 PPR)
+- Adquisición continua de sensores críticos: cuatro sensores de velocidad de ruedas, cuatro canales de medición de corriente mediante INA226, cuatro sensores de temperatura DS18B20, sensor analógico de pedal Hall, selector de marcha (F/N/R)
+- Sistemas de seguridad activa: ABS (Anti-lock Braking System) con modulación individual de ruedas, TCS (Traction Control System) con limitación de deslizamiento
+- Protecciones de hardware: gestión de tres relés de potencia, límites de sobrecorriente, límites de sobretemperatura, watchdog independiente
+- Rol en la arquitectura: **Controlador de seguridad con autoridad final**, garantiza operación determinista y failsafe
+
+### Protocolo de Comunicación
+
+La comunicación entre ambos microcontroladores se realiza mediante bus CAN (Controller Area Network) a 500 kbps, utilizando transceptores TJA1051T/3. El protocolo implementa:
+
+- **Heartbeat bidireccional:** Mensajes periódicos de supervisión (10 Hz) que garantizan la operatividad de ambos controladores, con timeouts de 500 ms que disparan estados de seguridad
+- **Arquitectura comando-telemetría:** El ESP32 solicita acciones mediante comandos CAN; el STM32 valida, ejecuta y reporta el estado real mediante telemetría periódica
+- **Sistema ACK con códigos de rechazo:** Cada comando recibe confirmación explícita, incluyendo razones detalladas de rechazo (fuera de rango, estado no listo, condiciones de seguridad, relés inactivos)
+- **Priorización de mensajes:** Heartbeats y alertas de seguridad utilizan IDs de alta prioridad CAN para garantizar latencia mínima
+
+### Estrategia de Migración en Cinco Fases (0-4)
+
+**FASE 0 - Shadow Mode (Sin Cambios en Producción):**
+El STM32 opera en paralelo al ESP32, recibiendo copia de todos los comandos y sensores, ejecutando toda la lógica de control pero **sin accionar hardware real**. Esta fase valida la correctitud funcional del firmware STM32 sin riesgo para el sistema en producción. El ESP32 mantiene control completo del vehículo.
+
+**FASE 1 - Control Compartido de Motores:**
+Transferencia gradual del control de motores al STM32, comenzando por los motores de tracción, seguido por el motor de dirección. El ESP32 envía comandos de velocidad y ángulo; el STM32 ejecuta el control PWM, la retroalimentación PID y la adquisición de encoders. Ambos sistemas mantienen capacidad de emergency stop.
+
+**FASE 2 - Transferencia de Sensores Críticos:**
+Migración de la lectura de sensores de corriente (INA226), temperatura (DS18B20), y velocidad de ruedas del ESP32 al STM32. El STM32 pasa a ser la fuente autoritativa de telemetría crítica, garantizando lecturas deterministas sin interferencia del rendering de UI.
+
+**FASE 3 - Sistemas de Seguridad Activa:**
+Activación de los sistemas ABS y TCS en el STM32, que pasan a modular el control de motores en tiempo real sin intervención del ESP32. Implementación de límites de sobrecorriente y sobretemperatura con acción autónoma del STM32.
+
+**FASE 4 - Arquitectura Completa con Failover:**
+El STM32 opera de forma completamente autónoma, capaz de mantener el vehículo en estado seguro (SAFE_STOP) incluso ante fallo total del ESP32. El ESP32 queda reducido a rol de HMI pura, sin participación en decisiones críticas de seguridad.
+
+### Garantías de Seguridad y No-Regresión
+
+**Principio de Autoridad Única:** En toda situación de conflicto entre ESP32 y STM32, el STM32 tiene autoridad final. Puede rechazar comandos, aplicar limitaciones de seguridad, o forzar SAFE_STOP sin consultar al ESP32.
+
+**Validación Multi-Nivel:** Cada comando recibido por el STM32 atraviesa cuatro capas de validación: (1) rango de valores aceptables, (2) compatibilidad con estado actual del sistema, (3) verificación de condiciones de seguridad (corriente, temperatura), (4) confirmación de prerrequisitos de hardware (relés activos). Cualquier fallo rechaza el comando con código de error específico.
+
+**Dead Man Switch:** Timeout de heartbeat de 500 ms activa automáticamente el estado SAFE_STOP en el STM32, deteniendo motores, desconectando relés de tracción y manteniendo dirección en posición segura. No requiere intervención del ESP32.
+
+**Rollback Garantizado:** Cada fase de migración incluye capacidad de rollback al comportamiento de fase anterior mediante flags de configuración, sin necesidad de recompilar firmware. Permite revertir instantáneamente ante cualquier regresión funcional.
+
+**Trazabilidad Completa:** Todos los eventos de seguridad (SAFE_STOP, rechazos de comandos, timeouts de heartbeat, alertas de sobrecorriente/temperatura) quedan registrados con timestamp en logs persistentes tanto en STM32 como en ESP32, permitiendo análisis forense post-incidente.
+
+---
+
 ## 📋 TABLA DE CONTENIDOS
 
 1. [Contexto del Sistema](#1-contexto-del-sistema)
@@ -20,9 +81,10 @@
 8. [Reglas de Autoridad](#8-reglas-de-autoridad)
 9. [Seguridad Funcional](#9-seguridad-funcional)
 10. [Gestión de Configuración](#10-gestión-de-configuración)
-11. [Criterios de Validación](#11-criterios-de-validación)
-12. [Riesgos y Mitigaciones](#12-riesgos-y-mitigaciones)
-13. [Referencias](#13-referencias)
+11. [Matriz de Gestión de Fallos](#11-matriz-de-gestión-de-fallos)
+12. [Criterios de Validación](#12-criterios-de-validación)
+13. [Riesgos y Mitigaciones](#13-riesgos-y-mitigaciones)
+14. [Referencias](#14-referencias)
 
 ---
 
@@ -401,31 +463,21 @@ TOTAL: ~5% de carga del bus → MUY SEGURO (objetivo <30%)
 
 ### 4.1 Diagrama de Bloques Detallado
 
-```
-1. ESP32 arranca
-2. ESP32 inicializa periférico TWAI
-3. ESP32 espera HEARTBEAT de STM32 (timeout 5s)
-4. Si timeout → ESP32 muestra error "STM32 no disponible"
-5. STM32 arranca
-6. STM32 inicializa periférico FDCAN1
-7. STM32 comienza envío HEARTBEAT
-8. ESP32 recibe HEARTBEAT de STM32
-9. ESP32 inicia secuencia de configuración:
-    a. Envía CFG_PID_TRACTION (0x300, 0x301)
-    b. Espera CFG_ACK
-    c. Envía CFG_PID_STEERING (0x302, 0x303)
-    d. Espera CFG_ACK
-    e. Envía CFG_CURRENT_LIMITS (0x310, 0x311)
-    f. Espera CFG_ACK
-    g. Envía CFG_TEMP_LIMITS (0x320)
-    h. Espera CFG_ACK
-    i. Envía CFG_ABS_PARAMS (0x330)
-    j. Espera CFG_ACK
-    k. Envía CFG_TCS_PARAMS (0x331)
-    l. Espera CFG_ACK
-10. Si todas las configuraciones ACK OK → Sistema READY
-11. Si alguna falla → Reintentar 3 veces → Error si falla
-```
+**Secuencia de Arranque e Inicialización del Sistema:**
+
+1. **Fase de Boot del ESP32:** El ESP32 ejecuta su secuencia de arranque completa, inicializa el periférico TWAI (CAN nativo del ESP32) configurado a 500 kbps, y entra en estado de espera activa para detectar el heartbeat del STM32
+2. **Detección de STM32:** El ESP32 espera hasta 5 segundos para recibir el primer mensaje de heartbeat del STM32. Si transcurre el timeout sin recepción, el sistema entra en modo degradado mostrando error "STM32 no disponible" en pantalla
+3. **Fase de Boot del STM32:** De forma independiente, el STM32 ejecuta su secuencia de arranque, inicializa el periférico FDCAN1 (CAN-FD compatible con CAN clásico) a 500 kbps, y comienza transmisión periódica de heartbeat a 10 Hz
+4. **Establecimiento de Comunicación:** Al recibir el heartbeat del STM32, el ESP32 confirma la disponibilidad del controlador de seguridad y procede a la secuencia de configuración inicial
+5. **Secuencia de Configuración Multi-Parámetro:** El ESP32 transmite secuencialmente seis grupos de parámetros de configuración, esperando confirmación ACK del STM32 tras cada envío:
+   - Parámetros PID de tracción (Kp, Ki, Kd para los cuatro motores) mediante mensajes CAN ID 0x300-0x301
+   - Parámetros PID de dirección (Kp, Ki, Kd para el servomotor de dirección) mediante mensajes CAN ID 0x302-0x303
+   - Límites de corriente máxima por motor y corriente total del sistema mediante mensajes CAN ID 0x310-0x311
+   - Límites de temperatura crítica y temperatura de advertencia mediante mensaje CAN ID 0x320
+   - Parámetros del sistema ABS (umbral de deslizamiento, frecuencia de modulación) mediante mensaje CAN ID 0x330
+   - Parámetros del sistema TCS (umbral de tracción, ganancia de control) mediante mensaje CAN ID 0x331
+6. **Validación de Configuración Completa:** Si todos los mensajes de configuración reciben ACK_OK del STM32, el sistema transiciona al estado READY y habilita el control operativo
+7. **Gestión de Fallos de Configuración:** Si algún parámetro es rechazado por el STM32 (valores fuera de rango, incompatibilidad de configuración), el ESP32 reintenta el envío hasta tres veces. Si persiste el fallo, el sistema entra en estado de error seguro y requiere intervención del usuario
 
 ---
 
@@ -447,46 +499,21 @@ TOTAL: ~5% de carga del bus → MUY SEGURO (objetivo <30%)
 
 ### 8.2 Validación de Comandos en STM32
 
-El STM32 **SIEMPRE** valida comandos recibidos antes de ejecutarlos:
+El STM32 **SIEMPRE** valida comandos recibidos antes de ejecutarlos mediante un proceso de validación multi-capa:
 
-```c
-// Pseudocódigo STM32:
-void can_command_handler(CAN_Message* msg) {
-    switch(msg->id) {
-        case CMD_SET_TRACTION_SPEED:
-            float requested_speed = *(float*)msg->data;
-            
-            // Validación 1: Rango
-            if (requested_speed < -MAX_SPEED || requested_speed > MAX_SPEED) {
-                send_ack(msg->id, ACK_REJECTED_OUT_OF_RANGE);
-                return;
-            }
-            
-            // Validación 2: Estado del sistema
-            if (system_state != STATE_READY) {
-                send_ack(msg->id, ACK_REJECTED_SYSTEM_NOT_READY);
-                return;
-            }
-            
-            // Validación 3: Seguridad
-            if (temperature_too_high() || current_too_high()) {
-                send_ack(msg->id, ACK_REJECTED_SAFETY);
-                return;
-            }
-            
-            // Validación 4: Relés activos
-            if (!relay_traction_is_on()) {
-                send_ack(msg->id, ACK_REJECTED_RELAY_OFF);
-                return;
-            }
-            
-            // Todas las validaciones OK → Ejecutar
-            set_traction_speed_internal(requested_speed);
-            send_ack(msg->id, ACK_OK);
-            break;
-    }
-}
-```
+**Arquitectura de Validación de Comandos:**
+
+El módulo de recepción CAN del STM32 implementa una cadena de validación secuencial para cada comando recibido del ESP32. La validación sigue una arquitectura de cuatro niveles obligatorios:
+
+1. **Validación de Rango de Valores:** El STM32 verifica que el valor solicitado se encuentre dentro de los límites configurables del sistema. Por ejemplo, para un comando de velocidad de tracción, se valida que la velocidad solicitada esté entre -MAX_SPEED y +MAX_SPEED (tanto en avance como en retroceso). Si el valor excede los límites, se envía respuesta ACK_REJECTED_OUT_OF_RANGE y el comando se descarta sin ejecución
+
+2. **Verificación de Estado del Sistema:** Se comprueba que el sistema se encuentra en un estado compatible con la ejecución del comando. Comandos de movimiento solo son aceptados si el sistema está en estado STATE_READY. Comandos recibidos durante estados STATE_INITIALIZING, STATE_ERROR o STATE_SAFE_STOP son rechazados con código ACK_REJECTED_SYSTEM_NOT_READY
+
+3. **Evaluación de Condiciones de Seguridad:** El STM32 consulta los sensores críticos para verificar que no existan condiciones de peligro activas. Se rechazan comandos de movimiento si: (a) la temperatura de cualquier motor supera el umbral de advertencia, (b) la corriente total del sistema supera el 90% del límite máximo, (c) existe una alerta activa de sobrecorriente en cualquier canal. El rechazo se notifica con código ACK_REJECTED_SAFETY
+
+4. **Confirmación de Prerrequisitos de Hardware:** Se verifica que todos los componentes de hardware necesarios para ejecutar el comando están activos y operativos. Por ejemplo, comandos de tracción requieren que el relé de potencia de tracción esté energizado. Si los relés necesarios están desactivados, se rechaza con código ACK_REJECTED_RELAY_OFF
+
+**Flujo de Decisión:** Si cualquiera de las cuatro validaciones falla, el comando se rechaza inmediatamente y se envía un mensaje ACK con el código de error específico al ESP32. Solo si las cuatro validaciones son exitosas, el comando se ejecuta y se envía ACK_OK. Esta arquitectura garantiza que ningún comando inseguro o inválido alcance los actuadores del sistema.
 
 ### 8.3 Rechazo de Comandos
 
@@ -506,46 +533,48 @@ CAN ID 0x220: ACK_COMMAND
         0xFF = REJECTED_UNKNOWN_ERROR
 ```
 
-El ESP32 debe manejar estos rechazos y mostrarlos al usuario:
+El ESP32 debe gestionar los rechazos de comandos y proporcionar retroalimentación apropiada al usuario:
 
-```cpp
-// En ESP32:
-void handle_command_ack(CAN_Message* msg) {
-    uint16_t cmd_id = msg->data[0] | (msg->data[1] << 8);
-    uint8_t status = msg->data[2];
-    
-    if (status != ACK_OK) {
-        // Comando rechazado
-        const char* reason = get_rejection_reason_string(status);
-        hud_show_error("Comando rechazado: %s", reason);
-        audio_play_error_beep();
-        
-        // NO actualizar UI con estado solicitado
-        // Mantener último estado confirmado
-    } else {
-        // Comando aceptado
-        // Esperar telemetría para actualizar UI
-    }
-}
-```
+**Arquitectura de Manejo de Respuestas ACK en ESP32:**
+
+El módulo de recepción CAN del ESP32 implementa un handler de mensajes ACK que procesa las respuestas del STM32 tras cada comando enviado. La arquitectura distingue dos flujos principales:
+
+**Flujo de Comando Rechazado (status ≠ ACK_OK):**
+1. Extracción del código de rechazo desde el byte de estado del mensaje ACK
+2. Traducción del código numérico a cadena descriptiva legible para el usuario (mediante tabla de lookup de códigos de error)
+3. Presentación visual de error en la interfaz HMI: mensaje modal con descripción específica del rechazo
+4. Notificación auditiva mediante reproducción de tono de error en DFPlayer Mini
+5. **Crítico:** La interfaz NO actualiza los controles visuales con el valor solicitado; mantiene la representación del último estado confirmado por telemetría del STM32
+6. Registro del evento de rechazo en log local del ESP32 para análisis posterior
+
+**Flujo de Comando Aceptado (status = ACK_OK):**
+1. Confirmación interna de que el comando fue aceptado por el STM32
+2. La interfaz entra en modo de espera de telemetría: NO actualiza inmediatamente los indicadores visuales
+3. Los indicadores de estado solo se actualizan cuando llega el mensaje de telemetría periódica del STM32 confirmando el nuevo estado real del sistema
+4. Esta arquitectura garantiza que la UI siempre refleja el estado real del hardware, nunca el estado solicitado pero no confirmado
+
+Esta separación entre confirmación de comando (ACK) y actualización de UI (telemetría) previene condiciones de race y garantiza que la interfaz refleja la verdad del sistema físico.
 
 ### 8.4 Conflictos de Autoridad
 
-**Escenario:** Usuario solicita velocidad 50 km/h, pero STM32 detecta sobrecorriente.
+**Escenario de Ejemplo: Limitación Dinámica por Seguridad**
 
-```
-1. ESP32 envía: CMD_SET_TRACTION_SPEED = 50 km/h
-2. STM32 detecta corriente > límite
-3. STM32 limita velocidad a 30 km/h (internamente)
-4. STM32 envía: ACK_OK (acepta comando pero con limitación)
-5. STM32 envía: STATUS_TRACTION = 30 km/h (velocidad real aplicada)
-6. STM32 envía: SAFETY_ALERT = OVER_CURRENT
-7. ESP32 muestra:
-    - Velocidad actual: 30 km/h (no 50)
-    - Alerta: "Corriente elevada - Velocidad limitada"
-```
+Consideremos la situación donde el usuario solicita una velocidad de tracción de 50 km/h, pero el STM32 detecta una condición de sobrecorriente que hace insegura esa velocidad.
 
-**Principio:** STM32 tiene autoridad final. Puede aceptar un comando pero aplicarlo de forma limitada por seguridad.
+**Flujo de Resolución de Conflicto:**
+
+1. **Solicitud del Usuario:** El ESP32 transmite mensaje CAN CMD_SET_TRACTION_SPEED con payload conteniendo el valor 50 km/h solicitado por el usuario
+2. **Detección de Condición Limitante:** El STM32, durante el proceso de validación del comando, detecta que la corriente total del sistema está cerca del límite máximo permitido (por ejemplo, 85% del límite de 40A)
+3. **Aplicación de Limitación de Seguridad:** El STM32 acepta el comando pero aplica internamente una limitación dinámica, reduciendo la velocidad objetivo a 30 km/h para mantener la corriente dentro de márgenes seguros
+4. **Confirmación de Aceptación:** El STM32 envía mensaje ACK_OK al ESP32, indicando que el comando fue aceptado (aunque con limitación interna aplicada)
+5. **Reporte de Estado Real:** El STM32 envía mensaje de telemetría STATUS_TRACTION con el valor real aplicado de 30 km/h (no los 50 km/h solicitados)
+6. **Notificación de Alerta:** El STM32 transmite mensaje SAFETY_ALERT con código OVER_CURRENT, informando al ESP32 de la razón de la limitación
+7. **Presentación en HMI:** El ESP32 actualiza la interfaz mostrando:
+   - Indicador de velocidad actual: 30 km/h (valor real del sistema)
+   - Banner de alerta: "Corriente elevada - Velocidad limitada automáticamente"
+   - Indicador visual (LED/color) de advertencia de sobrecorriente
+
+**Principio Arquitectónico:** El STM32 mantiene autoridad final sobre todas las acciones de control. Puede aceptar comandos del ESP32 pero aplicar limitaciones de seguridad de forma autónoma y transparente. El ESP32 debe presentar siempre el estado real del sistema (según telemetría), nunca el estado solicitado pero no confirmado.
 
 ---
 
@@ -553,112 +582,80 @@ void handle_command_ack(CAN_Message* msg) {
 
 ### 9.1 Dead Man Switch (Heartbeat Monitor)
 
-**Implementación en STM32:**
+**Arquitectura del Monitor de Heartbeat en STM32:**
 
-```c
-#define HEARTBEAT_TIMEOUT_MS 500
+El STM32 implementa un sistema de monitorización continua de heartbeat (dead man switch) para detectar fallos del ESP32. El sistema opera con las siguientes características arquitectónicas:
 
-uint32_t last_heartbeat_esp32_time = 0;
+**Parámetros del Sistema:**
+- Timeout de heartbeat configurado a 500 milisegundos (máximo tiempo permitido sin recibir heartbeat del ESP32)
+- Periodo de verificación de 50 milisegundos (frecuencia de comprobación del estado del heartbeat)
 
-void heartbeat_monitor_task() {
-    while(1) {
-        uint32_t now = millis();
-        uint32_t elapsed = now - last_heartbeat_esp32_time;
-        
-        if (elapsed > HEARTBEAT_TIMEOUT_MS) {
-            // ESP32 no responde → SAFE STOP
-            enter_safe_stop(REASON_HEARTBEAT_TIMEOUT);
-        }
-        
-        delay(50);  // Check every 50 ms
-    }
-}
+**Componentes Arquitectónicos:**
 
-void can_rx_handler(CAN_Message* msg) {
-    if (msg->id == HEARTBEAT_ESP32) {
-        last_heartbeat_esp32_time = millis();
-        heartbeat_esp32_received = true;
-    }
-}
-```
+1. **Registro de Última Recepción:** El STM32 mantiene un timestamp de la última recepción de heartbeat del ESP32, actualizado atómicamente en cada mensaje HEARTBEAT_ESP32 recibido por el handler de interrupciones CAN
 
-**Implementación en ESP32:**
+2. **Tarea de Monitorización Continua:** Una tarea de tiempo real ejecuta cada 50 ms el cálculo del tiempo transcurrido desde la última recepción de heartbeat. Si el tiempo transcurrido supera 500 ms, se activa inmediatamente la secuencia de SAFE_STOP con razón HEARTBEAT_TIMEOUT
 
-```cpp
-void heartbeat_tx_task() {
-    while(1) {
-        uint32_t uptime = millis();
-        uint8_t status = get_esp32_status_byte();
-        
-        uint8_t payload[5];
-        memcpy(payload, &uptime, 4);
-        payload[4] = status;
-        
-        can_send(HEARTBEAT_ESP32, payload, 5);
-        
-        delay(100);  // 10 Hz
-    }
-}
+3. **Handler de Recepción CAN:** La rutina de interrupción de recepción CAN identifica mensajes con ID HEARTBEAT_ESP32 y actualiza el timestamp de última recepción, reiniciando efectivamente el contador de timeout
 
-void heartbeat_rx_monitor() {
-    static uint32_t last_heartbeat_stm32_time = 0;
-    
-    if (millis() - last_heartbeat_stm32_time > 500) {
-        // STM32 no responde
-        hud_show_critical_error("STM32 NO RESPONDE");
-        audio_play_alarm();
-        led_set_error_pattern();
-        
-        // Asumir que vehículo está en SAFE_STOP
-        // No enviar más comandos de control
-    }
-}
-```
+**Arquitectura del Transmisor de Heartbeat en ESP32:**
+
+El ESP32 ejecuta una tarea periódica dedicada exclusivamente a la transmisión de heartbeat al STM32:
+
+**Características del Transmisor:**
+- Frecuencia de transmisión: 10 Hz (un mensaje cada 100 milisegundos)
+- Payload del mensaje: 5 bytes conteniendo (a) timestamp de uptime del ESP32 (4 bytes, uint32), (b) byte de estado operacional del ESP32 (1 byte)
+- Prioridad de tarea: Alta, para garantizar transmisión consistente incluso bajo carga de rendering
+
+**Arquitectura del Monitor de Heartbeat del STM32 en ESP32:**
+
+El ESP32 también monitoriza el heartbeat del STM32 con timeout de 500 ms. Cuando detecta pérdida de heartbeat del STM32:
+
+1. **Presentación de Error Crítico:** La interfaz HMI muestra mensaje modal de error crítico "STM32 NO RESPONDE" que no puede ser descartado hasta recuperación
+2. **Notificación Auditiva:** Activación de alarma sonora continua mediante DFPlayer Mini
+3. **Indicador Visual de Hardware:** Activación de patrón de error en LEDs WS2812B (parpadeo rojo rápido)
+4. **Bloqueo de Comandos:** El ESP32 detiene el envío de todos los comandos de control, asumiendo que el vehículo ha entrado en SAFE_STOP automáticamente
+5. **Espera de Recuperación:** El ESP32 continúa monitorizando el bus CAN esperando la recuperación del heartbeat del STM32
 
 ### 9.2 Estado SAFE_STOP
 
-Cuando el STM32 entra en SAFE_STOP:
+**Arquitectura del Modo de Parada Segura (SAFE_STOP):**
 
-```c
-void enter_safe_stop(uint8_t reason) {
-    // 1. Deshabilitar PWM de todos los motores
-    set_all_motors_pwm(0);
-    
-    // 2. Activar freno regenerativo suave
-    enable_regenerative_brake(SOFT_MODE);
-    
-    // 3. Desconectar relés de tracción
-    relay_set(RELAY_TRACTION, OFF);
-    
-    // 4. Mantener dirección en posición actual (no desconectar)
-    lock_steering_position();
-    
-    // 5. Activar LED de error en hardware
-    gpio_set(GPIO_ERROR_LED, HIGH);
-    
-    // 6. Enviar alerta al ESP32
-    send_safety_alert(ALERT_SAFE_STOP, reason);
-    
-    // 7. Cambiar estado del sistema
-    system_state = STATE_SAFE_STOP;
-    
-    // 8. Logear evento
-    log_event(EVENT_SAFE_STOP, reason);
-}
-```
+Cuando el STM32 detecta una condición que requiere detención inmediata del vehículo (timeout de heartbeat, sobrecorriente crítica, sobretemperatura crítica, comando de emergency stop), ejecuta la siguiente secuencia de acciones en orden estricto:
 
-**Recuperación de SAFE_STOP:**
+**Secuencia de Entrada a SAFE_STOP:**
 
-```
-1. STM32 detecta que heartbeat ESP32 se recuperó
-2. STM32 NO sale automáticamente de SAFE_STOP
-3. STM32 envía: STATUS_SYSTEM = STATE_SAFE_STOP_RECOVERABLE
-4. ESP32 muestra al usuario: "Sistema en modo seguro. Presione OK para reactivar"
-5. Usuario presiona OK
-6. ESP32 envía: CMD_EXIT_SAFE_STOP
-7. STM32 valida:
-    - Sensores OK
-    - Sin errores activos
+1. **Desactivación Inmediata de Actuadores de Tracción:** Todos los canales PWM de los cuatro motores de tracción se configuran a ciclo de trabajo 0%, deteniendo la aplicación de potencia de forma inmediata
+
+2. **Activación de Frenado Regenerativo Controlado:** Se activa el modo de frenado regenerativo en modalidad suave (soft mode), permitiendo que la energía cinética del vehículo se disipe de forma controlada y gradual, evitando frenado brusco que podría causar pérdida de control
+
+3. **Desconexión de Relés de Potencia:** Los relés de tracción se desactivan, cortando físicamente la alimentación a los controladores de motor, proporcionando redundancia de seguridad a nivel de hardware
+
+4. **Bloqueo de Dirección en Posición Actual:** El servomotor de dirección se mantiene energizado y bloqueado en su posición actual para evitar giro descontrolado de las ruedas directrices que podría causar desestabilización del vehículo
+
+5. **Activación de Indicador Visual de Error en Hardware:** Se activa un LED de error directamente controlado por GPIO del STM32 (independiente del ESP32), proporcionando indicación visual física del estado de error
+
+6. **Transmisión de Alerta de Seguridad al ESP32:** Se envía mensaje CAN de alerta ALERT_SAFE_STOP incluyendo el código de razón que causó la activación del modo seguro (para display en HMI)
+
+7. **Transición de Máquina de Estados:** La variable de estado del sistema se actualiza a STATE_SAFE_STOP, bloqueando la aceptación de cualquier comando de control excepto CMD_EXIT_SAFE_STOP
+
+8. **Registro en Log Persistente:** El evento de SAFE_STOP se registra con timestamp y código de razón en el log de eventos del STM32, permitiendo análisis forense posterior
+
+**Procedimiento de Recuperación de SAFE_STOP:**
+
+La salida del estado SAFE_STOP requiere intervención explícita del usuario y validación del STM32:
+
+1. **Detección de Recuperación de Condición:** El STM32 detecta que la condición que causó SAFE_STOP se ha resuelto (por ejemplo, heartbeat del ESP32 se ha restablecido)
+2. **No-Recuperación Automática:** El STM32 NO transiciona automáticamente a estado operativo; mantiene SAFE_STOP pero cambia a subestado STATE_SAFE_STOP_RECOVERABLE
+3. **Notificación de Disponibilidad de Recuperación:** El STM32 transmite mensaje de estado indicando que el sistema puede ser reactivado
+4. **Solicitud de Usuario:** El ESP32 presenta al usuario mensaje modal "Sistema en modo seguro. Presione OK para reactivar", requiriendo confirmación explícita
+5. **Envío de Comando de Salida:** El usuario confirma, el ESP32 envía comando CMD_EXIT_SAFE_STOP al STM32
+6. **Validación Multi-Punto del STM32:** El STM32 ejecuta verificación completa antes de aceptar la salida:
+   - Todos los sensores de corriente reportan valores normales (< 10% del límite)
+   - Todos los sensores de temperatura reportan valores normales (< umbral de advertencia)
+   - No existen alertas activas en el sistema
+   - El heartbeat del ESP32 es estable (sin interrupciones en los últimos 5 segundos)
+7. **Aceptación o Rechazo:** Si todas las validaciones pasan, el STM32 transiciona a STATE_READY y envía ACK_OK. Si alguna validación falla, rechaza con código de error específico y mantiene SAFE_STOP
     - Temperatura normal
     - Corriente normal
 8. Si validación OK:
@@ -669,118 +666,109 @@ void enter_safe_stop(uint8_t reason) {
     - STM32 permanece en SAFE_STOP
     - STM32 envía: ACK_REJECTED con razón
     - ESP32 muestra error específico
-```
 
 ### 9.3 Protecciones de Hardware
 
 #### 9.3.1 Sobrecorriente
 
-```c
-void current_protection_task() {
-    while(1) {
-        for (int motor = 0; motor < 6; motor++) {
-            uint16_t current_ma = read_current_ina226(motor);
-            
-            if (current_ma > config.current_max[motor]) {
-                // Sobrecorriente detectada
-                set_motor_pwm(motor, 0);
-                send_safety_alert(ALERT_OVERCURRENT, motor);
-                
-                if (current_ma > config.current_max[motor] * 1.5) {
-                    // Sobrecorriente crítica → SAFE_STOP
-                    enter_safe_stop(REASON_OVERCURRENT_CRITICAL);
-                }
-            }
-            
-            if (current_ma > config.current_warning[motor]) {
-                // Warning nivel
-                send_safety_alert(ALERT_CURRENT_WARNING, motor);
-            }
-        }
-        
-        delay(10);  // 100 Hz
-    }
-}
-```
+**Arquitectura de Protección de Sobrecorriente:**
+
+El STM32 implementa un sistema de protección de corriente de tres niveles para cada uno de los seis motores del sistema (cuatro de tracción, uno de dirección, más motor auxiliar):
+
+**Componentes del Sistema:**
+- Frecuencia de muestreo: 100 Hz (lectura cada 10 ms mediante sensores INA226 con comunicación I2C de alta velocidad)
+- Tres umbrales configurables por motor: corriente nominal, corriente de advertencia (warning), corriente máxima crítica (1.5× máxima permitida)
+
+**Niveles de Respuesta Graduada:**
+
+1. **Nivel de Advertencia (Current Warning):** Cuando la corriente de un motor supera el umbral de advertencia pero permanece bajo el límite máximo:
+   - El STM32 transmite alerta ALERT_CURRENT_WARNING al ESP32 con identificación del motor afectado
+   - NO se aplica acción de protección sobre el motor
+   - El ESP32 presenta indicador visual de advertencia al usuario (icono de alerta amarillo)
+   - Permite operación continua con monitorización aumentada
+
+2. **Nivel de Sobrecorriente (Overcurrent):** Cuando la corriente supera el límite máximo configurado pero permanece bajo 1.5× el límite:
+   - El canal PWM del motor afectado se desactiva inmediatamente (PWM = 0%)
+   - Se transmite alerta ALERT_OVERCURRENT al ESP32 con identificación del motor
+   - El motor queda deshabilitado hasta que la corriente descienda bajo el umbral de advertencia
+   - Los demás motores continúan operando normalmente (fallo aislado)
+   - El sistema NO entra en SAFE_STOP, permitiendo operación degradada
+
+3. **Nivel Crítico (Overcurrent Critical):** Cuando la corriente supera 1.5× el límite máximo (indicando posible cortocircuito o fallo catastrófico de motor):
+   - Se activa inmediatamente la secuencia completa de SAFE_STOP con razón REASON_OVERCURRENT_CRITICAL
+   - Todos los motores se desactivan y relés de potencia se desconectan
+   - El vehículo entra en modo de parada segura completa
+   - Requiere intervención del usuario para recuperación
+
+**Arquitectura de Muestreo Continuo:** La tarea de protección de corriente ejecuta en bucle continuo con prioridad de tiempo real, leyendo secuencialmente los seis canales INA226 y evaluando los tres niveles de umbral para cada canal en cada iteración.
 
 #### 9.3.2 Sobretemperatura
 
-```c
-void temperature_protection_task() {
-    while(1) {
-        for (int sensor = 0; sensor < 4; sensor++) {
-            int16_t temp_c = read_temperature_ds18b20(sensor);
-            
-            if (temp_c > config.temp_max) {
-                // Temperatura crítica → SAFE_STOP
-                enter_safe_stop(REASON_OVERTEMPERATURE);
-                send_safety_alert(ALERT_OVERTEMP_CRITICAL, sensor);
-            }
-            
-            if (temp_c > config.temp_warning) {
-                // Warning → Reducir potencia
-                apply_temperature_derating(temp_c);
-                send_safety_alert(ALERT_TEMP_WARNING, sensor);
-            }
-        }
-        
-        delay(100);  // 10 Hz (DS18B20 es lento)
-    }
-}
-```
+**Arquitectura de Protección Térmica:**
+
+El STM32 monitoriza cuatro sensores de temperatura DS18B20 distribuidos estratégicamente en los componentes críticos del sistema (motores de tracción, controladores de potencia):
+
+**Características del Sistema:**
+- Frecuencia de muestreo: 10 Hz (lectura cada 100 ms, limitada por el tiempo de conversión del DS18B20)
+- Dos umbrales configurables: temperatura de advertencia y temperatura máxima crítica
+
+**Niveles de Respuesta Térmica:**
+
+1. **Nivel de Advertencia Térmica (Temperature Warning):** Cuando algún sensor reporta temperatura superior al umbral de advertencia pero inferior al máximo crítico:
+   - Se activa función de derating térmico (thermal derating): el STM32 reduce gradualmente la potencia máxima permitida a los motores en proporción a la temperatura
+   - La reducción de potencia es progresiva: a mayor temperatura, mayor limitación (curva de derating lineal o exponencial configurable)
+   - Se transmite alerta ALERT_TEMP_WARNING al ESP32 con identificación del sensor
+   - El usuario ve indicador de advertencia de temperatura y reducción de potencia disponible
+   - El sistema continúa operativo pero con capacidad reducida
+
+2. **Nivel Crítico de Temperatura (Overtemperature Critical):** Cuando algún sensor supera el umbral de temperatura máxima crítica:
+   - Se activa inmediatamente SAFE_STOP con razón REASON_OVERTEMPERATURE
+   - Detención completa del sistema para prevenir daño térmico permanente a componentes
+   - Se transmite alerta ALERT_OVERTEMP_CRITICAL con identificación del sensor afectado
+   - El sistema NO puede salir de SAFE_STOP hasta que todas las temperaturas desciendan bajo el umbral de advertencia (con histéresis térmica)
+   - Registro del evento para análisis de sobrecarga o fallo de ventilación
+
+**Arquitectura de Muestreo Lento:** Dado el tiempo de conversión de los sensores DS18B20 (hasta 750 ms para resolución de 12 bits), el sistema utiliza modo de polling a 10 Hz con lecturas secuenciales y buffering de resultados anteriores para garantizar respuesta continua.
 
 ### 9.4 Watchdog
 
-**STM32 - IWDG (Independent Watchdog):**
+**Arquitectura de Watchdog en STM32 (IWDG - Independent Watchdog):**
 
-```c
-void iwdg_init() {
-    // Configurar IWDG para timeout de 1 segundo
-    IWDG->KR = 0x5555;  // Enable write access
-    IWDG->PR = 6;       // Prescaler = 256
-    IWDG->RLR = 1250;   // Reload value → ~1s timeout
-    IWDG->KR = 0xCCCC;  // Start watchdog
-}
+El STM32 implementa un watchdog de hardware completamente independiente del núcleo principal y del reloj del sistema, garantizando reset del sistema en caso de bloqueo software:
 
-void iwdg_refresh() {
-    IWDG->KR = 0xAAAA;  // Refresh watchdog
-}
+**Configuración del IWDG:**
+- Timeout configurado a 1 segundo (periodo máximo permitido entre refrescos del watchdog)
+- Reloj independiente de 32 kHz LSI (Low Speed Internal oscillator), inmune a fallos del reloj principal
+- Prescaler de 256 aplicado al reloj base, con valor de recarga de 1250, resultando en timeout de aproximadamente 1 segundo
+- Activación durante la fase de inicialización del sistema, antes de entrar al loop principal de control
 
-void main_control_loop() {
-    while(1) {
-        // Loop de control crítico
-        read_sensors();
-        calculate_foc();
-        apply_pwm();
-        process_can();
-        
-        iwdg_refresh();  // Refresh cada loop (<1s)
-        
-        delay(1);  // 1 ms loop
-    }
-}
-```
+**Arquitectura de Refresh del Watchdog:**
+El loop principal de control del STM32 ejecuta en ciclo continuo con periodo de 1 ms, realizando las siguientes operaciones en cada iteración:
+1. Lectura de todos los sensores críticos (corriente, temperatura, velocidad de ruedas, posición de encoder)
+2. Cálculo de algoritmos de control FOC (Field-Oriented Control) para los cinco motores
+3. Aplicación de nuevos valores de PWM a los drivers de motor
+4. Procesamiento de mensajes entrantes del bus CAN y envío de telemetría
+5. Refresco del watchdog mediante escritura del valor de reset al registro IWDG
 
-**ESP32 - Task Watchdog Timer:**
+Si el loop de control se bloquea y no puede refrescar el watchdog en menos de 1 segundo (indicando fallo crítico de software), el IWDG fuerza automáticamente un reset completo del STM32, llevando el sistema a estado seguro inicial.
 
-```cpp
-void setup() {
-    // Habilitar watchdog para task principal
-    esp_task_wdt_init(5, true);  // 5 segundos, panic on timeout
-    esp_task_wdt_add(NULL);      // Añadir task actual
-}
+**Arquitectura de Watchdog en ESP32 (Task Watchdog Timer):**
 
-void loop() {
-    // Loop principal
-    handle_ui();
-    handle_can();
-    update_display();
-    
-    esp_task_wdt_reset();  // Reset watchdog
-    
-    delay(10);
-}
-```
+El ESP32 utiliza el Task Watchdog Timer de ESP-IDF, un watchdog software integrado con FreeRTOS que monitoriza tareas específicas:
+
+**Configuración del Task WDT:**
+- Timeout configurado a 5 segundos (más permisivo que el STM32 debido a la naturaleza no-determinista de las tareas de UI)
+- Modo panic activado: si el watchdog expira, el ESP32 genera un core dump y se reinicia automáticamente
+- Asociación de la tarea principal (main task) al watchdog durante la fase de setup
+
+**Operación del Task WDT:**
+El loop principal del ESP32 ejecuta con periodo nominal de 10 ms, realizando:
+1. Procesamiento de eventos de interfaz de usuario (touch, actualización de menús)
+2. Manejo de mensajes CAN recibidos del STM32 (telemetría, alertas)
+3. Actualización del framebuffer del display TFT con nuevos datos
+4. Reset explícito del watchdog mediante llamada a la función de reset del Task WDT
+
+Si la tarea principal se bloquea (por ejemplo, en un deadlock o loop infinito) durante más de 5 segundos, el Task WDT fuerza panic y reboot del ESP32. Dado que el STM32 tiene autoridad de control, el vehículo entra automáticamente en SAFE_STOP por timeout de heartbeat del ESP32, manteniendo seguridad del sistema.
 
 ---
 
@@ -788,159 +776,144 @@ void loop() {
 
 ### 10.1 Estructura de Configuración (NVS ESP32)
 
-```cpp
-struct SystemConfig {
-    // PID Tracción
-    float pid_traction_kp;
-    float pid_traction_ki;
-    float pid_traction_kd;
-    float pid_traction_limit;
-    
-    // PID Dirección
-    float pid_steering_kp;
-    float pid_steering_ki;
-    float pid_steering_kd;
-    float pid_steering_limit;
-    
-    // Límites de Corriente (mA)
-    uint16_t current_max[6];     // 4× tracción + 1× dirección + 1× auxiliar
-    uint16_t current_warning[6];
-    
-    // Límites de Temperatura (°C)
-    int16_t temp_max;
-    int16_t temp_warning;
-    
-    // ABS Parameters
-    uint16_t abs_threshold;      // % slip
-    float abs_kp;
-    float abs_ki;
-    
-    // TCS Parameters
-    uint16_t tcs_slip_limit;     // % slip
-    float tcs_kp;
-    float tcs_ki;
-    
-    // Calibraciones Sensores
-    float encoder_offset;
-    float wheel_calibration[4];
-    float pedal_min;
-    float pedal_max;
-    
-    // Checksum
-    uint32_t crc32;
-};
-```
+**Arquitectura de Almacenamiento de Configuración:**
+
+El ESP32 mantiene la configuración completa del sistema en memoria no volátil (NVS - Non-Volatile Storage), actuando como repositorio autoritativo de todos los parámetros operacionales. La estructura de configuración incluye los siguientes grupos de parámetros:
+
+**Parámetros de Control PID:**
+- Tracción: Tres coeficientes (Kp, Ki, Kd) y límite de saturación de salida para control de los cuatro motores de tracción en paralelo
+- Dirección: Tres coeficientes (Kp, Ki, Kd) y límite de saturación para control del servomotor de dirección con retroalimentación de encoder
+
+**Límites de Protección de Corriente:**
+- Seis umbrales de corriente máxima (uno por motor: cuatro de tracción, uno de dirección, uno auxiliar)
+- Seis umbrales de advertencia de corriente (típicamente 80-90% del máximo)
+- Valores almacenados en miliamperios (uint16_t) para rango de 0-65.5 A
+
+**Límites de Protección Térmica:**
+- Temperatura máxima crítica (umbral de SAFE_STOP)
+- Temperatura de advertencia (umbral de derating térmico)
+- Valores almacenados en grados Celsius con signo (int16_t) para rango -40°C a +125°C
+
+**Parámetros de Sistemas de Seguridad Activa:**
+- ABS: Umbral de deslizamiento en porcentaje, coeficientes Kp y Ki para modulación de frenado
+- TCS: Límite de slip en porcentaje, coeficientes Kp y Ki para control de tracción
+
+**Calibraciones de Sensores:**
+- Offset del encoder de dirección (compensación de posición de referencia)
+- Calibración de diámetro de las cuatro ruedas (para cálculo preciso de velocidad)
+- Valores mínimo y máximo del sensor analógico del pedal Hall (para normalización 0-100%)
+
+**Integridad de Datos:**
+- Checksum CRC32 calculado sobre todos los parámetros anteriores, almacenado al final de la estructura
+- Validación de CRC32 en cada lectura para detectar corrupción de datos en NVS
 
 ### 10.2 Persistencia en NVS
 
-```cpp
-void config_save_to_nvs() {
-    nvs_handle_t nvs_handle;
-    esp_err_t err = nvs_open("config", NVS_READWRITE, &nvs_handle);
-    
-    if (err == ESP_OK) {
-        // Calcular CRC32
-        system_config.crc32 = calculate_crc32(&system_config, 
-                                               sizeof(SystemConfig) - sizeof(uint32_t));
-        
-        // Guardar estructura completa
+**Arquitectura de Almacenamiento y Recuperación:**
+
+El ESP32 implementa operaciones de almacenamiento y recuperación de configuración mediante la API NVS de ESP-IDF:
+
+**Operación de Guardado:**
+1. Apertura del namespace "config" en NVS con permiso de lectura/escritura
+2. Cálculo del checksum CRC32 sobre todos los bytes de la estructura de configuración excepto el campo CRC32 final
+3. Almacenamiento del CRC32 calculado en el campo correspondiente de la estructura
+4. Escritura completa de la estructura como blob binario en NVS bajo la clave "system_config"
+5. Commit de cambios y cierre del handle de NVS
+
+**Operación de Carga:**
+1. Apertura del namespace "config" en NVS con permiso de lectura
+2. Lectura del blob "system_config" completo a la estructura en RAM
+3. Validación de integridad: cálculo de CRC32 sobre los datos leídos y comparación con el CRC32 almacenado
+4. Si el CRC32 coincide: configuración válida, se utiliza para operación del sistema
+5. Si el CRC32 difiere o la lectura falla: se detecta corrupción o primera ejecución, se cargan valores por defecto de fábrica
+6. Cierre del handle de NVS
+
+**Valores por Defecto:** Si la configuración no puede ser recuperada de NVS (primera ejecución o corrupción), el sistema carga automáticamente valores conservadores predefinidos que garantizan operación segura pero potencialmente subóptima, permitiendo al usuario recalibrar posteriormente.
+
+### 10.3 Inyección de Configuración (ESP32 → STM32)
+
+**Arquitectura de Transferencia de Configuración:**
+
+Durante la secuencia de arranque del sistema (tras establecimiento de comunicación CAN), el ESP32 ejecuta un protocolo de inyección completa de configuración al STM32. El proceso sigue una arquitectura secuencial con confirmación por mensaje:
+
+**Secuencia de Inyección:**
+1. **Grupo PID de Tracción:** Envío de dos mensajes CAN (CFG_PID_TRACTION y CFG_PID_TRACTION_2) conteniendo los cuatro parámetros del controlador PID de tracción. El ESP32 espera hasta 1 segundo por mensaje ACK del STM32 confirmando recepción y validación correcta
+2. **Grupo PID de Dirección:** Envío de dos mensajes CAN (CFG_PID_STEERING y CFG_PID_STEERING_2) con parámetros PID de dirección, con espera de ACK de 1 segundo por mensaje
+3. **Límites de Corriente:** Envío de mensajes con los seis umbrales de corriente máxima y advertencia, con confirmación ACK
+4. **Límites de Temperatura:** Envío de temperaturas crítica y de advertencia, con confirmación
+5. **Parámetros de ABS:** Envío de umbral y coeficientes de control ABS, con confirmación
+6. **Parámetros de TCS:** Envío de límite y coeficientes de control TCS, con confirmación
+
+**Gestión de Timeouts:** Si algún mensaje ACK no es recibido dentro del timeout de 1 segundo:
+- El ESP32 reintenta el envío del mensaje hasta tres veces
+- Si tras tres reintentos no hay ACK, se muestra error al usuario "Fallo de configuración de STM32"
+- El sistema no puede entrar en estado READY hasta completar inyección exitosa
+
+**Confirmación de Finalización:** Al completar exitosamente todos los envíos con ACK confirmados, el ESP32 presenta mensaje "Configuración inyectada a STM32" y el sistema transiciona a estado READY.
+
+### 10.4 Almacenamiento en RAM (STM32)
+
+**Arquitectura de Configuración Volátil en STM32:**
+
+El STM32 NO almacena configuración en memoria Flash persistente; todos los parámetros de configuración se mantienen exclusivamente en RAM (variables globales estáticas). Esta decisión arquitectónica tiene implicaciones importantes:
+
+**Estructura de Almacenamiento:**
+El STM32 declara una estructura global SystemConfig en RAM que contiene todos los parámetros recibidos del ESP32. Esta estructura se inicializa con valores seguros mínimos en el arranque.
+
+**Manejo de Mensajes de Configuración:**
+El handler de recepción CAN del STM32 procesa mensajes con IDs de configuración (0x300-0x33F):
+1. Identificación del ID de mensaje recibido
+2. Copia directa de los bytes del payload CAN a los campos correspondientes de la estructura de configuración en RAM
+3. Envío de mensaje ACK_OK al ESP32 confirmando almacenamiento exitoso
+4. Los parámetros quedan inmediatamente disponibles para los módulos de control (PID, protecciones, ABS, TCS)
+
+**Validación de Parámetros:** El STM32 valida que los valores recibidos están dentro de rangos sensatos antes de almacenarlos. Si detecta valores fuera de rango (por ejemplo, Kp negativo, corriente máxima > 100A), rechaza el parámetro con ACK_REJECTED_OUT_OF_RANGE.
+
+**Ventaja de Configuración Volátil:** Si el STM32 se reemplaza por hardware nuevo o se reinicia por cualquier razón, el ESP32 detecta automáticamente la pérdida de configuración (al recibir valores por defecto en telemetría) y reinyecta la configuración completa desde NVS, garantizando restauración automática sin intervención manual. Esta arquitectura simplifica el reemplazo de hardware y la recuperación de fallos.
+
+---
         err = nvs_set_blob(nvs_handle, "system_config", 
                           &system_config, sizeof(SystemConfig));
         
         if (err == ESP_OK) {
-            nvs_commit(nvs_handle);
-        }
-        
-        nvs_close(nvs_handle);
-    }
-}
+---
 
-bool config_load_from_nvs() {
-    nvs_handle_t nvs_handle;
-    esp_err_t err = nvs_open("config", NVS_READONLY, &nvs_handle);
-    
-    if (err == ESP_OK) {
-        size_t size = sizeof(SystemConfig);
-        err = nvs_get_blob(nvs_handle, "system_config", &system_config, &size);
-        nvs_close(nvs_handle);
-        
-        if (err == ESP_OK) {
-            // Validar CRC32
-            uint32_t calculated_crc = calculate_crc32(&system_config, 
-                                                       sizeof(SystemConfig) - sizeof(uint32_t));
-            if (calculated_crc == system_config.crc32) {
-                return true;  // Config válida
-            }
-        }
-    }
-    
-    // Si falla, cargar defaults
-    config_load_defaults();
-    return false;
-}
-```
+## 11. MATRIZ DE GESTIÓN DE FALLOS
 
-### 10.3 Inyección de Configuración (ESP32 → STM32)
+### 11.1 Tabla Unificada de Respuesta a Fallos
 
-```cpp
-void config_inject_to_stm32() {
-    // Enviar PID Tracción
-    can_send_config_pid_traction();
-    wait_ack(CFG_PID_TRACTION, 1000);
-    
-    can_send_config_pid_traction_2();
-    wait_ack(CFG_PID_TRACTION_2, 1000);
-    
-    // Enviar PID Dirección
-    can_send_config_pid_steering();
-    wait_ack(CFG_PID_STEERING, 1000);
-    
-    can_send_config_pid_steering_2();
-    wait_ack(CFG_PID_STEERING_2, 1000);
-    
-    // Enviar límites de corriente
-    can_send_config_current_limits();
-    wait_ack(CFG_CURRENT_LIMITS, 1000);
-    
-    // ... (resto de configuración)
-    
-    // Al finalizar
-    hud_show_message("Configuración inyectada a STM32");
-}
-```
+Esta matriz define la respuesta arquitectónica del sistema ante cada tipo de fallo, especificando las acciones autónomas de cada microcontrolador, el estado final del sistema y los tiempos de detección garantizados.
 
-### 10.4 Almacenamiento en RAM (STM32)
+| Tipo de Fallo | Acción STM32 | Acción ESP32 | Estado Final del Sistema | Tiempo de Detección |
+|---------------|--------------|--------------|--------------------------|---------------------|
+| **Pérdida de comunicación CAN** | Mantiene último comando válido durante 500 ms, luego entra en SAFE_STOP con razón CAN_TIMEOUT. Desactiva motores, desconecta relés, mantiene dirección bloqueada. Continúa intentando transmitir heartbeat y alertas. | Detecta pérdida de heartbeat del STM32. Muestra error crítico "STM32 NO RESPONDE", activa alarma sonora, patrón LED de error. Detiene envío de comandos. Asume vehículo en SAFE_STOP. | Sistema en SAFE_STOP. Vehículo detenido, relés desconectados. HMI muestra error crítico. Sistema no operativo hasta recuperación de CAN. | 500 ms (timeout de heartbeat) |
+| **Pérdida de heartbeat ESP32** | Timeout de heartbeat detectado a 500 ms. Ejecuta secuencia SAFE_STOP con razón HEARTBEAT_TIMEOUT. Desactiva todos los motores (PWM=0%), activa frenado regenerativo suave, desconecta relés de tracción, bloquea dirección en posición actual, activa LED de error de hardware. Envía alerta SAFE_STOP al bus CAN (aunque ESP32 no la reciba). | N/A - El ESP32 está no operativo (reset, hang, fallo de alimentación). El sistema NO depende del ESP32 para entrar en estado seguro. | Sistema en SAFE_STOP autónomo. Vehículo detenido de forma segura por STM32 sin asistencia del ESP32. No hay interfaz HMI disponible. LED de error físico activado. | 500 ms (timeout de heartbeat en STM32) |
+| **Pérdida de heartbeat STM32** | N/A - El STM32 está no operativo (reset, hang, fallo de alimentación). No puede enviar heartbeat ni responder a comandos. | Detecta falta de heartbeat del STM32 a 500 ms. Presenta error crítico "STM32 NO RESPONDE" con modal no-descartable, activa alarma de alerta continua, patrón LED rojo parpadeante rápido. Bloquea completamente envío de comandos de control. Permanece en estado de error hasta reinicio completo. | Sistema no operativo. ESP32 no puede controlar actuadores (no tiene conexión a motores/relés). Estado del vehículo indeterminado - depende del último estado del STM32 antes del fallo. Requiere reinicio manual del sistema completo. | 500 ms (timeout de heartbeat en ESP32) |
+| **Sobrecorriente (Overcurrent)** | Detección a 100 Hz mediante lectura de INA226. Si corriente > límite máximo: desactiva PWM del motor afectado inmediatamente, envía alerta ALERT_OVERCURRENT. Si corriente > 1.5× límite: activa SAFE_STOP con razón OVERCURRENT_CRITICAL, desactiva todos los motores y relés. | Recibe alerta de sobrecorriente del STM32. Presenta banner de advertencia "Sobrecorriente en motor X" con icono de alerta. Si SAFE_STOP por overcurrent crítica: presenta error modal "Sobrecorriente crítica detectada", reproduce tono de error, requiere confirmación del usuario para intentar recuperación. | Sobrecorriente normal: Motor afectado deshabilitado, resto operativo (degradación graceful). Sobrecorriente crítica: Sistema en SAFE_STOP completo, todos los motores desactivados, relés OFF, requiere intervención del usuario. | 10 ms (periodo de muestreo a 100 Hz) |
+| **Sobretemperatura (Overtemperature)** | Detección a 10 Hz mediante lectura de DS18B20. Si temperatura > umbral warning: aplica derating térmico (reducción progresiva de potencia máxima), envía ALERT_TEMP_WARNING. Si temperatura > umbral crítico: activa SAFE_STOP con razón OVERTEMPERATURE, desactiva motores y relés, envía ALERT_OVERTEMP_CRITICAL. | Recibe alerta térmica del STM32. Temperatura warning: muestra icono de advertencia térmica, indica potencia reducida en UI. Temperatura crítica: presenta error modal "Temperatura crítica alcanzada", alarma sonora, patrón LED de alerta. Sistema no puede salir de SAFE_STOP hasta que temperatura < umbral warning. | Temperatura warning: Sistema operativo con potencia reducida automáticamente (derating activo). Temperatura crítica: Sistema en SAFE_STOP completo, no recuperable hasta enfriamiento. Display muestra lectura de temperatura en tiempo real. | 100 ms (periodo de muestreo a 10 Hz) |
+| **Reset de ESP32** | No detecta inicialmente (ESP32 deja de enviar heartbeat). A 500 ms de timeout de heartbeat: entra en SAFE_STOP automático con razón HEARTBEAT_TIMEOUT. Mantiene SAFE_STOP hasta recibir nuevo heartbeat del ESP32 post-reset y completar nueva secuencia de configuración completa. | Ejecuta secuencia de boot completa (~2-3 segundos). Inicializa TWAI, espera heartbeat de STM32 (detecta STM32 en SAFE_STOP), recibe estado del sistema. Reinyecta configuración completa desde NVS. Presenta al usuario opción de salir de SAFE_STOP tras validación. | Durante reset del ESP32: Sistema en SAFE_STOP (timeout de heartbeat). Post-reset: Sistema permanece en SAFE_STOP hasta intervención del usuario para reactivación. Configuración restaurada automáticamente desde NVS del ESP32. | 500 ms hasta SAFE_STOP, 2-3 segundos hasta recuperación de HMI |
+| **Reset de STM32** | Ejecuta secuencia de boot completa (~500 ms). Inicializa FDCAN, comienza transmisión de heartbeat, carga configuración por defecto en RAM (valores conservadores). Sistema arranca en estado INITIALIZING, esperando inyección de configuración del ESP32. | Detecta heartbeat del STM32 con estado INITIALIZING (nuevo boot detectado). Automáticamente reinyecta configuración completa desde NVS mediante protocolo de inyección estándar. Valida ACK de cada parámetro. Al completar: sistema transiciona a READY. | Durante reset del STM32: Sistema no operativo (STM32 en boot). Post-reset: Sistema retorna a READY automáticamente tras reinyección de configuración (transparente para el usuario si ESP32 está operativo). Configuración restaurada desde NVS. | 500-700 ms hasta recuperación completa |
+| **Bus CAN saturado** | Detecta saturación mediante conteo de errores de transmisión del periférico FDCAN. Incrementa backoff de mensajes de telemetría no-críticos. Mantiene prioridad máxima de heartbeat y alertas de seguridad. Si saturación persiste >5 segundos: registra evento pero mantiene operación (priorizando mensajes críticos). | Detecta latencias elevadas en recepción de telemetría. Reduce frecuencia de envío de comandos de UI (permite buffering). Mantiene transmisión de heartbeat a 10 Hz (prioridad máxima). Presenta advertencia al usuario "Bus CAN congestionado - respuesta lenta". | Sistema operativo con latencia aumentada en telemetría. Comandos de seguridad (emergency stop, SAFE_STOP) mantienen prioridad y funcionan normalmente. Interfaz puede mostrar datos con retraso pero sistema controlable. | Variable (detección progresiva a 1-2 segundos) |
+| **Transceptor en estado Bus-Off** | Periférico FDCAN entra en estado Bus-Off tras exceder límite de errores. STM32 detecta Bus-Off mediante flag de estado del periférico. Ejecuta reset automático del FDCAN y reintento de inicialización. Si falla tras 3 reintentos: entra en SAFE_STOP con razón BUS_OFF_ERROR. Activa LED de error de hardware. | Detecta pérdida total de comunicación (timeout de heartbeat). Presenta error crítico "Fallo de comunicación CAN - Verificar cableado". Activa alarma de error. Asume sistema en SAFE_STOP. Sugiere al usuario verificar conexiones físicas del bus CAN. | Tras reintentos exitosos: Sistema retorna a operación normal. Tras fallos persistentes: Sistema en SAFE_STOP. Indica fallo de hardware de comunicación. Requiere diagnóstico físico del bus CAN (cableado, terminaciones, transceptores). | 100-300 ms hasta detección de Bus-Off, 500 ms adicional hasta SAFE_STOP si no recupera |
 
-```c
-// En STM32 - Solo en RAM, NO en flash
-struct SystemConfig config;  // Variable global
+### 11.2 Principios de Diseño de Gestión de Fallos
 
-void config_receive_handler(CAN_Message* msg) {
-    switch(msg->id) {
-        case CFG_PID_TRACTION:
-            memcpy(&config.pid_traction_kp, &msg->data[0], 4);
-            memcpy(&config.pid_traction_ki, &msg->data[4], 4);
-            send_config_ack(CFG_PID_TRACTION, ACK_OK);
-            break;
-            
-        case CFG_PID_TRACTION_2:
-            memcpy(&config.pid_traction_kd, &msg->data[0], 4);
-            memcpy(&config.pid_traction_limit, &msg->data[4], 4);
-            send_config_ack(CFG_PID_TRACTION_2, ACK_OK);
-            break;
-            
-        // ... (resto de mensajes de configuración)
-    }
-}
-```
+**Failsafe por Defecto:** Ante cualquier fallo ambiguo o no clasificado, el STM32 transiciona a SAFE_STOP, garantizando que el vehículo se detiene de forma segura en lugar de continuar en estado potencialmente peligroso.
 
-**Ventaja:** Si STM32 se reemplaza o resetea, ESP32 reinyecta automáticamente la configuración.
+**Autoridad del STM32:** El STM32 tiene capacidad de entrar en SAFE_STOP de forma completamente autónoma, sin depender del ESP32. El fallo total del ESP32 NO compromete la seguridad del vehículo.
+
+**Recuperación Gradual:** La salida de SAFE_STOP siempre requiere:
+1. Resolución de la condición que causó el fallo
+2. Validación multi-punto del estado del sistema
+3. Intervención explícita del usuario (excepto en fallos transitorios de comunicación que se auto-recuperan)
+
+**Trazabilidad Total:** Todos los eventos de fallo quedan registrados con timestamp en logs de ambos microcontroladores, permitiendo análisis forense post-incidente.
 
 ---
 
-## 11. CRITERIOS DE VALIDACIÓN
+## 12. CRITERIOS DE VALIDACIÓN
 
-### 11.1 Criterios Generales
+### 12.1 Criterios Generales
 
 Cada fase debe cumplir **TODOS** estos criterios antes de avanzar:
 
@@ -953,7 +926,7 @@ Cada fase debe cumplir **TODOS** estos criterios antes de avanzar:
 | **Documentación** | Documentación técnica completa y actualizada |
 | **Aprobación equipo** | Revisión y aprobación por equipo de ingeniería |
 
-### 11.2 Criterios por Fase
+### 12.2 Criterios por Fase
 
 #### Fase 0 (Baseline)
 
@@ -1001,92 +974,76 @@ Cada fase debe cumplir **TODOS** estos criterios antes de avanzar:
 - ✅ Fallo STM32 → Alerta ESP32
 - ✅ Estabilidad 7 días continua
 
-### 11.3 Herramientas de Validación
+### 12.3 Herramientas de Validación
 
-#### Logging
+#### Logging con Timestamps
 
-```cpp
-// ESP32 - Logging con timestamps
-#define LOG_LEVEL_INFO  0
-#define LOG_LEVEL_WARN  1
-#define LOG_LEVEL_ERROR 2
+**Arquitectura de Sistema de Logging en ESP32:**
 
-void log_event(uint8_t level, const char* format, ...) {
-    char buffer[256];
-    va_list args;
-    va_start(args, format);
-    vsnprintf(buffer, sizeof(buffer), format, args);
-    va_end(args);
-    
-    uint32_t timestamp = millis();
-    printf("[%lu] [%s] %s\n", timestamp, level_str[level], buffer);
-    
-    // Opcional: Guardar en SPIFFS para análisis posterior
-    log_to_file(timestamp, level, buffer);
-}
-```
+El ESP32 implementa un sistema de logging multi-nivel con timestamps para trazabilidad completa de eventos:
 
-#### Métricas CAN
+**Niveles de Logging:**
+- INFO (nivel 0): Eventos informativos normales (arranque, transiciones de estado, configuración completada)
+- WARN (nivel 1): Advertencias que no afectan operación pero requieren atención (corriente elevada, temperatura warning)
+- ERROR (nivel 2): Errores que afectan funcionalidad (timeout de comandos, rechazo de configuración, entrada a SAFE_STOP)
 
-```cpp
-struct CANMetrics {
-    uint32_t tx_count;
-    uint32_t rx_count;
-    uint32_t error_count;
-    uint32_t bus_off_count;
-    uint32_t latency_min_us;
-    uint32_t latency_max_us;
-    uint32_t latency_avg_us;
-};
+**Características del Sistema:**
+- Cada evento se registra con timestamp de millis() desde arranque del ESP32
+- Formato de log: "[timestamp_ms] [NIVEL] mensaje_descriptivo"
+- Salida inmediata a puerto serial para monitorización en tiempo real durante desarrollo
+- Almacenamiento opcional en sistema de archivos SPIFFS para análisis post-operación (análisis forense de incidentes)
 
-void can_update_metrics() {
-    // Actualizar métricas en cada envío/recepción
-    can_metrics.tx_count++;
-    can_metrics.latency_avg_us = (can_metrics.latency_avg_us * 0.9) + (latency * 0.1);
-    
-    // Enviar métricas cada segundo
-    if (millis() - last_metrics_time > 1000) {
-        can_send_diagnostics(DIAG_CAN_STATS, &can_metrics, sizeof(can_metrics));
-        last_metrics_time = millis();
-    }
-}
-```
+**Uso Operacional:** El sistema de logging permite identificar secuencias de eventos que llevaron a un fallo, con resolución temporal de 1 ms, facilitando depuración y validación de comportamiento del sistema.
 
-#### Comparador Shadow Mode
+#### Métricas de Comunicación CAN
 
-```cpp
-struct ShadowComparison {
-    float local_value;
-    float shadow_value;
-    float difference_percent;
-    uint32_t timestamp;
-};
+**Arquitectura de Monitorización de Bus CAN:**
 
-void shadow_compare_and_log(float local, float shadow, const char* name) {
-    float diff_percent = fabs((local - shadow) / local) * 100.0f;
-    
-    if (diff_percent > 5.0f) {
-        ShadowComparison comp = {
-            .local_value = local,
-            .shadow_value = shadow,
-            .difference_percent = diff_percent,
-            .timestamp = millis()
-        };
-        
-        log_warning("SHADOW MISMATCH: %s - Local=%.2f, Shadow=%.2f, Diff=%.1f%%",
-                    name, local, shadow, diff_percent);
-        
-        // Guardar para análisis
-        shadow_log_save(&comp);
-    }
-}
-```
+Ambos microcontroladores mantienen estructuras de métricas de comunicación CAN que rastrean el rendimiento y salud del bus:
+
+**Métricas Capturadas:**
+- Contador de mensajes transmitidos (tx_count): Total de mensajes enviados exitosamente
+- Contador de mensajes recibidos (rx_count): Total de mensajes recibidos con CRC válido
+- Contador de errores (error_count): Errores de transmisión, CRC, ACK
+- Contador de eventos Bus-Off (bus_off_count): Número de veces que el transceptor entró en estado Bus-Off
+- Latencia mínima, máxima y promedio (en microsegundos): Tiempo desde envío hasta recepción de ACK
+
+**Actualización de Métricas:**
+El sistema actualiza contadores en cada operación CAN (transmisión/recepción) y calcula latencia promedio mediante media móvil exponencial (EWMA) con factor 0.9, proporcionando smoothing de variaciones transitorias.
+
+**Transmisión de Diagnóstico:**
+Cada segundo, las métricas se transmiten mediante mensaje de diagnóstico DIAG_CAN_STATS, permitiendo al otro microcontrolador monitorizar la salud del bus desde ambas perspectivas.
+
+**Uso en Validación:** Durante fases de migración, estas métricas permiten validar que la latencia CAN se mantiene bajo 5 ms (95º percentil) y que no hay degradación progresiva del bus (incremento sostenido de error_count).
+
+#### Comparador de Shadow Mode
+
+**Arquitectura de Validación de Shadow Mode:**
+
+Durante la Fase 0 (Shadow Mode), el sistema implementa comparadores que validan la concordancia entre el cálculo del ESP32 (producción) y el STM32 (shadow):
+
+**Estructura de Comparación:**
+Para cada variable crítica (velocidad de motores, ángulo de dirección, corriente calculada), se registra:
+- Valor calculado por el sistema en producción (local_value)
+- Valor calculado por el sistema en shadow (shadow_value)
+- Porcentaje de diferencia relativa
+- Timestamp de la comparación
+
+**Umbral de Alerta:**
+Si la diferencia relativa entre ambos valores supera el 5%, se considera una discrepancia significativa que requiere investigación. El sistema:
+1. Registra la discrepancia en log con nivel WARNING
+2. Incluye ambos valores y el porcentaje de diferencia para análisis
+3. Almacena el evento en log persistente para análisis posterior
+4. Incrementa contador de discrepancias shadow
+
+**Criterio de Validación de Fase 0:**
+La fase shadow solo puede considerarse exitosa si las discrepancias se mantienen bajo 1% del total de comparaciones durante 24 horas de operación continua. Discrepancias superiores indican bugs en la implementación del STM32 que deben corregirse antes de avanzar a fases posteriores.
 
 ---
 
-## 12. RIESGOS Y MITIGACIONES
+## 13. RIESGOS Y MITIGACIONES
 
-### 12.1 Riesgos Técnicos
+### 13.1 Riesgos Técnicos
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |--------|--------------|---------|-----------|
@@ -1099,7 +1056,7 @@ void shadow_compare_and_log(float local, float shadow, const char* name) {
 | **Regresión funcional** | Media | Crítico | Tests de equivalencia en cada fase vs Fase 0 |
 | **Bus CAN saturado** | Baja | Medio | Downsampling telemetría, prioridades CAN correctas |
 
-### 12.2 Riesgos de Migración
+### 13.2 Riesgos de Migración
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |--------|--------------|---------|-----------|
@@ -1109,7 +1066,7 @@ void shadow_compare_and_log(float local, float shadow, const char* name) {
 | **Hardware no disponible** | Baja | Alto | Validar disponibilidad STM32G474RE antes de iniciar |
 | **Equipo sin experiencia STM32** | Media | Alto | Capacitación previa, documentación de referencia |
 
-### 12.3 Plan de Rollback
+### 13.3 Plan de Rollback
 
 Cada fase permite rollback a la fase anterior:
 
@@ -1130,7 +1087,7 @@ Cada fase permite rollback a la fase anterior:
 
 ---
 
-## 13. REFERENCIAS
+## 14. REFERENCIAS
 
 ### 13.1 Documentación del Proyecto
 
