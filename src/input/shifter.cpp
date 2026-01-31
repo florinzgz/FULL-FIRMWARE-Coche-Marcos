@@ -148,7 +148,7 @@ void Shifter::update() {
               Logger::errorf(
                   "BLOQUEO SEGURIDAD: Intento de R a %.1f km/h (max %.1f km/h)",
                   avgSpeed, MAX_SPEED_FOR_REVERSE);
-              Alerts::play(Audio::AUDIO_ERROR);
+              Alerts::play(Audio::AUDIO_ERROR_GENERAL);
               lastSafetyBlockMs = now;
             }
             detectedGear = Shifter::N; // Forzar Neutro por seguridad
@@ -160,7 +160,7 @@ void Shifter::update() {
           // reversa
           Logger::error("BLOQUEO SEGURIDAD: Sensores de rueda insuficientes "
                         "para reversa");
-          Alerts::play(Audio::AUDIO_ERROR);
+          Alerts::play(Audio::AUDIO_ERROR_GENERAL);
           detectedGear = Shifter::N;
           pendingGear = Shifter::N;
         }
