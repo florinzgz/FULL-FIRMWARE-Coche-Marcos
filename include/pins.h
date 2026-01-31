@@ -412,9 +412,10 @@ ONEWIRE                 | I/O       | 🔒 Moved from GPIO 20, then 45  |
 Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
       PIN_TOUCH_IRQ removed (using polling mode instead of interrupt)
 */
+/*
 + -- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+
 
-    MCP23017(I²C 0x20) -
+    MCP23017(I2C 0x20) -
     Expansor GPIO:
                  +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ |
                  Pin | Función | Tipo | Notas |
@@ -488,7 +489,8 @@ Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
                     TOTAL
              ESP32:34 / 36 GPIOs utilizados(94 % eficiencia)TOTAL
           MCP23017:
-              13 / 16 pines utilizados(81 % eficiencia) * /
+              13 / 16 pines utilizados(81 % eficiencia)
+*/
 
               // ============================================================================
               // HELPERS - Validación de pines
