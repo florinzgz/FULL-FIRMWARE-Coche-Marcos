@@ -412,94 +412,97 @@ ONEWIRE                 | I/O       | 🔒 Moved from GPIO 20, then 45  |
 Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
       PIN_TOUCH_IRQ removed (using polling mode instead of interrupt)
 */
-+------+-------------------------+-----------+---------------------------------+
++ -- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+
 
     MCP23017(I²C 0x20) -
-    Expansor GPIO :
-+------+-------------------------+-----------+---------------------------------+
-| Pin  | Función                 | Tipo      | Notas                           |
-+------+-------------------------+-----------+---------------------------------+
-| A0   | FL_IN1                  | Output    | Motor FL dirección              |
-| A1   | FL_IN2                  | Output    | Motor FL dirección              |
-| A2   | FR_IN1                  | Output    | Motor FR dirección              |
-| A3   | FR_IN2                  | Output    | Motor FR dirección              |
-| A4   | RL_IN1                  | Output    | Motor RL dirección              |
-| A5   | RL_IN2                  | Output    | Motor RL dirección              |
-| A6   | RR_IN1                  | Output    | Motor RR dirección              |
-| A7   | RR_IN2                  | Output    | Motor RR dirección              |
-| B0   | SHIFTER_P               | Input     | ✅ Palanca Park(consecutivo) |
-| B1   | SHIFTER_R               | Input     | ✅ Palanca
-    Reverse | | B2   | SHIFTER_N               | Input     | ✅ Palanca
-    Neutral               | | B3 | SHIFTER_D1              | Input     | ✅ Palanca
-    Drive
-    1               | | B4 | SHIFTER_D2              | Input     | ✅ Palanca
-    Drive
-    2               | | B5 | STEER_IN1               | Output    | ✅ Motor
-    dirección
-    R_EN         | | B6   | STEER_IN2               | Output    | ✅ Motor
-    dirección L_EN         | | B7   |
-🆓 LIBRE                | -         | Disponible para expansión       |
-+------+-------------------------+-----------+---------------------------------+
+    Expansor GPIO:
+                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ |
+                 Pin | Función | Tipo | Notas |
+                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ |
+                 A0 | FL_IN1 | Output | Motor FL dirección | | A1 | FL_IN2
+                 | Output | Motor FL dirección | | A2 | FR_IN1 | Output
+                 | Motor FR dirección | | A3 | FR_IN2 | Output
+                 | Motor FR dirección | | A4 | RL_IN1 | Output
+                 | Motor RL dirección | | A5 | RL_IN2 | Output
+                 | Motor RL dirección | | A6 | RR_IN1 | Output
+                 | Motor RR dirección | | A7 | RR_IN2 | Output
+                 | Motor RR dirección | | B0 | SHIFTER_P | Input | ✅ Palanca
+                 Park(consecutivo) |
+                 | B1 | SHIFTER_R | Input | ✅ Palanca Reverse | | B2
+                 | SHIFTER_N | Input | ✅ Palanca Neutral | | B3 | SHIFTER_D1
+                 | Input | ✅ Palanca Drive 1 | | B4 | SHIFTER_D2 | Input
+                 | ✅ Palanca Drive 2 | | B5 | STEER_IN1 | Output
+                 | ✅ Motor dirección R_EN | | B6 | STEER_IN2 | Output
+                 | ✅ Motor dirección L_EN | | B7 |
+🆓 LIBRE | - | Disponible para expansión |
+                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+
 
-    MEJORAS v2 .3.0 :
-✅ TOUCH_CS : GPIO 3 → GPIO 21(evita strapping pin)
-✅ LED_REAR : GPIO 19 → GPIO 48(resuelve conflicto)
-✅ TOUCH_IRQ : GPIO 46 → GPIO 47(evita strapping pin)
-✅ SHIFTER COMPLETO : GPIOs dispersos → MCP23017 GPIOB0
-                       -
-                       B4(pines consecutivos)
+                                                                                                                                   MEJORAS
+                                                                                                                                   v2
+              .3.0:
+✅
+          TOUCH_CS:GPIO 3 → GPIO 21(evita strapping pin)
+✅
+          LED_REAR:GPIO 19 → GPIO 48(resuelve conflicto)
+✅
+         TOUCH_IRQ:GPIO 46 → GPIO 47(evita strapping pin)
+✅ SHIFTER
+          COMPLETO:GPIOs dispersos → MCP23017 GPIOB0 - B4(pines consecutivos)
 
-                           MEJORAS v2 .17.2 :
-✅ PIN_WHEEL_FL : GPIO 3 → GPIO
-                   7(evita strapping pin JTAG, mejora confiabilidad) ✅ GPIO
-                   3 liberado(strapping pin, ahora disponible para uso futuro)
+                                                           MEJORAS v2
+             .17.2:
+✅
+      PIN_WHEEL_FL:GPIO 3 → GPIO
+      7(evita strapping pin JTAG, mejora confiabilidad) ✅ GPIO
+      3 liberado(strapping pin, ahora disponible para uso futuro)
 
-                       MEJORAS v2 .4.1 :
-✅ VL53L5X XSHUT : Asignados a GPIO 18,
-    19, 45, 46(antes libres)
-✅ Corrección conflicto : GPIO 7,
-                           8,
-                           10,
-                           11 ya estaban en uso
+          MEJORAS v2
+              .4.1:
+✅ VL53L5X
+             XSHUT:Asignados a GPIO 18, 19, 45, 46(antes libres)
+✅ Corrección
+         conflicto:GPIO 7, 8, 10,
+                   11 ya estaban en uso
 
-                               MEJORAS v2 .9.1 :
-✅ PIN_PEDAL : GPIO 35 → GPIO 4(GPIO 35 no es ADC en ESP32 - S3)
-✅ PIN_RELAY_MAIN : GPIO 4 → GPIO 35(intercambiado con pedal)
+                   MEJORAS v2
+              .9.1:
+✅
+         PIN_PEDAL:GPIO 35 → GPIO 4(GPIO 35 no es ADC en ESP32 - S3)
+✅
+    PIN_RELAY_MAIN:GPIO 4 → GPIO 35(intercambiado con pedal)
 
-                         MEJORAS v2 .12.0 :
-✅ Migración VL53L5X I2C → TOFSense
-    -
-    M S UART
-✅ TOFSENSE UART0 nativo : GPIO 44 = RX(datos sensor),
-                                 GPIO 43 = TX(no usado)
-✅ DFPLAYER UART1 : GPIO 18 = TX,
-                                 GPIO 17 = RX(movido de UART0)
-✅ WHEEL_RL / RR : Mantienen GPIO 15 /
-                    16(disponibles)
-✅ LED_FRONT
-    : Mantiene GPIO 19
-✅ GPIO 43 /
-      44 ahora usados para TOFSense(UART0 nativo)
+                       MEJORAS v2
+             .12.0:
+✅ Migración VL53L5X I2C → TOFSense - M S UART
+✅ TOFSENSE UART0
+            nativo:GPIO 44 = RX(datos sensor), GPIO 43 = TX(no usado)
+✅ DFPLAYER
+             UART1:GPIO 18 = TX, GPIO 17 = RX(movido de UART0)
+✅ WHEEL_RL /
+                RR:Mantienen GPIO 15 / 16(disponibles)
+✅ LED_FRONT:Mantiene GPIO 19
+✅ GPIO 43 / 44 ahora usados para TOFSense(UART0 nativo)
 ✅ GPIO 46 liberado(ya no se usa XSHUT)
 ✅ Eliminado multiplexor PCA9548A @0x71(obstáculos)
 
-          TOTAL ESP32 : 34 /
-      36 GPIOs utilizados(94 % eficiencia) TOTAL MCP23017 : 13 /
-      16 pines utilizados(81 % eficiencia) * /
+                    TOTAL
+             ESP32:34 / 36 GPIOs utilizados(94 % eficiencia)TOTAL
+          MCP23017:
+              13 / 16 pines utilizados(81 % eficiencia) * /
 
-      // ============================================================================
-      // HELPERS - Validación de pines
-      // ============================================================================
+              // ============================================================================
+              // HELPERS - Validación de pines
+              // ============================================================================
 
-      /**
-       * @brief Verifica si un GPIO está asignado en el sistema
-       * @param gpio Número de GPIO a verificar
-       * @return true si el pin está en uso, false si está libre
-       * @note 🔒 N16R8 ARCHITECTURE FIX: Updated for new pin mappings
-       * @note GPIO 33-37 are FORBIDDEN (OPI PSRAM internal bus)
-       * @note GPIO 10-12 are FORBIDDEN (SPI Flash bus)
-       */
-      static inline bool pin_is_assigned(uint8_t gpio) {
+              /**
+               * @brief Verifica si un GPIO está asignado en el sistema
+               * @param gpio Número de GPIO a verificar
+               * @return true si el pin está en uso, false si está libre
+               * @note 🔒 N16R8 ARCHITECTURE FIX: Updated for new pin mappings
+               * @note GPIO 33-37 are FORBIDDEN (OPI PSRAM internal bus)
+               * @note GPIO 10-12 are FORBIDDEN (SPI Flash bus)
+               */
+              static inline bool pin_is_assigned(uint8_t gpio) {
   switch (gpio) {
   // Sistema y Boot
   case PIN_KEY_ON:
