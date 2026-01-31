@@ -548,7 +548,7 @@ static inline bool pin_is_assigned(uint8_t gpio) {
   // UART (Audio y TOFSense)
   case PIN_DFPLAYER_TX:
   case PIN_DFPLAYER_RX:
-  case PIN_TOFSENSE_TX:
+  // PIN_TOFSENSE_TX is -1, not a real GPIO
   case PIN_TOFSENSE_RX:
     return true;
   default:
