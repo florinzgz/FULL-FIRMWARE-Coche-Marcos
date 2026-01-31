@@ -413,20 +413,20 @@ Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
       PIN_TOUCH_IRQ removed (using polling mode instead of interrupt)
 */
 /*
-+ -- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+
++ -- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- --
+-- -- -- -- -- -- -- -- -- -- -- -+
 
     MCP23017(I2C 0x20) -
     Expansor GPIO:
-                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ |
-                 Pin | Función | Tipo | Notas |
-                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ |
-                 A0 | FL_IN1 | Output | Motor FL dirección | | A1 | FL_IN2
-                 | Output | Motor FL dirección | | A2 | FR_IN1 | Output
-                 | Motor FR dirección | | A3 | FR_IN2 | Output
-                 | Motor FR dirección | | A4 | RL_IN1 | Output
-                 | Motor RL dirección | | A5 | RL_IN2 | Output
-                 | Motor RL dirección | | A6 | RR_IN1 | Output
-                 | Motor RR dirección | | A7 | RR_IN2 | Output
+                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- --
+-+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ | Pin | Función | Tipo |
+Notas |
+                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- --
+-+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+ | A0 | FL_IN1 | Output |
+Motor FL dirección | | A1 | FL_IN2 | Output | Motor FL dirección | | A2 | FR_IN1
+| Output | Motor FR dirección | | A3 | FR_IN2 | Output | Motor FR dirección | |
+A4 | RL_IN1 | Output | Motor RL dirección | | A5 | RL_IN2 | Output | Motor RL
+dirección | | A6 | RR_IN1 | Output | Motor RR dirección | | A7 | RR_IN2 | Output
                  | Motor RR dirección | | B0 | SHIFTER_P | Input | ✅ Palanca
                  Park(consecutivo) |
                  | B1 | SHIFTER_R | Input | ✅ Palanca Reverse | | B2
@@ -436,7 +436,8 @@ Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
                  | ✅ Motor dirección R_EN | | B6 | STEER_IN2 | Output
                  | ✅ Motor dirección L_EN | | B7 |
 🆓 LIBRE | - | Disponible para expansión |
-                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- -- -+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+
+                 +-- -- --+-- -- -- -- -- -- -- -- -- -- -- -- -+-- -- -- -- --
+-+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -+
 
                                                                                                                                    MEJORAS
                                                                                                                                    v2
@@ -492,19 +493,19 @@ Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
               13 / 16 pines utilizados(81 % eficiencia)
 */
 
-              // ============================================================================
-              // HELPERS - Validación de pines
-              // ============================================================================
+// ============================================================================
+// HELPERS - Validación de pines
+// ============================================================================
 
-              /**
-               * @brief Verifica si un GPIO está asignado en el sistema
-               * @param gpio Número de GPIO a verificar
-               * @return true si el pin está en uso, false si está libre
-               * @note 🔒 N16R8 ARCHITECTURE FIX: Updated for new pin mappings
-               * @note GPIO 33-37 are FORBIDDEN (OPI PSRAM internal bus)
-               * @note GPIO 10-12 are FORBIDDEN (SPI Flash bus)
-               */
-              static inline bool pin_is_assigned(uint8_t gpio) {
+/**
+ * @brief Verifica si un GPIO está asignado en el sistema
+ * @param gpio Número de GPIO a verificar
+ * @return true si el pin está en uso, false si está libre
+ * @note 🔒 N16R8 ARCHITECTURE FIX: Updated for new pin mappings
+ * @note GPIO 33-37 are FORBIDDEN (OPI PSRAM internal bus)
+ * @note GPIO 10-12 are FORBIDDEN (SPI Flash bus)
+ */
+static inline bool pin_is_assigned(uint8_t gpio) {
   switch (gpio) {
   // Sistema y Boot
   case PIN_KEY_ON:
