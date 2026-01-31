@@ -366,80 +366,80 @@
 // TABLA RESUMEN DE USO DE PINES - 🔒 N16R8 ARCHITECTURE FIX
 // ============================================================================
 /*
-┌──────┬─────────────────────────┬───────────┬─────────────────────────────────┐
-│ GPIO │ Función                 │ Tipo      │ Notas                           │
-├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
-│  0   │ BTN_LIGHTS              │ Input     │ 🔒 Moved from GPIO 2            │
-│  1   │ ENCODER_A               │ Input     │ 🔒 Moved from GPIO 37 (OPI
-PSRAM)│ │  2   │ WHEEL_FR                │ Input     │ 🔒 Moved from GPIO 36
-(OPI PSRAM)│ │  3   │ ENCODER_Z               │ Input     │ 🔒 Moved from GPIO
-39           │ │  4   │ PEDAL (ADC)             │ Analog In │ Sensor Hall pedal
-│ │  5   │ RELAY_TRAC              │ Output    │ Relé tracción 24V │ │  6   │
-RELAY_DIR               │ Output    │ Relé dirección 12V              │ │  7   │
-WHEEL_FL                │ Input     │ Rueda delantera izquierda       │ │  8   │
-I2C_SDA                 │ I/O       │ Bus I²C Data                    │ │  9   │
-I2C_SCL                 │ I/O       │ Bus I²C Clock                   │ │ 10   │
-⛔ FORBIDDEN            │ -         │ SPI Flash bus - DO NOT USE      │ │ 11   │
-⛔ FORBIDDEN            │ -         │ SPI Flash bus - DO NOT USE      │ │ 12   │
-⛔ FORBIDDEN            │ -         │ SPI Flash bus - DO NOT USE      │ │ 13   │
-TFT_MOSI                │ Output    │ 🔒 Moved from GPIO 11           │ │ 14   │
-TFT_SCK                 │ Output    │ 🔒 Moved from GPIO 10           │ │ 15   │
-TFT_CS                  │ Output    │ 🔒 Moved from GPIO 16           │ │ 16   │
-TFT_DC                  │ Output    │ 🔒 Moved from GPIO 13           │ │ 17   │
-TFT_RST                 │ Output    │ 🔒 Moved from GPIO 14           │ │ 18   │
-RELAY_SPARE             │ Output    │ 🔒 Moved from GPIO 46           │ │ 19   │
-DFPLAYER_TX             │ Output    │ 🔒 Moved from GPIO 18           │ │ 20   │
-DFPLAYER_RX             │ Input     │ 🔒 Moved from GPIO 17           │ │ 21   │
-TOUCH_CS                │ Output    │ Touch chip select               │ │ 33   │
-⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │ │ 34   │
-⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │ │ 35   │
-⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │ │ 36   │
-⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │ │ 37   │
-⛔ FORBIDDEN            │ -         │ OPI PSRAM bus - DO NOT USE      │ │ 38   │
-RELAY_MAIN              │ Output    │ 🔒 Moved from GPIO 35 (OPI PSRAM)│ │ 39 │
-ENCODER_B               │ Input     │ 🔒 Moved from GPIO 38           │ │ 40   │
-KEY_ON                  │ Input     │ Ignition ON detection           │ │ 41   │
-KEY_OFF                 │ Input     │ Shutdown request                │ │ 42   │
-TFT_BL                  │ Output    │ Backlight PWM                   │ │ 43   │
-LED_REAR                │ Output    │ 🔒 Moved from GPIO 48           │ │ 44   │
-TOFSENSE_RX             │ Input     │ TOFSense RX LiDAR data          │ │ 45   │
-WHEEL_RL                │ Input     │ 🔒 Moved from GPIO 15           │ │ 46   │
-WHEEL_RR                │ Input     │ 🔒 Moved from GPIO 1            │ │ 47   │
-LED_FRONT               │ Output    │ 🔒 Moved from GPIO 19           │ │ 48   │
-ONEWIRE                 │ I/O       │ 🔒 Moved from GPIO 20, then 45  │
-└──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
++------+-------------------------+-----------+---------------------------------+
+| GPIO | Función                 | Tipo      | Notas                           |
++------+-------------------------+-----------+---------------------------------+
+|  0   | BTN_LIGHTS              | Input     | 🔒 Moved from GPIO 2            |
+|  1   | ENCODER_A               | Input     | 🔒 Moved from GPIO 37 (OPI
+PSRAM)| |  2   | WHEEL_FR                | Input     | 🔒 Moved from GPIO 36
+(OPI PSRAM)| |  3   | ENCODER_Z               | Input     | 🔒 Moved from GPIO
+39           | |  4   | PEDAL (ADC)             | Analog In | Sensor Hall pedal
+| |  5   | RELAY_TRAC              | Output    | Relé tracción 24V | |  6   |
+RELAY_DIR               | Output    | Relé dirección 12V              | |  7   |
+WHEEL_FL                | Input     | Rueda delantera izquierda       | |  8   |
+I2C_SDA                 | I/O       | Bus I²C Data                    | |  9   |
+I2C_SCL                 | I/O       | Bus I²C Clock                   | | 10   |
+⛔ FORBIDDEN            | -         | SPI Flash bus - DO NOT USE      | | 11   |
+⛔ FORBIDDEN            | -         | SPI Flash bus - DO NOT USE      | | 12   |
+⛔ FORBIDDEN            | -         | SPI Flash bus - DO NOT USE      | | 13   |
+TFT_MOSI                | Output    | 🔒 Moved from GPIO 11           | | 14   |
+TFT_SCK                 | Output    | 🔒 Moved from GPIO 10           | | 15   |
+TFT_CS                  | Output    | 🔒 Moved from GPIO 16           | | 16   |
+TFT_DC                  | Output    | 🔒 Moved from GPIO 13           | | 17   |
+TFT_RST                 | Output    | 🔒 Moved from GPIO 14           | | 18   |
+RELAY_SPARE             | Output    | 🔒 Moved from GPIO 46           | | 19   |
+DFPLAYER_TX             | Output    | 🔒 Moved from GPIO 18           | | 20   |
+DFPLAYER_RX             | Input     | 🔒 Moved from GPIO 17           | | 21   |
+TOUCH_CS                | Output    | Touch chip select               | | 33   |
+⛔ FORBIDDEN            | -         | OPI PSRAM bus - DO NOT USE      | | 34   |
+⛔ FORBIDDEN            | -         | OPI PSRAM bus - DO NOT USE      | | 35   |
+⛔ FORBIDDEN            | -         | OPI PSRAM bus - DO NOT USE      | | 36   |
+⛔ FORBIDDEN            | -         | OPI PSRAM bus - DO NOT USE      | | 37   |
+⛔ FORBIDDEN            | -         | OPI PSRAM bus - DO NOT USE      | | 38   |
+RELAY_MAIN              | Output    | 🔒 Moved from GPIO 35 (OPI PSRAM)| | 39 |
+ENCODER_B               | Input     | 🔒 Moved from GPIO 38           | | 40   |
+KEY_ON                  | Input     | Ignition ON detection           | | 41   |
+KEY_OFF                 | Input     | Shutdown request                | | 42   |
+TFT_BL                  | Output    | Backlight PWM                   | | 43   |
+LED_REAR                | Output    | 🔒 Moved from GPIO 48           | | 44   |
+TOFSENSE_RX             | Input     | TOFSense RX LiDAR data          | | 45   |
+WHEEL_RL                | Input     | 🔒 Moved from GPIO 15           | | 46   |
+WHEEL_RR                | Input     | 🔒 Moved from GPIO 1            | | 47   |
+LED_FRONT               | Output    | 🔒 Moved from GPIO 19           | | 48   |
+ONEWIRE                 | I/O       | 🔒 Moved from GPIO 20, then 45  |
++------+-------------------------+-----------+---------------------------------+
 
 Note: PIN_TOFSENSE_TX set to -1 (sensor is TX-only, no RX input)
       PIN_TOUCH_IRQ removed (using polling mode instead of interrupt)
 */
-└──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
++------+-------------------------+-----------+---------------------------------+
 
     MCP23017(I²C 0x20) -
     Expansor GPIO :
-┌──────┬─────────────────────────┬───────────┬─────────────────────────────────┐
-│ Pin  │ Función                 │ Tipo      │ Notas                           │
-├──────┼─────────────────────────┼───────────┼─────────────────────────────────┤
-│ A0   │ FL_IN1                  │ Output    │ Motor FL dirección              │
-│ A1   │ FL_IN2                  │ Output    │ Motor FL dirección              │
-│ A2   │ FR_IN1                  │ Output    │ Motor FR dirección              │
-│ A3   │ FR_IN2                  │ Output    │ Motor FR dirección              │
-│ A4   │ RL_IN1                  │ Output    │ Motor RL dirección              │
-│ A5   │ RL_IN2                  │ Output    │ Motor RL dirección              │
-│ A6   │ RR_IN1                  │ Output    │ Motor RR dirección              │
-│ A7   │ RR_IN2                  │ Output    │ Motor RR dirección              │
-│ B0   │ SHIFTER_P               │ Input     │ ✅ Palanca Park(consecutivo) │
-│ B1   │ SHIFTER_R               │ Input     │ ✅ Palanca
-    Reverse │ │ B2   │ SHIFTER_N               │ Input     │ ✅ Palanca
-    Neutral               │ │ B3 │ SHIFTER_D1              │ Input     │ ✅ Palanca
++------+-------------------------+-----------+---------------------------------+
+| Pin  | Función                 | Tipo      | Notas                           |
++------+-------------------------+-----------+---------------------------------+
+| A0   | FL_IN1                  | Output    | Motor FL dirección              |
+| A1   | FL_IN2                  | Output    | Motor FL dirección              |
+| A2   | FR_IN1                  | Output    | Motor FR dirección              |
+| A3   | FR_IN2                  | Output    | Motor FR dirección              |
+| A4   | RL_IN1                  | Output    | Motor RL dirección              |
+| A5   | RL_IN2                  | Output    | Motor RL dirección              |
+| A6   | RR_IN1                  | Output    | Motor RR dirección              |
+| A7   | RR_IN2                  | Output    | Motor RR dirección              |
+| B0   | SHIFTER_P               | Input     | ✅ Palanca Park(consecutivo) |
+| B1   | SHIFTER_R               | Input     | ✅ Palanca
+    Reverse | | B2   | SHIFTER_N               | Input     | ✅ Palanca
+    Neutral               | | B3 | SHIFTER_D1              | Input     | ✅ Palanca
     Drive
-    1               │ │ B4 │ SHIFTER_D2              │ Input     │ ✅ Palanca
+    1               | | B4 | SHIFTER_D2              | Input     | ✅ Palanca
     Drive
-    2               │ │ B5 │ STEER_IN1               │ Output    │ ✅ Motor
+    2               | | B5 | STEER_IN1               | Output    | ✅ Motor
     dirección
-    R_EN         │ │ B6   │ STEER_IN2               │ Output    │ ✅ Motor
-    dirección L_EN         │ │ B7   │
-🆓 LIBRE                │ -         │ Disponible para expansión       │
-└──────┴─────────────────────────┴───────────┴─────────────────────────────────┘
+    R_EN         | | B6   | STEER_IN2               | Output    | ✅ Motor
+    dirección L_EN         | | B7   |
+🆓 LIBRE                | -         | Disponible para expansión       |
++------+-------------------------+-----------+---------------------------------+
 
     MEJORAS v2 .3.0 :
 ✅ TOUCH_CS : GPIO 3 → GPIO 21(evita strapping pin)
