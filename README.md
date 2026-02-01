@@ -112,6 +112,7 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 ### 📌 Documentación Técnica
 
 - **[HARDWARE.md](HARDWARE.md)** - 📌 **ESPECIFICACIÓN OFICIAL DEL HARDWARE** - Fuente única de verdad para N16R8
+- **[INVENTARIO_COMPONENTES_ALMACEN.md](INVENTARIO_COMPONENTES_ALMACEN.md)** - 📦 **INVENTARIO DE COMPONENTES** - Lista completa de hardware disponible para implementación
 - **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
 - **[PARTITION_SCHEME_FIX.md](PARTITION_SCHEME_FIX.md)** - 🔧 **Fix de Esquema de Partición** - Solución para bootloop por particiones al 100%
 - **[SOLUCION_BOOTLOOP_ESP32S3.md](SOLUCION_BOOTLOOP_ESP32S3.md)** - 🔧 **Fix de Watchdog Timeout** - Solución para bootloop por timeout
