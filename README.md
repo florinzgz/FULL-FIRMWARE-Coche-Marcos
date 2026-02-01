@@ -111,6 +111,7 @@ La documentación completa está disponible en el directorio [`docs/`](docs/):
 
 ### 📌 Documentación Técnica
 
+- **[MANUAL_COMPLETO_FIRMWARE.md](MANUAL_COMPLETO_FIRMWARE.md)** - 📘 **MANUAL TÉCNICO COMPLETO** - Documentación exhaustiva del firmware con guía de migración a STM32
 - **[HARDWARE.md](HARDWARE.md)** - 📌 **ESPECIFICACIÓN OFICIAL DEL HARDWARE** - Fuente única de verdad para N16R8
 - **[INVENTARIO_COMPONENTES_ALMACEN.md](INVENTARIO_COMPONENTES_ALMACEN.md)** - 📦 **INVENTARIO DE COMPONENTES** - Lista completa de hardware disponible para implementación
 - **[docs/HARDWARE_PREFLIGHT_SYSTEM.md](docs/HARDWARE_PREFLIGHT_SYSTEM.md)** - 🔒 **Sistema de Validación Pre-Vuelo** - Prevención de bootloops
