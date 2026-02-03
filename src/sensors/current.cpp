@@ -225,7 +225,8 @@ void Sensors::updateCurrent() {
         // 🔒 SECURITY FIX: Validate TCA channel before recovery attempt
         if (i >= 0 && i < 8) { // TCA9548A has 8 channels (0-7)
           Logger::infof("INA226 ch %d attempting recovery", i);
-          if (I2CRecovery::reinitSensor(i, 0x40, i) && ina[i]->begin()) {
+          // 🔒 CRITICAL FIX: Check ina[i] is not null before calling begin()
+          if (I2CRecovery::reinitSensor(i, 0x40, i) && ina[i] != nullptr && ina[i]->begin()) {
             sensorOk[i] = true;
             Logger::infof("INA226 ch %d recovered!", i);
           }

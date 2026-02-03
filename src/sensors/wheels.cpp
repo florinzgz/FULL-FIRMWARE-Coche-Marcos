@@ -90,7 +90,8 @@ void Sensors::updateWheels() {
         distance[i] += newDistanceMm;
       }
 
-      if (currentPulses > 0) {
+      if (currentPulses > 0 && dt > 0) {
+        // 🔒 CRITICAL FIX: Explicitly check dt > 0 to prevent division by zero
         float mm_per_s = (revs * WHEEL_CIRCUM_MM) / (dt / 1000.0f);
         float kmh = (mm_per_s / 1000.0f) * 3.6f;
 
