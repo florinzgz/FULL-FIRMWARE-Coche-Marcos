@@ -97,14 +97,19 @@
 
 | Componente | Cantidad | Especificación | Uso |
 |------------|----------|----------------|-----|
-| **BTS7960** | 4 | - H-Bridge de alta corriente<br>- 43A continua, 60A pico<br>- PWM hasta 25 kHz<br>- Protección térmica/cortocircuito | Control de 4 motores de tracción (1 por rueda) |
-| **Driver Motor Dirección** | 1 | Compatible con motor DC o stepper | Control de motor de dirección |
+| **BTS7960** | 5 | - H-Bridge de alta corriente<br>- 43A continua, 60A pico<br>- PWM hasta 25 kHz<br>- Protección térmica/cortocircuito | **5 unidades total:**<br>- 4× Control motores tracción (1 por rueda)<br>- 1× Control motor dirección |
 
 ### 5.2 Controlador PWM
 
 | Componente | Cantidad | Especificación | Uso |
 |------------|----------|----------------|-----|
-| **PCA9685** | 1 | - 16 canales PWM I2C<br>- 12-bit resolución<br>- Frecuencia: 40-1000 Hz | Generación de señales PWM para motores y servos auxiliares |
+| **PCA9685** | 3 | - 16 canales PWM I2C<br>- 12-bit resolución<br>- Frecuencia: 40-1000 Hz | **3 unidades total:**<br>- PCA9685 #1 (0x40): Motores eje delantero (FL+FR)<br>- PCA9685 #2 (0x41): Motores eje trasero (RL+RR)<br>- PCA9685 #3 (0x42): Motor dirección |
+
+### 5.3 Expansor GPIO
+
+| Componente | Cantidad | Especificación | Uso |
+|------------|----------|----------------|-----|
+| **MCP23017** | 1 | - Expansor GPIO I2C<br>- 16 pines I/O (GPIOA + GPIOB)<br>- Dirección I2C: 0x20 | Control IN1/IN2 de los 5× BTS7960<br>Lectura del shifter (5 posiciones)<br>13/16 pines utilizados |
 
 ---
 
@@ -139,7 +144,7 @@
 
 | Componente | Cantidad | Especificación | Uso |
 |------------|----------|----------------|-----|
-| **TOFSense** (Time of Flight) | 2-4+ | - Sensor de distancia láser<br>- Rango típico: 0.2-10m<br>- Interfaz I2C/UART | Detección de obstáculos frontal/trasera |
+| **TOFSense-M S** (LiDAR 8x8 Matrix) | 1 | - Sensor de distancia láser 8x8<br>- Rango: 0.2-4m<br>- Interfaz UART (115200 bps)<br>- FOV: 65°<br>- Update rate: ~100Hz | Detección de obstáculos **frontal únicamente**<br>Conectado a GPIO44 (RX) ESP32-S3 |
 
 ### 6.6 Sensores de Entrada de Usuario
 
@@ -211,10 +216,12 @@
 
 | Bus | Pines ESP32-S3 | Pines STM32 | Uso |
 |-----|----------------|-------------|-----|
-| **I2C** | SDA: GPIO 8<br>SCL: GPIO 9 | SDA: PB7<br>SCL: PB6 | - INA226 (via TCA9548A)<br>- PCA9685<br>- TOFSense |
-| **SPI HSPI** | MOSI: GPIO 11<br>MISO: GPIO 12<br>SCLK: GPIO 10 | - | Display ST7796S + Touch XPT2046 |
+| **I2C** | SDA: GPIO 8<br>SCL: GPIO 9 | SDA: PB7<br>SCL: PB6 | - INA226 (via TCA9548A)<br>- PCA9685 (×3: 0x40, 0x41, 0x42)<br>- MCP23017 (0x20)<br>- Sensores I2C varios |
+| **SPI HSPI** | MOSI: GPIO 13<br>MISO: -<br>SCLK: GPIO 14 | - | Display ST7796S + Touch XPT2046 |
 | **1-Wire** | GPIO configurable | GPIO configurable | Sensores DS18B20 |
 | **CAN** | TX: GPIO 20 (propuesto)<br>RX: GPIO 21 (propuesto) | TX: PB9<br>RX: PB8 | Comunicación ESP32 ↔ STM32 @ 500 kbps |
+| **UART0** | RX: GPIO 44 | - | TOFSense-M S (sensor obstáculos frontal) |
+| **UART1** | TX: GPIO 18<br>RX: GPIO 17 | - | DFPlayer Mini (audio) |
 
 ### 10.2 Conectores y Cableado
 
@@ -332,9 +339,14 @@ MCU ──I2C──TCA9548A─┤── INA226 #3 (Motor Tracción 3)
                     ├── INA226 #4 (Motor Tracción 4)
                     ├── INA226 #5 (Motor Dirección)
                     ├── INA226 #6 (Sistema General)
-                    ├── PCA9685 (PWM Controller)
-                    └── TOFSense / otros sensores I2C
+                    ├── PCA9685 #1 (0x40 - Eje delantero)
+                    ├── PCA9685 #2 (0x41 - Eje trasero)
+                    ├── PCA9685 #3 (0x42 - Dirección)
+                    ├── MCP23017 (0x20 - Expansor GPIO)
+                    └── otros sensores I2C
 ```
+
+**Nota:** TOFSense-M S se conecta por UART0 (GPIO44 RX), no por I2C.
 
 **Beneficios:**
 - ✅ Hasta 8 buses I2C independientes
@@ -350,12 +362,12 @@ MCU ──I2C──TCA9548A─┤── INA226 #3 (Motor Tracción 3)
 - ✅ Display ST7796S + Touch XPT2046
 - ✅ Audio DFPlayer Mini
 - ✅ LEDs WS2812B (28+16)
-- ✅ Detección obstáculos TOFSense (percepción visual)
+- ✅ Detección obstáculos TOFSense-M S (sensor único frontal, percepción visual)
 - ✅ Menús, diagnóstico, visualización
 - ✅ Relé power-hold mínimo (para mantener ESP32 encendido)
 
 #### Migran a STM32G474RE (Control):
-- ✅ Control de motores (4× BTS7960 + dirección)
+- ✅ Control de motores (5× BTS7960: 4 tracción + 1 dirección)
 - ✅ Encoder de dirección E6B2-CWZ6C
 - ✅ Sensores de rueda (4×)
 - ✅ Sensores de corriente INA226 (6× via TCA9548A)
@@ -412,19 +424,21 @@ MCU ──I2C──TCA9548A─┤── INA226 #3 (Motor Tracción 3)
 - [ ] Verificar display con sketch de prueba
 - [ ] Calibrar touch
 
-#### Fase 7: Sensores en STM32
-- [ ] Conectar INA226 (×6) vía TCA9548A al I2C del STM32
+#### Fase 7: Sensores y Control I2C (ESP32/STM32)
+- [ ] Conectar INA226 (×6) vía TCA9548A al I2C
+- [ ] Conectar PCA9685 (×3) para PWM de motores (0x40, 0x41, 0x42)
+- [ ] Conectar MCP23017 expansor GPIO (0x20) para control BTS7960 y shifter
 - [ ] Conectar DS18B20 en bus 1-Wire
 - [ ] Conectar encoder E6B2-CWZ6C (A/B/Z)
 - [ ] Conectar sensores de rueda (×4)
 - [ ] Conectar pedal analógico Hall
-- [ ] Conectar shifter mecánico
+- [ ] Conectar shifter mecánico al MCP23017 vía optoacopladores
 - [ ] Verificar lectura de cada sensor individualmente
 
-#### Fase 8: Control de Motores (STM32)
-- [ ] Conectar drivers BTS7960 (×4) con protecciones
-- [ ] Conectar driver motor dirección
-- [ ] Conectar PCA9685 para PWM auxiliar
+#### Fase 8: Control de Motores
+- [ ] Conectar drivers BTS7960 (×5: 4 tracción + 1 dirección) con protecciones
+- [ ] Configurar control PWM desde PCA9685 a BTS7960
+- [ ] Configurar control direccional IN1/IN2 desde MCP23017 a BTS7960
 - [ ] Verificar PWM en banco de pruebas (sin carga)
 - [ ] Verificar protecciones térmicas y de corriente
 
@@ -435,12 +449,13 @@ MCU ──I2C──TCA9548A─┤── INA226 #3 (Motor Tracción 3)
 - [ ] Conectar comandos de relés vía optoacopladores
 - [ ] Verificar secuencia de activación segura
 
-#### Fase 10: Audio e Iluminación (ESP32)
-- [ ] Conectar DFPlayer Mini (UART)
+#### Fase 10: Audio, Iluminación y Sensores (ESP32)
+- [ ] Conectar DFPlayer Mini (UART1, GPIO 18/17)
+- [ ] Conectar TOFSense-M S (UART0, GPIO 44 RX)
 - [ ] Conectar WS2812B frontal (GPIO 1, 28 LEDs)
 - [ ] Conectar WS2812B trasero (GPIO 48, 16 LEDs)
 - [ ] Cargar pistas de audio en SD del DFPlayer
-- [ ] Verificar patrones de LEDs y audio
+- [ ] Verificar patrones de LEDs, audio y detección de obstáculos
 
 #### Fase 11: Validación del Sistema
 - [ ] Verificar comunicación CAN bidireccional
@@ -476,24 +491,25 @@ MCU ──I2C──TCA9548A─┤── INA226 #3 (Motor Tracción 3)
 5. ✅ Cable par trenzado CAN
 
 #### Prioridad 2 - Control y Seguridad
-6. ✅ BTS7960 (×4) + driver dirección
-7. ✅ INA226 (×6) + TCA9548A
-8. ✅ Encoder E6B2-CWZ6C
-9. ✅ Sensores de rueda (×4)
-10. ✅ Relés de potencia (×3)
-11. ✅ Optoacopladores 8 módulos (×2)
-12. ✅ Temporizadores 12V y 24V
+6. ✅ BTS7960 (×5: 4 tracción + 1 dirección)
+7. ✅ PCA9685 (×3 para PWM motores) + MCP23017 (×1 expansor GPIO)
+8. ✅ INA226 (×6) + TCA9548A
+9. ✅ Encoder E6B2-CWZ6C
+10. ✅ Sensores de rueda (×4)
+11. ✅ Relés de potencia (×3)
+12. ✅ Optoacopladores 8 módulos (×2)
+13. ✅ Temporizadores 12V y 24V
 
 #### Prioridad 3 - HMI y Usuario
-13. ✅ Display ST7796S + Touch XPT2046
-14. ✅ DFPlayer Mini
-15. ✅ WS2812B LEDs (28+16)
-16. ✅ Pedal analógico Hall + Shifter
+14. ✅ Display ST7796S + Touch XPT2046
+15. ✅ DFPlayer Mini
+16. ✅ WS2812B LEDs (28+16)
+17. ✅ Pedal analógico Hall + Shifter
 
 #### Prioridad 4 - Sensores Adicionales
-17. ✅ DS18B20 (×4+)
-18. ✅ TOFSense obstáculos (×2-4)
-19. ✅ PCA9685 PWM controller
+18. ✅ DS18B20 (×4+)
+19. ✅ TOFSense-M S (×1 frontal, UART)
+20. (Reserva para futura expansión)
 
 ---
 
@@ -559,3 +575,21 @@ MCU ──I2C──TCA9548A─┤── INA226 #3 (Motor Tracción 3)
 ---
 
 **📌 NOTA IMPORTANTE:** Este inventario debe actualizarse cuando se adquieran nuevos componentes o se modifique el diseño del sistema.
+
+---
+
+## Historial de Cambios
+
+### Versión 1.1 - 2026-02-06
+**Correcciones implementadas:**
+- ✅ **BTS7960:** Corregido de 4 a **5 unidades** (4 para motores de tracción + 1 para motor de dirección)
+- ✅ **TOFSense:** Corregido de "2-4+" a **1 unidad** (TOFSense-M S LiDAR 8x8 Matrix, montado únicamente en la parte frontal, conexión UART)
+- ✅ **PCA9685:** Corregido de 1 a **3 unidades** (2 para motores de tracción en ejes delantero/trasero + 1 para motor de dirección)
+- ✅ **MCP23017:** **Agregado** (1 unidad, expansor GPIO I2C para control IN1/IN2 de BTS7960 y lectura de shifter)
+- ✅ **Conexión I2C:** Actualizada para reflejar que TOFSense-M S usa UART0 (GPIO44), no I2C
+- ✅ **Buses de comunicación:** Agregadas secciones UART0 (TOFSense) y UART1 (DFPlayer)
+- ✅ **Prioridades de implementación:** Actualizadas para reflejar correctamente los componentes
+- ✅ **Diagrama I2C:** Actualizado para mostrar las 3 unidades PCA9685 con sus direcciones (0x40, 0x41, 0x42) y MCP23017 (0x20)
+
+### Versión 1.0 - 2026-02-01
+**Creación inicial del documento**
