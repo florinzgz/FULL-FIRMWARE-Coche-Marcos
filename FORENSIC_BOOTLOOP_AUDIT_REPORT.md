@@ -6,6 +6,95 @@
 
 ---
 
+## EARLY-BOOT PRE-SETUP FORENSIC ANALYSIS
+
+### 1. Global/Static Objects with Constructors
+
+| File | Line | Object | Constructor Risk | Status |
+|------|------|--------|-----------------|--------|
+| `src/core/mcp_shared.cpp` | 16 | `Adafruit_MCP23X17 mcp` | **LOW** (constructor is safe, but object is dead code) | 🔧 **FIXED** — converted to pointer-based lazy init |
+| `src/control/steering_motor.cpp` | 20 | `static Adafruit_PWMServoDriver pca` | **NONE** — default constructor only stores address+pointer | ✅ Safe |
+| `src/control/traction.cpp` | 33-34 | `static Adafruit_PWMServoDriver pcaFront/pcaRear` | **NONE** — same as above | ✅ Safe |
+| `src/lighting/led_controller.cpp` | 10-11 | `static CRGB frontLeds[28]/rearLeds[16]` | **NONE** — POD type, trivial constructor | ✅ Safe |
+| `src/core/storage.cpp` | 7 | `static Preferences prefs` | **NONE** — no NVS access in constructor | ✅ Safe |
+| `src/core/storage.cpp` | 10 | `Storage::Config cfg` | **NONE** — plain struct, no dynamic alloc | ✅ Safe |
+| `src/core/config_storage.cpp` | 4 | `static Preferences preferences` | **NONE** — no NVS access in constructor | ✅ Safe |
+| `src/core/config_manager.cpp` | 6 | `static Preferences prefs` | **NONE** — no NVS access in constructor | ✅ Safe |
+| `src/core/telemetry.cpp` | 26 | `static Preferences prefs` | **NONE** — no NVS access in constructor | ✅ Safe |
+| `src/logging/obstacle_logger.cpp` | 14 | `static LogEntry buffer[100]` | **NONE** — trivial zero-init constructor | ✅ Safe |
+| `src/core/boot_guard.cpp` | 32 | `static BootCounterData bootCounterData` | **NONE** — plain struct, no constructor | ✅ Safe |
+
+### 2. TFT_eSPI / TFT_eSprite at Global Scope
+
+| File | Line | Declaration | Risk |
+|------|------|-------------|------|
+| `src/hud/hud_manager.cpp` | 133 | `TFT_eSPI *tft = nullptr` | ✅ Pointer only, allocated in `HUDManager::init()` |
+| `src/hud/render_engine.cpp` | 23 | `TFT_eSPI *RenderEngine::tft = nullptr` | ✅ Pointer only |
+| `src/hud/render_engine.cpp` | 26/28 | `TFT_eSprite *RenderEngine::sprites[2/3] = {nullptr}` | ✅ Pointer array only |
+| `src/hud/hud_compositor.cpp` | 28-35 | `TFT_eSPI/TFT_eSprite *` pointers | ✅ All nullptr pointers |
+| `src/hud/gauges.cpp` | 9 | `static TFT_eSPI *tft` | 🔧 **FIXED** — added explicit `= nullptr` |
+| `src/hud/icons.cpp` | 11 | `static TFT_eSPI *tft = nullptr` | ✅ Pointer only |
+| `src/hud/wheels_display.cpp` | 12 | `static TFT_eSPI *tft = nullptr` | ✅ Pointer only |
+| All other HUD files | Various | `static TFT_eSPI *tft = nullptr` | ✅ All pointer-based |
+
+**No TFT_eSPI or TFT_eSprite objects are instantiated at global scope.** All are nullptr pointers.
+
+### 3. PSRAM Allocations (ps_malloc, heap_caps_malloc, new) at Global Scope
+
+**Result: NONE FOUND** ✅
+
+All PSRAM allocations occur inside `init()` functions called from `setup()`:
+- `RenderEngine::createSprite()` — called from `HUDManager::init()`
+- `HudCompositor::createLayerSprite()` — called from `HudCompositor::init()`
+- `new TFT_eSPI()` — called from `HUDManager::init()` line 169
+- `new HardwareSerial()` — called from `DFPlayer::init()` and `ObstacleDetection::init()`
+- `new OneWire()` / `new DallasTemperature()` — called from temperature `init()`
+- `new INA226()` — called from current sensor `init()`
+
+### 4. PSRAM Usage Before psramInit()
+
+**Result: NONE FOUND** ✅
+
+`psramInit()` is called at `main.cpp:65` — the very first significant operation in `setup()`.
+All allocations that use PSRAM happen much later, inside `initializeSystem()`.
+
+### 5. platformio.ini memory_type Verification
+
+```ini
+board_build.arduino.memory_type = qio_opi
+```
+
+✅ **CORRECT** for ESP32-S3-WROOM-1 N16R8:
+- **QIO** = Quad I/O flash (16MB)
+- **OPI** = Octal PSRAM (8MB)
+
+### 6. Large Global Buffers
+
+| File | Line | Buffer | Size | Risk |
+|------|------|--------|------|------|
+| `src/sensors/obstacle_detection.cpp` | 53 | `static uint8_t frameBuffer[400]` | 400 bytes | ✅ Low — well within BSS limits |
+| `src/logging/obstacle_logger.cpp` | 14 | `static LogEntry buffer[100]` | ~1600 bytes | ✅ Low — BSS, not stack |
+| `src/lighting/led_controller.cpp` | 10-11 | `static CRGB frontLeds[28]/rearLeds[16]` | 132 bytes | ✅ Negligible |
+
+No buffers exceed early stack capacity.
+
+### 7. PSRAM Allocations Before Arduino Core Init
+
+**Result: CONFIRMED SAFE** ✅
+
+All `new (std::nothrow)` allocations for hardware objects happen inside `init()` functions,
+which are called from `setup()` → `initializeSystem()`, well after Arduino core and PSRAM are ready.
+
+### Minimal Patch Applied
+
+1. **`src/core/mcp_shared.cpp:16`** — Converted global `Adafruit_MCP23X17 mcp` to pointer-based lazy initialization (`static Adafruit_MCP23X17 *mcpPtr = nullptr`), allocated in `init()` using `new (std::nothrow)`. This eliminates the last remaining global object constructor for a hardware peripheral.
+
+2. **`include/mcp_shared.h:14`** — Removed `extern Adafruit_MCP23X17 mcp` declaration (now file-local pointer).
+
+3. **`src/hud/gauges.cpp:9`** — Added explicit `= nullptr` to `static TFT_eSPI *tft` for consistency with all other TFT pointer declarations.
+
+---
+
 ## SECTION 1 — BOOTLOOP DOCUMENT ANALYSIS
 
 ### Documents Located (30+ files)

@@ -9,9 +9,8 @@
  */
 namespace MCPShared {
 #ifndef STANDALONE_DISPLAY
-// Objeto compartido MCP23017 @ 0x20
-// Not instantiated in STANDALONE_DISPLAY mode to prevent bootloop
-extern Adafruit_MCP23X17 mcp;
+// 🔒 v2.18.4: MCP23017 object is now allocated lazily in init()
+// No global extern needed — pointer is file-local in mcp_shared.cpp
 #endif
 extern bool initialized;
 
