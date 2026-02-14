@@ -34,13 +34,13 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           set -euxo pipefail
-          pio run -e esp32-s3-n16r8 -v
+          pio run -e esp32-s3-devkitc1-n16r8 -v
 
       - name: Generate compile_commands.json (verbose)
         working-directory: ${{ github.workspace }}
         run: |
           set -euxo pipefail
-          pio run -e esp32-s3-n16r8 --target compiledb -v
+          pio run -e esp32-s3-devkitc1-n16r8 --target compiledb -v
 
       - name: Inspect project root and .pio
         working-directory: ${{ github.workspace }}

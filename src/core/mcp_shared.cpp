@@ -2,6 +2,7 @@
 #include "logger.h"
 #include "pins.h"
 #include "system.h"
+#include <new> // For std::nothrow
 
 /**
  * @deprecated This namespace is legacy code and not used in current firmware.
@@ -10,10 +11,11 @@
  */
 namespace MCPShared {
 #ifndef STANDALONE_DISPLAY
-// Only instantiate MCP23017 in full vehicle mode
-// In standalone mode, this peripheral is not needed and its
-// global constructor could cause bootloop issues
-Adafruit_MCP23X17 mcp;
+// 🔒 v2.18.4: BOOTLOOP FIX - Pointer-based lazy initialization
+// Global constructor Adafruit_MCP23X17() was running before main(),
+// which can cause early-boot crashes on ESP32-S3 OPI.
+// Now using pointer allocated in init() after Arduino core is ready.
+static Adafruit_MCP23X17 *mcpPtr = nullptr;
 #endif
 
 bool initialized = false;
@@ -34,11 +36,21 @@ bool init() {
     return true;
   }
 
+  // 🔒 v2.18.4: Allocate MCP23017 object on first init (lazy initialization)
+  if (mcpPtr == nullptr) {
+    mcpPtr = new (std::nothrow) Adafruit_MCP23X17();
+    if (mcpPtr == nullptr) {
+      Logger::error("MCPShared: MCP23017 allocation failed");
+      System::logError(833);
+      return false;
+    }
+  }
+
   // Intentar inicialización con retry
-  if (!mcp.begin_I2C(I2C_ADDR_MCP23017)) {
+  if (!mcpPtr->begin_I2C(I2C_ADDR_MCP23017)) {
     Logger::error("MCPShared: MCP23017 init FAIL - retrying...");
     delay(50);
-    if (!mcp.begin_I2C(I2C_ADDR_MCP23017)) {
+    if (!mcpPtr->begin_I2C(I2C_ADDR_MCP23017)) {
       Logger::error("MCPShared: MCP23017 init FAIL definitivo");
       System::logError(833); // Nuevo código: MCP shared init failure
       return false;
@@ -47,8 +59,8 @@ bool init() {
 
   // Configurar GPIOA0-A7 para tracción (IN1/IN2 motores)
   for (int pin = FIRST_DIR_PIN; pin <= LAST_DIR_PIN; pin++) {
-    mcp.pinMode(pin, OUTPUT);
-    mcp.digitalWrite(pin, LOW);
+    mcpPtr->pinMode(pin, OUTPUT);
+    mcpPtr->digitalWrite(pin, LOW);
   }
 
   // Configurar GPIOB0-B4 para shifter (se completa en Shifter::init)

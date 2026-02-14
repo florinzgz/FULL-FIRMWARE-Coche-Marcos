@@ -6,7 +6,7 @@
 #include <Arduino.h>       // para constrain(), snprintf, etc.
 #include <cmath>           // Phase 10: for fabs()
 
-static TFT_eSPI *tft;
+static TFT_eSPI *tft = nullptr;
 
 // Guardamos el último valor para poder borrar solo la aguja anterior
 static float lastSpeed = -1;
